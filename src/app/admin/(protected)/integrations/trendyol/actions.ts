@@ -1258,15 +1258,29 @@ export async function getTrendyolShippingLabel(orderId: string) {
         });
 
         // --- ADIM 1: SİPARİŞİ 'TOPLANIYOR' STATÜSÜNE ÇEK ---
-        // Trendyol'da barkod alabilmek için siparişin 'Picking' (Toplanıyor) olması şarttır.
         if (order.shipmentPackageId) {
             console.log(`[Trendyol] Sipariş statüsü 'Picking' yapılıyor (Paket ID: ${order.shipmentPackageId})...`);
             try {
                 await updateTrendyolOrderToPicking(order.shipmentPackageId);
-                // Trendyol'un statü değişikliğini işlemesi için 1.5 saniye bekle
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                // Trendyol'un takip numarasını oluşturması ve statü işlemesi için bekle
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // --- KRİTİK: Verileri Trendyol'dan tazele (Takip No çekmek için) ---
+                console.log("[Trendyol] Sipariş verileri tazeleniyor...");
+                const syncRes = await syncOrdersFromTrendyol(); 
+                if (syncRes.success) {
+                    // Veritabanından güncel veriyi tekrar oku
+                    const updatedOrder = await prisma.order.findUnique({
+                        where: { id: orderId },
+                        select: { cargoTrackingNumber: true, shipmentPackageId: true }
+                    });
+                    if (updatedOrder?.cargoTrackingNumber) {
+                        (order as any).cargoTrackingNumber = updatedOrder.cargoTrackingNumber;
+                        console.log(`[Trendyol] Yeni Takip No Alındı: ${updatedOrder.cargoTrackingNumber}`);
+                    }
+                }
             } catch (err) {
-                console.warn("[Trendyol] Statü güncelleme atlandı veya başarısız.");
+                console.warn("[Trendyol] Statü güncelleme veya tazeleme hatası:", err);
             }
         }
 
@@ -1278,12 +1292,15 @@ export async function getTrendyolShippingLabel(orderId: string) {
             attempts++;
             console.log(`[Trendyol] Barkod denemesi ${attempts}/3...`);
 
-            // 1. Yol: Common Label API (Resmi)
+            // 1. Yol: Common Label API (Dokümanda önerilen, Anlaşmalı Kargo)
             if (order.cargoTrackingNumber) {
                 try {
                     const res = await client.getCommonLabel(order.cargoTrackingNumber);
                     labelUrl = res.data?.[0]?.label;
-                } catch (err) {}
+                    if (labelUrl) console.log("[Trendyol] Common Label başarılı.");
+                } catch (err: any) {
+                    console.error(`[Trendyol] Common Label Hatası:`, err.message);
+                }
             }
 
             // 2. Yol: Alternatif Servis
