@@ -215,15 +215,7 @@ export class TrendyolClient {
         return await response.json();
     }
 
-    async getCategories() {
-        await this.init();
-        return this.request('GET', '/product-categories');
-    }
 
-    async getCategoryAttributes(categoryId: number) {
-        await this.init();
-        return this.request('GET', `/product-categories/${categoryId}/attributes`);
-    }
 
     /**
      * Get Default Cargo and Addresses
