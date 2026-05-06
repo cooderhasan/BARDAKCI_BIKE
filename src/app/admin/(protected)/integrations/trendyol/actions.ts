@@ -90,7 +90,7 @@ export async function enqueueTrendyolSync() {
     }
 }
 
-export async function syncProductsToTrendyol(productIds?: string[]) {
+export async function syncProductsToTrendyol(productIds?: string[], type: "products" | "prices" | "stocks" = "products") {
     try {
         // 1. Check Config
         const config = await (prisma as any).trendyolConfig.findFirst({
@@ -130,7 +130,47 @@ export async function syncProductsToTrendyol(productIds?: string[]) {
         });
 
         if (products.length === 0) {
-            return { success: false, message: "Gönderilecek uygun ürün (Barkodlu ve Aktif) bulunamadı." };
+            return { success: true, message: "Senkronize edilecek aktif ürün bulunamadı." };
+        }
+
+        // --- HIZLI FİYAT VE STOK GÜNCELLEME (Price and Inventory API) ---
+        if (type === "prices" || type === "stocks") {
+            const syncItems: any[] = [];
+            for (const product of products) {
+                // Determine Trendyol price (Trendyol specific price > Sale price > List price)
+                let baseSalePrice = product.trendyolPrice ? Number(product.trendyolPrice) : (product.salePrice ? Number(product.salePrice) : Number(product.listPrice));
+                let baseListPrice = product.trendyolPrice ? Number(product.trendyolPrice) : Number(product.listPrice);
+
+                if (baseSalePrice > baseListPrice) baseListPrice = baseSalePrice;
+
+                if (product.variants && product.variants.length > 0) {
+                    for (const v of product.variants) {
+                        if (!v.barcode) continue;
+                        syncItems.push({
+                            barcode: v.barcode,
+                            quantity: Math.max(0, v.stock - (product.criticalStock || 0)),
+                            salePrice: baseSalePrice + Number(v.priceAdjustment || 0),
+                            listPrice: baseListPrice + Number(v.priceAdjustment || 0)
+                        });
+                    }
+                } else if (product.barcode) {
+                    syncItems.push({
+                        barcode: product.barcode,
+                        quantity: Math.max(0, product.stock - (product.criticalStock || 0)),
+                        salePrice: baseSalePrice,
+                        listPrice: baseListPrice
+                    });
+                }
+            }
+
+            if (syncItems.length > 0) {
+                const res = await client.updatePriceAndInventory(syncItems);
+                if (res.ok) {
+                    return { success: true, message: `${syncItems.length} adet varyant için hızlı güncelleme yapıldı. BatchId: ${res.batchRequestId}` };
+                } else {
+                    return { success: false, message: "Hızlı Güncelleme Hatası: " + (res.message || "Bilinmeyen hata") };
+                }
+            }
         }
 
         // 3. Transform to Trendyol Format
@@ -1242,8 +1282,10 @@ export async function getTrendyolShippingLabel(orderId: string) {
                 
                 if (response.ok) {
                     const data = await response.json();
-                    // Bu servis genelde direkt bir liste veya link döner
                     labelUrl = Array.isArray(data) ? data[0]?.labelUrl : data?.labelUrl;
+                } else {
+                    const errText = await response.text();
+                    console.error(`[Trendyol] Paket ID Barkod Hatası (${response.status}):`, errText);
                 }
             } catch (err) {
                 console.error("[Trendyol] Paket ID ile barkod alma hatası:", err);

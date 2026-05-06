@@ -43,7 +43,8 @@ export function initializeWorker() {
 
                 // Manual Product Sync Jobs
                 if (job.data.marketplace === "trendyol") {
-                    const result = await syncProductsToTrendyol(job.data.productIds);
+                    const { syncProductsToTrendyol } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
+                    const result = await syncProductsToTrendyol(job.data.productIds, job.data.type);
                     if (!result.success) throw new Error(result.message);
                     console.log(`✅ Tamamlandı: Trendyol Sync - ${result.message}`);
                 } else if (job.data.marketplace === "n11") {
