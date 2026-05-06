@@ -69,6 +69,7 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                     <TabsTrigger value="social" className="px-4 py-2">Sosyal Medya</TabsTrigger>
                     <TabsTrigger value="scripts" className="px-4 py-2">Script & Analitik</TabsTrigger>
                     <TabsTrigger value="cargo" className="px-4 py-2">Kargo & Teslimat</TabsTrigger>
+                    <TabsTrigger value="stock" className="px-4 py-2">Stok Ayarları</TabsTrigger>
                     <TabsTrigger value="xml" className="px-4 py-2">Entegrasyonlar (XML)</TabsTrigger>
                 </TabsList>
 
@@ -511,6 +512,34 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                         className="font-mono text-sm"
                                     />
                                     <p className="text-xs text-gray-500">Facebook Pixel &lt;noscript&gt; etiketi veya sayfa sonunda çalışması gereken scriptler için kullanılır.</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="stock" className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Stok ve Envanter Ayarları</CardTitle>
+                                <CardDescription>
+                                    Ürün stok yönetimi ve kritik seviye ayarları
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="defaultCriticalStock">Varsayılan Kritik Stok Seviyesi</Label>
+                                    <Input
+                                        id="defaultCriticalStock"
+                                        type="number"
+                                        value={settings.defaultCriticalStock || "10"}
+                                        onChange={(e) => updateField("defaultCriticalStock", e.target.value)}
+                                        className="max-w-xs"
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                        Pazaryerlerine (Trendyol vb.) gönderilen stok miktarı hesaplanırken bu değer gerçek stoktan düşülür. 
+                                        Örn: Stok 15, Kritik 10 ise pazaryerine 5 stok bildirilir. 
+                                        <b>0</b> yaparsanız tüm stoklar olduğu gibi gönderilir.
+                                    </p>
                                 </div>
                             </CardContent>
                         </Card>

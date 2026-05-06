@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
 export async function getN11Config() {
     try {
@@ -110,9 +111,13 @@ export async function syncProductsToN11(productIds?: string[]) {
         // 1. Collect all items to sync across all products
         const allItemsToSync = [];
 
+        // Fetch default critical stock from settings
+        const generalSettings = await getSiteSettings("general");
+        const defaultCritical = Number(generalSettings?.defaultCriticalStock || 10);
+
         for (const p of products) {
             const basePrice = Number((p as any).n11Price) || Number(p.listPrice);
-            const criticalStock = p.criticalStock || 10;
+            const criticalStock = p.criticalStock ?? defaultCritical;
 
             if ((p as any).variants?.length > 0) {
                 for (const v of (p as any).variants) {

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { TrendyolClient } from "@/services/trendyol/api";
 import { generateSlug } from "@/lib/helpers";
+import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
 // We use 'any' cast for prisma.trendyolConfig because the client types might not be regenerated 
 // due to the dev server lock, but the runtime works if DB schema is updated.
@@ -144,6 +145,10 @@ export async function syncProductsToTrendyol(productIds?: string[]) {
             // Brand Mapping
             const brandId = (p as any).brand?.trendyolBrandId || 1795; // Default "Diğer" if not found? Need real check
 
+            // Fetch default critical stock from settings
+            const generalSettings = await getSiteSettings("general");
+            const defaultCritical = Number(generalSettings?.defaultCriticalStock || 10);
+
             // Base Info
             const baseItem = {
                 title: p.name,
@@ -171,7 +176,7 @@ export async function syncProductsToTrendyol(productIds?: string[]) {
                     const variantSalePrice = baseSalePrice + Number(v.priceAdjustment || 0);
 
                     // Critical stock calculation
-                    const criticalStock = p.criticalStock || 10;
+                    const criticalStock = p.criticalStock ?? defaultCritical;
                     const availableStock = Math.max(0, v.stock - criticalStock);
 
                     items.push({

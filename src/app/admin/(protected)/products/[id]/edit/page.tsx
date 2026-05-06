@@ -9,7 +9,7 @@ interface EditProductPageProps {
 export default async function EditProductPage({ params }: EditProductPageProps) {
     const { id } = await params;
 
-    const [product, categories, brands] = await Promise.all([
+    const [product, categories, brands, settings] = await Promise.all([
         prisma.product.findUnique({
             where: { id },
             include: {
@@ -46,7 +46,10 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             where: { isActive: true },
             orderBy: { name: "asc" },
         }),
+        prisma.siteSettings.findUnique({ where: { key: "general" } })
     ]);
+
+    const defaultCriticalStock = Number((settings?.value as any)?.defaultCriticalStock || 10);
 
     if (!product) {
         notFound();
@@ -109,6 +112,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
                 categories={categories}
                 brands={brands}
                 product={serializedProduct}
+                defaultCriticalStock={defaultCriticalStock}
             />
         </div>
     );

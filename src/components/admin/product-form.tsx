@@ -107,9 +107,10 @@ interface ProductFormProps {
     categories: Category[];
     brands: Brand[];
     product?: Product;
+    defaultCriticalStock?: number;
 }
 
-export function ProductForm({ categories, brands, product }: ProductFormProps) {
+export function ProductForm({ categories, brands, product, defaultCriticalStock = 10 }: ProductFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -132,7 +133,7 @@ export function ProductForm({ categories, brands, product }: ProductFormProps) {
         vatRate: product?.vatRate?.toString() || "20",
         minQuantity: product?.minQuantity || 1,
         stock: product?.stock || 0,
-        criticalStock: product?.criticalStock || 10,
+        criticalStock: product?.criticalStock ?? defaultCriticalStock,
         images: product?.images || [] as string[],
         variants: product?.variants || [] as ProductVariant[],
         isActive: product?.isActive ?? true,

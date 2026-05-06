@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { ProductForm } from "@/components/admin/product-form";
 
 export default async function NewProductPage() {
-    const [categories, brands] = await Promise.all([
+    const [categories, brands, settings] = await Promise.all([
         prisma.category.findMany({
             where: {
                 isActive: true,
@@ -17,7 +17,10 @@ export default async function NewProductPage() {
             where: { isActive: true },
             orderBy: { name: "asc" },
         }),
+        prisma.siteSettings.findUnique({ where: { key: "general" } })
     ]);
+
+    const defaultCriticalStock = Number((settings?.value as any)?.defaultCriticalStock || 10);
 
     return (
         <div className="space-y-6">
@@ -30,7 +33,11 @@ export default async function NewProductPage() {
                 </p>
             </div>
 
-            <ProductForm categories={categories} brands={brands} />
+            <ProductForm 
+                categories={categories} 
+                brands={brands} 
+                defaultCriticalStock={defaultCriticalStock} 
+            />
         </div>
     );
 }

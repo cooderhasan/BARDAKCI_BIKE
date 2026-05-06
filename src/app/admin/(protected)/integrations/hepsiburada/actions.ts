@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
 export async function getHepsiburadaConfig() {
     try {
@@ -109,9 +110,13 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
         // 2. Map to Hepsiburada format (simplified inventory payload)
         // HB Inventory: { merchantSku, availableStock, price, dispatchTime, cargoCompany1, cargoCompany2, cargoCompany3, maximumPurchasableQuantity }
 
+        // Fetch default critical stock from settings
+        const generalSettings = await getSiteSettings("general");
+        const defaultCritical = Number(generalSettings?.defaultCriticalStock || 10);
+
         for (const p of products) {
             const basePrice = Number((p as any).hepsiburadaPrice) || Number(p.listPrice); // Use HB price if available
-            const criticalStock = p.criticalStock || 10;
+            const criticalStock = p.criticalStock ?? defaultCritical;
 
             // Variants?
             if ((p as any).variants && (p as any).variants.length > 0) {
