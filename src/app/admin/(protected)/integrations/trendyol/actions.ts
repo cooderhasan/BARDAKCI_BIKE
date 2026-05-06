@@ -1022,29 +1022,37 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
         // Handle Brand
         let brandId = undefined;
         if (tProduct.brand) {
-            const brandName = typeof tProduct.brand === 'string' ? tProduct.brand : tProduct.brand.name;
-            const tBrandId = typeof tProduct.brand === 'object' ? tProduct.brand.id : null;
+            let brandName = "";
+            let tBrandId = null;
 
-            let existingBrand = await prisma.brand.findFirst({
-                where: { name: { equals: brandName, mode: 'insensitive' } }
-            });
-
-            if (!existingBrand) {
-                existingBrand = await prisma.brand.create({
-                    data: {
-                        name: brandName,
-                        slug: generateSlug(brandName),
-                        trendyolBrandId: tBrandId ? Number(tBrandId) : null
-                    }
-                });
-            } else if (tBrandId && !existingBrand.trendyolBrandId) {
-                // Update existing brand with Trendyol ID if missing
-                await prisma.brand.update({
-                    where: { id: existingBrand.id },
-                    data: { trendyolBrandId: Number(tBrandId) }
-                });
+            if (typeof tProduct.brand === 'string') {
+                brandName = tProduct.brand;
+            } else if (typeof tProduct.brand === 'object') {
+                brandName = tProduct.brand.name || tProduct.brand.label || "";
+                tBrandId = tProduct.brand.id || null;
             }
-            brandId = existingBrand.id;
+
+            if (brandName) {
+                let existingBrand = await prisma.brand.findFirst({
+                    where: { name: { equals: brandName, mode: 'insensitive' } }
+                });
+
+                if (!existingBrand) {
+                    existingBrand = await prisma.brand.create({
+                        data: {
+                            name: brandName,
+                            slug: generateSlug(brandName),
+                            trendyolBrandId: tBrandId ? Number(tBrandId) : null
+                        }
+                    });
+                } else if (tBrandId && !existingBrand.trendyolBrandId) {
+                    await prisma.brand.update({
+                        where: { id: existingBrand.id },
+                        data: { trendyolBrandId: Number(tBrandId) }
+                    });
+                }
+                brandId = existingBrand.id;
+            }
         }
 
         const newProduct = await prisma.product.create({

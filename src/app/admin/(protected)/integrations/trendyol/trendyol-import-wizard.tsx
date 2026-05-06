@@ -352,9 +352,16 @@ export function TrendyolImportWizard() {
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="text-sm font-bold text-gray-700 line-clamp-1 group-hover:text-orange-600 transition-colors">
-                                                    {p.title}
-                                                </h4>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="text-sm font-bold text-gray-700 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                                                        {p.title}
+                                                    </h4>
+                                                    {p.brand && (
+                                                        <Badge variant="secondary" className="text-[9px] h-4 bg-gray-100 text-gray-500 border-none">
+                                                            {typeof p.brand === 'string' ? p.brand : p.brand.name}
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                                                     <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">
                                                         {p.barcode}
