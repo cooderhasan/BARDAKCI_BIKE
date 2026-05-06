@@ -281,6 +281,26 @@ export class TrendyolClient {
         });
 
         if (!response.ok) throw new Error(`Trendyol API Error: ${response.statusText}`);
-        return await response.json(); // Returns { labelUrl: "..." } or similar
+        return await response.json();
+    }
+
+    /**
+     * Get Common Label (Trendyol Agreed Carriers)
+     * GET /integration/sellers/{sellerId}/common-label/query?id={cargoTrackingNumber}
+     */
+    async getCommonLabel(cargoTrackingNumber: string) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/sellers/${this.creds.supplierId}/common-label/query?id=${cargoTrackingNumber}`;
+        const response = await fetch(url, {
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Trendyol Common Label Error: ${response.status} - ${errText}`);
+        }
+        return await response.json(); 
     }
 }

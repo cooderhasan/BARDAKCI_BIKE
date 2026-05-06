@@ -48,14 +48,20 @@ export function initializeWorker() {
                     if (!result.success) throw new Error(result.message);
                     console.log(`✅ Tamamlandı: Trendyol Sync - ${result.message}`);
                 } else if (job.data.marketplace === "n11") {
-                    const result = await syncProductsToN11(job.data.productIds);
-                    if (!result.success) throw new Error(result.message);
-                    console.log(`✅ Tamamlandı: N11 Sync - ${result.message}`);
+                    const n11Config = await prisma.siteSettings.findUnique({ where: { key: "n11Config" } });
+                    if (n11Config) {
+                        const result = await syncProductsToN11(job.data.productIds);
+                        if (!result.success) throw new Error(result.message);
+                        console.log(`✅ Tamamlandı: N11 Sync - ${result.message}`);
+                    }
                 } else if (job.data.marketplace === "hepsiburada") {
-                    const { syncProductsToHepsiburada } = await import("@/app/admin/(protected)/integrations/hepsiburada/actions");
-                    const result = await syncProductsToHepsiburada(job.data.productIds);
-                    if (!result.success) throw new Error(result.message);
-                    console.log(`✅ Tamamlandı: Hepsiburada Sync - ${result.message}`);
+                    const hbConfig = await prisma.siteSettings.findUnique({ where: { key: "hepsiburadaConfig" } });
+                    if (hbConfig) {
+                        const { syncProductsToHepsiburada } = await import("@/app/admin/(protected)/integrations/hepsiburada/actions");
+                        const result = await syncProductsToHepsiburada(job.data.productIds);
+                        if (!result.success) throw new Error(result.message);
+                        console.log(`✅ Tamamlandı: Hepsiburada Sync - ${result.message}`);
+                    }
                 }
                 
                 await job.updateProgress(100);

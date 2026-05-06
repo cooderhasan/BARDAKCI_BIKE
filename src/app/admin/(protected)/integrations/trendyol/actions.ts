@@ -1243,7 +1243,7 @@ export async function getTrendyolShippingLabel(orderId: string) {
     try {
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            select: { cargoTrackingNumber: true, shipmentPackageId: true }
+            select: { cargoTrackingNumber: true, shipmentPackageId: true, orderNumber: true }
         });
 
         if (!order) return { success: false, message: "Sipariş bulunamadı." };
@@ -1257,49 +1257,59 @@ export async function getTrendyolShippingLabel(orderId: string) {
             apiSecret: config.apiSecret
         });
 
-        let labelUrl = "";
-
-        // 1. Yol: Takip Numarası ile deneme (Eski Tip)
-        if (order.cargoTrackingNumber) {
-            console.log(`[Trendyol] Barkod deneniyor (Takip No: ${order.cargoTrackingNumber})...`);
+        // --- ADIM 1: SİPARİŞİ 'TOPLANIYOR' STATÜSÜNE ÇEK ---
+        // Trendyol'da barkod alabilmek için siparişin 'Picking' (Toplanıyor) olması şarttır.
+        if (order.shipmentPackageId) {
+            console.log(`[Trendyol] Sipariş statüsü 'Picking' yapılıyor (Paket ID: ${order.shipmentPackageId})...`);
             try {
-                const res = await client.getShippingLabels(order.cargoTrackingNumber);
-                labelUrl = Array.isArray(res) ? res[0]?.labelUrl : res?.labelUrl;
+                await updateTrendyolOrderToPicking(order.shipmentPackageId);
+                // Trendyol'un statü değişikliğini işlemesi için 1.5 saniye bekle
+                await new Promise(resolve => setTimeout(resolve, 1500));
             } catch (err) {
-                console.warn("[Trendyol] Takip no ile barkod alma başarısız, diğer yöntem denenecek.");
+                console.warn("[Trendyol] Statü güncelleme atlandı veya başarısız.");
             }
         }
 
-        // 2. Yol: Shipment Package ID ile deneme (Yeni Tip / Modern)
-        if (!labelUrl && order.shipmentPackageId) {
-            console.log(`[Trendyol] Barkod deneniyor (Paket ID: ${order.shipmentPackageId})...`);
-            try {
-                // Yeni nesil endpoint: /suppliers/{supplierId}/shipment-packages/{shipmentPackageId}/label
-                const url = `https://apigw.trendyol.com/suppliers/${config.supplierId}/shipment-packages/${order.shipmentPackageId}/label`;
-                const response = await fetch(url, {
-                    headers: client.getHeaders()
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    labelUrl = Array.isArray(data) ? data[0]?.labelUrl : data?.labelUrl;
-                } else {
-                    const errText = await response.text();
-                    console.error(`[Trendyol] Paket ID Barkod Hatası (${response.status}):`, errText);
-                }
-            } catch (err) {
-                console.error("[Trendyol] Paket ID ile barkod alma hatası:", err);
+        let labelUrl = "";
+        let attempts = 0;
+
+        // --- ADIM 2: BARKODU AL (3 Deneme) ---
+        while (attempts < 3 && !labelUrl) {
+            attempts++;
+            console.log(`[Trendyol] Barkod denemesi ${attempts}/3...`);
+
+            // 1. Yol: Common Label API (Resmi)
+            if (order.cargoTrackingNumber) {
+                try {
+                    const res = await client.getCommonLabel(order.cargoTrackingNumber);
+                    labelUrl = res.data?.[0]?.label;
+                } catch (err) {}
+            }
+
+            // 2. Yol: Alternatif Servis
+            if (!labelUrl && order.cargoTrackingNumber) {
+                try {
+                    const res = await client.getShippingLabels(order.cargoTrackingNumber);
+                    labelUrl = Array.isArray(res) ? res[0]?.labelUrl : res?.labelUrl;
+                } catch (err) {}
+            }
+
+            if (!labelUrl && attempts < 3) {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 2 sn bekle ve tekrar dene
             }
         }
 
         if (!labelUrl) {
-            return { success: false, message: "Barkod henüz oluşmamış veya yetki hatası var. Lütfen 1-2 dakika bekleyip siparişleri tekrar senkronize edin." };
+            return { 
+                success: false, 
+                message: "Barkod şu an alınamıyor. Trendyol kargo servisi yoğun olabilir. Lütfen siparişleri tekrar senkronize edip 1 dakika sonra tekrar deneyin." 
+            };
         }
 
         return { success: true, data: { labelUrl } };
     } catch (error: any) {
         console.error("[Trendyol] getShippingLabel Error:", error);
-        return { success: false, message: "Etiket alınamadı: " + error.message };
+        return { success: false, message: "Hata: " + error.message };
     }
 }
 
