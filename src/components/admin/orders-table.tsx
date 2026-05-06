@@ -659,7 +659,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                         </h4>
                                         <div className="text-sm space-y-1 text-gray-600 dark:text-gray-300 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
                                             <p className="font-medium text-gray-900 dark:text-gray-100">
-                                                {(selectedOrder.shippingAddress as any)?.name || selectedOrder.user?.companyName || selectedOrder.user?.email || selectedOrder.guestEmail || "Misafir"}
+                                                {selectedOrder.shippingAddress?.fullName || (selectedOrder.shippingAddress as any)?.name || selectedOrder.user?.companyName || selectedOrder.user?.email || selectedOrder.guestEmail || "Misafir"}
                                             </p>
                                             <p>{selectedOrder.user?.email || selectedOrder.guestEmail}</p>
                                             <p>{selectedOrder.user?.phone || "-"}</p>
