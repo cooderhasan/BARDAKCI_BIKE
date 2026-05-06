@@ -1090,6 +1090,13 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
             }
         }
 
+        // Fetch default critical stock from settings
+        const generalSettings = await prisma.siteSettings.findUnique({
+            where: { key: "general" }
+        });
+        const settingsValue = (generalSettings?.value as Record<string, any>) || {};
+        const defaultCriticalStock = parseInt(settingsValue.defaultCriticalStock || "10", 10);
+
         const newProduct = await prisma.product.create({
             data: {
                 name: tProduct.title,
@@ -1097,6 +1104,7 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
                 barcode: tProduct.barcode,
                 sku: (tProduct.stockCode || tProduct.modelCode || tProduct.productCode || tProduct.barcode)?.toString(),
                 stock: tProduct.quantity || 0,
+                criticalStock: defaultCriticalStock,
                 listPrice: sitePrice, // Sitedeki liste fiyatı Trendyol'un %20 altı olacak
                 salePrice: null,
                 trendyolPrice: trendyolPrice, // Orijinal Trendyol fiyatını saklayalım
