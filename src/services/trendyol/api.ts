@@ -45,7 +45,8 @@ export class TrendyolClient {
         return {
             "Authorization": `Basic ${Buffer.from(pair).toString("base64").trim()}`,
             "User-Agent": `${this.creds.supplierId} - SelfIntegration`,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json, application/pdf"
         };
     }
 

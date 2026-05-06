@@ -1258,10 +1258,10 @@ export async function getTrendyolShippingLabel(orderId: string) {
         });
 
         // --- ADIM 1: SİPARİŞİ 'TOPLANIYOR' STATÜSÜNE ÇEK ---
-        if (order.shipmentPackageId) {
-            console.log(`[Trendyol] Sipariş statüsü 'Picking' yapılıyor (Paket ID: ${order.shipmentPackageId})...`);
+        if (order.shipmentPackageId && order.orderNumber) {
+            console.log(`[Trendyol] Sipariş statüsü 'Picking' yapılıyor (Sipariş No: ${order.orderNumber})...`);
             try {
-                await updateTrendyolOrderToPicking(order.shipmentPackageId);
+                await updateTrendyolOrderToPicking(order.orderNumber);
                 
                 // --- ADIM 1.5: TAKİP NUMARASI OLUŞANA KADAR BEKLE VE TAZELER ---
                 let refreshedTrackingNumber = order.cargoTrackingNumber;
@@ -1307,79 +1307,58 @@ export async function getTrendyolShippingLabel(orderId: string) {
             attempts++;
             console.log(`[Trendyol] Barkod denemesi ${attempts}/3...`);
 
-            // 1. Yol: Common Label API (Takip No ile)
-            if (order.cargoTrackingNumber) {
-                try {
-                    // Önce PDF dene
-                    let res = await client.getCommonLabel(order.cargoTrackingNumber, "PDF");
-                    labelUrl = res.data?.[0]?.label;
+            // Denenecek ID'ler: Takip No, Paket ID, Sipariş No
+            const idsToTry = [
+                { id: order.cargoTrackingNumber, type: "Takip No" },
+                { id: order.shipmentPackageId, type: "Paket ID" },
+                { id: order.orderNumber, type: "Sipariş No" }
+            ].filter(item => !!item.id);
+
+            for (const item of idsToTry) {
+                if (labelUrl) break;
+
+                // Her ID için hem PDF hem ZPL dene
+                for (const format of ["PDF", "ZPL"] as const) {
+                    if (labelUrl) break;
                     
-                    // PDF yoksa ZPL dene
-                    if (!labelUrl) {
-                        res = await client.getCommonLabel(order.cargoTrackingNumber, "ZPL");
+                    try {
+                        console.log(`[Trendyol] Deneniyor: ${item.type} (${item.id}) - Format: ${format}`);
+                        const res = await client.getCommonLabel(item.id!, format);
                         labelUrl = res.data?.[0]?.label;
+                        if (labelUrl) {
+                            console.log(`[Trendyol] BAŞARILI: ${item.type} ile barkod alındı.`);
+                            break;
+                        }
+                    } catch (err: any) {
+                        // 556 veya 400 hatalarını logla ama devam et
+                        console.warn(`[Trendyol] ${item.type} (${format}) Hatası:`, err.message);
                     }
-                    
-                    if (labelUrl) console.log("[Trendyol] 1. Yol (Takip No) Başarılı.");
-                } catch (err: any) {
-                    console.error(`[Trendyol] 1. Yol Hatası:`, err.message);
                 }
             }
 
-            // 1.1 Yol: Common Label API (Paket ID ile)
+            // 2. Yol: International (Sadece Paket ID ile)
             if (!labelUrl && order.shipmentPackageId) {
                 try {
-                    console.log(`[Trendyol] 1.1 Yol deneniyor (Paket ID: ${order.shipmentPackageId})...`);
-                    let res = await client.getCommonLabel(order.shipmentPackageId, "PDF");
-                    labelUrl = res.data?.[0]?.label;
-                    
-                    if (!labelUrl) {
-                        res = await client.getCommonLabel(order.shipmentPackageId, "ZPL");
-                        labelUrl = res.data?.[0]?.label;
-                    }
-                    
-                    if (labelUrl) console.log("[Trendyol] 1.1 Yol Başarılı.");
-                } catch (err: any) {
-                    console.error(`[Trendyol] 1.1 Yol Hatası:`, err.message);
-                }
-            }
-
-            // 2. Yol: International Label API
-            if (!labelUrl && order.shipmentPackageId) {
-                try {
-                    console.log(`[Trendyol] 2. Yol deneniyor (International)...`);
-                    let res = await client.getInternationalLabel(order.shipmentPackageId, "PDF");
+                    console.log(`[Trendyol] Uluslararası servis deneniyor...`);
+                    const res = await client.getInternationalLabel(order.shipmentPackageId);
                     labelUrl = res.data?.[0]?.label || res.label;
-                    
-                    if (!labelUrl) {
-                        res = await client.getInternationalLabel(order.shipmentPackageId, "ZPL");
-                        labelUrl = res.data?.[0]?.label || res.label;
-                    }
-                    
-                    if (labelUrl) console.log("[Trendyol] 2. Yol Başarılı.");
                 } catch (err: any) {
-                    console.error(`[Trendyol] 2. Yol Hatası:`, err.message);
+                    console.warn(`[Trendyol] International Hatası:`, err.message);
                 }
             }
 
-            // 2.5 Yol: Create Common Label (Batch/Force Creation)
-            // Bazı kargolarda (DHL vb.) önce etiketi 'yaratmak' gerekebilir.
+            // 2.5 Yol: Create Label (Zorla Üretme)
             if (!labelUrl && order.shipmentPackageId) {
                 try {
-                    console.log(`[Trendyol] 2.5 Yol deneniyor (Create Label)...`);
-                    const res = await client.createCommonLabel([order.shipmentPackageId]);
-                    // createCommonLabel genellikle barkodun kendisini değil, başarı durumunu döner. 
-                    // Yaratıldıysa bir sonraki döngüde getCommonLabel ile alabiliriz.
-                    if (res) {
-                        console.log("[Trendyol] 2.5 Yol: Etiket başarıyla tetiklendi, bir sonraki denemede alınacak.");
-                        await new Promise(resolve => setTimeout(resolve, 3000)); // Trendyol'un etiketi basması için süre tanı
-                    }
+                    console.log(`[Trendyol] Etiket üretme tetikleniyor...`);
+                    await client.createCommonLabel([order.shipmentPackageId]);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                 } catch (err: any) {
-                    console.error(`[Trendyol] 2.5 Yol Hatası:`, err.message);
+                    console.warn(`[Trendyol] Etiket Üretme Hatası:`, err.message);
                 }
             }
 
-            // 3. Yol: Alternatif Servis
+            // 3. Yol: Alternatif Servis (Legacy)
             if (!labelUrl && order.cargoTrackingNumber) {
                 try {
                     console.log(`[Trendyol] 3. Yol deneniyor (Legacy)...`);
