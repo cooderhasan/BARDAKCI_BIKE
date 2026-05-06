@@ -1169,21 +1169,3 @@ export async function getTrendyolShippingLabel(cargoTrackingNumber: string) {
         return { success: false, message: "Etiket alınamadı: " + error.message };
     }
 }
-
-export async function getTrendyolCategoryAttributes(categoryId: number) {
-    try {
-        const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
-        if (!config) return { success: false, message: "Aktif entegrasyon yok." };
-
-        const client = new TrendyolClient({
-            supplierId: config.supplierId,
-            apiKey: config.apiKey,
-            apiSecret: config.apiSecret
-        });
-
-        const data = await client.getCategoryAttributes(categoryId);
-        return { success: true, data: data.categoryAttributes || [] };
-    } catch (error: any) {
-        return { success: false, message: "Hata: " + error.message };
-    }
-}
