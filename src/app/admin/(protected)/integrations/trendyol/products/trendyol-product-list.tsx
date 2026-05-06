@@ -23,7 +23,7 @@ import {
     Box
 } from "lucide-react";
 import { toast } from "sonner";
-import { sendProductToTrendyol, getTrendyolCategoryAttributes } from "../actions";
+import { sendProductToTrendyol, getTrendyolCategoryAttributes, enqueueTrendyolSync } from "../actions";
 import {
     Dialog,
     DialogContent,
@@ -43,6 +43,7 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
+    const [syncing, setSyncing] = useState(false);
     
     // Attribute Modal State
     const [showAttrModal, setShowAttrModal] = useState(false);
@@ -51,11 +52,24 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
 
-    const filteredProducts = products.filter(p => 
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase()) ||
-        p.barcode?.toLowerCase().includes(search.toLowerCase())
-    );
+    const handleBulkSync = async () => {
+        setSyncing(true);
+        try {
+            const res = await enqueueTrendyolSync();
+            if (res.success) {
+                toast.success(res.message, {
+                    description: "Ürünler arka planda sırayla güncelleniyor. Panelden çıkış yapabilirsiniz.",
+                    duration: 5000
+                });
+            } else {
+                toast.error(res.message);
+            }
+        } catch (error) {
+            toast.error("Kuyruk işlemi başlatılamadı.");
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const handleOpenWizard = async (product: any) => {
         const mappedCat = product.categories.find((c: any) => c.trendyolCategoryId !== null);
@@ -134,9 +148,15 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
         }
     };
 
+    const filteredProducts = products.filter(p => 
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.sku?.toLowerCase().includes(search.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input 
@@ -146,9 +166,20 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400 border-orange-100 dark:border-orange-900">
-                        Total: {initialProducts.length}
+                <div className="flex items-center gap-3">
+                    <Button 
+                        onClick={handleBulkSync} 
+                        disabled={syncing}
+                        variant="outline"
+                        className="border-orange-200 text-orange-600 hover:bg-orange-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
+                    >
+                        {syncing ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
+                        <span className="hidden sm:inline">Tümünü Kuyrukta Güncelle</span>
+                        <span className="sm:hidden">Toplu Güncelle</span>
+                    </Button>
+
+                    <Badge variant="outline" className="h-10 px-4 rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400 border-orange-100 dark:border-orange-900 font-bold">
+                        {initialProducts.length} ÜRÜN
                     </Badge>
                 </div>
             </div>
