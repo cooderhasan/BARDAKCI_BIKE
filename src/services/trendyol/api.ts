@@ -187,18 +187,19 @@ export class TrendyolClient {
      * Get Orders
      * GET /integration/order/sellers/{sellerId}/orders
      */
-    async getOrders(status: string = "Created", size: number = 50) {
+    async getOrders(status: string = "Created", size: number = 50, startDate?: number, endDate?: number) {
         await this.init();
         if (!this.creds) throw new Error("No creds");
 
         // Convert common status words to Trendyol specific
         let queryParams = `?size=${size}&status=${status}`;
 
-        // To get the past 1 week of orders by default
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        queryParams += `&startDate=${oneWeekAgo.getTime()}`;
-        queryParams += `&endDate=${new Date().getTime()}`;
+        // Use provided dates or default to past 1 week
+        const start = startDate || (new Date().getTime() - (7 * 24 * 60 * 60 * 1000));
+        const end = endDate || new Date().getTime();
+        
+        queryParams += `&startDate=${start}`;
+        queryParams += `&endDate=${end}`;
 
         const url = `${this.gatewayUrl}/integration/order/sellers/${this.creds.supplierId}/orders${queryParams}`;
 

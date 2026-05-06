@@ -367,8 +367,10 @@ export async function syncOrdersFromTrendyol() {
         });
 
         // 1. Fetch Orders with multiple statuses to catch updates
+        // Only fetch orders from the last 24 hours for efficiency
+        const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
         const statuses = ["Created", "Picking", "Shipped", "Delivered", "Cancelled"];
-        const allOrders = await Promise.all(statuses.map(s => client.getOrders(s)));
+        const allOrders = await Promise.all(statuses.map(s => client.getOrders(s, 50, oneDayAgo)));
         
         const orders = allOrders.flatMap(res => res.content || []);
 
