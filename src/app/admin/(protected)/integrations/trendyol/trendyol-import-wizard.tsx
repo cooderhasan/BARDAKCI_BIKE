@@ -43,6 +43,7 @@ export function TrendyolImportWizard() {
     // Selection states
     const [selectedBarcodes, setSelectedBarcodes] = useState<Set<string>>(new Set());
     const [rowCategoryIds, setRowCategoryIds] = useState<Record<string, string>>({});
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         fetchSiteCategories();
@@ -84,6 +85,16 @@ export function TrendyolImportWizard() {
         }
         setLoading(false);
     };
+
+    const filteredProducts = useMemo(() => {
+        if (!searchTerm) return products;
+        const s = searchTerm.toLowerCase();
+        return products.filter(p => 
+            p.title.toLowerCase().includes(s) || 
+            p.barcode.toLowerCase().includes(s) ||
+            (p.stockCode && p.stockCode.toLowerCase().includes(s))
+        );
+    }, [products, searchTerm]);
 
     // When global category changes, update all row categories that haven't been touched?
     // Or just provide a "Apply to all" button. Let's do "Apply to all" or just update all for now for simplicity.
@@ -297,6 +308,16 @@ export function TrendyolImportWizard() {
                                 <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-100 rounded-lg px-3 py-1">
                                     {products.length} Ürün Bulundu
                                 </Badge>
+                                
+                                <div className="relative w-64 ml-4">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                    <Input 
+                                        placeholder="Ara (Ad, Barkod veya SKU)..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="h-8 pl-9 bg-white border-gray-200 rounded-lg text-xs focus:ring-orange-500"
+                                    />
+                                </div>
                             </div>
                             
                             <div className="flex items-center gap-2">
@@ -313,7 +334,7 @@ export function TrendyolImportWizard() {
                         </div>
                         
                         <div className="grid gap-3 max-h-[650px] overflow-y-auto pr-2 custom-scrollbar">
-                            {products.map((p) => {
+                            {filteredProducts.map((p) => {
                                 const tPrice = Number(p.salePrice || p.listPrice || 0);
                                 const sPrice = (tPrice * (1 - discountRate / 100)).toFixed(2);
                                 const isSelected = selectedBarcodes.has(p.barcode);
@@ -363,14 +384,25 @@ export function TrendyolImportWizard() {
                                                     )}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                                                    <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                                                        {p.barcode}
-                                                    </span>
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded">
+                                                        <span className="text-[8px] font-bold text-gray-400 uppercase">Barkod:</span>
+                                                        <span className="text-[10px] font-mono text-gray-600 uppercase tracking-tighter">
+                                                            {p.barcode}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                                                        <span className="text-[8px] font-bold text-orange-400 uppercase">SKU:</span>
+                                                        <span className="text-[10px] font-mono text-orange-700 uppercase tracking-tighter font-bold">
+                                                            {p.stockCode}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 ml-auto">
                                                         <span className="text-xs font-bold text-orange-600">{sPrice} TL</span>
                                                         <span className="text-[10px] text-gray-300 line-through">{tPrice} TL</span>
+                                                        <Badge variant="outline" className="ml-2 text-[9px] h-4 border-gray-200 text-gray-400 font-bold">
+                                                            {p.quantity} ADET
+                                                        </Badge>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-gray-400">{p.quantity} STOK</span>
                                                 </div>
                                             </div>
                                         </div>
