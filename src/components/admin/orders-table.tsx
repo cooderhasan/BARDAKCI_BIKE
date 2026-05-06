@@ -631,7 +631,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
             {/* Order Detail Dialog */}
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="!max-w-none w-[95vw] sm:w-[90vw] xl:!w-[1100px] max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent p-0">
-                    <DialogHeader className="flex flex-row items-center justify-between px-10 pt-10 border-b pb-6 mb-6 pr-20">
+                    <DialogHeader className="flex flex-row items-center justify-between px-12 pt-12 border-b pb-6 mb-6 pr-28">
                         <DialogTitle className="text-xl">
                             Sipariş Detayı - {selectedOrder?.orderNumber}
                         </DialogTitle>
@@ -648,7 +648,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                         )}
                     </DialogHeader>
                     {selectedOrder && (
-                        <div className="space-y-6 px-10 pb-10">
+                        <div className="space-y-6 px-12 pb-12">
                             {/* Top Grid: Customer, Address, Cargo/Status - 3 Columns */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {/* Column 1: Customer Info */}
