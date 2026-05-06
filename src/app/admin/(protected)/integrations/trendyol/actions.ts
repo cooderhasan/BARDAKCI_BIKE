@@ -1342,6 +1342,23 @@ export async function getTrendyolShippingLabel(orderId: string) {
                 }
             }
 
+            // 2.5 Yol: Create Common Label (Batch/Force Creation)
+            // Bazı kargolarda (DHL vb.) önce etiketi 'yaratmak' gerekebilir.
+            if (!labelUrl && order.shipmentPackageId) {
+                try {
+                    console.log(`[Trendyol] 2.5 Yol deneniyor (Create Label)...`);
+                    const res = await client.createCommonLabel([order.shipmentPackageId]);
+                    // createCommonLabel genellikle barkodun kendisini değil, başarı durumunu döner. 
+                    // Yaratıldıysa bir sonraki döngüde getCommonLabel ile alabiliriz.
+                    if (res) {
+                        console.log("[Trendyol] 2.5 Yol: Etiket başarıyla tetiklendi, bir sonraki denemede alınacak.");
+                        await new Promise(resolve => setTimeout(resolve, 3000)); // Trendyol'un etiketi basması için süre tanı
+                    }
+                } catch (err: any) {
+                    console.error(`[Trendyol] 2.5 Yol Hatası:`, err.message);
+                }
+            }
+
             // 3. Yol: Alternatif Servis
             if (!labelUrl && order.cargoTrackingNumber) {
                 try {

@@ -2,6 +2,7 @@ import { Worker, Job, Queue } from "bullmq";
 import redisConnection from "./redis";
 import { QUEUE_NAMES } from "./config";
 import { SyncJobData } from "./producer";
+import { prisma } from "@/lib/db";
 import { syncProductsToTrendyol, syncOrdersFromTrendyol } from "@/app/admin/(protected)/integrations/trendyol/actions";
 import { syncProductsToN11 } from "@/app/admin/(protected)/integrations/n11/actions";
 

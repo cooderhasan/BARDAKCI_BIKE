@@ -43,8 +43,8 @@ export class TrendyolClient {
         if (!this.creds) throw new Error("Client not initialized.");
         const pair = `${this.creds.apiKey}:${this.creds.apiSecret}`;
         return {
-            "Authorization": `Basic ${Buffer.from(pair).toString("base64")}`,
-            "User-Agent": "SelfIntegration",
+            "Authorization": `Basic ${Buffer.from(pair).toString("base64").trim()}`,
+            "User-Agent": `${this.creds.supplierId} - SelfIntegration`,
             "Content-Type": "application/json"
         };
     }
@@ -340,5 +340,27 @@ export class TrendyolClient {
             throw new Error(`Trendyol International Label Error: ${response.status} - ${errText}`);
         }
         return await response.json(); 
+    }
+
+    /**
+     * Create Common Label (Batch)
+     * POST /integration/sellers/{sellerId}/common-label
+     */
+    async createCommonLabel(shipmentPackageIds: string[]) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/sellers/${this.creds.supplierId}/common-label`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify({ shipmentPackageIds })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Trendyol Create Label Error: ${response.status} - ${errText}`);
+        }
+        return await response.json();
     }
 }
