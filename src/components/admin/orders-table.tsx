@@ -549,10 +549,21 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         onClick={async () => {
                                                             const { getTrendyolShippingLabel } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
                                                             const res = await getTrendyolShippingLabel(order.cargoTrackingNumber || "");
-                                                            if (res.success && (res.data as any).labelUrl) {
-                                                                window.open((res.data as any).labelUrl, '_blank');
+                                                            
+                                                            // Trendyol can return an array or a single object
+                                                            let labelUrl = "";
+                                                            if (res.success && res.data) {
+                                                                if (Array.isArray(res.data) && res.data[0]?.labelUrl) {
+                                                                    labelUrl = res.data[0].labelUrl;
+                                                                } else if ((res.data as any).labelUrl) {
+                                                                    labelUrl = (res.data as any).labelUrl;
+                                                                }
+                                                            }
+
+                                                            if (labelUrl) {
+                                                                window.open(labelUrl, '_blank');
                                                             } else {
-                                                                toast.error("Barkod linki alınamadı. Trendyol panelinden kontrol edin.");
+                                                                toast.error("Barkod linki alınamadı. Siparişin kargo etiketi henüz oluşmamış olabilir.");
                                                             }
                                                         }}
                                                     >
