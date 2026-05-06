@@ -858,6 +858,12 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
                 }
             });
 
+            // Ürünü pazaryerinde aktif olarak işaretle (otomatik güncellemeler için kritik)
+            await prisma.product.update({
+                where: { id: product.id },
+                data: { isTrendyolActive: true }
+            });
+
             return { success: true, message: `Ürün Trendyol'a gönderildi. Batch Durumu: ${batchStatus}`, batchRequestId: batchId };
         } else {
             const errorMsg = result.errors?.[0]?.message || JSON.stringify(result);
