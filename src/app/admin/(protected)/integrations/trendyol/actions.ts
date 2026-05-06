@@ -1307,32 +1307,34 @@ export async function getTrendyolShippingLabel(orderId: string) {
             attempts++;
             console.log(`[Trendyol] Barkod denemesi ${attempts}/3...`);
 
-            // 1. Yol: Common Label API (Resmi - Yerel)
+            // 1. Yol: Common Label API (Takip No ile)
             if (order.cargoTrackingNumber) {
                 try {
                     const res = await client.getCommonLabel(order.cargoTrackingNumber);
                     labelUrl = res.data?.[0]?.label;
-                    if (labelUrl) console.log("[Trendyol] Common Label başarılı.");
+                    if (labelUrl) console.log("[Trendyol] Common Label (Takip No) başarılı.");
                 } catch (err: any) {
-                    // Eğer hata 400 (NOT_FOUND) ise, sessizce diğer yola geç
-                    if (!err.message.includes("400")) {
-                        console.error(`[Trendyol] Common Label Hatası:`, err.message);
-                    }
+                    if (!err.message.includes("400")) console.error(`[Trendyol] Common Label Hatası:`, err.message);
                 }
+            }
+
+            // 1.1 Yol: Common Label API (Paket ID ile - Bazı DHL/Yurt içi paketler için)
+            if (!labelUrl && order.shipmentPackageId) {
+                try {
+                    console.log(`[Trendyol] Common Label Paket ID ile deneniyor...`);
+                    const res = await client.getCommonLabel(order.shipmentPackageId);
+                    labelUrl = res.data?.[0]?.label;
+                    if (labelUrl) console.log("[Trendyol] Common Label (Paket ID) başarılı.");
+                } catch (err: any) {}
             }
 
             // 2. Yol: International Label API (DHL ve Yurt dışı için)
             if (!labelUrl && order.shipmentPackageId) {
                 try {
-                    console.log(`[Trendyol] Uluslararası barkod deneniyor (Paket ID: ${order.shipmentPackageId})...`);
                     const res = await client.getInternationalLabel(order.shipmentPackageId);
                     labelUrl = res.data?.[0]?.label || res.label;
                     if (labelUrl) console.log("[Trendyol] International Label başarılı.");
-                } catch (err: any) {
-                    if (!err.message.includes("400")) {
-                        console.warn("[Trendyol] International Label hatası:", err.message);
-                    }
-                }
+                } catch (err: any) {}
             }
 
             // 3. Yol: Alternatif Servis (Fallback)
