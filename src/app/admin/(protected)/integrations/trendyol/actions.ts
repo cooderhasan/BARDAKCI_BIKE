@@ -1195,6 +1195,8 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
 
 export async function getTrendyolShippingLabel(cargoTrackingNumber: string) {
     try {
+        if (!cargoTrackingNumber) return { success: false, message: "Takip numarası bulunamadı." };
+
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
 
@@ -1204,9 +1206,81 @@ export async function getTrendyolShippingLabel(cargoTrackingNumber: string) {
             apiSecret: config.apiSecret
         });
 
-        const data = await client.getShippingLabels(cargoTrackingNumber);
+        // Trendyol can be slow to generate the label after status change
+        // We will try up to 3 times with a short delay
+        let data: any = null;
+        let attempts = 0;
+        
+        while (attempts < 3) {
+            data = await client.getShippingLabels(cargoTrackingNumber);
+            console.log(`[Trendyol API] Shipping Label Response (Attempt ${attempts + 1}):`, JSON.stringify(data));
+            
+            const labelUrl = Array.isArray(data) ? data[0]?.labelUrl : data?.labelUrl;
+            if (labelUrl) break;
+            
+            attempts++;
+            if (attempts < 3) {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+            }
+        }
+
         return { success: true, data };
     } catch (error: any) {
+        console.error("[Trendyol] getShippingLabel Error:", error);
         return { success: false, message: "Etiket alınamadı: " + error.message };
+    }
+}
+
+/**
+ * Siparişi Trendyol tarafında "Toplanıyor" (Picking) durumuna çeker.
+ * Bu işlem barkodun oluşması için tetikleyicidir.
+ */
+export async function updateTrendyolOrderToPicking(orderNumber: string) {
+    try {
+        const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
+
+        const client = new TrendyolClient({
+            supplierId: config.supplierId,
+            apiKey: config.apiKey,
+            apiSecret: config.apiSecret
+        });
+
+        // 1. Önce siparişi Trendyol'dan sorgulayıp shipmentPackageId'sini bulalım
+        // Çünkü status update için shipmentPackageId (Trendyol iç ID) gerekiyor.
+        const oneDayAgo = new Date().getTime() - (24 * 60 * 60 * 1000);
+        const res = await client.getOrders("Created", 50, oneDayAgo);
+        const tOrder = res.content?.find((o: any) => o.orderNumber === orderNumber);
+
+        if (!tOrder) {
+            // Eğer Created'da yoksa belki zaten Picking'dedir
+            return { success: true, message: "Sipariş zaten hazırlanıyor durumunda veya bulunamadı." };
+        }
+
+        const shipmentPackageId = tOrder.id; // Trendyol shipment package ID
+        
+        // 2. Durumu güncelle (Picking)
+        const gatewayUrl = "https://apigw.trendyol.com";
+        const url = `${gatewayUrl}/integration/order/sellers/${config.supplierId}/shipment-packages/${shipmentPackageId}/picking`;
+        
+        const response = await fetch(url, {
+            method: "PUT",
+            headers: client.getHeaders()
+        });
+
+        if (response.ok) {
+            // 3 saniye bekle (Trendyol'un kargo no ataması için)
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Siparişleri tekrar senkronize et ki takip nosu gelsin
+            await syncOrdersFromTrendyol();
+            
+            return { success: true, message: "Sipariş Trendyol'da Hazırlanıyor durumuna getirildi." };
+        } else {
+            const errData = await response.json().catch(() => ({}));
+            return { success: false, message: `Trendyol Statü Güncelleme Hatası: ${errData.message || response.statusText}` };
+        }
+    } catch (error: any) {
+        return { success: false, message: "Statü Güncelleme Hatası: " + error.message };
     }
 }

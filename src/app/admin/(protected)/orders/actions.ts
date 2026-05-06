@@ -25,13 +25,23 @@ export async function updateOrderStatus(
 
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            select: { status: true },
+            select: { status: true, orderNumber: true, source: true },
         });
 
         const updated = await prisma.order.update({
             where: { id: orderId },
             data: { status },
         });
+
+        // If Trendyol Order and Status is PROCESSING, update Trendyol to Picking
+        if (order?.source === "TRENDYOL" && status === "PROCESSING") {
+            try {
+                const { updateTrendyolOrderToPicking } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
+                await updateTrendyolOrderToPicking(order.orderNumber);
+            } catch (err) {
+                console.error("Failed to sync status to Trendyol:", err);
+            }
+        }
 
         await prisma.adminLog.create({
             data: {
