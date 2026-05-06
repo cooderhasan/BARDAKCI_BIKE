@@ -619,7 +619,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
 
             {/* Order Detail Dialog */}
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="max-w-5xl sm:max-w-5xl w-11/12 md:w-full max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl w-[95vw] md:w-full max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent">
                     <DialogHeader className="flex flex-row items-center justify-between pr-6 border-b pb-2 mb-2">
                         <DialogTitle className="text-xl">
                             Sipariş Detayı - {selectedOrder?.orderNumber}
@@ -815,7 +815,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                             {/* Order Items Table - Compact */}
                             <div>
                                 <h4 className="font-semibold mb-2 text-sm">Ürünler ({selectedOrder.items.length})</h4>
-                                <div className="border rounded-md overflow-hidden max-h-[300px] overflow-y-auto overflow-x-auto">
+                                <div className="border rounded-md overflow-hidden max-h-[300px] overflow-y-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent">
                                     <Table>
                                         <TableHeader className="bg-gray-50 sticky top-0">
                                             <TableRow>
