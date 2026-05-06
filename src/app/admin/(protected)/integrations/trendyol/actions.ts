@@ -1095,7 +1095,7 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
                 name: tProduct.title,
                 slug: generateSlug(tProduct.title) + "-" + Math.floor(Math.random() * 1000),
                 barcode: tProduct.barcode,
-                sku: tProduct.stockCode || tProduct.modelCode || tProduct.productCode || tProduct.barcode,
+                sku: (tProduct.stockCode || tProduct.modelCode || tProduct.productCode || tProduct.barcode)?.toString(),
                 stock: tProduct.quantity || 0,
                 listPrice: sitePrice, // Sitedeki liste fiyatı Trendyol'un %20 altı olacak
                 salePrice: null,
