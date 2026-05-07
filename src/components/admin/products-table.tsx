@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
-import { deleteProduct, toggleProductStatus } from "@/app/admin/(protected)/products/actions";
+import { deleteProduct, toggleProductStatus, toggleTrendyolStatus } from "@/app/admin/(protected)/products/actions";
 import { toast } from "sonner";
 
 interface Product {
@@ -166,6 +166,18 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
         }
     };
 
+    const handleToggleTrendyolStatus = async (productId: string, isTrendyolActive: boolean) => {
+        try {
+            await toggleTrendyolStatus(productId, !isTrendyolActive);
+            toast.success(!isTrendyolActive ? "Ürün Trendyol'da satışa açıldı." : "Ürün Trendyol'da satışa kapatıldı.");
+            setProducts(prev => prev.map(p =>
+                p.id === productId ? { ...p, isTrendyolActive: !isTrendyolActive } : p
+            ));
+        } catch {
+            toast.error("İşlem sırasında bir hata oluştu.");
+        }
+    };
+
     return (
         <div className="space-y-4">
             {/* Action Buttons */}
@@ -283,6 +295,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                 <TableHead>SKU/Barkod</TableHead>
                                 <TableHead>Liste Fiyatı</TableHead>
                                 <TableHead>Stok</TableHead>
+                                <TableHead>Trendyol</TableHead>
                                 <TableHead>Durum</TableHead>
                                 <TableHead className="text-right">İşlemler</TableHead>
                             </TableRow>
@@ -360,6 +373,29 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                             >
                                                 {product.stock}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Badge
+                                                    variant={product.isTrendyolActive ? "default" : "secondary"}
+                                                    className={
+                                                        product.isTrendyolActive
+                                                            ? "bg-orange-100 text-orange-800"
+                                                            : "bg-gray-100 text-gray-800"
+                                                    }
+                                                >
+                                                    {product.isTrendyolActive ? "Açık" : "Kapalı"}
+                                                </Badge>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                                    onClick={() => handleToggleTrendyolStatus(product.id, product.isTrendyolActive)}
+                                                    title={product.isTrendyolActive ? "Trendyolda Satışa Kapat" : "Trendyolda Satışa Aç"}
+                                                >
+                                                    <RefreshCw className={`h-4 w-4 ${loading === product.id ? 'animate-spin' : ''}`} />
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             <Badge

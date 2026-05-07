@@ -330,6 +330,9 @@ export async function deleteProduct(productId: string) {
     revalidatePath("/admin/products");
 }
 
+    revalidatePath("/admin/products");
+}
+
 export async function toggleProductStatus(productId: string, isActive: boolean) {
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -342,6 +345,30 @@ export async function toggleProductStatus(productId: string, isActive: boolean) 
     });
 
     revalidatePath("/admin/products");
+}
+
+export async function toggleTrendyolStatus(productId: string, isTrendyolActive: boolean) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        throw new Error("Unauthorized");
+    }
+
+    await prisma.product.update({
+        where: { id: productId },
+        data: { isTrendyolActive },
+    });
+
+    // --- OTOMATİK PAZARYERİ SENKRONİZASYONU ---
+    // Trendyol durumu değiştiğinde (kapatılmış olabilir), hemen kuyruğa at
+    try {
+        const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+        await addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: [productId] });
+    } catch (e) {
+        console.error("Marketplace sync queue error:", e);
+    }
+
+    revalidatePath("/admin/products");
+    return { success: true };
 }
 
 export async function syncProductToMarketplaces(productId: string) {
