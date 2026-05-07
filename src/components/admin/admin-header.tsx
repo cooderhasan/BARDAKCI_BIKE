@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, LogOut, User, FileQuestion, Users, Package, ShoppingCart, Loader2, Menu, Landmark } from "lucide-react";
+import { Bell, LogOut, User, FileQuestion, Users, Package, ShoppingCart, Loader2, Menu, Landmark, Zap } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useCartStore } from "@/stores/cart-store";
 import type { UserRole, UserStatus } from "@prisma/client";
@@ -122,6 +122,28 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                 <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                     Yönetim Paneli
                 </h1>
+
+                {/* Hızlı Pazar Yeri Linkleri */}
+                <div className="hidden xl:flex items-center gap-2 ml-4">
+                    <Link href="/admin/integrations/trendyol">
+                        <Button variant="outline" size="sm" className="h-8 gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800 bg-white">
+                            <Zap className="h-3.5 w-3.5" />
+                            Trendyol
+                        </Button>
+                    </Link>
+                    <Link href="/admin/integrations/n11">
+                        <Button variant="outline" size="sm" className="h-8 gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 bg-white">
+                            <Zap className="h-3.5 w-3.5" />
+                            N11
+                        </Button>
+                    </Link>
+                    <Link href="/admin/integrations/hepsiburada">
+                        <Button variant="outline" size="sm" className="h-8 gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 bg-white">
+                            <Zap className="h-3.5 w-3.5" />
+                            Hepsiburada
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <div className="flex items-center gap-4">
