@@ -76,11 +76,11 @@ export const Barcode: React.FC<BarcodeProps> = ({
   return (
     <div className={`flex flex-col items-center ${className}`}>
       <svg
-        width={svgWidth}
+        style={{ width: '100%', maxWidth: `${svgWidth}px` }}
         height={height}
         viewBox={`0 0 ${svgWidth} ${height}`}
         xmlns="http://www.w3.org/2000/svg"
-        className="block mx-auto"
+        className="block mx-auto overflow-visible"
       >
         {binString.split('').map((bit, index) => (
           bit === '1' && (

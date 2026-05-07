@@ -79,7 +79,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
 
                     {/* Logo Section */}
                     <div className="flex justify-between items-center">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Trendyol_logo.svg/1200px-Trendyol_logo.svg.png" alt="Trendyol" className="h-14 w-auto" />
+                        <img src="https://cdn.dsmcdn.com/web/logo/trendyol-logo.svg" alt="Trendyol" className="h-10 w-auto" />
                         <div className="text-right">
                             <span className="text-lg font-bold italic text-gray-700">trendyol</span>
                             <span className="text-sm font-medium block text-gray-500 uppercase -mt-1">express</span>
@@ -89,9 +89,9 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                     {/* Info & Barcode Grid */}
                     <div className="grid grid-cols-2 gap-4">
                         {/* Address Box */}
-                        <div className="border-2 border-gray-300 rounded-lg p-5 space-y-4">
-                            <h3 className="text-lg font-black text-blue-900 border-b-2 border-gray-100 pb-1 mb-3 uppercase">Alıcı Bilgileri</h3>
-                            <div className="grid grid-cols-[80px_1fr] gap-y-2 text-sm">
+                        <div className="border-2 border-gray-300 rounded-lg p-4 space-y-3">
+                            <h3 className="text-lg font-black text-blue-900 border-b-2 border-gray-100 pb-1 mb-2 uppercase">Alıcı Bilgileri</h3>
+                            <div className="grid grid-cols-[80px_1fr] gap-y-1.5 text-sm">
                                 <span className="font-bold">Sipariş No</span>
                                 <span className="font-medium">: {order.orderNumber}</span>
                                 
@@ -110,12 +110,12 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                         </div>
 
                         {/* Barcode Box */}
-                        <div className="border-2 border-gray-300 rounded-lg p-5 flex flex-col items-center justify-center">
-                            <h3 className="text-lg font-black text-blue-900 w-full mb-4 uppercase">Kargo Barkodu</h3>
+                        <div className="border-2 border-gray-300 rounded-lg p-3 flex flex-col items-center justify-center overflow-hidden">
+                            <h3 className="text-base font-black text-blue-900 w-full mb-2 uppercase text-center">Kargo Barkodu</h3>
                             <Barcode 
                                 value={order.cargoTrackingNumber || order.orderNumber} 
-                                width={2.5} 
-                                height={120} 
+                                width={2.2} 
+                                height={100} 
                             />
                         </div>
                     </div>
