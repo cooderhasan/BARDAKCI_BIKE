@@ -16,7 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal } from "lucide-react";
+import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal, Barcode } from "lucide-react";
 import {
     formatDate,
     getOrderStatusLabel,
@@ -541,26 +541,46 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex justify-end gap-2">
                                                 {order.source === "TRENDYOL" && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className="border-orange-200 text-[#f27a1a] hover:bg-orange-50 h-9 w-9"
-                                                        title="Trendyol Barkodu Yazdır"
-                                                        onClick={async () => {
-                                                            const { getTrendyolShippingLabel } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
-                                                            const res = await getTrendyolShippingLabel(order.id);
-                                                            
-                                                            const labelUrl = (res.data as any)?.labelUrl;
-
-                                                            if (labelUrl) {
-                                                                window.open(labelUrl, '_blank');
-                                                            } else {
-                                                                toast.error(res.message || "Barkod linki alınamadı. Siparişin kargo etiketi henüz oluşmamış olabilir.");
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Printer className="h-4 w-4" />
-                                                    </Button>
+                                                    <div className="flex gap-1">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="border-orange-200 text-[#f27a1a] hover:bg-orange-50 h-9 w-9"
+                                                            title="Orijinal Trendyol Barkodu (API)"
+                                                            onClick={async () => {
+                                                                const { getTrendyolShippingLabel } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
+                                                                const localLabelUrl = `/admin/orders/bulk-shipping-labels?ids=${order.id}`;
+                                                                
+                                                                toast.promise(getTrendyolShippingLabel(order.id), {
+                                                                    loading: 'Trendyol barkodu alınıyor...',
+                                                                    success: (res) => {
+                                                                        const labelUrl = (res.data as any)?.labelUrl;
+                                                                        if (labelUrl) {
+                                                                            window.open(labelUrl, '_blank');
+                                                                            return 'Orijinal barkod açıldı';
+                                                                        }
+                                                                        window.open(localLabelUrl, '_blank');
+                                                                        return 'API yanıt vermedi, yerel barkod açılıyor';
+                                                                    },
+                                                                    error: (err) => {
+                                                                        window.open(localLabelUrl, '_blank');
+                                                                        return 'Hata oluştu, yerel barkod açılıyor';
+                                                                    }
+                                                                });
+                                                            }}
+                                                        >
+                                                            <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 w-9"
+                                                            title="Sistem Barkodu (Hızlı)"
+                                                            onClick={() => window.open(`/admin/orders/bulk-shipping-labels?ids=${order.id}`, '_blank')}
+                                                        >
+                                                            <Barcode className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 )}
                                                 <Button
                                                     variant="ghost"

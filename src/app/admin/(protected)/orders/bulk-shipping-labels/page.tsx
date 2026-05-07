@@ -123,10 +123,12 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
 
                                 {/* Receiver Info */}
                                 <div className="mb-8">
-                                    <h2 className="text-sm font-bold text-gray-500 uppercase mb-2 border-b border-gray-300 pb-1">ALICI (TESLİMAT ADRESİ)</h2>
+                                    <h2 className="text-sm font-bold text-gray-500 uppercase mb-2 border-b border-gray-300 pb-1">
+                                        ALICI (TESLİMAT ADRESİ) {order.source === "TRENDYOL" && <span className="ml-2 bg-[#f27a1a] text-white text-[10px] px-1.5 py-0.5 rounded font-bold">TRENDYOL</span>}
+                                    </h2>
                                     <div className="pl-2">
                                         <div className="text-2xl font-bold uppercase mb-2 leading-tight">
-                                            {shippingAddress?.name || order.user?.companyName || order.user?.email || (order as any).guestEmail || "Müşteri"}
+                                            {shippingAddress?.fullName || shippingAddress?.name || order.user?.companyName || order.user?.email || (order as any).guestEmail || "Müşteri"}
                                         </div>
                                         <div className="text-lg font-medium whitespace-pre-wrap leading-snug mb-2">
                                             {shippingAddress?.address || order.user?.address || "Adres bilgisi yok"}
@@ -134,8 +136,14 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                         <div className="text-xl font-bold uppercase">
                                             {shippingAddress?.district || order.user?.district} / {shippingAddress?.city || order.user?.city}
                                         </div>
-                                        <div className="mt-3 font-mono text-lg">
-                                            Tel: {shippingAddress?.phone || order.user?.phone || "-"}
+                                        <div className="mt-3 font-mono text-lg flex justify-between items-end">
+                                            <span>Tel: {shippingAddress?.phone || order.user?.phone || "-"}</span>
+                                            {order.source === "TRENDYOL" && (
+                                                <div className="text-right flex flex-col items-end">
+                                                    <span className="text-[10px] text-gray-400">PAKET ID</span>
+                                                    <span className="text-sm font-bold">{(order as any).shipmentPackageId || "-"}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -161,13 +169,13 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                     <div className="col-span-2 mt-4 pt-4 border-t border-black">
                                         <div className="flex flex-col items-center justify-center space-y-2">
                                              <Barcode 
-                                                value={(order as any).ykCargoKey || order.orderNumber} 
+                                                value={order.cargoTrackingNumber || (order as any).ykCargoKey || order.orderNumber} 
                                                 width={2.5} 
                                                 height={100} 
                                                 className="mb-2"
                                              />
                                              <div className="text-center text-[10px] text-gray-400 font-medium uppercase tracking-widest">
-                                                {settings.companyName || "Firma Adı"} - Kargo Etiketi
+                                                {order.source === "TRENDYOL" ? "Trendyol Siparişi" : (settings.companyName || "Firma Adı")} - Kargo Etiketi
                                             </div>
                                         </div>
                                     </div>
