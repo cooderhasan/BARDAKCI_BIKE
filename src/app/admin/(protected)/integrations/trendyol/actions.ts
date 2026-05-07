@@ -1301,16 +1301,17 @@ export async function getTrendyolShippingLabel(orderId: string) {
 
         let labelUrl = "";
         let attempts = 0;
+        const maxAttempts = 5; // Deneme sayısını artıralım
 
-        // --- ADIM 2: BARKODU AL (3 Deneme) ---
-        while (attempts < 3 && !labelUrl) {
+        // --- ADIM 2: BARKODU AL (maxAttempts Deneme) ---
+        while (attempts < maxAttempts && !labelUrl) {
             attempts++;
-            console.log(`[Trendyol] Barkod denemesi ${attempts}/3...`);
+            console.log(`[Trendyol] Barkod denemesi ${attempts}/${maxAttempts}...`);
 
-            // Denenecek ID'ler: Takip No, Paket ID, Sipariş No
+            // Denenecek ID'ler: Paket ID (en güvenilir), Takip No, Sipariş No
             const idsToTry = [
-                { id: order.cargoTrackingNumber, type: "Takip No" },
                 { id: order.shipmentPackageId, type: "Paket ID" },
+                { id: order.cargoTrackingNumber, type: "Takip No" },
                 { id: order.orderNumber, type: "Sipariş No" }
             ].filter(item => !!item.id);
 
@@ -1323,69 +1324,101 @@ export async function getTrendyolShippingLabel(orderId: string) {
                     
                     try {
                         console.log(`[Trendyol] Deneniyor: ${item.type} (${item.id}) - Format: ${format}`);
-                        const res = await client.getCommonLabel(item.id!, format);
-                        labelUrl = res.data?.[0]?.label;
+                        
+                        let res;
+                        // Eğer id bir kargo takip numarası ise ve Common Label deniyorsak, 
+                        // yeni tekli endpoint'i de deneyebiliriz
+                        if (item.type === "Takip No") {
+                            res = await client.getCommonLabelSingle(item.id!);
+                        } else {
+                            res = await client.getCommonLabel(item.id!, format);
+                        }
+                        
+                        // Trendyol bazen barkodu direkt 'label' içinde, bazen data[0].label içinde döner
+                        labelUrl = res.data?.[0]?.label || res[0]?.label || res.label;
+                        
                         if (labelUrl) {
                             console.log(`[Trendyol] BAŞARILI: ${item.type} ile barkod alındı.`);
                             break;
                         }
                     } catch (err: any) {
-                        // 556 veya 400 hatalarını logla ama devam et
-                        console.warn(`[Trendyol] ${item.type} (${format}) Hatası:`, err.message);
+                        const isServiceBusy = err.message.includes("556") || err.message.includes("Service Unavailable");
+                        const isNotFound = err.message.includes("400") || err.message.includes("NOT_FOUND");
+                        
+                        if (isServiceBusy) {
+                            console.warn(`[Trendyol] Servis Meşgul (556). Bekleniyor...`);
+                        } else if (isNotFound) {
+                            console.warn(`[Trendyol] Barkod henüz hazır değil (404/400).`);
+                        } else {
+                            console.warn(`[Trendyol] ${item.type} (${format}) Hatası:`, err.message);
+                        }
                     }
                 }
             }
 
-            // 2. Yol: International (Sadece Paket ID ile)
-            if (!labelUrl && order.shipmentPackageId) {
+            // Eğer hala alınamadıysa ve servis meşgulse/hazır değilse "Zorla Üretme" tetikle
+            if (!labelUrl) {
                 try {
-                    console.log(`[Trendyol] Uluslararası servis deneniyor...`);
-                    const res = await client.getInternationalLabel(order.shipmentPackageId);
-                    labelUrl = res.data?.[0]?.label || res.label;
-                } catch (err: any) {
-                    console.warn(`[Trendyol] International Hatası:`, err.message);
-                }
-            }
-
-            // 2.5 Yol: Create Label (Zorla Üretme)
-            if (!labelUrl && order.shipmentPackageId) {
-                try {
-                    console.log(`[Trendyol] Etiket üretme tetikleniyor...`);
-                    await client.createCommonLabel([order.shipmentPackageId]);
-                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    // İlk denemeden sonra veya her 2 denemede bir etiket üretimini tetikle
+                    if (attempts % 2 === 1) {
+                        if (order.shipmentPackageId) {
+                            console.log(`[Trendyol] Etiket üretme tetikleniyor (Paket: ${order.shipmentPackageId})...`);
+                            await client.createCommonLabel([order.shipmentPackageId]);
+                        }
+                        if (order.cargoTrackingNumber) {
+                            console.log(`[Trendyol] Tekli etiket üretme tetikleniyor (Takip No: ${order.cargoTrackingNumber})...`);
+                            await client.createCommonLabelSingle(order.cargoTrackingNumber);
+                        }
+                    }
                 } catch (err: any) {
                     console.warn(`[Trendyol] Etiket Üretme Hatası:`, err.message);
                 }
             }
 
-            // 3. Yol: Alternatif Servis (Legacy)
-            if (!labelUrl && order.cargoTrackingNumber) {
-                try {
-                    console.log(`[Trendyol] 3. Yol deneniyor (Legacy)...`);
-                    const res = await client.getShippingLabels(order.cargoTrackingNumber);
-                    labelUrl = Array.isArray(res) ? res[0]?.labelUrl : res?.labelUrl;
-                    if (labelUrl) console.log("[Trendyol] 3. Yol Başarılı.");
-                } catch (err: any) {
-                    console.error(`[Trendyol] 3. Yol Hatası:`, err.message);
+            // Alternatif Servisler (International & Legacy) - Sadece son denemelerde
+            if (!labelUrl && (attempts > 2)) {
+                // International
+                if (order.shipmentPackageId) {
+                    try {
+                        console.log(`[Trendyol] Uluslararası servis deneniyor...`);
+                        const res = await client.getInternationalLabel(order.shipmentPackageId);
+                        labelUrl = res.data?.[0]?.label || res.label;
+                    } catch (err: any) {
+                        if (!err.message.includes("556")) console.warn(`[Trendyol] International Hatası:`, err.message);
+                    }
+                }
+
+                // Legacy (Shipping Labels)
+                if (!labelUrl && order.cargoTrackingNumber) {
+                    try {
+                        console.log(`[Trendyol] Legacy servis deneniyor...`);
+                        const res = await client.getShippingLabels(order.cargoTrackingNumber);
+                        labelUrl = Array.isArray(res) ? res[0]?.labelUrl : res?.labelUrl;
+                    } catch (err: any) {
+                        if (!err.message.includes("Unauthorized")) console.warn(`[Trendyol] Legacy Hatası:`, err.message);
+                    }
                 }
             }
 
-            if (!labelUrl && attempts < 3) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
+            // Denemeler arası bekleme (Giderek artan bekleme)
+            if (!labelUrl && attempts < maxAttempts) {
+                const waitTime = 2000 + (attempts * 1000); // 3s, 4s, 5s...
+                console.log(`[Trendyol] ${waitTime/1000} saniye bekleniyor...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
             }
         }
 
         if (!labelUrl) {
             return { 
                 success: false, 
-                message: "Barkod şu an alınamıyor. Trendyol kargo servisi yoğun olabilir. Lütfen siparişleri tekrar senkronize edip 1 dakika sonra tekrar deneyin." 
+                message: "Trendyol barkod servisi şu an yanıt vermiyor veya barkod henüz oluşturulmadı. Trendyol Express ve bazı kargo firmalarında barkodun oluşması 15 dakikayı bulabilmektedir. Lütfen bir süre sonra tekrar deneyin. (Hata: 556/400)" 
             };
         }
 
         return { success: true, data: { labelUrl } };
     } catch (error: any) {
         console.error("[Trendyol] getShippingLabel Error:", error);
-        return { success: false, message: "Hata: " + error.message };
+        return { success: false, message: "Sistem Hatası: " + error.message };
     }
 }
 
@@ -1427,8 +1460,9 @@ export async function updateTrendyolOrderToPicking(orderNumber: string) {
         });
 
         if (response.ok) {
-            // 3 saniye bekle (Trendyol'un kargo no ataması için)
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Trendyol'un kargo no ataması ve arka planda hazırlık yapması için daha fazla bekle
+            console.log("[Trendyol] Statü Picking yapıldı, 5 saniye bekleniyor...");
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
             // Siparişleri tekrar senkronize et ki takip nosu gelsin
             await syncOrdersFromTrendyol();

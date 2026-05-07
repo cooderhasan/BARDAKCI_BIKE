@@ -364,4 +364,46 @@ export class TrendyolClient {
         }
         return await response.json();
     }
+
+    /**
+     * Create Common Label (Single - Using Tracking Number)
+     * POST /integration/sellers/{sellerId}/common-label/{cargoTrackingNumber}
+     */
+    async createCommonLabelSingle(cargoTrackingNumber: string) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/sellers/${this.creds.supplierId}/common-label/${cargoTrackingNumber}`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify({ format: "ZPL" })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Trendyol Create Label Single Error: ${response.status} - ${errText}`);
+        }
+        return await response.json();
+    }
+
+    /**
+     * Get Common Label (Single - Using Tracking Number)
+     * GET /integration/sellers/{sellerId}/common-label/{cargoTrackingNumber}
+     */
+    async getCommonLabelSingle(cargoTrackingNumber: string) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/sellers/${this.creds.supplierId}/common-label/${cargoTrackingNumber}`;
+        const response = await fetch(url, {
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Trendyol Get Label Single Error: ${response.status} - ${errText}`);
+        }
+        return await response.json();
+    }
 }
