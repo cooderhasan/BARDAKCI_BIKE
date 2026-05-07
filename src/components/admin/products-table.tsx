@@ -27,7 +27,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package } from "lucide-react";
+import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 import { deleteProduct, toggleProductStatus, toggleTrendyolStatus } from "@/app/admin/(protected)/products/actions";
 import { toast } from "sonner";
