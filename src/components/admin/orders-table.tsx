@@ -642,22 +642,35 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
 
             {/* Order Detail Dialog */}
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="!max-w-none w-[95vw] sm:w-[90vw] xl:!w-[1100px] max-h-[92vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent p-0">
-                    <DialogHeader className="flex flex-row items-center justify-between px-10 pt-10 border-b pb-6 mb-6 pr-20">
-                        <DialogTitle className="text-xl">
-                            Sipariş Detayı - {selectedOrder?.orderNumber}
-                        </DialogTitle>
-                        {selectedOrder && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-2 shrink-0"
-                                onClick={() => window.open(`/admin/orders/${selectedOrder.id}/print`, '_blank')}
-                            >
-                                <Printer className="h-4 w-4" />
-                                Siparişi Yazdır
-                            </Button>
-                        )}
+                <DialogContent className="!max-w-none w-[95vw] sm:w-[90vw] xl:!w-[1100px] max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent p-0">
+                    <DialogHeader className="px-10 pt-10 border-b pb-6 mb-6">
+                        <div className="flex flex-row items-center justify-between">
+                            <DialogTitle className="text-xl flex items-center gap-4">
+                                Sipariş Detayı - {selectedOrder?.orderNumber}
+                                {selectedOrder && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="hidden md:flex gap-2 shrink-0 border-orange-200 text-orange-700 hover:bg-orange-50"
+                                        onClick={() => window.open(`/admin/orders/${selectedOrder.id}/print`, '_blank')}
+                                    >
+                                        <Printer className="h-4 w-4" />
+                                        Siparişi Yazdır
+                                    </Button>
+                                )}
+                            </DialogTitle>
+                            {/* Mobile only print button or just let it be hidden if not needed */}
+                            {selectedOrder && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="md:hidden gap-2 shrink-0 border-orange-200 text-orange-700 mr-8"
+                                    onClick={() => window.open(`/admin/orders/${selectedOrder.id}/print`, '_blank')}
+                                >
+                                    <Printer className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
                     </DialogHeader>
                     {selectedOrder && (
                         <div className="space-y-6 px-8 pb-10 pr-10">
