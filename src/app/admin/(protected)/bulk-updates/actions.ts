@@ -261,3 +261,123 @@ export async function executeBulkStockUpdate(
         throw new Error("Toplu stok güncelleme sırasında hata oluştu.");
     }
 }
+
+// ==================== TRENDYOL PRICE UPDATE ====================
+
+export interface TrendyolPricePreviewResult {
+    id: string;
+    name: string;
+    oldPrice: number;
+    newPrice: number;
+    sku: string | null;
+    barcode: string | null;
+}
+
+export async function previewBulkTrendyolPriceUpdate(
+    criteria: BulkUpdateCriteria,
+    params: PriceUpdateParams
+): Promise<TrendyolPricePreviewResult[]> {
+    const where: any = {
+        isTrendyolActive: true,
+        barcode: { not: null }
+    };
+
+    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
+    if (criteria.categoryId && criteria.categoryId !== "ALL") {
+        where.categories = { some: { id: criteria.categoryId } };
+    }
+
+    const products = await prisma.product.findMany({
+        where,
+        select: {
+            id: true,
+            name: true,
+            trendyolPrice: true,
+            listPrice: true,
+            sku: true,
+            barcode: true,
+        },
+    });
+
+    return products.map((p) => {
+        // Trendyol price defaults to listPrice if not set
+        const oldPrice = p.trendyolPrice ? Number(p.trendyolPrice) : Number(p.listPrice);
+        let newPrice = oldPrice;
+
+        if (params.type === "PERCENTAGE") {
+            const amount = oldPrice * (params.value / 100);
+            newPrice = params.operation === "INCREASE" ? oldPrice + amount : oldPrice - amount;
+        } else {
+            newPrice = params.operation === "INCREASE" ? oldPrice + params.value : oldPrice - params.value;
+        }
+
+        if (newPrice < 0) newPrice = 0;
+
+        return {
+            id: p.id,
+            name: p.name,
+            oldPrice,
+            newPrice: Number(newPrice.toFixed(2)),
+            sku: p.sku,
+            barcode: p.barcode
+        };
+    });
+}
+
+export async function executeBulkTrendyolPriceUpdate(
+    criteria: BulkUpdateCriteria,
+    params: PriceUpdateParams
+) {
+    const session = await auth();
+    if (!session?.user?.id) {
+        throw new Error("Unauthorized");
+    }
+
+    const preview = await previewBulkTrendyolPriceUpdate(criteria, params);
+    const CHUNK_SIZE = 50;
+
+    try {
+        for (let i = 0; i < preview.length; i += CHUNK_SIZE) {
+            const chunk = preview.slice(i, i + CHUNK_SIZE);
+            await prisma.$transaction(
+                chunk.map((item) =>
+                    prisma.product.update({
+                        where: { id: item.id },
+                        data: { trendyolPrice: item.newPrice },
+                    })
+                )
+            );
+        }
+
+        // Log the action
+        await prisma.adminLog.create({
+            data: {
+                action: "BULK_TRENDYOL_PRICE_UPDATE",
+                details: `Updated ${preview.length} products' Trendyol prices. Criteria: ${JSON.stringify(criteria)}, Params: ${JSON.stringify(params)}`,
+                entityId: "BULK",
+                entityType: "PRODUCT",
+                adminId: session.user.id,
+            }
+        });
+
+        // Add Marketplace Sync Job
+        try {
+            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+            const productIds = preview.map(p => p.id);
+            if (productIds.length > 0) {
+                await addMarketplaceSyncJob({ 
+                    marketplace: "trendyol", 
+                    type: "prices", 
+                    productIds 
+                });
+            }
+        } catch (e) {
+            console.error("Bulk Trendyol price sync queue error:", e);
+        }
+
+        return { success: true, count: preview.length };
+    } catch (error) {
+        console.error("Bulk Trendyol price update error:", error);
+        throw new Error("Trendyol toplu fiyat güncelleme sırasında hata oluştu.");
+    }
+}

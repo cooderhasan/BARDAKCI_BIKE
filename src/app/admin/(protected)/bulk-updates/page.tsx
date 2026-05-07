@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { BulkPriceForm } from "@/components/admin/bulk-price-form";
 import { BulkStockForm } from "@/components/admin/bulk-stock-form";
+import { BulkTrendyolPriceForm } from "@/components/admin/bulk-trendyol-price-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function BulkUpdatesPage() {
@@ -34,12 +35,16 @@ export default async function BulkUpdatesPage() {
             </div>
 
             <Tabs defaultValue="price" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
                     <TabsTrigger value="price">Fiyat Güncelleme</TabsTrigger>
+                    <TabsTrigger value="trendyol">Trendyol Fiyatları</TabsTrigger>
                     <TabsTrigger value="stock">Stok Güncelleme</TabsTrigger>
                 </TabsList>
                 <TabsContent value="price" className="mt-6">
                     <BulkPriceForm categories={categories} brands={brands} />
+                </TabsContent>
+                <TabsContent value="trendyol" className="mt-6">
+                    <BulkTrendyolPriceForm categories={categories} brands={brands} />
                 </TabsContent>
                 <TabsContent value="stock" className="mt-6">
                     <BulkStockForm categories={categories} brands={brands} />
