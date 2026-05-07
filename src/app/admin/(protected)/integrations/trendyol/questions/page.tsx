@@ -1,10 +1,10 @@
 import { getTrendyolQuestions } from "../actions";
 import { TrendyolQuestionsList } from "@/components/admin/trendyol-questions-list";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, RefreshCcw } from "lucide-react";
+import { ChevronLeft, Info } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { RefreshButton } from "@/components/admin/refresh-button";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +27,7 @@ export default async function TrendyolQuestionsPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Link href="/admin/integrations/trendyol/questions">
-                        <Button variant="outline" className="gap-2">
-                            <RefreshCcw className="w-4 h-4" />
-                            Yenile
-                        </Button>
-                    </Link>
+                    <RefreshButton />
                 </div>
             </div>
 
