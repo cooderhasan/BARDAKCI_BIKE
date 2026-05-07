@@ -572,7 +572,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit }:
                                 </Button>
 
                                 <div className="text-[10px] text-center text-gray-400 leading-tight">
-                                    <p>Siparişi onaylayarak <Link href="/policies/sat-s-zle-mesi" className="underline hover:text-gray-600">Mesafeli Satış Sözleşmesi</Link>'ni</p>
+                                    <p>Siparişi onaylayarak <Link href="/policies/distance-sales" className="underline hover:text-gray-600">Mesafeli Satış Sözleşmesi</Link>'ni</p>
                                     <p>kabul etmiş olursunuz.</p>
                                 </div>
                             </CardContent>
