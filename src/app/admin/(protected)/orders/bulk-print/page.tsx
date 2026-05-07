@@ -102,7 +102,7 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
 
                                     {/* Logo Section */}
                                     <div className="flex justify-between items-center">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Trendyol_logo.svg/512px-Trendyol_logo.svg.png" alt="Trendyol" className="h-10 w-auto object-contain" />
+                                        <img src="/img/trendyol-logo.png" alt="Trendyol" className="h-10 w-auto object-contain" />
                                         <div className="text-right">
                                             <span className="text-lg font-bold italic text-gray-700">trendyol</span>
                                             <span className="text-sm font-medium block text-gray-500 uppercase -mt-1">express</span>
