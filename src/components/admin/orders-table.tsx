@@ -642,7 +642,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
 
             {/* Order Detail Dialog */}
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="!max-w-none w-[95vw] sm:w-[90vw] xl:!w-[1100px] max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent p-0">
+                <DialogContent className="!max-w-none w-[95vw] sm:w-[90vw] xl:!w-[1250px] max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent p-0">
                     <DialogHeader className="px-10 pt-10 border-b pb-6 mb-6">
                         <div className="flex flex-row items-center justify-between">
                             <DialogTitle className="text-xl flex items-center gap-4">
@@ -673,7 +673,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                         </div>
                     </DialogHeader>
                     {selectedOrder && (
-                        <div className="space-y-6 px-8 pb-10 pr-10">
+                        <div className="space-y-6 pl-10 pr-12 pb-10">
                             {/* Top Grid: Customer, Address, Cargo/Status - 3 Columns */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {/* Column 1: Customer Info */}
@@ -879,7 +879,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                     </TableCell>
                                                     <TableCell className="py-2">
                                                         <div className="flex flex-col gap-1.5">
-                                                            <span className="font-medium text-gray-900 dark:text-gray-100">{item.productName}</span>
+                                                            <span className="font-medium text-gray-900 dark:text-gray-100 max-w-[550px] inline-block">{item.productName}</span>
                                                             <div className="flex items-center gap-2 flex-wrap">
                                                                 {item.product?.sku && (
                                                                     <span className="text-xs text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">SKU: {item.product.sku}</span>
