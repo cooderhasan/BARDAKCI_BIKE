@@ -374,15 +374,35 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
 
         const result = await client.saveProduct(payload);
 
-        if (result.success) {
-             await (prisma as any).n11Product.upsert({
-                where: { productId: product.id },
-                update: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null },
-                create: { productId: product.id, isSynced: true, lastSyncedAt: new Date() }
-            });
-            return { success: true, message: "Ürün N11'e başarıyla gönderildi." };
+        if (result.success && result.taskId) {
+            // Wait for 5 seconds for N11 to process the task
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            // Poll task details for final result
+            const taskRes = await client.getTaskDetails(result.taskId);
+            
+            if (taskRes.success) {
+                const task = taskRes.data;
+                const status = task.status; // COMPLETED, FAILED, IN_PROGRESS
+                
+                if (status === "COMPLETED") {
+                    await (prisma as any).n11Product.upsert({
+                        where: { productId: product.id },
+                        update: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null },
+                        create: { productId: product.id, isSynced: true, lastSyncedAt: new Date() }
+                    });
+                    return { success: true, message: "Ürün N11'e başarıyla yüklendi ve yayınlandı." };
+                } else if (status === "FAILED") {
+                    const errorMsg = task.items?.[0]?.errorMsg || "N11 tarafında işleme hatası oluştu.";
+                    return { success: false, message: "N11 İşleme Hatası: " + errorMsg };
+                } else {
+                    return { success: true, message: `Ürün N11 kuyruğuna alındı ancak henüz sonuçlanmadı. Takip No: ${result.taskId}. Birazdan tekrar kontrol edebilirsiniz.` };
+                }
+            }
+            
+            return { success: true, message: "Ürün N11 kuyruğuna iletildi. Sonuç için birazdan senkronizasyon yapabilirsiniz." };
         } else {
-            return { success: false, message: "N11 Hatası: " + result.message };
+            return { success: false, message: "N11 İletim Hatası: " + result.message };
         }
 
     } catch (error: any) {

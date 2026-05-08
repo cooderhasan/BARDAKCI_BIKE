@@ -225,9 +225,9 @@ export class N11Client {
                         description: product.description,
                         categoryId: product.categoryId,
                         currencyType: "TL",
-                        productMainId: product.sellerCode, // Using sellerCode as mainId for single products
+                        productMainId: product.sellerCode,
                         preparingDay: 3,
-                        shipmentTemplate: "STANDART", // This should ideally be dynamic
+                        shipmentTemplate: "STANDART",
                         quantity: product.quantity,
                         stockCode: product.stockCode,
                         images: product.images.map((url: string, index: number) => ({
@@ -243,6 +243,16 @@ export class N11Client {
             };
             const data = await this.callRest("/ms/product/tasks/product-create", "POST", payload);
             return { success: true, taskId: data.id };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
+    }
+
+    async getTaskDetails(taskId: string) {
+        try {
+            // Official Doc: GET https://api.n11.com/ms/product/tasks/{taskId}
+            const data = await this.callRest(`/ms/product/tasks/${taskId}`);
+            return { success: true, data };
         } catch (error: any) {
             return { success: false, message: error.message };
         }
