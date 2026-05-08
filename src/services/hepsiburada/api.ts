@@ -57,7 +57,8 @@ export class HepsiburadaClient {
             const response = await fetch(testUrl, {
                 headers: { 
                     "Authorization": this.getAuthHeader(),
-                    "Accept": "application/json"
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
                 }
             });
             
@@ -136,7 +137,8 @@ export class HepsiburadaClient {
         const response = await fetch(url, {
             headers: { 
                 "Authorization": this.getAuthHeader(),
-                "Accept": "application/json"
+                "Accept": "application/json",
+                "Content-Type": "application/json"
             }
         });
 
