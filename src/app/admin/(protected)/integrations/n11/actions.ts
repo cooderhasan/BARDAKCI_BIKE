@@ -386,7 +386,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             await (prisma as any).n11Task.create({
                 data: {
                     n11ProductId: n11Product.id,
-                    taskId: result.taskId,
+                    taskId: String(result.taskId),
                     status: "PENDING"
                 }
             });
@@ -395,7 +395,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             await new Promise(resolve => setTimeout(resolve, 5000));
 
             // Poll task details for final result
-            const taskRes = await client.getTaskDetails(result.taskId);
+            const taskRes = await client.getTaskDetails(String(result.taskId));
             
             if (taskRes.success) {
                 const task = taskRes.data;
@@ -403,7 +403,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 
                 // Update Task status in DB
                 await (prisma as any).n11Task.update({
-                    where: { taskId: result.taskId },
+                    where: { taskId: String(result.taskId) },
                     data: { 
                         status: status,
                         errorMessage: status === "FAILED" ? (task.items?.[0]?.errorMsg || "İşleme hatası") : null
