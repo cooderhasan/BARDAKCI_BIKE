@@ -50,18 +50,13 @@ export class N11Client {
         }
 
         const response = await fetch(url, options);
-        const contentType = response.headers.get("content-type");
-
-        let data: any;
-        if (contentType && contentType.includes("application/json")) {
-            data = await response.json();
-        } else {
-            const text = await response.text();
-            throw new Error(`N11 API Beklenmedik Yanıt (${response.status}): ${text.substring(0, 100)}`);
-        }
+        const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || `N11 API Hatası: ${response.status}`);
+            console.error(`N11 API Error [${endpoint}]:`, JSON.stringify(data));
+            // N11 often sends error in 'errors' or 'message' field
+            const errorDetail = data.errors?.[0]?.message || data.message || data.errorDescription || `HTTP ${response.status}`;
+            throw new Error(`N11 API Hatası: ${errorDetail}`);
         }
 
         return data;
