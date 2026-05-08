@@ -217,32 +217,39 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
             </div>
 
             <Dialog open={showAttrModal} onOpenChange={setShowAttrModal}>
-                <DialogContent className="rounded-3xl border-purple-100 dark:border-purple-900/30">
-                    <DialogHeader>
+                <DialogContent className="sm:max-w-[700px] rounded-3xl border-purple-100 dark:border-purple-900/30 overflow-hidden flex flex-col max-h-[90vh]">
+                    <DialogHeader className="px-6 pt-6">
                         <DialogTitle>N11 Özelliklerini Eşleştir</DialogTitle>
                         <DialogDescription>Zorunlu alanları doldurarak ürünü N11'e kaydedin.</DialogDescription>
                     </DialogHeader>
 
                     {attrLoading ? (
-                        <div className="py-8 flex justify-center"><RefreshCcw className="animate-spin text-purple-500" /></div>
+                        <div className="py-20 flex justify-center"><RefreshCcw className="animate-spin text-purple-500 w-8 h-8" /></div>
                     ) : (
-                        <div className="space-y-4 py-4">
-                            {categoryAttrs.map((attr: any) => (
-                                <div key={attr.id} className="space-y-1">
-                                    <Label className="text-xs">{attr.name} {attr.mandatory && "*"}</Label>
-                                    <Input 
-                                        className="h-8 text-sm"
-                                        placeholder={`${attr.name} değerini girin...`}
-                                        onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: e.target.value }))}
-                                    />
-                                </div>
-                            ))}
+                        <div className="flex-1 overflow-y-auto px-6 py-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                                {categoryAttrs.map((attr: any) => (
+                                    <div key={attr.id} className="space-y-1.5">
+                                        <Label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                                            {attr.name} {attr.mandatory && <span className="text-red-500">*</span>}
+                                        </Label>
+                                        <Input 
+                                            className="h-9 text-sm border-gray-200 dark:border-gray-800 focus-visible:ring-purple-500"
+                                            placeholder={`${attr.name} girin...`}
+                                            onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: e.target.value }))}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            {categoryAttrs.length === 0 && (
+                                <div className="text-center py-8 text-muted-foreground text-sm">Bu kategori için ek özellik bulunamadı.</div>
+                            )}
                         </div>
                     )}
 
-                    <DialogFooter>
+                    <DialogFooter className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-800">
                         <Button variant="ghost" onClick={() => setShowAttrModal(false)}>İptal</Button>
-                        <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={handleSend}>Kaydet ve Gönder</Button>
+                        <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 dark:shadow-none" onClick={handleSend}>Kaydet ve Gönder</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
