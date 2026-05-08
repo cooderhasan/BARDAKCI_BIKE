@@ -184,12 +184,24 @@ export class N11Client {
             // Official Doc: GET https://api.n11.com/cdn/category/{categoryId}/attribute
             const data = await this.callRest(`/cdn/category/${categoryId}/attribute`);
             
-            const attributes = (data.categoryAttributes || []).map((attr: any) => ({
-                id: attr.attributeId,
-                name: attr.attributeName,
-                mandatory: attr.isMandatory === true,
-                values: (attr.attributeValues || []).map((v: any) => v.attributeValue) // N11 sends attributeValues list
-            }));
+            // Log raw response to help debug
+            console.log("N11 RAW categoryAttributes sample:", JSON.stringify((data.categoryAttributes || [])[0], null, 2));
+            
+            const attributes = (data.categoryAttributes || []).map((attr: any) => {
+                const rawValues = attr.attributeValues || attr.values || [];
+                console.log(`Attr: ${attr.attributeName}, values sample:`, JSON.stringify(rawValues[0]));
+                
+                return {
+                    id: attr.attributeId,
+                    name: attr.attributeName,
+                    mandatory: attr.isMandatory === true,
+                    values: rawValues.map((v: any) => {
+                        if (typeof v === 'string') return v;
+                        // Try all possible field names N11 might use
+                        return v.attributeValue ?? v.name ?? v.value ?? v.label ?? v.text ?? JSON.stringify(v);
+                    }).filter(Boolean)
+                };
+            });
             
             return { success: true, attributes };
         } catch (error: any) {
