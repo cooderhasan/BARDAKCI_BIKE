@@ -283,7 +283,7 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                                                     <SelectTrigger className={`h-9 text-sm focus:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}>
                                                         <SelectValue placeholder={`${attr.name} seçin...`} />
                                                     </SelectTrigger>
-                                                    <SelectContent>
+                                                    <SelectContent position="popper" className="z-[100] max-h-[300px]">
                                                         {attr.values.map((v: string) => (
                                                             <SelectItem key={v} value={v}>{v}</SelectItem>
                                                         ))}
