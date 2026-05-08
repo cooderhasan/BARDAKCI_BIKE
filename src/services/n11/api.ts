@@ -143,6 +143,15 @@ export class N11Client {
         try {
             // N11 REST Order statuses: New, Approved, Rejected, Shipped, Delivered, Completed, Claimed, Lateness
             const data = await this.callRest(`/orders?status=${status}`);
+            return { success: true, ...data };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
+    }
+
+    async acceptOrder(orderId: string) {
+        try {
+            const data = await this.callRest(`/orders/${orderId}/accept`, "POST");
             return { success: true, data };
         } catch (error: any) {
             return { success: false, message: error.message };

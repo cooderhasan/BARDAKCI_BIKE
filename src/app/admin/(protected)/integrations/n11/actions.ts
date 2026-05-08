@@ -254,7 +254,7 @@ export async function syncOrdersFromN11() {
                 await prisma.order.create({
                     data: {
                         orderNumber: n11Order.orderNumber,
-                        status: "PENDING",
+                        status: "CONFIRMED", // Start as confirmed since we auto-accept
                         total: Number(n11Order.totalAmount || total),
                         subtotal: total,
                         discountAmount: 0,
@@ -270,6 +270,19 @@ export async function syncOrdersFromN11() {
                         items: { create: orderItems }
                     }
                 });
+
+                // AUTOMATIC STOCK CONFIRMATION (Accept Order in N11)
+                try {
+                    const acceptRes = await client.acceptOrder(n11Order.id);
+                    if (acceptRes.success) {
+                        console.log(`✅ N11 Order ${n11Order.orderNumber} auto-accepted.`);
+                    } else {
+                        console.error(`❌ N11 Auto-Accept Error:`, acceptRes.message);
+                    }
+                } catch (acceptErr) {
+                    console.error(`❌ N11 Auto-Accept Exception:`, acceptErr);
+                }
+
                 importedCount++;
             }
         }
