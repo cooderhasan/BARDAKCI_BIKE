@@ -229,19 +229,19 @@ export class N11Client {
                 payload: {
                     integrator: "SRN_Entegrasyon",
                     skus: [{
-                        productSellerCode: product.sellerCode,
                         title: product.title,
                         subtitle: product.title.substring(0, 50),
                         description: product.description,
                         categoryId: product.categoryId,
-                        price: product.price,
+                        currencyType: "TL", 
+                        preparingDay: 3,
+                        shipmentTemplate: product.shipmentTemplate || "Karaaslan",
                         salePrice: product.price,
                         listPrice: product.price,
-                        currencyType: 1, // TL
-                        preparingDay: 3,
-                        productCondition: 1, // 1 = Yeni Ürün
-                        domestic: true, // Yerli Üretim
-                        shipmentTemplate: product.shipmentTemplate || "Karaaslan",
+                        vatRate: 20,
+                        quantity: product.quantity || 0,
+                        productMainId: product.sellerCode,
+                        stockCode: product.stockCode || product.sellerCode,
                         images: (product.images || []).slice(0, 8).map((url: string, index: number) => ({
                             url: url,
                             order: index + 1
@@ -249,15 +249,12 @@ export class N11Client {
                         attributes: (product.attributes || []).map((attr: any) => ({
                             name: attr.name,
                             value: attr.value
-                        })),
-                        quantity: product.quantity || 0,
-                        stockCode: product.stockCode || product.sellerCode,
-                        vatRate: 20
+                        }))
                     }]
                 }
             };
             
-            console.log("N11 SaveProduct Payload (Hybrid):", JSON.stringify(payload, null, 2));
+            console.log("N11 SaveProduct Payload (Official REST):", JSON.stringify(payload, null, 2));
             const data = await this.callRest("/ms/product/tasks/product-create", "POST", payload);
             return { success: true, taskId: data.id };
         } catch (error: any) {
