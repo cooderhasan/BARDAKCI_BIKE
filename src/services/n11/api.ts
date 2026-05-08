@@ -73,17 +73,26 @@ export class N11Client {
     async checkConnectionDetailed(): Promise<{ success: boolean; message: string }> {
         try {
             await this.init();
-            // Use /rest/delivery/v1/shipmentPackages which is well documented
-            const data = await this.callRest("/rest/delivery/v1/shipmentPackages?size=1");
+            // Use /cdn/categories - official doc says it returns a raw array
+            const data = await this.callRest("/cdn/categories");
             
-            // Official Doc says it returns an object with 'content', 'totalPages' etc.
-            if (data && typeof data === "object" && "content" in data) {
+            // If it's a raw array or contains categories, it's a success
+            if (Array.isArray(data)) {
+                if (data.length > 0) {
+                    return { success: true, message: "Bağlantı Başarılı" };
+                }
+                return { success: false, message: "Bağlantı başarılı ancak N11 boş liste döndürdü." };
+            }
+            
+            // Fallback for object wrapping
+            if (data && typeof data === "object" && (data.categories || data.content)) {
                 return { success: true, message: "Bağlantı Başarılı" };
             }
             
-            return { success: false, message: "Bağlantı kuruldu ancak beklenen veri yapısı alınamadı." };
+            return { success: false, message: "N11'den geçersiz veri yapısı alındı." };
         } catch (error: any) {
-            return { success: false, message: "Bağlantı Kurulamadı: " + error.message };
+            // Detailed error reporting for the user
+            return { success: false, message: "Bağlantı Hatası: " + error.message };
         }
     }
 
