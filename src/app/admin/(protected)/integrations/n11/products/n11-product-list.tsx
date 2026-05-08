@@ -279,19 +279,17 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                                             </div>
                                             
                                             {hasValues ? (
-                                                    <Select 
-                                                        onValueChange={(val) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: val }))}
-                                                        value={attrMappings[attr.id] || ""}
-                                                    >
-                                                    <SelectTrigger className={`w-full h-9 text-sm focus:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}>
-                                                        <SelectValue placeholder={`${attr.name} seçin...`} />
-                                                    </SelectTrigger>
-                                                    <SelectContent position="popper" className="z-[100] max-h-[300px]">
-                                                        {attr.values.map((v: string) => (
-                                                            <SelectItem key={v} value={v}>{v}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                <select 
+                                                    className="w-full h-9 text-sm rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-1 focus:ring-2 focus:ring-purple-500 outline-none transition-all appearance-none cursor-pointer"
+                                                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25rem' }}
+                                                    value={attrMappings[attr.id] || ""}
+                                                    onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: e.target.value }))}
+                                                >
+                                                    <option value="">{attr.name} seçin...</option>
+                                                    {attr.values.map((v: string) => (
+                                                        <option key={v} value={v}>{v}</option>
+                                                    ))}
+                                                </select>
                                             ) : (
                                                 <Input 
                                                     className={`h-9 text-sm focus-visible:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}
