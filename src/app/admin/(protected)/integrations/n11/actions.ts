@@ -298,6 +298,46 @@ export async function getN11CategoryAttributes(categoryId: number) {
     }
 }
 
+export async function getN11Categories(parentId?: number) {
+    try {
+        const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Aktif entegrasyon yok." };
+
+        const client = new N11Client({
+            apiKey: config.apiKey,
+            apiSecret: config.apiSecret
+        });
+
+        if (parentId) {
+            const res = await client.getSubCategories(parentId);
+            return { success: true, data: res.categories };
+        } else {
+            const res = await client.getTopLevelCategories();
+            return { success: true, data: res.categories };
+        }
+    } catch (error: any) {
+        return { success: false, message: "Kategoriler alınamadı: " + error.message };
+    }
+}
+
+// Full list for searching (This might be slow if many categories, but needed for flat search)
+export async function getFlatN11Categories() {
+    try {
+        const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Aktif entegrasyon yok." };
+
+        const client = new N11Client({
+            apiKey: config.apiKey,
+            apiSecret: config.apiSecret
+        });
+
+        const res = await client.getAllCategories();
+        return res;
+    } catch (error: any) {
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
+
 export async function sendProductToN11(productId: string, attributes: any[]) {
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });

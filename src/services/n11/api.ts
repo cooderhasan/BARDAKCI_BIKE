@@ -151,6 +151,56 @@ export class N11Client {
 
     // --- Category Service ---
 
+    async getTopLevelCategories() {
+        try {
+            const data = await this.callRest("/categories");
+            return { success: true, categories: data.categories || [] };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
+    }
+
+    async getSubCategories(categoryId: number) {
+        try {
+            const data = await this.callRest(`/categories/${categoryId}/subcategories`);
+            return { success: true, categories: data.subCategories || [] };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
+    }
+
+    async getAllCategories() {
+        try {
+            const res = await this.getTopLevelCategories();
+            if (!res.success) return res;
+
+            const allCategories: any[] = [];
+            
+            const fetchRecursive = async (cats: any[], parentPath = "") => {
+                for (const cat of cats) {
+                    const fullPath = parentPath ? `${parentPath} > ${cat.name}` : cat.name;
+                    allCategories.push({ id: cat.id, name: fullPath });
+                    
+                    // N11 usually marks leaf categories or we can check subCategories
+                    // To keep it simple and avoid 1000s of requests, we might only fetch top 2 levels
+                    // OR if the API supports a full tree, we use it.
+                    // Assuming we need sub-requests for N11 REST:
+                    if (cat.hasSubCategory) {
+                         const sub = await this.getSubCategories(cat.id);
+                         if (sub.success) {
+                             await fetchRecursive(sub.categories, fullPath);
+                         }
+                    }
+                }
+            };
+
+            await fetchRecursive(res.categories);
+            return { success: true, categories: allCategories };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
+    }
+
     async getCategoryAttributes(categoryId: number) {
         try {
             const data = await this.callRest(`/categories/${categoryId}/attributes`);

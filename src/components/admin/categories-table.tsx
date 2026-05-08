@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { X, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { getTrendyolCategories } from "@/app/admin/(protected)/integrations/trendyol/actions";
+import { getFlatN11Categories } from "@/app/admin/(protected)/integrations/n11/actions";
 import {
     Select,
     SelectContent,
@@ -314,6 +315,119 @@ function TrendyolCategorySearch({
                 {open && results.length === 0 && search.length >= 2 && !loading && (
                     <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-orange-200 rounded-lg shadow-xl p-3 text-sm text-gray-500 text-center">
                         Sonuç bulunamadı.
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// --- N11 Category Search Component ---
+interface N11Category {
+    id: number;
+    name: string;
+}
+
+function N11CategorySearch({
+    value,
+    onChange,
+}: {
+    value?: number;
+    onChange: (id: number | undefined) => void;
+}) {
+    const [search, setSearch] = useState("");
+    const [results, setResults] = useState<N11Category[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [selectedName, setSelectedName] = useState<string>("");
+    const [error, setError] = useState<string>("");
+
+    const handleSearch = async (q: string) => {
+        setSearch(q);
+        if (q.length < 2) { setResults([]); return; }
+        setLoading(true);
+        setError("");
+        try {
+            const res = await getFlatN11Categories();
+            if (res.success && res.categories) {
+                const filtered = (res.categories as N11Category[]).filter(c =>
+                    c.name.toLowerCase().includes(q.toLowerCase())
+                ).slice(0, 100);
+                setResults(filtered);
+                setOpen(true);
+            } else {
+                setError(res.message || "Kategoriler alınamadı. N11 entegrasyonunu kontrol edin.");
+            }
+        } catch {
+            setError("Bağlantı hatası.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSelect = (cat: N11Category) => {
+        onChange(cat.id);
+        setSelectedName(cat.name);
+        setSearch("");
+        setResults([]);
+        setOpen(false);
+    };
+
+    const handleClear = () => {
+        onChange(undefined);
+        setSelectedName("");
+        setSearch("");
+        setResults([]);
+    };
+
+    return (
+        <div className="space-y-2">
+            {value && selectedName ? (
+                <div className="flex items-center gap-2 p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-sm">
+                    <span className="font-medium text-purple-800 dark:text-purple-300 flex-1 truncate">✓ {selectedName}</span>
+                    <span className="text-xs text-purple-600 font-mono">#{value}</span>
+                    <button type="button" onClick={handleClear} className="text-purple-500 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : value ? (
+                <div className="flex items-center gap-2 p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-sm">
+                    <span className="font-medium text-purple-800 dark:text-purple-300 flex-1">Mevcut ID: <span className="font-mono">#{value}</span></span>
+                    <button type="button" onClick={handleClear} className="text-purple-500 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : null}
+
+            <div className="relative">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                        className="pl-8 border-purple-200 focus-visible:ring-purple-500"
+                        placeholder="N11 kategorisi ara (min. 2 karakter)..."
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                    />
+                    {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-purple-500" />}
+                </div>
+
+                {error && (
+                    <p className="text-xs text-red-500 mt-1">{error}</p>
+                )}
+
+                {open && results.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-purple-200 rounded-lg shadow-xl">
+                        {results.map((cat) => (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => handleSelect(cat)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                            >
+                                <span className="whitespace-normal leading-relaxed text-xs">{cat.name}</span>
+                                <span className="text-xs text-gray-400 font-mono shrink-0 pt-0.5">#{cat.id}</span>
+                            </button>
+                        ))}
                     </div>
                 )}
             </div>
@@ -699,23 +813,19 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     />
                                 </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                                    <Label htmlFor="trendyolCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Kategori ID</Label>
+                                    <Label htmlFor="trendyolCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Kategori Eşleştirme</Label>
                                     <TrendyolCategorySearch
                                         value={trendyolCategoryId}
                                         onChange={setTrendyolCategoryId}
                                     />
                                 </div>
                                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <Label htmlFor="n11CategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 N11 Kategori ID</Label>
-                                    <Input
-                                        id="n11CategoryId"
-                                        type="number"
-                                        value={n11CategoryId || ""}
-                                        onChange={(e) => setN11CategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                                        placeholder="N11 kategori ID'si giriniz (Örn: 10001)"
-                                        className="border-purple-200 dark:border-purple-700"
+                                    <Label htmlFor="n11CategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 N11 Kategori Eşleştirme</Label>
+                                    <N11CategorySearch
+                                        value={n11CategoryId}
+                                        onChange={setN11CategoryId}
                                     />
-                                    <p className="text-[10px] text-purple-600">N11 Kategori ID'sini N11 entegrasyonu sayfasından bulabilirsiniz.</p>
+                                    <p className="text-[10px] text-purple-600">N11 kategorisini adıyla arayıp seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="hbCategoryId" className="text-orange-600">Hepsiburada Kategori ID</Label>
