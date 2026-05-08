@@ -43,38 +43,40 @@ export function HepsiburadaSettingsForm({ initialData }: Props) {
                     Hepsiburada entegrasyonu için Merchant ID ve şifrenizi girin.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent key={initialData?.updatedAt}>
                 <form action={action} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="username">Kullanıcı Adı (Genelde Merchant ID)</Label>
+                        <Label htmlFor="username">Merchant ID (Mağaza ID)</Label>
                         <Input
                             id="username"
                             name="username"
                             defaultValue={initialData?.username}
-                            placeholder="Merchant ID"
+                            placeholder="f4d3caf2-..."
                             required
                         />
+                        <p className="text-[10px] text-muted-foreground">Hepsiburada portalında görünen Mağaza ID değerini buraya yazın.</p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="password">Şifre</Label>
+                        <Label htmlFor="password">Servis Anahtarı (API Key)</Label>
                         <Input
                             id="password"
                             name="password"
                             type="password"
                             defaultValue={initialData?.password}
-                            placeholder="API Şifresi"
+                            placeholder="API Servis Anahtarı"
                             required
                         />
+                        <p className="text-[10px] text-muted-foreground">Entegrasyon sayfasından aldığınız Servis Anahtarını buraya yapıştırın.</p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="merchantId">Mağaza ID (Opsiyonel / Aynıysa boş bırakın)</Label>
+                        <Label htmlFor="merchantId">Ek Mağaza ID (Opsiyonel)</Label>
                         <Input
                             id="merchantId"
                             name="merchantId"
                             defaultValue={initialData?.merchantId}
-                            placeholder="Mağaza ID"
+                            placeholder="Genellikle boş bırakılır"
                         />
                     </div>
 
@@ -84,7 +86,7 @@ export function HepsiburadaSettingsForm({ initialData }: Props) {
                             name="isActive"
                             defaultChecked={initialData?.isActive}
                         />
-                        <Label htmlFor="isActive">Entegrasyonu Aktifleştir</Label>
+                        <Label htmlFor="isActive">Hepsiburada Entegrasyonunu Aktifleştir</Label>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

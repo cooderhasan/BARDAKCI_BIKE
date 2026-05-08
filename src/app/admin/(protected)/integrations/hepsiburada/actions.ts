@@ -25,6 +25,8 @@ export async function saveHepsiburadaConfig(prevState: any, formData: FormData) 
             return { success: false, message: "Kullanıcı Adı ve Şifre zorunludur." };
         }
 
+        console.log("💾 HB Saving Config:", { username, merchantId, isActive });
+
         const existing = await (prisma as any).hepsiburadaConfig.findFirst();
 
         if (existing) {
@@ -32,13 +34,16 @@ export async function saveHepsiburadaConfig(prevState: any, formData: FormData) 
                 where: { id: existing.id },
                 data: { username, password, merchantId, isActive }
             });
+            console.log("✅ HB Config Updated");
         } else {
             await (prisma as any).hepsiburadaConfig.create({
                 data: { username, password, merchantId, isActive }
             });
+            console.log("✅ HB Config Created");
         }
 
-        return { success: true, message: "Ayarlar kaydedildi." };
+        revalidatePath("/admin/integrations/hepsiburada");
+        return { success: true, message: "Ayarlar başarıyla kaydedildi." };
     } catch (error) {
         console.error("HB Save Error:", error);
         return { success: false, message: "Kaydetme hatası." };
