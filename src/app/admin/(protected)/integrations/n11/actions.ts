@@ -398,16 +398,23 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             // Poll task details for final result
             const taskRes = await client.getTaskDetails(String(result.taskId));
             
-            if (taskRes.success) {
+            if (taskRes.success && taskRes.data) {
                 const task = taskRes.data;
                 const status = task.status; // COMPLETED, FAILED, IN_PROGRESS
                 
+                let errorMsg = null;
+                if (status === "FAILED") {
+                    // N11 often puts error in items[0].errorDescription or errorMsg
+                    const firstItem = task.items?.[0];
+                    errorMsg = firstItem?.errorDescription || firstItem?.errorMsg || "N11 İşleme Hatası";
+                }
+
                 // Update Task status in DB
                 await (prisma as any).n11Task.update({
                     where: { taskId: String(result.taskId) },
                     data: { 
                         status: status,
-                        errorMessage: status === "FAILED" ? (task.items?.[0]?.errorMsg || "İşleme hatası") : null
+                        errorMessage: errorMsg
                     }
                 });
 
@@ -418,14 +425,13 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                     });
                     return { success: true, message: "Ürün N11'e başarıyla yüklendi ve yayınlandı." };
                 } else if (status === "FAILED") {
-                    const errorMsg = task.items?.[0]?.errorMsg || "N11 tarafında işleme hatası oluştu.";
                     await (prisma as any).n11Product.update({
                         where: { id: n11Product.id },
                         data: { lastSyncError: errorMsg }
                     });
                     return { success: false, message: "N11 İşleme Hatası: " + errorMsg };
                 } else {
-                    return { success: true, message: `Ürün N11 kuyruğuna alındı ancak henüz sonuçlanmadı. Takip No: ${result.taskId}. Birazdan tekrar kontrol edebilirsiniz.` };
+                    return { success: true, message: `Ürün N11 kuyruğuna alındı (Durum: ${status}). Takip No: ${result.taskId}. Birazdan tekrar kontrol ediniz.` };
                 }
             }
             
@@ -475,7 +481,8 @@ export async function getN11Tasks() {
                     const n11Status = res.data.status;
                     if (n11Status !== task.status) {
                         // Update in DB
-                        const errorMsg = n11Status === "FAILED" ? (res.data.items?.[0]?.errorMsg || "İşleme hatası") : null;
+                        const firstItem = res.data.items?.[0];
+                        const errorMsg = n11Status === "FAILED" ? (firstItem?.errorDescription || firstItem?.errorMsg || "İşleme hatası") : null;
                         
                         await (prisma as any).n11Task.update({
                             where: { id: task.id },
