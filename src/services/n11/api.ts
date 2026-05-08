@@ -271,8 +271,10 @@ export class N11Client {
         try {
             // Official Doc: GET https://api.n11.com/ms/product/tasks/{taskId}
             const data = await this.callRest(`/ms/product/tasks/${taskId}`);
+            console.log(`N11 Task Status Check [${taskId}]:`, JSON.stringify(data));
             return { success: true, data };
         } catch (error: any) {
+            console.error(`N11 Task Status Error [${taskId}]:`, error.message);
             return { success: false, message: error.message };
         }
     }
