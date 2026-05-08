@@ -201,4 +201,38 @@ export class N11Client {
             return { success: false, message: error.message };
         }
     }
+
+    async saveProduct(product: any) {
+        try {
+            // Official Doc: POST https://api.n11.com/ms/product/tasks/product-create
+            const payload = {
+                payload: {
+                    integrator: "SRN_Entegrasyon",
+                    skus: [{
+                        title: product.title,
+                        description: product.description,
+                        categoryId: product.categoryId,
+                        currencyType: "TL",
+                        productMainId: product.sellerCode, // Using sellerCode as mainId for single products
+                        preparingDay: 3,
+                        shipmentTemplate: "STANDART", // This should ideally be dynamic
+                        quantity: product.quantity,
+                        stockCode: product.stockCode,
+                        images: product.images.map((url: string, index: number) => ({
+                            url: url,
+                            order: index
+                        })),
+                        attributes: product.attributes || [],
+                        salePrice: product.price,
+                        listPrice: product.price,
+                        vatRate: 20
+                    }]
+                }
+            };
+            const data = await this.callRest("/ms/product/tasks/product-create", "POST", payload);
+            return { success: true, taskId: data.id };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
+    }
 }

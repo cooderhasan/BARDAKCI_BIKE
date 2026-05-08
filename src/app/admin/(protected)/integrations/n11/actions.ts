@@ -145,37 +145,23 @@ export async function syncProductsToN11(productIds?: string[]) {
             }
         }
 
-        // 2. Process in chunks to avoid rate limits
-        const CHUNK_SIZE = 50; // N11 tekil işlem yaptığı için batch boyutunu küçük tutuyoruz
+        // 2. Process in chunks (N11 allows up to 1000 skus per task)
+        const CHUNK_SIZE = 1000;
         const chunks = [];
         for (let i = 0; i < allItemsToSync.length; i += CHUNK_SIZE) {
             chunks.push(allItemsToSync.slice(i, i + CHUNK_SIZE));
         }
 
         for (const chunk of chunks) {
-            // Process chunk items concurrently
-            await Promise.all(
-                chunk.map(async (item) => {
-                    try {
-                        const stockRes = await client.updateStock({ sellerStockCode: item.stockCode, quantity: item.quantity });
-                        const priceRes = await client.updatePrice({ sellerStockCode: item.stockCode, price: item.price });
-
-                        if (stockRes.success || priceRes.success) {
-                            successCount++;
-                        } else {
-                            failCount++;
-                        }
-                    } catch (e) {
-                        failCount++;
-                    }
-                })
-            );
-
-            // Sleep 500ms between chunks
-            await new Promise(resolve => setTimeout(resolve, 500));
+            const result = await client.updateStockAndPrice(chunk);
+            if (result.success) {
+                successCount += chunk.length;
+            } else {
+                failCount += chunk.length;
+            }
         }
 
-        return { success: true, message: `N11 Senkronizasyonu Tamamlandı. Başarılı: ${successCount}, Başarısız: ${failCount} (Ürün N11'de eşleşmediyse başarısız olur).` };
+        return { success: true, message: `N11 Senkronizasyonu Tamamlandı. ${successCount} varyant/ürün güncellendi.` };
 
     } catch (error: any) {
         console.error("N11 Sync Error:", error);
