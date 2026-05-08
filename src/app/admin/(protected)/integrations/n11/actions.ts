@@ -37,7 +37,8 @@ export async function saveN11Config(prevState: any, formData: FormData) {
             });
         }
 
-        return { success: true, message: "Ayarlar kaydedildi." };
+        revalidatePath("/admin/integrations/n11");
+        return { success: true, message: "N11 Ayarları başarıyla kaydedildi." };
     } catch (error) {
         return { success: false, message: "Kaydetme hatası." };
     }
@@ -188,14 +189,88 @@ export async function syncOrdersFromN11() {
             apiSecret: config.apiSecret
         });
 
-        // Get Orders
-        const res = await client.getOrders("New");
+        // Get Orders (Status: New)
+        const response = await client.getOrders("New");
+        const orders = response.orders || [];
 
-        // Since we didn't implement full XML parser for orders, we just log logic or return raw info length
-        // In real implementation we would parse XML.
-        // For now, let's assume if raw response has content, it's ok.
+        if (orders.length === 0) return { success: true, message: "Yeni N11 siparişi yok." };
 
-        return { success: true, message: "N11 Sipariş kontrolü yapıldı (XML Loglandı). İçe aktarma için XML parser gerekli." };
+        let importedCount = 0;
+
+        for (const n11Order of orders) {
+            const existing = await prisma.order.findUnique({
+                where: { orderNumber: n11Order.orderNumber }
+            });
+
+            if (existing) continue;
+
+            const orderItems = [];
+            let total = 0;
+            const items = n11Order.orderItemList || [];
+
+            for (const item of items) {
+                // Find product by sellerStockCode (which is our SKU/Barcode)
+                let productId = "";
+                let variantId = null;
+
+                const variant = await prisma.productVariant.findFirst({
+                    where: { OR: [{ sku: item.sellerStockCode }, { barcode: item.sellerStockCode }] },
+                    include: { product: true }
+                });
+
+                if (variant) {
+                    productId = variant.productId;
+                    variantId = variant.id;
+                } else {
+                    const product = await prisma.product.findFirst({
+                        where: { OR: [{ sku: item.sellerStockCode }, { barcode: item.sellerStockCode }] }
+                    });
+                    if (product) productId = product.id;
+                }
+
+                if (productId) {
+                    const price = Number(item.price || 0);
+                    const qty = Number(item.quantity || 1);
+
+                    orderItems.push({
+                        productId,
+                        variantId,
+                        productName: item.productName || "N11 Ürünü",
+                        quantity: qty,
+                        unitPrice: price,
+                        discountRate: 0,
+                        vatRate: 20,
+                        lineTotal: price * qty
+                    });
+                    total += price * qty;
+                }
+            }
+
+            if (orderItems.length > 0) {
+                await prisma.order.create({
+                    data: {
+                        orderNumber: n11Order.orderNumber,
+                        status: "PENDING",
+                        total: Number(n11Order.totalAmount || total),
+                        subtotal: total,
+                        discountAmount: 0,
+                        appliedDiscountRate: 0,
+                        vatAmount: total * 0.2,
+                        guestEmail: n11Order.buyer?.email || "n11@customer.com",
+                        shippingAddress: {
+                            fullName: n11Order.shippingAddress?.fullName || "N11 Müşterisi",
+                            address: n11Order.shippingAddress?.address || "",
+                            city: n11Order.shippingAddress?.city || "",
+                            district: n11Order.shippingAddress?.district || ""
+                        },
+                        items: { create: orderItems }
+                    }
+                });
+                importedCount++;
+            }
+        }
+
+        return { success: true, message: `${importedCount} yeni N11 siparişi başarıyla çekildi.` };
 
     } catch (error: any) {
         console.error("N11 Order Sync Error:", error);

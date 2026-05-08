@@ -29,6 +29,15 @@ export async function setupRepeatableJobs() {
         jobId: 'hepsiburada-order-sync-cron'
     });
     console.log("⏰ Hepsiburada Order Sync Cron (20m) registered.");
+
+    // Her 30 dakikada bir N11 siparişlerini çek
+    await queue.add("n11-order-sync", {}, {
+        repeat: {
+            pattern: '*/30 * * * *' // Every 30 minutes
+        },
+        jobId: 'n11-order-sync-cron'
+    });
+    console.log("⏰ N11 Order Sync Cron (30m) registered.");
 }
 
 export function initializeWorker() {
@@ -55,6 +64,14 @@ export function initializeWorker() {
                     console.log("🔄 Otomatik Hepsiburada Sipariş Senkronizasyonu başlatıldı...");
                     const { syncOrdersFromHepsiburada } = await import("@/app/admin/(protected)/integrations/hepsiburada/actions");
                     const result = await syncOrdersFromHepsiburada();
+                    console.log(`✅ Cron Sonucu: ${result.message}`);
+                    return;
+                }
+
+                if (job.name === "n11-order-sync") {
+                    console.log("🔄 Otomatik N11 Sipariş Senkronizasyonu başlatıldı...");
+                    const { syncOrdersFromN11 } = await import("@/app/admin/(protected)/integrations/n11/actions");
+                    const result = await syncOrdersFromN11();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
                     return;
                 }
