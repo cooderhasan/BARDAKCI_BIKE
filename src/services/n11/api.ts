@@ -73,17 +73,15 @@ export class N11Client {
     async checkConnectionDetailed(): Promise<{ success: boolean; message: string }> {
         try {
             await this.init();
-            // Use /cdn/categories for testing connection
-            const data = await this.callRest("/cdn/categories");
+            // Use /rest/delivery/v1/shipmentPackages which is well documented
+            const data = await this.callRest("/rest/delivery/v1/shipmentPackages?size=1");
             
-            // Flexible check: is it an array or an object containing categories?
-            if (Array.isArray(data) && data.length > 0) {
-                return { success: true, message: "Bağlantı Başarılı" };
-            } else if (data && Array.isArray(data.categories) && data.categories.length > 0) {
+            // Official Doc says it returns an object with 'content', 'totalPages' etc.
+            if (data && typeof data === "object" && "content" in data) {
                 return { success: true, message: "Bağlantı Başarılı" };
             }
             
-            return { success: false, message: "Bağlantı kuruldu ancak boş veri döndü." };
+            return { success: false, message: "Bağlantı kuruldu ancak beklenen veri yapısı alınamadı." };
         } catch (error: any) {
             return { success: false, message: "Bağlantı Kurulamadı: " + error.message };
         }
