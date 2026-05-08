@@ -445,6 +445,7 @@ export async function getN11Tasks() {
         throw new Error("Unauthorized");
     }
 
+    // Get tasks from DB
     const tasks = await (prisma as any).n11Task.findMany({
         include: {
             n11Product: {
@@ -458,6 +459,58 @@ export async function getN11Tasks() {
         orderBy: { createdAt: "desc" },
         take: 50
     });
+
+    // Check if any task is still PENDING and try to update it from N11
+    const pendingTasks = tasks.filter((t: any) => t.status === "PENDING" || t.status === "IN_PROGRESS");
+    
+    if (pendingTasks.length > 0) {
+        const { N11Client } = await import("@/services/n11/api");
+        const client = new N11Client();
+
+        for (const task of pendingTasks) {
+            try {
+                const res = await client.getTaskDetails(task.taskId);
+                if (res.success) {
+                    const n11Status = res.data.status;
+                    if (n11Status !== task.status) {
+                        // Update in DB
+                        await (prisma as any).n11Task.update({
+                            where: { id: task.id },
+                            data: { 
+                                status: n11Status,
+                                errorMessage: n11Status === "FAILED" ? (res.data.items?.[0]?.errorMsg || "İşleme hatası") : null
+                            }
+                        });
+
+                        // If completed, update product status too
+                        if (n11Status === "COMPLETED") {
+                            await (prisma as any).n11Product.update({
+                                where: { id: task.n11ProductId },
+                                data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(`Task poll error for ${task.taskId}:`, e);
+            }
+        }
+
+        // Fetch again to get updated statuses
+        return await (prisma as any).n11Task.findMany({
+            include: {
+                n11Product: {
+                    include: {
+                        product: {
+                            select: { name: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: "desc" },
+            take: 50
+        });
+    }
 
     return tasks;
 }
