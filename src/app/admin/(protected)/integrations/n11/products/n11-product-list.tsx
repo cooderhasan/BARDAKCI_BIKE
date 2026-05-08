@@ -270,14 +270,15 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                                     const hasValues = attr.values && attr.values.length > 0;
 
                                     return (
-                                                <div className="flex items-center justify-between">
-                                                    <Label className={`text-[11px] font-semibold ${isMissing ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                        {attr.name} {attr.mandatory && <span className="text-red-500">*</span>}
-                                                    </Label>
-                                                    <span className="text-[9px] text-gray-400">{attr.values.length} seçenek</span>
-                                                </div>
-                                                
-                                                {hasValues ? (
+                                        <div key={attr.id} className="space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <Label className={`text-[11px] font-semibold ${isMissing ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                    {attr.name} {attr.mandatory && <span className="text-red-500">*</span>}
+                                                </Label>
+                                                <span className="text-[9px] text-gray-400">{attr.values.length} seçenek</span>
+                                            </div>
+                                            
+                                            {hasValues ? (
                                                     <Select 
                                                         onValueChange={(val) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: val }))}
                                                         value={attrMappings[attr.id] || ""}
