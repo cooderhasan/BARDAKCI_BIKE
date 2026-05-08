@@ -188,17 +188,17 @@ export class N11Client {
             console.log("N11 RAW categoryAttributes sample:", JSON.stringify((data.categoryAttributes || [])[0], null, 2));
             
             const attributes = (data.categoryAttributes || []).map((attr: any) => {
-                const rawValues = attr.attributeValues || attr.values || [];
-                console.log(`Attr: ${attr.attributeName}, values sample:`, JSON.stringify(rawValues[0]));
+                // SOAP doc says 'valueList', REST might say 'attributeValues' or 'values'
+                const rawValues = attr.valueList?.value || attr.attributeValues || attr.values || [];
                 
                 return {
-                    id: attr.attributeId,
-                    name: attr.attributeName,
-                    mandatory: attr.isMandatory === true,
+                    id: attr.attributeId || attr.id,
+                    name: attr.attributeName || attr.name,
+                    mandatory: attr.isMandatory === true || attr.mandatory === true,
                     values: rawValues.map((v: any) => {
                         if (typeof v === 'string') return v;
-                        // Try all possible field names N11 might use
-                        return v.attributeValue ?? v.name ?? v.value ?? v.label ?? v.text ?? JSON.stringify(v);
+                        // Doc says 'name' inside 'value'
+                        return v.name ?? v.attributeValue ?? v.value ?? v.label ?? JSON.stringify(v);
                     }).filter(Boolean)
                 };
             });
