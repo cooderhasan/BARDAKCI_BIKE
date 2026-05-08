@@ -39,6 +39,7 @@ export class N11Client {
         // Remove double slashes if any
         const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
         const url = `${this.baseUrl}${cleanEndpoint}`;
+        console.log(`N11 API Request: [${method}] ${url}`);
         
         const options: RequestInit = {
             method,
@@ -49,17 +50,21 @@ export class N11Client {
             options.body = JSON.stringify(body);
         }
 
-        const response = await fetch(url, options);
-        const data = await response.json();
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
 
-        if (!response.ok) {
-            console.error(`N11 API Error [${endpoint}]:`, JSON.stringify(data));
-            // N11 often sends error in 'errors' or 'message' field
-            const errorDetail = data.errors?.[0]?.message || data.message || data.errorDescription || `HTTP ${response.status}`;
-            throw new Error(`N11 API Hatası: ${errorDetail}`);
+            if (!response.ok) {
+                console.error(`N11 API Error Response [${endpoint}]:`, JSON.stringify(data));
+                const errorDetail = data.errors?.[0]?.message || data.message || data.errorDescription || `HTTP ${response.status}`;
+                throw new Error(`N11 API Hatası: ${errorDetail}`);
+            }
+
+            return data;
+        } catch (fetchError: any) {
+            console.error(`N11 Fetch Exception [${url}]:`, fetchError.message);
+            throw fetchError;
         }
-
-        return data;
     }
 
     /**
