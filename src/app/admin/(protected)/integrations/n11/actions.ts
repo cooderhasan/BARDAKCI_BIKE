@@ -24,6 +24,8 @@ export async function saveN11Config(prevState: any, formData: FormData) {
             return { success: false, message: "API Anahtarı ve Şifre zorunludur." };
         }
 
+        console.log("💾 N11 Saving Config:", { apiKey, isActive });
+
         const existing = await (prisma as any).n11Config.findFirst();
 
         if (existing) {
@@ -31,10 +33,12 @@ export async function saveN11Config(prevState: any, formData: FormData) {
                 where: { id: existing.id },
                 data: { apiKey, apiSecret, isActive }
             });
+            console.log("✅ N11 Config Updated");
         } else {
             await (prisma as any).n11Config.create({
                 data: { apiKey, apiSecret, isActive }
             });
+            console.log("✅ N11 Config Created");
         }
 
         revalidatePath("/admin/integrations/n11");

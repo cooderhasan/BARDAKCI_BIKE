@@ -43,10 +43,10 @@ export function N11SettingsForm({ initialData }: Props) {
                     N11 entegrasyonu için API anahtarlarınızı girin.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent key={initialData?.updatedAt}>
                 <form action={action} className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="apiKey">API Key (App Key)</Label>
+                        <Label htmlFor="apiKey">App Key (API Anahtarı)</Label>
                         <Input
                             id="apiKey"
                             name="apiKey"
@@ -57,7 +57,7 @@ export function N11SettingsForm({ initialData }: Props) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="apiSecret">API Secret (App Secret)</Label>
+                        <Label htmlFor="apiSecret">App Secret (API Şifresi)</Label>
                         <Input
                             id="apiSecret"
                             name="apiSecret"
@@ -74,7 +74,7 @@ export function N11SettingsForm({ initialData }: Props) {
                             name="isActive"
                             defaultChecked={initialData?.isActive}
                         />
-                        <Label htmlFor="isActive">Entegrasyonu Aktifleştir</Label>
+                        <Label htmlFor="isActive">N11 Entegrasyonunu Aktifleştir</Label>
                     </div>
 
                     <SubmitButton />
