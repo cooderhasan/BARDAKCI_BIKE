@@ -188,6 +188,7 @@ export class N11Client {
                 id: attr.attributeId,
                 name: attr.attributeName,
                 mandatory: attr.isMandatory === true,
+                values: (attr.attributeValues || []).map((v: any) => v.attributeValue) // N11 sends attributeValues list
             }));
             
             return { success: true, attributes };

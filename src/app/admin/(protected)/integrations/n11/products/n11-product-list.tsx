@@ -35,6 +35,13 @@ import { Label } from "@/components/ui/label";
 import { N11TaskHistory } from "./n11-task-history";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { History, LayoutList } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface N11ProductListProps {
     initialProducts: any[];
@@ -260,16 +267,37 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                                 {categoryAttrs.map((attr: any) => {
                                     const isMissing = attr.mandatory && !attrMappings[attr.id];
+                                    const hasValues = attr.values && attr.values.length > 0;
+
                                     return (
                                         <div key={attr.id} className="space-y-1.5">
                                             <Label className={`text-[11px] font-semibold ${isMissing ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {attr.name} {attr.mandatory && <span className="text-red-500">*</span>}
                                             </Label>
-                                            <Input 
-                                                className={`h-9 text-sm focus-visible:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}
-                                                placeholder={`${attr.name} girin...`}
-                                                onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: e.target.value }))}
-                                            />
+                                            
+                                            {hasValues ? (
+                                                <Select 
+                                                    onValueChange={(val) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: val }))}
+                                                    value={attrMappings[attr.id] || ""}
+                                                >
+                                                    <SelectTrigger className={`h-9 text-sm focus:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}>
+                                                        <SelectValue placeholder={`${attr.name} seçin...`} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {attr.values.map((v: string) => (
+                                                            <SelectItem key={v} value={v}>{v}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            ) : (
+                                                <Input 
+                                                    className={`h-9 text-sm focus-visible:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}
+                                                    placeholder={`${attr.name} girin...`}
+                                                    value={attrMappings[attr.id] || ""}
+                                                    onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: e.target.value }))}
+                                                />
+                                            )}
+                                            
                                             {isMissing && <p className="text-[10px] text-red-500 font-medium">Bu alan zorunludur.</p>}
                                         </div>
                                     );
