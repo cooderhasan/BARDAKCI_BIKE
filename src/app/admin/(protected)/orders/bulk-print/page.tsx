@@ -147,11 +147,11 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
                                 <div className="flex justify-between items-start border-b border-gray-300 pb-8 mb-8">
                                     <div className="space-y-2">
                                         {settings.logoUrl && (
-                                            <div className="mb-4">
+                                            <div className="mb-2">
                                                 <img src={settings.logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
                                             </div>
                                         )}
-                                        <h1 className="text-2xl font-bold">{settings.companyName || "Firma Adı"}</h1>
+                                        <h1 className="text-2xl font-bold uppercase">{settings.companyName || "SERİN MOTOR"}</h1>
                                         <div className="text-sm text-gray-600 whitespace-pre-wrap">
                                             {settings.address}
                                             <br />
@@ -271,29 +271,31 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
                                 )}
                             </div>
 
-                            {/* Totals */}
-                            <div className="flex justify-end mt-6">
-                                <div className="w-64 space-y-2">
-                                    <div className="flex justify-between text-gray-600">
-                                        <span>Ara Toplam:</span>
-                                        <span>{formatPrice(toNumber(order.subtotal))}</span>
-                                    </div>
-                                    {toNumber(order.discountAmount) > 0 && (
-                                        <div className="flex justify-between text-green-600">
-                                            <span>İskonto:</span>
-                                            <span>-{formatPrice(toNumber(order.discountAmount))}</span>
+                            {/* Totals - Hidden if Trendyol to keep prices confidential */}
+                            {order.source !== "TRENDYOL" && (
+                                <div className="flex justify-end mt-6">
+                                    <div className="w-64 space-y-2">
+                                        <div className="flex justify-between text-gray-600">
+                                            <span>Ara Toplam:</span>
+                                            <span>{formatPrice(toNumber(order.subtotal))}</span>
                                         </div>
-                                    )}
-                                    <div className="flex justify-between text-gray-600">
-                                        <span>KDV Toplam:</span>
-                                        <span>{formatPrice(toNumber(order.vatAmount))}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xl font-bold border-t border-gray-800 pt-2 mt-2">
-                                        <span>GENEL TOPLAM:</span>
-                                        <span>{formatPrice(toNumber(order.total))}</span>
+                                        {toNumber(order.discountAmount) > 0 && (
+                                            <div className="flex justify-between text-green-600">
+                                                <span>İskonto:</span>
+                                                <span>-{formatPrice(toNumber(order.discountAmount))}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-gray-600">
+                                            <span>KDV Toplam:</span>
+                                            <span>{formatPrice(toNumber(order.vatAmount))}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xl font-bold border-t border-gray-800 pt-2 mt-2">
+                                            <span>GENEL TOPLAM:</span>
+                                            <span>{formatPrice(toNumber(order.total))}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Footer Notes */}
                             <div className="mt-8 pt-4 border-t border-gray-300 text-center text-[10px] text-gray-400">

@@ -104,11 +104,10 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                     <div className="flex justify-between items-start">
                                         <div className="w-2/3">
                                             <h2 className="text-xs font-bold text-gray-500 uppercase mb-1">GÖNDERİCİ</h2>
-                                            {settings.logoUrl ? (
-                                                <img src={settings.logoUrl} alt="Logo" className="h-12 w-auto object-contain mb-2" />
-                                            ) : (
-                                                <h1 className="text-xl font-bold uppercase mb-1">{settings.companyName || "Firma Adı"}</h1>
+                                            {settings.logoUrl && (
+                                                <img src={settings.logoUrl} alt="Logo" className="h-12 w-auto object-contain mb-1" />
                                             )}
+                                            <h1 className="text-lg font-bold uppercase mb-1">{settings.companyName || "SERİN MOTOR"}</h1>
                                             <div className="text-sm font-medium">
                                                 <p>{settings.address}</p>
                                                 <p className="mt-1">{settings.phone} | {settings.email}</p>

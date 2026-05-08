@@ -124,11 +124,11 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                 <div className="flex justify-between items-start border-b border-gray-300 pb-8 mb-8">
                     <div className="space-y-2">
                         {settings.logoUrl && (
-                            <div className="mb-4">
+                            <div className="mb-2">
                                 <img src={settings.logoUrl} alt="Logo" className="h-16 w-auto object-contain" />
                             </div>
                         )}
-                        <h1 className="text-2xl font-bold">{settings.companyName || "Firma Adı"}</h1>
+                        <h1 className="text-2xl font-bold uppercase">{settings.companyName || "SERİN MOTOR"}</h1>
                         <div className="text-sm text-gray-600 whitespace-pre-wrap">
                             {settings.address}
                             <br />
@@ -256,23 +256,25 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                 )}
             </div>
 
-            {/* Totals - Hidden if Trendyol for max compactness, or kept small */}
-            <div className="flex justify-end mt-4">
-                <div className="w-64 space-y-1.5">
-                    <div className="flex justify-between text-sm text-gray-500">
-                        <span>Ara Toplam:</span>
-                        <span>{formatPrice(toNumber(order.subtotal))}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-500">
-                        <span>KDV Toplam:</span>
-                        <span>{formatPrice(toNumber(order.vatAmount))}</span>
-                    </div>
-                    <div className="flex justify-between text-lg font-black border-t-2 border-gray-100 pt-1 mt-1">
-                        <span>GENEL TOPLAM:</span>
-                        <span>{formatPrice(toNumber(order.total))}</span>
+            {/* Totals - Hidden if Trendyol to keep prices confidential */}
+            {order.source !== "TRENDYOL" && (
+                <div className="flex justify-end mt-4">
+                    <div className="w-64 space-y-1.5">
+                        <div className="flex justify-between text-sm text-gray-500">
+                            <span>Ara Toplam:</span>
+                            <span>{formatPrice(toNumber(order.subtotal))}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-500">
+                            <span>KDV Toplam:</span>
+                            <span>{formatPrice(toNumber(order.vatAmount))}</span>
+                        </div>
+                        <div className="flex justify-between text-lg font-black border-t-2 border-gray-100 pt-1 mt-1">
+                            <span>GENEL TOPLAM:</span>
+                            <span>{formatPrice(toNumber(order.total))}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Bank Info (Only if Bank Transfer) */}
             {order.payment?.method === "BANK_TRANSFER" && (settings.bankIban1 || settings.bankIban2) && (
