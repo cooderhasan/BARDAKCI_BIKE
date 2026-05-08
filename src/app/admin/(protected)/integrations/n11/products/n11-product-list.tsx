@@ -286,9 +286,10 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                                                     onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: e.target.value }))}
                                                 >
                                                     <option value="">{attr.name} seçin...</option>
-                                                    {attr.values.map((v: string) => (
-                                                        <option key={v} value={v}>{v}</option>
-                                                    ))}
+                                                    {attr.values.map((v: any, idx: number) => {
+                                                        const val = typeof v === 'object' ? (v?.name || v?.value || JSON.stringify(v)) : String(v);
+                                                        return <option key={`${attr.id}-${idx}`} value={val}>{val}</option>;
+                                                    })}
                                                 </select>
                                             ) : (
                                                 <Input 
