@@ -291,17 +291,20 @@ export async function updateProduct(productId: string, formData: FormData) {
     revalidatePath(`/products/${validatedData.slug}`);
     revalidatePath("/");
 
-    // --- OTOMATİK PAZARYERİ SENKRONİZASYONU ---
-    // Ürün güncellendiğinde (stok/fiyat değişmiş olabilir), arka planda pazaryerlerini güncelle
+    // --- ANLIK PAZARYERİ SENKRONİZASYONU ---
+    // Ürün güncellendiğinde (stok/fiyat değişmiş olabilir), anlık olarak pazaryerlerini güncelle
     try {
+        // Doğrudan import edilen senkronizasyon fonksiyonlarını kullanıyoruz
+        // Not: Bu işlemler arka planda (await edilmeden) tetikleniyor ki kullanıcıyı bekletmesin
+        if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId]).catch(console.error);
+        if (validatedData.isN11Active) syncProductsToN11([productId]).catch(console.error);
+        if (validatedData.isHepsiburadaActive) syncProductsToHepsiburada([productId]).catch(console.error);
+        
+        // Yedek olarak kuyruğa da ekleyebiliriz (opsiyonel)
         const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-        await Promise.all([
-            addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: [productId] }).catch(console.error),
-            addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: [productId] }).catch(console.error),
-            addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: [productId] }).catch(console.error)
-        ]);
+        await addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: [productId] }).catch(console.error);
     } catch (e) {
-        console.error("Marketplace sync queue error:", e);
+        console.error("Marketplace instant sync error:", e);
     }
 
     return { success: true };
