@@ -575,7 +575,7 @@ export async function getN11Tasks() {
                     let n11Status = task.status;
                     const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED"];
                     if (successStates.includes(rawStatus)) n11Status = "COMPLETED";
-                    else if (["FAILED", "ERROR", "REJECTED"].includes(rawStatus)) n11Status = "FAILED";
+                    else if (["FAILED", "ERROR", "REJECTED", "FAIL"].includes(rawStatus)) n11Status = "FAILED";
                     else if (["IN_PROGRESS", "PROCESSING", "WORKING"].includes(rawStatus)) n11Status = "IN_PROGRESS";
                     else if (["PENDING", "WAITING", "CREATED"].includes(rawStatus)) n11Status = "PENDING";
 
@@ -583,7 +583,8 @@ export async function getN11Tasks() {
                         // Update in DB
                         const items = res.data.items || res.data.content || [];
                         const firstItem = items[0];
-                        const errorMsg = n11Status === "FAILED" ? (firstItem?.errorDescription || firstItem?.errorMsg || firstItem?.errorMessage || "İşleme hatası") : null;
+                        const reasons = firstItem?.reasons ? (Array.isArray(firstItem.reasons) ? firstItem.reasons.join(", ") : String(firstItem.reasons)) : null;
+                        const errorMsg = n11Status === "FAILED" ? (reasons || firstItem?.errorDescription || firstItem?.errorMsg || firstItem?.errorMessage || "İşleme hatası") : null;
                         
                         await (prisma as any).n11Task.update({
                             where: { id: task.id },
