@@ -458,8 +458,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 data: {
                     n11ProductId: n11Product.id,
                     taskId: String(result.taskId),
-                    status: "PENDING",
-                    type: result.type || "PRODUCT_CREATE"
+                    status: "PENDING"
                 }
             });
 
