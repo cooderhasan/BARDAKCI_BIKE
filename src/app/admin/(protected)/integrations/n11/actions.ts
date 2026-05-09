@@ -573,14 +573,16 @@ export async function getN11Tasks() {
                     
                     // Normalize status
                     let n11Status = task.status;
-                    if (["COMPLETED", "SUCCESS", "FINISHED"].includes(rawStatus)) n11Status = "COMPLETED";
+                    const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED"];
+                    if (successStates.includes(rawStatus)) n11Status = "COMPLETED";
                     else if (["FAILED", "ERROR", "REJECTED"].includes(rawStatus)) n11Status = "FAILED";
                     else if (["IN_PROGRESS", "PROCESSING", "WORKING"].includes(rawStatus)) n11Status = "IN_PROGRESS";
                     else if (["PENDING", "WAITING", "CREATED"].includes(rawStatus)) n11Status = "PENDING";
 
                     if (n11Status !== task.status || n11Status === "FAILED") {
                         // Update in DB
-                        const firstItem = res.data.items?.[0];
+                        const items = res.data.items || res.data.content || [];
+                        const firstItem = items[0];
                         const errorMsg = n11Status === "FAILED" ? (firstItem?.errorDescription || firstItem?.errorMsg || firstItem?.errorMessage || "İşleme hatası") : null;
                         
                         await (prisma as any).n11Task.update({
