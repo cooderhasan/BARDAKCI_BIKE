@@ -369,6 +369,16 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
         // Determine if product has variants
         const hasVariants = (product as any).variants && (product as any).variants.length > 0;
 
+        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+        
+        // Görselleri tam URL'ye çevir (N11 tam URL ve tercihen https bekler)
+        const absoluteImages = (product.images || []).map((url: string) => {
+            if (url.startsWith("http")) return url;
+            const baseUrl = siteUrl.replace(/\/$/, "");
+            const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+            return `${baseUrl}${cleanUrl}`;
+        });
+
         // productMainId is required and must be same for all variants
         const productMainId = product.sku || product.id;
 
@@ -395,7 +405,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                     listPrice: Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0),
                     vatRate: 20,
                     quantity: variant.stock || 0,
-                    images: product.images,
+                    images: absoluteImages,
                     // Only use mapped attributes from UI (with valid IDs)
                     // Variant-specific info (color/size) goes into title, not attributes
                     // because N11 requires category attribute IDs for variant attributes
@@ -417,7 +427,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 listPrice: Number(product.n11Price || product.listPrice),
                 vatRate: 20,
                 quantity: product.stock || 0,
-                images: product.images,
+                images: absoluteImages,
                 attributes: mappedAttributes,
                 // For variant products, send all variants as separate skus
                 _skus: skus // Internal flag for api.ts to handle
@@ -438,10 +448,11 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 listPrice: Number(product.n11Price || product.listPrice),
                 vatRate: 20,
                 quantity: product.stock || 0,
-                images: product.images,
+                images: absoluteImages,
                 attributes: mappedAttributes
             };
         }
+
 
         const result = await client.saveProduct(payload);
 
