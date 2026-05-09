@@ -466,7 +466,14 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             await new Promise(resolve => setTimeout(resolve, 5000));
 
             // Poll task details for final result
-            const taskRes = await client.getTaskDetails(String(result.taskId));
+            let taskRes;
+            try {
+                taskRes = await client.getTaskDetails(String(result.taskId));
+            } catch (pollError: any) {
+                console.error(`N11 Task Polling Error [${result.taskId}]:`, pollError.message);
+                // Task is created but polling failed - leave it as PENDING for background sync
+                return { success: true, message: `Ürün N11 kuyruğuna alındı. Takip No: ${result.taskId}. Durum senkronizasyon ile güncellenecek.` };
+            }
             
             if (taskRes.success && taskRes.data) {
                 const task = taskRes.data;

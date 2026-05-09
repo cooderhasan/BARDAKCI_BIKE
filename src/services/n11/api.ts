@@ -33,7 +33,7 @@ export class N11Client {
         };
     }
 
-    private async callRest(endpoint: string, method = "GET", body?: any) {
+    private async callRest(endpoint: string, method = "GET", body?: any, retries = 2) {
         if (!this.creds) await this.init();
 
         // Remove double slashes if any
@@ -50,21 +50,36 @@ export class N11Client {
             options.body = JSON.stringify(body);
         }
 
-        try {
-            const response = await fetch(url, options);
-            const data = await response.json();
+        let lastError: any;
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                if (attempt > 0) {
+                    console.log(`N11 API Retry [${method}] ${url} - Attempt ${attempt + 1}/${retries + 1}`);
+                    await new Promise(r => setTimeout(r, 1000 * attempt));
+                }
 
-            if (!response.ok) {
-                console.error(`N11 API Error Response [${endpoint}]:`, JSON.stringify(data));
-                const errorDetail = data.errors?.[0]?.message || data.message || data.errorDescription || `HTTP ${response.status}`;
-                throw new Error(`N11 API Hatası: ${errorDetail}`);
+                const response = await fetch(url, options);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    console.error(`N11 API Error Response [${endpoint}]:`, JSON.stringify(data));
+                    const errorDetail = data.errors?.[0]?.message || data.message || data.errorDescription || `HTTP ${response.status}`;
+                    throw new Error(`N11 API Hatası: ${errorDetail}`);
+                }
+
+                return data;
+            } catch (fetchError: any) {
+                lastError = fetchError;
+                console.error(`N11 Fetch Exception [${url}] (Attempt ${attempt + 1}):`, fetchError.message);
+                
+                // Don't retry on 4xx errors (client errors)
+                if (fetchError.message?.includes('HTTP 4')) {
+                    throw fetchError;
+                }
             }
-
-            return data;
-        } catch (fetchError: any) {
-            console.error(`N11 Fetch Exception [${url}]:`, fetchError.message);
-            throw fetchError;
         }
+
+        throw lastError;
     }
 
     /**
