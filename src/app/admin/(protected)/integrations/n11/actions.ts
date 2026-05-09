@@ -306,10 +306,10 @@ export async function getN11Categories(parentId?: number) {
 
         if (parentId) {
             const res = await client.getSubCategories(parentId);
-            return { success: true, data: res.categories };
+            return { success: true, data: (res as any).categories || [] };
         } else {
             const res = await client.getTopLevelCategories();
-            return { success: true, data: res.categories };
+            return { success: true, data: (res as any).categories || [] };
         }
     } catch (error: any) {
         return { success: false, message: "Kategoriler alınamadı: " + error.message };
@@ -358,20 +358,100 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
         const mappedCat = product.categories.find((c: any) => c.n11CategoryId !== null);
         if (!mappedCat) return { success: false, message: "Ürünün kategorisi N11 ile eşleşmemiş." };
 
-        // N11 doesn't strictly require brand matching by ID for all categories, 
-        // but it's better to have it. For now we use the brand name.
+        // Build attributes in REST API format: { id, valueId, customValue }
+        // UI sends attributes with id, valueId, customValue - pass through directly
+        const mappedAttributes = attributes.map((attr: any) => ({
+            id: attr.id,
+            valueId: attr.valueId ?? null,
+            customValue: attr.customValue ?? null
+        }));
 
-        const payload = {
-            sellerCode: product.sku || product.id,
-            title: product.name,
-            description: product.description || product.name,
-            categoryId: mappedCat.n11CategoryId,
-            price: Number(product.n11Price || product.listPrice),
-            quantity: product.stock,
-            stockCode: product.barcode || product.sku || product.id,
-            images: product.images,
-            attributes: attributes // Custom attributes mapped from UI
-        };
+        // Determine if product has variants
+        const hasVariants = (product as any).variants && (product as any).variants.length > 0;
+
+        // productMainId is required and must be same for all variants
+        const productMainId = product.sku || product.id;
+
+        let payload: any;
+
+        if (hasVariants) {
+            // Variant product: each variant becomes a separate SKU with same productMainId
+            const skus = (product as any).variants.map((variant: any, index: number) => {
+                const variantAttributes = [];
+                
+                // Add variant-specific attributes (e.g., Color, Size)
+                if (variant.color) {
+                    variantAttributes.push({
+                        id: null, // Should be mapped from category attributes
+                        customValue: variant.color
+                    });
+                }
+                if (variant.size) {
+                    variantAttributes.push({
+                        id: null,
+                        customValue: variant.size
+                    });
+                }
+
+                return {
+                    title: `${product.name} ${variant.color || ''} ${variant.size || ''}`.trim(),
+                    description: product.description || product.name,
+                    categoryId: mappedCat.n11CategoryId,
+                    currencyType: "TL",
+                    productMainId: productMainId,
+                    preparingDay: 3,
+                    shipmentTemplate: (product as any).shipmentTemplate || "Karaaslan",
+                    stockCode: variant.sku || variant.barcode || `${product.id}-${index}`,
+                    barcode: variant.barcode || null,
+                    salePrice: Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0),
+                    listPrice: Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0),
+                    vatRate: 20,
+                    quantity: variant.stock || 0,
+                    images: product.images,
+                    attributes: [...mappedAttributes, ...variantAttributes]
+                };
+            });
+
+            payload = {
+                title: product.name,
+                description: product.description || product.name,
+                categoryId: mappedCat.n11CategoryId,
+                currencyType: "TL",
+                productMainId: productMainId,
+                preparingDay: 3,
+                shipmentTemplate: (product as any).shipmentTemplate || "Karaaslan",
+                stockCode: product.sku || product.id,
+                barcode: product.barcode || null,
+                salePrice: Number(product.n11Price || product.listPrice),
+                listPrice: Number(product.n11Price || product.listPrice),
+                vatRate: 20,
+                quantity: product.stock || 0,
+                images: product.images,
+                attributes: mappedAttributes,
+                // For variant products, we might need to send all variants as separate skus
+                // The saveProduct API accepts array of skus
+                _skus: skus // Internal flag for api.ts to handle
+            };
+        } else {
+            // Single product (no variants)
+            payload = {
+                title: product.name,
+                description: product.description || product.name,
+                categoryId: mappedCat.n11CategoryId,
+                currencyType: "TL",
+                productMainId: productMainId,
+                preparingDay: 3,
+                shipmentTemplate: (product as any).shipmentTemplate || "Karaaslan",
+                stockCode: product.sku || product.id,
+                barcode: product.barcode || null,
+                salePrice: Number(product.n11Price || product.listPrice),
+                listPrice: Number(product.n11Price || product.listPrice),
+                vatRate: 20,
+                quantity: product.stock || 0,
+                images: product.images,
+                attributes: mappedAttributes
+            };
+        }
 
         const result = await client.saveProduct(payload);
 
@@ -388,7 +468,8 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 data: {
                     n11ProductId: n11Product.id,
                     taskId: String(result.taskId),
-                    status: "PENDING"
+                    status: "PENDING",
+                    type: result.type || "PRODUCT_CREATE"
                 }
             });
 
@@ -406,7 +487,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 if (status === "FAILED") {
                     // N11 often puts error in items[0].errorDescription or errorMsg
                     const firstItem = task.items?.[0];
-                    errorMsg = firstItem?.errorDescription || firstItem?.errorMsg || "N11 İşleme Hatası";
+                    errorMsg = firstItem?.errorDescription || firstItem?.errorMsg || firstItem?.errorMessage || "N11 İşleme Hatası";
                 }
 
                 // Update Task status in DB

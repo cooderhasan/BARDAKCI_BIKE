@@ -230,38 +230,73 @@ export class N11Client {
     async saveProduct(product: any) {
         try {
             // Official Doc: POST https://api.n11.com/ms/product/tasks/product-create
+            // Build SKU object(s) according to official REST API documentation
+            
+            // Helper to build a single SKU object
+            const buildSku = (skuData: any): any => {
+                const sku: any = {
+                    title: skuData.title,
+                    description: skuData.description,
+                    categoryId: skuData.categoryId,
+                    currencyType: skuData.currencyType || "TL",
+                    productMainId: skuData.productMainId || skuData.sellerCode || skuData.stockCode,
+                    preparingDay: skuData.preparingDay ?? 3,
+                    shipmentTemplate: skuData.shipmentTemplate || "Karaaslan",
+                    stockCode: skuData.stockCode || skuData.sellerCode,
+                    salePrice: skuData.salePrice ?? skuData.price,
+                    listPrice: skuData.listPrice ?? skuData.price,
+                    vatRate: skuData.vatRate ?? 20,
+                    quantity: skuData.quantity || 0,
+                    images: (skuData.images || []).slice(0, 8).map((url: string, index: number) => ({
+                        url: url,
+                        order: index + 1
+                    })),
+                    // REST API attributes: id + valueId/customValue (NOT name/value)
+                    attributes: (skuData.attributes || []).map((attr: any) => ({
+                        id: attr.id,
+                        valueId: attr.valueId ?? null,
+                        customValue: attr.customValue ?? null
+                    }))
+                };
+
+                // Optional fields - only add if provided
+                if (skuData.subtitle) {
+                    sku.subtitle = skuData.subtitle;
+                }
+                if (skuData.barcode) {
+                    sku.barcode = skuData.barcode;
+                }
+                if (skuData.catalogId) {
+                    sku.catalogId = skuData.catalogId;
+                }
+                if (skuData.maxPurchaseQuantity) {
+                    sku.maxPurchaseQuantity = skuData.maxPurchaseQuantity;
+                }
+
+                return sku;
+            };
+
+            let skus: any[];
+            
+            // Check if multiple SKUs are provided (variant products)
+            if (product._skus && Array.isArray(product._skus) && product._skus.length > 0) {
+                // Variant product: multiple SKUs with same productMainId
+                skus = product._skus.map((variantSku: any) => buildSku(variantSku));
+            } else {
+                // Single product
+                skus = [buildSku(product)];
+            }
+
             const payload = {
                 payload: {
-                    integrator: "SRN_Entegrasyon",
-                    skus: [{
-                        title: product.title,
-                        subtitle: product.title.substring(0, 50),
-                        description: product.description,
-                        categoryId: product.categoryId,
-                        currencyType: "TL", 
-                        preparingDay: 3,
-                        shipmentTemplate: product.shipmentTemplate || "Karaaslan",
-                        salePrice: product.price,
-                        listPrice: product.price,
-                        vatRate: 20,
-                        quantity: product.quantity || 0,
-                        productMainId: product.sellerCode,
-                        stockCode: product.stockCode || product.sellerCode,
-                        images: (product.images || []).slice(0, 8).map((url: string, index: number) => ({
-                            url: url,
-                            order: index + 1
-                        })),
-                        attributes: (product.attributes || []).map((attr: any) => ({
-                            name: attr.name,
-                            value: attr.value
-                        }))
-                    }]
+                    integrator: product.integrator || "SRN_Entegrasyon",
+                    skus: skus
                 }
             };
             
             console.log("N11 SaveProduct Payload (Official REST):", JSON.stringify(payload, null, 2));
             const data = await this.callRest("/ms/product/tasks/product-create", "POST", payload);
-            return { success: true, taskId: data.id };
+            return { success: true, taskId: data.id, type: data.type, status: data.status, reasons: data.reasons };
         } catch (error: any) {
             return { success: false, message: error.message };
         }
