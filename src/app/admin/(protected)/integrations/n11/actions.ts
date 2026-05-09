@@ -553,6 +553,9 @@ export async function getN11Tasks() {
 
         for (const task of pendingTasks) {
             try {
+                // Add a small delay between requests to avoid overloading N11 server
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 const res = await client.getTaskDetails(task.taskId);
                 if (res.success && res.data) {
                     const rawStatus = String(res.data.status || res.data.state || "").toUpperCase();
@@ -564,7 +567,7 @@ export async function getN11Tasks() {
                     else if (["IN_PROGRESS", "PROCESSING", "WORKING"].includes(rawStatus)) n11Status = "IN_PROGRESS";
                     else if (["PENDING", "WAITING", "CREATED"].includes(rawStatus)) n11Status = "PENDING";
 
-                    if (n11Status !== task.status) {
+                    if (n11Status !== task.status || n11Status === "FAILED") {
                         // Update in DB
                         const firstItem = res.data.items?.[0];
                         const errorMsg = n11Status === "FAILED" ? (firstItem?.errorDescription || firstItem?.errorMsg || firstItem?.errorMessage || "İşleme hatası") : null;
@@ -585,11 +588,23 @@ export async function getN11Tasks() {
                             });
                         }
                     }
+                } else if (!res.success) {
+                    // Log the connection error in DB so user knows WHY it's pending
+                    await (prisma as any).n11Task.update({
+                        where: { id: task.id },
+                        data: { errorMessage: `N11 Servis Hatası: ${res.message}` }
+                    });
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error(`Task poll error for ${task.taskId}:`, e);
+                // Also log catch-all errors
+                await (prisma as any).n11Task.update({
+                    where: { id: task.id },
+                    data: { errorMessage: `Sistem Hatası: ${e.message}` }
+                });
             }
         }
+
 
         // Fetch again to get updated statuses
         return await (prisma as any).n11Task.findMany({

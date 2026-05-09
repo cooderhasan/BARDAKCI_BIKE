@@ -33,6 +33,28 @@ export class N11Client {
         };
     }
 
+    private async asyncTimeoutFetch(url: string, options: RequestInit, timeoutMs = 15000) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            return await fetch(url, {
+                ...options,
+                signal: controller.signal
+            });
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                throw new Error("N11 servisi zaman aşımına uğradı (15s).");
+            }
+            if (error.message === 'fetch failed') {
+                throw new Error("N11 servis bağlantı hatası (Servis şu an kararsız veya ulaşılamıyor).");
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
     private async callRest(endpoint: string, method = "GET", body?: any, retries = 2) {
         if (!this.creds) await this.init();
 
@@ -58,8 +80,25 @@ export class N11Client {
                     await new Promise(r => setTimeout(r, 1000 * attempt));
                 }
 
-                const response = await fetch(url, options);
-                const data = await response.json();
+                const response = await this.asyncTimeoutFetch(url, options);
+                
+                // If we got a response but it's not JSON (e.g. 503 HTML), handle gracefully
+                const contentType = response.headers.get("content-type");
+                const text = await response.text();
+
+                if (!contentType || !contentType.includes("application/json")) {
+                    if (response.status >= 500) {
+                        throw new Error(`N11 Sunucu Hatası (${response.status}): Servis geçici olarak servis dışı.`);
+                    }
+                    throw new Error(`N11 Beklenmedik Yanıt (${response.status}): JSON formatı bekleniyordu.`);
+                }
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error("N11 API yanıtı JSON formatında değil.");
+                }
 
                 if (!response.ok) {
                     console.error(`N11 API Error Response [${endpoint}]:`, JSON.stringify(data));
@@ -81,6 +120,7 @@ export class N11Client {
 
         throw lastError;
     }
+
 
     /**
      * Test connection using GetCategories as per doc
