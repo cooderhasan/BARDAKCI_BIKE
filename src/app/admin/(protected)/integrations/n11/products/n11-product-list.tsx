@@ -117,9 +117,10 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
             return;
         }
 
-        const finalAttrs = Object.entries(attrMappings).map(([id, val]) => ({
+        const finalAttrs = Object.entries(attrMappings).map(([id, val]: [string, any]) => ({
             id: Number(id),
-            value: val
+            valueId: val.id || null,
+            customValue: val.name || null
         }));
 
         setLoadingProductId(selectedProduct.id);
@@ -305,7 +306,7 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                                                             className="w-full justify-between h-9 text-sm font-normal border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3"
                                                         >
                                                             <span className="truncate">
-                                                                {attrMappings[attr.id] ? attrMappings[attr.id] : `${attr.name} seçin...`}
+                                                                {attrMappings[attr.id] ? attrMappings[attr.id].name : `${attr.name} seçin...`}
                                                             </span>
                                                             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                         </Button>
@@ -337,7 +338,11 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                                                                             key={`${attr.id}-${idx}`}
                                                                             className={`flex items-center px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 ${isSelected ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600' : ''}`}
                                                                             onClick={() => {
-                                                                                setAttrMappings((prev: any) => ({ ...prev, [attr.id]: val }));
+                                                                                const valueObj = { 
+                                                                                    id: typeof v === 'object' ? (v?.id || v?.attributeValueId) : null,
+                                                                                    name: val 
+                                                                                };
+                                                                                setAttrMappings((prev: any) => ({ ...prev, [attr.id]: valueObj }));
                                                                             }}
                                                                         >
                                                                             <Check className={`mr-2 h-3.5 w-3.5 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
@@ -356,8 +361,8 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
                                                 <Input 
                                                     className={`h-9 text-sm focus-visible:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}
                                                     placeholder={`${attr.name} girin...`}
-                                                    value={attrMappings[attr.id] || ""}
-                                                    onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: e.target.value }))}
+                                                    value={attrMappings[attr.id]?.name || ""}
+                                                    onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: { id: null, name: e.target.value } }))}
                                                 />
                                             )}
                                             
