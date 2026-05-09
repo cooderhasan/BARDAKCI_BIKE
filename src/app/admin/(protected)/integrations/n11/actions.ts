@@ -129,19 +129,30 @@ export async function syncProductsToN11(productIds?: string[]) {
                 for (const v of (p as any).variants) {
                     if (v.barcode) {
                         const availableStock = Math.max(0, v.stock - criticalStock);
+                        const n11Price = Number(p.n11Price || p.listPrice);
+                        const finalSalePrice = n11Price + Number(v.priceAdjustment || 0);
+                        const finalListPrice = Math.max(finalSalePrice, Number(p.listPrice) + Number(v.priceAdjustment || 0));
+
                         allItemsToSync.push({
-                            stockCode: v.sku || v.barcode, // Usually N11 uses stockSellerCode which is our SKU/Barcode
+                            stockCode: v.sku || v.barcode,
                             quantity: availableStock,
-                            price: basePrice + Number(v.priceAdjustment || 0)
+                            salePrice: finalSalePrice,
+                            listPrice: finalListPrice,
+                            currencyType: "TL"
                         });
                     }
                 }
             } else if ((p as any).barcode) {
                 const availableStock = Math.max(0, p.stock - criticalStock);
+                const finalSalePrice = Number(p.n11Price || p.listPrice);
+                const finalListPrice = Math.max(finalSalePrice, Number(p.listPrice));
+
                 allItemsToSync.push({
                     stockCode: p.sku || p.barcode,
                     quantity: availableStock,
-                    price: basePrice
+                    salePrice: finalSalePrice,
+                    listPrice: finalListPrice,
+                    currencyType: "TL"
                 });
             }
         }
@@ -402,7 +413,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                     stockCode: variant.sku || variant.barcode || `${product.id}-${index}`,
                     barcode: variant.barcode || null,
                     salePrice: Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0),
-                    listPrice: Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0),
+                    listPrice: Math.max(Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0), Number(product.listPrice) + Number(variant.priceAdjustment || 0)),
                     vatRate: 20,
                     quantity: variant.stock || 0,
                     images: absoluteImages,
@@ -445,7 +456,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 stockCode: product.sku || product.id,
                 barcode: product.barcode || null,
                 salePrice: Number(product.n11Price || product.listPrice),
-                listPrice: Number(product.n11Price || product.listPrice),
+                listPrice: Math.max(Number(product.n11Price || product.listPrice), Number(product.listPrice)),
                 vatRate: 20,
                 quantity: product.stock || 0,
                 images: absoluteImages,

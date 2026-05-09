@@ -272,7 +272,11 @@ export class N11Client {
             const payload = {
                 payload: {
                     integrator: "SRN_Entegrasyon",
-                    skus: skus
+                    skus: skus.map(s => ({
+                        ...s,
+                        salePrice: s.salePrice ? Number(s.salePrice).toFixed(2) : undefined,
+                        listPrice: s.listPrice ? Number(s.listPrice).toFixed(2) : undefined
+                    }))
                 }
             };
             const data = await this.callRest("/ms/product/tasks/price-stock-update", "POST", payload);
@@ -298,8 +302,8 @@ export class N11Client {
                     preparingDay: skuData.preparingDay ?? 3,
                     shipmentTemplate: skuData.shipmentTemplate || "Karaaslan",
                     stockCode: skuData.stockCode || skuData.sellerCode,
-                    salePrice: skuData.salePrice ?? skuData.price,
-                    listPrice: skuData.listPrice ?? skuData.price,
+                    salePrice: skuData.salePrice != null ? Number(skuData.salePrice).toFixed(2) : null,
+                    listPrice: skuData.listPrice != null ? Number(skuData.listPrice).toFixed(2) : null,
                     vatRate: skuData.vatRate ?? 20,
                     quantity: skuData.quantity || 0,
                     images: (skuData.images || []).slice(0, 8).map((url: string, index: number) => ({
