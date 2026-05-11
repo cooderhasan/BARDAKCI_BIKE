@@ -22,6 +22,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const search = params.search || "";
     const status = params.status as OrderStatus | string | undefined;
     const cargo = params.cargo;
+    const source = params.source;
     const startDate = params.startDate ? new Date(params.startDate) : undefined;
     const endDate = params.endDate ? new Date(params.endDate) : undefined;
 
@@ -49,6 +50,18 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         };
     }
     // status === "ALL" ise hiçbir filtre ekleme - tüm durumları göster
+
+    // Marketplace (Source) Filtering
+    if (source && source !== "ALL") {
+        if (source === "WEB") {
+            where.OR = [
+                { source: null },
+                { source: "WEB" }
+            ];
+        } else {
+            where.source = source;
+        }
+    }
 
     // Cargo Filtering
     if (cargo && cargo !== "ALL") {

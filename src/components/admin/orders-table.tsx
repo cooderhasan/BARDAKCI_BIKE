@@ -68,6 +68,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
     const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "ALL");
     const [cargoFilter, setCargoFilter] = useState(searchParams.get("cargo") || "ALL");
+    const [sourceFilter, setSourceFilter] = useState(searchParams.get("source") || "ALL");
     const [startDate, setStartDate] = useState(searchParams.get("startDate") || "");
     const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
 
@@ -101,6 +102,9 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
         if (cargoFilter && cargoFilter !== "ALL") params.set("cargo", cargoFilter);
         else params.delete("cargo");
 
+        if (sourceFilter && sourceFilter !== "ALL") params.set("source", sourceFilter);
+        else params.delete("source");
+
         if (startDate) params.set("startDate", startDate);
         else params.delete("startDate");
 
@@ -118,6 +122,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
         setSearchTerm("");
         setStatusFilter("ALL");
         setCargoFilter("ALL");
+        setSourceFilter("ALL");
         setStartDate("");
         setEndDate("");
         router.push("/admin/orders");
@@ -346,7 +351,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                     </div>
 
                     {/* Cargo Filter */}
-                    <div className="w-full md:w-[160px] space-y-2">
+                    <div className="w-full md:w-[140px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Kargo</label>
                         <Select value={cargoFilter} onValueChange={setCargoFilter}>
                             <SelectTrigger>
@@ -357,6 +362,23 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                 <SelectItem value="YURTICI">Yurtiçi Kargo</SelectItem>
                                 <SelectItem value="ARAS">Aras Kargo</SelectItem>
                                 <SelectItem value="OTHER">Diğer</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Source Filter */}
+                    <div className="w-full md:w-[140px] space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Kaynak</label>
+                        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Tümü" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Tümü</SelectItem>
+                                <SelectItem value="WEB">Web Sitesi</SelectItem>
+                                <SelectItem value="TRENDYOL">Trendyol</SelectItem>
+                                <SelectItem value="N11">N11</SelectItem>
+                                <SelectItem value="HEPSIBURADA">Hepsiburada</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
