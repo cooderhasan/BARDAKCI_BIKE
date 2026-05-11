@@ -8,6 +8,7 @@ interface OrdersPageProps {
         search?: string;
         status?: string;
         cargo?: string;
+        source?: string;
         startDate?: string;
         endDate?: string;
     }>;
@@ -55,12 +56,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     // Marketplace (Source) Filtering
     if (source && source !== "ALL") {
         if (source === "WEB") {
-            andClauses.push({
-                OR: [
-                    { source: null },
-                    { source: "WEB" }
-                ]
-            });
+            andClauses.push({ source: "WEB" });
         } else {
             andClauses.push({ source: source });
         }
