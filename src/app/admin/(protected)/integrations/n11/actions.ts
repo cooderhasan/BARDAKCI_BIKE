@@ -191,12 +191,21 @@ export async function syncOrdersFromN11() {
             apiSecret: config.apiSecret
         });
 
-        // Official Doc: Fetching "Created" status (New orders)
-        const response = await client.getOrders("Created");
-        if (!response.success) throw new Error(response.message);
+        // Fetch both 'Created' (New) and 'Picking' (Approved) status orders
+        const [createdRes, pickingRes] = await Promise.all([
+            client.getOrders("Created"),
+            client.getOrders("Picking")
+        ]);
 
-        // Official Doc: Orders are in 'content' array as packages
-        const packages = response.content || [];
+        if (!createdRes.success && !pickingRes.success) {
+            throw new Error(createdRes.message || pickingRes.message);
+        }
+
+        // Merge packages from both statuses
+        const packages = [
+            ...(createdRes.content || []),
+            ...(pickingRes.content || [])
+        ];
         let importedCount = 0;
 
         for (const pkg of packages) {
