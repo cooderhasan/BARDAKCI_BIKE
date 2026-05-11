@@ -157,7 +157,8 @@ export function generateSlug(text: string): string {
     };
 
     return text
-        .normalize('NFC') // Handle decomposed unicode characters
+        .normalize('NFD') // Decompose characters (e.g., i + dot)
+        .replace(/[\u0300-\u036f]/g, "") // Remove all combining marks (the hidden dots)
         .replace(/[çğıöşüÇĞIİÖŞÜ]/g, (char) => turkishChars[char] || char)
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, "")
