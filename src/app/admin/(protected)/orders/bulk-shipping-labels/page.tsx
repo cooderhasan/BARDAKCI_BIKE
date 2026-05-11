@@ -108,7 +108,7 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                 <div className="n11-container mx-auto">
                                     <div className="n11-section flex justify-between items-center bg-white">
                                          <div className="flex-1"></div>
-                                         <img src="https://img.n11.com/cms/attachment/46/58/01/95/625a5801-9546-4658-9546-580195465801.png" alt="N11" className="h-10 object-contain" />
+                                         <img src="/n11_logo.fw.png" alt="N11" className="h-10 object-contain" />
                                          <div className="flex-1 text-right text-sm font-bold">{new Date(order.createdAt).toLocaleDateString('tr-TR')}</div>
                                     </div>
 
