@@ -584,15 +584,31 @@ export async function getN11Tasks() {
 
                 const res = await client.getTaskDetails(task.taskId);
                 if (res.success && res.data) {
-                    const rawStatus = String(res.data.status || res.data.state || "").toUpperCase();
+                    const rawStatus = String(res.data.status || res.data.state || res.data.result || "").toUpperCase();
                     
                     // Normalize status
                     let n11Status = task.status;
-                    const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED"];
+                    const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED", "DONE"];
+                    const failedStates = ["FAILED", "ERROR", "REJECTED", "FAIL", "CANCELLED"];
+                    const processingStates = ["IN_PROGRESS", "PROCESSING", "WORKING", "RUNNING"];
+
                     if (successStates.includes(rawStatus)) n11Status = "COMPLETED";
-                    else if (["FAILED", "ERROR", "REJECTED", "FAIL"].includes(rawStatus)) n11Status = "FAILED";
-                    else if (["IN_PROGRESS", "PROCESSING", "WORKING"].includes(rawStatus)) n11Status = "IN_PROGRESS";
-                    else if (["PENDING", "WAITING", "CREATED"].includes(rawStatus)) n11Status = "PENDING";
+                    else if (failedStates.includes(rawStatus)) n11Status = "FAILED";
+                    else if (processingStates.includes(rawStatus)) n11Status = "IN_PROGRESS";
+                    else if (["PENDING", "WAITING", "CREATED", "QUEUED"].includes(rawStatus)) n11Status = "PENDING";
+
+                    // Check individual items if overall status is unclear
+                    if (n11Status === "PENDING" && res.data.items && res.data.items.length > 0) {
+                        const allItemsDone = res.data.items.every((item: any) => 
+                            successStates.includes(String(item.status || "").toUpperCase())
+                        );
+                        if (allItemsDone) n11Status = "COMPLETED";
+                        
+                        const anyItemFailed = res.data.items.some((item: any) => 
+                            failedStates.includes(String(item.status || "").toUpperCase())
+                        );
+                        if (anyItemFailed && !allItemsDone) n11Status = "FAILED";
+                    }
 
                     if (n11Status !== task.status || n11Status === "FAILED") {
                         // Update in DB
@@ -634,15 +650,8 @@ export async function getN11Tasks() {
                                 where: { id: task.n11ProductId },
                                 data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
                             });
-                            continue;
                         }
                     }
-
-                    // Log the connection error in DB if Plan B didn't find the product
-                    await (prisma as any).n11Task.update({
-                        where: { id: task.id },
-                        data: { errorMessage: `N11 Servis Hatası: ${res.message}` }
-                    });
                 }
             } catch (e: any) {
                 console.error(`Task poll error for ${task.taskId}:`, e);
