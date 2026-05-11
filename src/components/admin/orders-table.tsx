@@ -484,6 +484,11 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         N11
                                                     </Badge>
                                                 )}
+                                                {(order.source === "WEB" || !order.source) && (
+                                                    <Badge variant="outline" className="text-gray-500 border-gray-200 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+                                                        WEB
+                                                    </Badge>
+                                                )}
                                                 <span>#{order.orderNumber}</span>
                                             </div>
                                         </TableCell>
@@ -517,7 +522,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-xs text-gray-500">{formatDate(order.createdAt)}</TableCell>
+                                        <TableCell className="text-xs text-gray-500" suppressHydrationWarning>{formatDate(order.createdAt)}</TableCell>
                                         <TableCell className="font-medium">
                                             <div className="flex flex-col">
                                                 <span>{formatPrice(Number(order.total))}</span>
