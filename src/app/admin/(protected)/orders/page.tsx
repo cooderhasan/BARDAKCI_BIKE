@@ -27,59 +27,60 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const endDate = params.endDate ? new Date(params.endDate) : undefined;
 
     // Construct Where Clause
-    const where: any = {};
+    const andClauses: any[] = [];
 
     if (search) {
-        where.OR = [
-            { orderNumber: { contains: search, mode: "insensitive" } },
-            { user: { email: { contains: search, mode: "insensitive" } } },
-            { user: { companyName: { contains: search, mode: "insensitive" } } },
-            { guestEmail: { contains: search, mode: "insensitive" } },
-        ];
+        andClauses.push({
+            OR: [
+                { orderNumber: { contains: search, mode: "insensitive" } },
+                { user: { email: { contains: search, mode: "insensitive" } } },
+                { user: { companyName: { contains: search, mode: "insensitive" } } },
+                { guestEmail: { contains: search, mode: "insensitive" } },
+            ],
+        });
     }
 
     if (status && status !== "ALL") {
         const normalizedStatus = status.toUpperCase();
         if (Object.values(OrderStatus).includes(normalizedStatus as OrderStatus)) {
-            where.status = normalizedStatus as OrderStatus;
+            andClauses.push({ status: normalizedStatus as OrderStatus });
         }
     } else if (!status || status === "") {
-        // Varsayılan görünüm (filtre yok): "Ödeme Bekleniyor" olanları gizle (Başarısız/Yarım kalan PayTR işlemleri)
-        where.NOT = {
-            status: "WAITING_FOR_PAYMENT"
-        };
+        // Varsayılan görünüm: "Ödeme Bekleniyor" olanları gizle
+        andClauses.push({
+            NOT: { status: "WAITING_FOR_PAYMENT" }
+        });
     }
-    // status === "ALL" ise hiçbir filtre ekleme - tüm durumları göster
 
     // Marketplace (Source) Filtering
     if (source && source !== "ALL") {
         if (source === "WEB") {
-            where.OR = [
-                { source: null },
-                { source: "WEB" }
-            ];
+            andClauses.push({
+                OR: [
+                    { source: null },
+                    { source: "WEB" }
+                ]
+            });
         } else {
-            where.source = source;
+            andClauses.push({ source: source });
         }
     }
 
     // Cargo Filtering
     if (cargo && cargo !== "ALL") {
-        if (!where.AND) where.AND = [];
-        
         if (cargo === "YURTICI") {
-            where.AND.push({
+            andClauses.push({
                 OR: [
                     { cargoCompany: { contains: "Yurt", mode: "insensitive" } },
                     { cargoCompany: { contains: "Yü", mode: "insensitive" } }
                 ]
             });
         } else if (cargo === "ARAS") {
-            where.AND.push({
+            andClauses.push({
                 cargoCompany: { contains: "Aras", mode: "insensitive" }
             });
         } else if (cargo === "OTHER") {
-            where.AND.push({
+            andClauses.push({
                 AND: [
                     { NOT: { cargoCompany: { contains: "Yurt", mode: "insensitive" } } },
                     { NOT: { cargoCompany: { contains: "Aras", mode: "insensitive" } } },
@@ -91,17 +92,19 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
     // Date Filtering
     if (startDate || endDate) {
-        where.createdAt = {};
+        const dateFilter: any = {};
         if (startDate) {
-            where.createdAt.gte = startDate;
+            dateFilter.gte = startDate;
         }
         if (endDate) {
-            // End date'i günün sonuna ayarla (23:59:59)
             const endOfDay = new Date(endDate);
             endOfDay.setHours(23, 59, 59, 999);
-            where.createdAt.lte = endOfDay;
+            dateFilter.lte = endOfDay;
         }
+        andClauses.push({ createdAt: dateFilter });
     }
+
+    const where = andClauses.length > 0 ? { AND: andClauses } : {};
 
     // Parallel Fetch: Orders + Total Count
     const [orders, totalCount] = await Promise.all([
