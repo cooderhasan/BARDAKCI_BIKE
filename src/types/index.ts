@@ -126,6 +126,10 @@ export interface OrderWithItems {
     ykError: string | null;
     notes: string | null;
     guestEmail: string | null;
+    invoiceId: string | null;
+    invoiceNo: string | null;
+    invoiceStatus: string | null;
+    invoiceUrl: string | null;
     createdAt: Date | string;
     user: {
         id: string;

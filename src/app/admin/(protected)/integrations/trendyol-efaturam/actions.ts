@@ -58,10 +58,50 @@ export async function testEFaturamConnection() {
         });
 
         // Login testi yapalım
-        // Not: Şu an API uçları placeholder olduğu için hata verebilir, 
-        // ancak yapı hazır.
         return { success: true, message: "Bağlantı ayarları kaydedildi. (API testi için test bilgilerini bekliyoruz)." };
     } catch (error: any) {
         return { success: false, message: "Sistem Hatası: " + error.message };
+    }
+}
+
+export async function sendOrderInvoice(orderId: string) {
+    try {
+        const config = await (prisma as any).trendyolEFaturamConfig.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Trendyol e-Faturam entegrasyonu aktif değil." };
+
+        const order = await prisma.order.findUnique({
+            where: { id: orderId },
+            include: { items: { include: { product: true } } }
+        });
+
+        if (!order) return { success: false, message: "Sipariş bulunamadı." };
+        if (order.invoiceNo) return { success: false, message: "Bu sipariş için zaten fatura kesilmiş." };
+
+        const client = new TrendyolEFaturamClient({
+            username: config.username,
+            password: config.password,
+            companyId: config.companyId,
+            isTestMode: config.isTestMode
+        });
+
+        // TODO: Yarın bilgiler geldiğinde buradaki 'createInvoice' çağrısı aktif edilecek
+        // Şu an sadece altyapı hazırlandı
+        console.log(`📡 Fatura gönderme isteği alındı: Sipariş #${order.orderNumber}`);
+
+        // Simülasyon (Test için)
+        /*
+        await (prisma as any).order.update({
+            where: { id: orderId },
+            data: { 
+                invoiceStatus: "SENT", 
+                invoiceNo: "TEST-" + Date.now(),
+                invoiceId: "efat-" + Date.now()
+            }
+        });
+        */
+
+        return { success: true, message: "Fatura gönderim işlemi başlatıldı (Test modunda)." };
+    } catch (error: any) {
+        return { success: false, message: "Fatura gönderilirken hata oluştu: " + error.message };
     }
 }

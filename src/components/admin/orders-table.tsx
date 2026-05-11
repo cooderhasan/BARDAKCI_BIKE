@@ -34,6 +34,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { updateOrderStatus, updateOrderTracking, bulkUpdateOrderStatus, sendOrderToYurtici, cancelYKOrder, queryYKOrder, bulkSendOrdersToYurtici, syncAllYKOrders } from "@/app/admin/(protected)/orders/actions";
+import { sendOrderInvoice } from "@/app/admin/(protected)/integrations/trendyol-efaturam/actions";
 import { getYKStatusLabel, getYKStatusColor } from "@/services/yurtici/api";
 import { toast } from "sonner";
 import { OrderWithItems } from "@/types";
@@ -151,6 +152,22 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
             }
         } catch (error) {
             toast.error("Bir hata oluştu");
+        } finally {
+            setLoadingId(null);
+        }
+    };
+
+    const handleSendInvoice = async (orderId: string) => {
+        setLoadingId(orderId);
+        try {
+            const result = await sendOrderInvoice(orderId);
+            if (result.success) {
+                toast.success(result.message);
+            } else {
+                toast.error(result.message);
+            }
+        } catch (error) {
+            toast.error("Fatura gönderilirken bir hata oluştu.");
         } finally {
             setLoadingId(null);
         }
@@ -539,6 +556,18 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                     <span className="text-[10px] text-gray-400 uppercase font-bold">TAKİP NO</span>
                                                     <span className="text-xs font-mono select-all bg-gray-50 dark:bg-gray-800/50 px-1 rounded">{order.cargoTrackingNumber}</span>
                                                 </div>
+                                            ) : (order as any).invoiceNo ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] text-orange-400 uppercase font-bold">FATURA NO</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-xs font-mono select-all bg-orange-50 dark:bg-orange-900/20 px-1 rounded">{(order as any).invoiceNo}</span>
+                                                        {(order as any).invoiceUrl && (
+                                                            <a href={(order as any).invoiceUrl} target="_blank" rel="noopener noreferrer">
+                                                                <ExternalLink className="h-3 w-3 text-orange-500" />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             ) : (
                                                 <span className="text-gray-400">-</span>
                                             )}
@@ -578,6 +607,18 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         >
                                                             <Barcode className="h-4 w-4" />
                                                         </Button>
+                                                        {!(order as any).invoiceNo && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="border-orange-200 text-orange-600 hover:bg-orange-50 h-9 w-9"
+                                                                title="E-Fatura Gönder"
+                                                                disabled={loadingId === order.id}
+                                                                onClick={() => handleSendInvoice(order.id)}
+                                                            >
+                                                                <ReceiptText className="h-5 w-5" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 )}
                                                 <Button
