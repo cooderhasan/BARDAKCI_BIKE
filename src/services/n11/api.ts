@@ -387,12 +387,24 @@ export class N11Client {
                 items = response.items;
             }
             
+            // Deep status search
+            let status = response.status || response.state || response.taskStatus || response.result;
+            
+            // If main status is missing, check items
+            if (!status && items.length > 0) {
+                status = items[0].status || items[0].state || items[0].result;
+            }
+
+            // Still missing? Default to PENDING
+            status = status || "PENDING";
+            
             const data = {
-                status: response.status || (items.length > 0 ? items[0].status : "PENDING"),
-                items: items
+                status: status,
+                items: items,
+                raw: response // Include raw for debugging if needed
             };
 
-            console.log(`N11 Task Status Check [${taskId}]:`, JSON.stringify(data));
+            console.log(`N11 Task Status Check [${taskId}]:`, status);
             return { success: true, data };
         } catch (error: any) {
             console.error(`N11 Task Status Error [${taskId}]:`, error.message);

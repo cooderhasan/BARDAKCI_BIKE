@@ -621,7 +621,7 @@ export async function getN11Tasks() {
                             where: { id: task.id },
                             data: { 
                                 status: n11Status,
-                                errorMessage: errorMsg
+                                errorMessage: errorMsg || (n11Status === "PENDING" ? `N11 Durumu: ${rawStatus}` : null)
                             }
                         });
 
