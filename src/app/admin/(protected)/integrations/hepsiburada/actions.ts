@@ -16,28 +16,29 @@ export async function getHepsiburadaConfig() {
 
 export async function saveHepsiburadaConfig(prevState: any, formData: FormData) {
     try {
-        const username = formData.get("username") as string; // Usually Merchant ID
-        const password = formData.get("password") as string;
+        const username = formData.get("username") as string; // Merchant ID
+        const password = formData.get("password") as string; // Secret Key
         const merchantId = formData.get("merchantId") as string;
         const isActive = formData.get("isActive") === "on";
+        const isTestMode = formData.get("isTestMode") === "on";
 
         if (!username || !password) {
-            return { success: false, message: "Kullanıcı Adı ve Şifre zorunludur." };
+            return { success: false, message: "Merchant ID ve Secret Key zorunludur." };
         }
 
-        console.log("💾 HB Saving Config:", { username, merchantId, isActive });
+        console.log("💾 HB Saving Config:", { username, merchantId, isActive, isTestMode });
 
         const existing = await (prisma as any).hepsiburadaConfig.findFirst();
 
         if (existing) {
             await (prisma as any).hepsiburadaConfig.update({
                 where: { id: existing.id },
-                data: { username, password, merchantId, isActive }
+                data: { username, password, merchantId, isActive, isTestMode }
             });
             console.log("✅ HB Config Updated");
         } else {
             await (prisma as any).hepsiburadaConfig.create({
-                data: { username, password, merchantId, isActive }
+                data: { username, password, merchantId, isActive, isTestMode }
             });
             console.log("✅ HB Config Created");
         }
@@ -58,7 +59,8 @@ export async function testHepsiburadaConnection() {
         const client = new HepsiburadaClient({
             username: config.username,
             password: config.password,
-            merchantId: config.merchantId
+            merchantId: config.merchantId,
+            isTestMode: config.isTestMode ?? true,
         });
 
         const result = await client.checkConnectionDetailed();
@@ -162,7 +164,8 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
         const client = new HepsiburadaClient({
             username: config.username,
             password: config.password,
-            merchantId: config.merchantId || config.username
+            merchantId: config.merchantId || config.username,
+            isTestMode: config.isTestMode ?? true,
         });
 
         try {
@@ -199,7 +202,8 @@ export async function syncOrdersFromHepsiburada() {
         const client = new HepsiburadaClient({
             username: config.username,
             password: config.password,
-            merchantId: config.merchantId || config.username
+            merchantId: config.merchantId || config.username,
+            isTestMode: config.isTestMode ?? true,
         });
 
         // 1. Fetch HB Orders

@@ -5,22 +5,43 @@ interface HepsiburadaCreds {
     username: string; // Merchant ID or User
     password: string;
     merchantId?: string;
+    isTestMode?: boolean;
 }
 
 export class HepsiburadaClient {
-    // Listing API (https://listing-external-sit.hepsiburada.com for test, produce for prod)
-    // Production Listing API: https://listing-external.hepsiburada.com
-    // Production Order API: https://oms-external.hepsiburada.com
+    // Test (SIT) Ortamı
+    // Listing: https://listing-external-sit.hepsiburada.com
+    // Order: https://oms-external-sit.hepsiburada.com
+    // Product Upload: https://product-uploader-external-sit.hepsiburada.com
+    // Metadata: https://metadata-external-sit.hepsiburada.com
+    //
+    // Canlı (Production) Ortamı
+    // Listing: https://listing-external.hepsiburada.com
+    // Order: https://oms-external.hepsiburada.com
+    // Product Upload: https://product-uploader-external.hepsiburada.com
+    // Metadata: https://metadata-external.hepsiburada.com
 
-    private listingBaseUrl = "https://listing-external.hepsiburada.com";
-    private orderBaseUrl = "https://oms-external.hepsiburada.com";
+    private listingBaseUrl: string;
+    private orderBaseUrl: string;
+    private productUploadBaseUrl: string;
+    private metadataBaseUrl: string;
+    private userAgent = "serinmotor_dev"; // Developer Username - HB header zorunlu
 
     private creds: HepsiburadaCreds | null = null;
+    private isTestMode: boolean = false;
 
     constructor(creds?: HepsiburadaCreds) {
         if (creds) {
             this.creds = creds;
+            this.isTestMode = creds.isTestMode ?? false;
         }
+        
+        // URL'leri ortama göre ayarla
+        const sitSuffix = this.isTestMode ? "-sit" : "";
+        this.listingBaseUrl = `https://listing-external${sitSuffix}.hepsiburada.com`;
+        this.orderBaseUrl = `https://oms-external${sitSuffix}.hepsiburada.com`;
+        this.productUploadBaseUrl = `https://product-uploader-external${sitSuffix}.hepsiburada.com`;
+        this.metadataBaseUrl = `https://metadata-external${sitSuffix}.hepsiburada.com`;
     }
 
     async init() {
@@ -33,13 +54,27 @@ export class HepsiburadaClient {
             password: config.password,
             merchantId: config.merchantId || config.username // Fallback if merchantId creates confusion
         };
+
+        // isTestMode kontrolü (config'den de gelebilir)
+        // Şu an HepsiburadaConfig'de isTestMode yok, ama username'den anlaşılabilir
+        // veya ileride eklenebilir
     }
 
     private getAuthHeader() {
         if (!this.creds) throw new Error("Creds missing");
-        // Basic Auth
+        // Basic Auth: username (Merchant ID) : password (Secret Key)
         const pair = `${this.creds.username}:${this.creds.password}`;
         return `Basic ${Buffer.from(pair).toString("base64")}`;
+    }
+
+    private getHeaders(extraHeaders?: Record<string, string>) {
+        return {
+            "Authorization": this.getAuthHeader(),
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": this.userAgent,
+            ...extraHeaders,
+        };
     }
 
     /**
@@ -54,30 +89,29 @@ export class HepsiburadaClient {
             // Use order API for test as it requires full auth and merchantId context
             const testUrl = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}?page=0&size=1`;
             
+            console.log(`📡 HB Bağlantı Testi: ${testUrl}`);
+            console.log(`   Ortam: ${this.isTestMode ? "TEST (SIT)" : "CANLI (Production)"}`);
+
             const response = await fetch(testUrl, {
-                headers: { 
-                    "Authorization": this.getAuthHeader(),
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                }
+                headers: this.getHeaders(),
             });
             
             if (response.ok) {
-                return { success: true, message: "Tamam" };
+                return { success: true, message: `Bağlantı Başarılı! (${this.isTestMode ? "Test" : "Canlı"} Ortam)` };
             }
 
             const errorBody = await response.text();
             console.error(`❌ HB Test Error Body:`, errorBody);
 
             if (response.status === 401) {
-                return { success: false, message: "Yetkisiz Erişim (401). Servis Anahtarı veya Merchant ID hatalı." };
+                return { success: false, message: "Yetkisiz Erişim (401). Merchant ID veya Secret Key hatalı." };
             }
 
             if (response.status === 400) {
-                return { success: false, message: `Geçersiz İstek (400). Bilgileri kontrol edin. Detay: ${errorBody.slice(0, 50)}` };
+                return { success: false, message: `Geçersiz İstek (400). Bilgileri kontrol edin. Detay: ${errorBody.slice(0, 100)}` };
             }
 
-            return { success: false, message: `HB Hatası (${response.status}): ${errorBody.slice(0, 50)}` };
+            return { success: false, message: `HB Hatası (${response.status}): ${errorBody.slice(0, 100)}` };
 
         } catch (error: any) {
             return { success: false, message: "Bağlantı Kurulamadı: " + error.message };
@@ -85,7 +119,7 @@ export class HepsiburadaClient {
     }
 
     /**
-     * Create/Update Listings (Bulk)
+     * Create/Update Listings (Bulk) - Stok ve Fiyat Güncelleme
      * POST /listings/merchantid/{merchantId}/inventory-uploads
      */
     async uploadInventory(items: any[]) {
@@ -94,17 +128,11 @@ export class HepsiburadaClient {
 
         const url = `${this.listingBaseUrl}/listings/merchantid/${this.creds.merchantId}/inventory-uploads`;
 
-        // Hepsiburada format is specific. Usually XML or JSON depending on version.
-        // Modern API uses JSON.
-        // Payload structure: 
-        // [ { merchantSku: "...", price: 100, availableStock: 10, dispatchTime: 3, cargoCompany1: "Yurtici", ... } ]
+        console.log(`📡 HB Inventory Upload: ${url} - ${items.length} item(s)`);
 
         const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Authorization": this.getAuthHeader(),
-                "Content-Type": "application/json"
-            },
+            headers: this.getHeaders(),
             body: JSON.stringify(items)
         });
 
@@ -135,11 +163,7 @@ export class HepsiburadaClient {
         console.log(`📡 HB Fetching Orders: ${url}`);
 
         const response = await fetch(url, {
-            headers: { 
-                "Authorization": this.getAuthHeader(),
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            }
+            headers: this.getHeaders(),
         });
 
         if (!response.ok) {
@@ -156,27 +180,26 @@ export class HepsiburadaClient {
      */
     async getCategoryAttributes(categoryId: string) {
         await this.init();
-        // HB uses metadata-external API for attributes
-        const url = `https://metadata-external.hepsiburada.com/categories/${categoryId}/attributes`;
+        const url = `${this.metadataBaseUrl}/categories/${categoryId}/attributes`;
         const response = await fetch(url, {
-            headers: { "Authorization": this.getAuthHeader() }
+            headers: this.getHeaders(),
         });
         if (!response.ok) throw new Error("HB Metadata Error");
         return await response.json();
     }
 
     /**
-     * Create Product (Product Upload)
+     * Create Product (Product Upload / Catalog)
      */
     async createProduct(items: any[]) {
         await this.init();
-        const url = `https://product-uploader-external.hepsiburada.com/products/v2`;
+        const url = `${this.productUploadBaseUrl}/products/v2`;
+        
+        console.log(`📡 HB Product Upload: ${url} - ${items.length} product(s)`);
+
         const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Authorization": this.getAuthHeader(),
-                "Content-Type": "application/json"
-            },
+            headers: this.getHeaders(),
             body: JSON.stringify(items)
         });
         return await response.json();

@@ -594,10 +594,11 @@ model N11Task {
 
 model HepsiburadaConfig {
   id             String   @id @default(cuid())
-  username       String   // Merchant ID usually
-  password       String
-  merchantId     String?  // Sometimes separate
+  username       String   // Merchant ID (Basic Auth username)
+  password       String   // Secret Key (Basic Auth password)
+  merchantId     String?  // Ayrı Merchant ID (genelde username ile aynı)
   isActive       Boolean  @default(false)
+  isTestMode     Boolean  @default(true) // true = SIT (test), false = Production (canlı)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

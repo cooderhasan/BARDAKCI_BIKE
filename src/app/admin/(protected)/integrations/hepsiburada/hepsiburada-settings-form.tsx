@@ -89,6 +89,18 @@ export function HepsiburadaSettingsForm({ initialData }: Props) {
                         <Label htmlFor="isActive">Hepsiburada Entegrasyonunu Aktifleştir</Label>
                     </div>
 
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="isTestMode"
+                            name="isTestMode"
+                            defaultChecked={initialData?.isTestMode ?? true}
+                        />
+                        <div className="space-y-0.5">
+                            <Label htmlFor="isTestMode">Test Modu (SIT Ortamı)</Label>
+                            <p className="text-[10px] text-muted-foreground">Açıkken test sunucularına bağlanır, kapatınca canlı ortama geçer.</p>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <SubmitButton />
                         <TestConnectionButton />
