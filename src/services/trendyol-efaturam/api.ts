@@ -77,6 +77,7 @@ export class TrendyolEFaturamClient {
                 `${this.baseUrl}/api/auth/signin`,
                 {
                     email: this.auth.username,
+                    username: this.auth.username, // Bazı sürümler bunu bekliyor
                     password: this.auth.password,
                 },
                 {
