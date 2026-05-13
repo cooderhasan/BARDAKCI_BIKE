@@ -15,41 +15,49 @@ export async function getCategories() {
 }
 
 export async function createCategory(data: { name: string; slug: string; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; googleProductCategory?: string | null }) {
-    await prisma.category.create({
-        data: {
-            name: data.name,
-            slug: data.slug,
-            order: data.order ?? 0,
-            parentId: data.parentId || null,
-            imageUrl: data.imageUrl,
-            menuImageUrl: data.menuImageUrl,
-            isFeatured: data.isFeatured ?? false,
-            isInHeader: data.isInHeader ?? false,
-            headerOrder: data.headerOrder ?? 0,
-            trendyolCategoryId: data.trendyolCategoryId ?? null,
-            n11CategoryId: data.n11CategoryId ?? null,
-            hbCategoryId: data.hbCategoryId ?? null,
-            googleProductCategory: data.googleProductCategory ?? null,
-        },
-    });
-    revalidatePath("/admin/categories");
-    revalidatePath("/");
+    try {
+        await prisma.category.create({
+            data: {
+                name: data.name,
+                slug: data.slug,
+                order: data.order ?? 0,
+                parentId: data.parentId || null,
+                imageUrl: data.imageUrl,
+                menuImageUrl: data.menuImageUrl,
+                isFeatured: data.isFeatured ?? false,
+                isInHeader: data.isInHeader ?? false,
+                headerOrder: data.headerOrder ?? 0,
+                trendyolCategoryId: data.trendyolCategoryId ?? null,
+                n11CategoryId: data.n11CategoryId ?? null,
+                hbCategoryId: data.hbCategoryId ?? null,
+                googleProductCategory: data.googleProductCategory ?? null,
+            },
+        });
+        revalidatePath("/admin/categories");
+        revalidatePath("/");
+        return { success: true, message: "Kategori oluşturuldu." };
+    } catch (error: any) {
+        console.error("createCategory error:", error);
+        return { success: false, message: "Kategori oluşturulamadı: " + error.message };
+    }
 }
 
 export async function updateCategory(id: string, data: { name?: string; slug?: string; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; googleProductCategory?: string | null }) {
-    console.log("updateCategory called with:", { id, data });
     try {
-        const result = await prisma.category.update({
+        await prisma.category.update({
             where: { id },
-            data,
+            data: {
+                ...data,
+                parentId: data.parentId === undefined ? undefined : (data.parentId || null),
+            },
         });
-        console.log("updateCategory result:", result);
-    } catch (error) {
+        revalidatePath("/admin/categories");
+        revalidatePath("/");
+        return { success: true, message: "Kategori güncellendi." };
+    } catch (error: any) {
         console.error("updateCategory error:", error);
-        throw error;
+        return { success: false, message: "Kategori güncellenemedi: " + error.message };
     }
-    revalidatePath("/admin/categories");
-    revalidatePath("/");
 }
 
 export async function deleteCategory(id: string) {

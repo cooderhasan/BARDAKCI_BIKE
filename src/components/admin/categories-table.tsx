@@ -727,8 +727,9 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setLoading(true);
 
         try {
+            let result;
             if (editCategory) {
-                await updateCategory(editCategory.id, {
+                result = await updateCategory(editCategory.id, {
                     name,
                     slug,
                     order,
@@ -743,9 +744,8 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     hbCategoryId,
                     googleProductCategory
                 });
-                toast.success("Kategori güncellendi.");
             } else {
-                await createCategory({
+                result = await createCategory({
                     name,
                     slug,
                     order,
@@ -760,13 +760,18 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     hbCategoryId,
                     googleProductCategory
                 });
-                toast.success("Kategori oluşturuldu.");
             }
-            setIsOpen(false);
-            resetForm();
+
+            if (result.success) {
+                toast.success(result.message);
+                setIsOpen(false);
+                resetForm();
+            } else {
+                toast.error(result.message);
+            }
         } catch (error: any) {
             console.error(error);
-            toast.error(error?.message || "Bir hata oluştu.");
+            toast.error("İşlem sırasında bir hata oluştu.");
         } finally {
             setLoading(false);
         }
