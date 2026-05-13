@@ -456,6 +456,9 @@ function HepsiburadaCategorySearch({
     const [selectedName, setSelectedName] = useState<string>("");
     const [error, setError] = useState<string>("");
 
+    const [isManual, setIsManual] = useState(false);
+    const [manualId, setManualId] = useState("");
+
     const handleSearch = async (q: string) => {
         setSearch(q);
         if (q.length < 2) { setResults([]); return; }
@@ -492,6 +495,15 @@ function HepsiburadaCategorySearch({
         setSelectedName("");
         setSearch("");
         setResults([]);
+        setManualId("");
+    };
+
+    const handleManualSubmit = () => {
+        if (manualId) {
+            onChange(manualId);
+            setSelectedName("Manuel Tanımlanan Kategori");
+            setIsManual(false);
+        }
     };
 
     return (
@@ -513,38 +525,62 @@ function HepsiburadaCategorySearch({
                 </div>
             ) : null}
 
-            <div className="relative">
+            {!isManual ? (
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                    <Input
-                        className="pl-8 border-orange-200 focus-visible:ring-orange-500"
-                        placeholder="HB kategorisi ara (min. 2 karakter)..."
-                        value={search}
-                        onChange={(e) => handleSearch(e.target.value)}
-                    />
-                    {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-orange-500" />}
-                </div>
-
-                {error && (
-                    <p className="text-xs text-red-500 mt-1">{error}</p>
-                )}
-
-                {open && results.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-orange-200 rounded-lg shadow-xl">
-                        {results.map((cat) => (
-                            <button
-                                key={cat.categoryId}
-                                type="button"
-                                onClick={() => handleSelect(cat)}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
-                            >
-                                <span className="whitespace-normal leading-relaxed text-xs">{cat.name}</span>
-                                <span className="text-xs text-gray-400 font-mono shrink-0 pt-0.5">#{cat.categoryId}</span>
-                            </button>
-                        ))}
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                        <Input
+                            className="pl-8 border-orange-200 focus-visible:ring-orange-500"
+                            placeholder="HB kategorisi ara (min. 2 karakter)..."
+                            value={search}
+                            onChange={(e) => handleSearch(e.target.value)}
+                        />
+                        {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-orange-500" />}
                     </div>
-                )}
-            </div>
+
+                    <button 
+                        type="button" 
+                        onClick={() => setIsManual(true)}
+                        className="text-[10px] text-orange-600 hover:underline mt-1 block"
+                    >
+                        Listede yok mu? Manuel ID girmek için tıklayın.
+                    </button>
+
+                    {error && (
+                        <p className="text-xs text-red-500 mt-1">{error}</p>
+                    )}
+
+                    {open && results.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-orange-200 rounded-lg shadow-xl">
+                            {results.map((cat) => (
+                                <button
+                                    key={cat.categoryId}
+                                    type="button"
+                                    onClick={() => handleSelect(cat)}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                >
+                                    <span className="whitespace-normal leading-relaxed text-xs">{cat.name}</span>
+                                    <span className="text-xs text-gray-400 font-mono shrink-0 pt-0.5">#{cat.categoryId}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="space-y-2 p-2 border border-dashed border-orange-300 rounded-lg">
+                    <Label className="text-[10px] text-orange-600">Manuel Hepsiburada Kategori ID</Label>
+                    <div className="flex gap-2">
+                        <Input 
+                            className="h-8 text-sm"
+                            placeholder="Örn: 80405008"
+                            value={manualId}
+                            onChange={(e) => setManualId(e.target.value)}
+                        />
+                        <Button size="sm" className="bg-orange-600 hover:bg-orange-700" onClick={handleManualSubmit}>Ekle</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setIsManual(false)}>İptal</Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
