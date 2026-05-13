@@ -62,7 +62,7 @@ export class TrendyolEFaturamClient {
         this.auth = auth;
         this.baseUrl = auth.isTestMode
             ? "https://stage-apigateway.trendyolefaturam.com"
-            : "https://api.trendyol.com/etransformation/gateway";
+            : "https://apigateway.trendyolefaturam.com";
     }
 
     /**
