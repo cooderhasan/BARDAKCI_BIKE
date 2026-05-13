@@ -322,9 +322,32 @@ export async function getHepsiburadaCategories() {
             isTestMode: config.isTestMode ?? true
         });
 
-        const data = await client.getCategories();
+        const data = await client.getCategories({ size: 1000 });
         return { success: true, data: data.data || [] };
     } catch (error: any) {
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
+
+export async function searchHepsiburadaCategories(query: string) {
+    try {
+        if (!query || query.length < 2) return { success: true, data: [] };
+
+        const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
+
+        const client = new HepsiburadaClient({
+            username: config.username,
+            password: config.password,
+            merchantId: config.merchantId,
+            isTestMode: config.isTestMode ?? true
+        });
+
+        // Search by name and ensure it's a leaf category
+        const data = await client.getCategories({ name: query, leaf: true, size: 50 });
+        return { success: true, data: data.data || [] };
+    } catch (error: any) {
+        console.error("searchHepsiburadaCategories error:", error);
         return { success: false, message: "Hata: " + error.message };
     }
 }

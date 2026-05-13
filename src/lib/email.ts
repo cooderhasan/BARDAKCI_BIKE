@@ -5,7 +5,7 @@ import { ShippingNotificationEmail } from '@/emails/shipping-notification';
 import { AbandonedCartNotificationEmail } from '@/emails/abandoned-cart-notification';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "serinmotor@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "emreserin78@gmail.com";
 
 interface SendOrderConfirmationProps {
     to: string;
@@ -174,7 +174,7 @@ export async function sendAbandonedCartEmail(props: SendAbandonedCartNotificatio
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Serin Motor <satis@serinmotor.com>',
+            from: 'Serin Motor <siparis@serinmotor.com>',
             to: [props.to],
             subject: 'Sepetinizde Ürünler Sizi Bekliyor!',
             react: AbandonedCartNotificationEmail({

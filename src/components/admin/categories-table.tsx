@@ -36,6 +36,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder } from "@/app/admin/(protected)/categories/actions";
+import { searchHepsiburadaCategories } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
 import {
     DndContext,
     closestCenter,
@@ -440,6 +441,7 @@ function N11CategorySearch({
 interface HepsiburadaCategory {
     categoryId: string;
     name: string;
+    paths?: string[];
 }
 
 function HepsiburadaCategorySearch({
@@ -465,17 +467,16 @@ function HepsiburadaCategorySearch({
         setLoading(true);
         setError("");
         try {
-            const res = await getHepsiburadaCategories();
+            // Use the NEW search action that queries the full HB database
+            const res = await searchHepsiburadaCategories(q);
             if (res.success && res.data) {
-                const filtered = (res.data as HepsiburadaCategory[]).filter(c =>
-                    c.name.toLowerCase().includes(q.toLowerCase())
-                ).slice(0, 100);
-                setResults(filtered);
+                setResults(res.data as HepsiburadaCategory[]);
                 setOpen(true);
             } else {
                 setError(res.message || "Kategoriler alınamadı.");
             }
-        } catch {
+        } catch (error) {
+            console.error("Search error:", error);
             setError("Bağlantı hatası.");
         } finally {
             setLoading(false);
@@ -559,7 +560,14 @@ function HepsiburadaCategorySearch({
                                     onClick={() => handleSelect(cat)}
                                     className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
                                 >
-                                    <span className="whitespace-normal leading-relaxed text-xs">{cat.name}</span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="whitespace-normal leading-relaxed text-xs font-medium">{cat.name}</span>
+                                        {cat.paths && (
+                                            <span className="text-[10px] text-gray-400 line-clamp-1 italic">
+                                                {cat.paths.join(" > ")}
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-xs text-gray-400 font-mono shrink-0 pt-0.5">#{cat.categoryId}</span>
                                 </button>
                             ))}
