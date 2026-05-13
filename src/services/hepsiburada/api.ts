@@ -185,7 +185,7 @@ export class HepsiburadaClient {
         const sitSuffix = this.isTestMode ? "-sit" : "";
         const { leaf = true, status = "ACTIVE" } = params;
         
-        let url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/get-all-categories?leaf=${leaf}&status=${status}&size=1000`;
+        let url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/get-all-categories?leaf=${leaf}&status=${status}&size=50000`;
         
         console.log(`📡 HB Fetching Categories: ${url}`);
 
