@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
+import { HepsiburadaClient } from "@/services/hepsiburada/api";
 
 export async function getHepsiburadaConfig() {
     try {
@@ -75,7 +76,6 @@ export async function testHepsiburadaConnection() {
     }
 }
 
-import { HepsiburadaClient } from "@/services/hepsiburada/api";
 
 // ... (get and save config remain same)
 

@@ -176,11 +176,39 @@ export class HepsiburadaClient {
     }
 
     /**
+     * Get All Categories
+     * SIT: GET https://mpop-sit.hepsiburada.com/product/api/categories/get-all-categories
+     * PROD: GET https://mpop.hepsiburada.com/product/api/categories/get-all-categories
+     */
+    async getCategories(params: { leaf?: boolean; status?: string } = {}) {
+        await this.init();
+        const sitSuffix = this.isTestMode ? "-sit" : "";
+        const { leaf = true, status = "ACTIVE" } = params;
+        
+        let url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/get-all-categories?leaf=${leaf}&status=${status}&size=1000`;
+        
+        console.log(`📡 HB Fetching Categories: ${url}`);
+
+        const response = await fetch(url, {
+            headers: this.getHeaders(),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HB Category API Error: ${response.status} - ${errorText.substring(0, 200)}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
      * Get Category Attributes (Metadata)
+     * SIT: https://mpop-sit.hepsiburada.com/product/api/categories/{categoryId}/attributes
      */
     async getCategoryAttributes(categoryId: string) {
         await this.init();
-        const url = `${this.metadataBaseUrl}/categories/${categoryId}/attributes`;
+        const sitSuffix = this.isTestMode ? "-sit" : "";
+        const url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/${categoryId}/attributes`;
         const response = await fetch(url, {
             headers: this.getHeaders(),
         });
