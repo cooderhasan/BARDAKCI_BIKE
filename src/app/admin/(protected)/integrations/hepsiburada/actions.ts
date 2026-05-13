@@ -377,6 +377,19 @@ export async function getHepsiburadaAttributeValues(categoryId: string, attribut
     }
 }
 
+export async function updateHepsiburadaSku(productId: string, hbSku: string) {
+    try {
+        await (prisma as any).hepsiburadaProduct.upsert({
+            where: { productId },
+            update: { hbSku },
+            create: { productId, hbSku }
+        });
+        return { success: true, message: "HB SKU güncellendi." };
+    } catch (error: any) {
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
+
 export async function sendProductToHepsiburada(productId: string, attributes: any[]) {
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
@@ -429,6 +442,8 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
                 ...(product.images[2] ? { Image3: product.images[2] } : {}),
                 ...(product.images[3] ? { Image4: product.images[3] } : {}),
                 ...(product.images[4] ? { Image5: product.images[4] } : {}),
+                // HB SKU (Katalog Kodu) varsa ekle (Buybox eşleşmesi için)
+                ...((product as any).hepsiburadaProduct?.hbSku ? { hbSku: (product as any).hepsiburadaProduct.hbSku } : {}),
                 // Kullanıcının girdiği ek özellikler (Kategori dinamik alanları)
                 // "Garanti Süresi (Ay)" ve "Garanti Süresi" alanlarını ayırıyoruz çünkü yukarıda ID ile gönderdik
                 ...attributes

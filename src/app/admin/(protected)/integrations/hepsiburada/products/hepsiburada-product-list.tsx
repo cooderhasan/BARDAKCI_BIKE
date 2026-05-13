@@ -23,7 +23,7 @@ import {
     Link2
 } from "lucide-react";
 import { toast } from "sonner";
-import { sendProductToHepsiburada, getHepsiburadaCategoryAttributes, getHepsiburadaAttributeValues } from "../actions";
+import { sendProductToHepsiburada, getHepsiburadaCategoryAttributes, getHepsiburadaAttributeValues, updateHepsiburadaSku } from "../actions";
 import {
     Dialog,
     DialogContent,
@@ -91,6 +91,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
     
     const [showAttrModal, setShowAttrModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [hbSku, setHbSku] = useState("");
     const [categoryAttrs, setCategoryAttrs] = useState<any[]>([]);
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
@@ -109,6 +110,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
         }
 
         setSelectedProduct(product);
+        setHbSku(product.hepsiburadaProduct?.hbSku || "");
         setShowAttrModal(true);
         setAttrLoading(true);
         setAttrMappings({});
@@ -142,7 +144,12 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
         setShowAttrModal(false);
 
         try {
-            const res = await sendProductToHepsiburada(selectedProduct.id, finalAttrs);
+            // HB SKU girildiyse veritabanına kaydet
+        if (hbSku) {
+            await updateHepsiburadaSku(selectedProduct.id, hbSku);
+        }
+
+        const res = await sendProductToHepsiburada(selectedProduct.id, finalAttrs);
             if (res.success) {
                 toast.success(res.message);
                 setProducts(prev => prev.map(p => 
@@ -268,6 +275,16 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                                             defaultValue="24"
                                             onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, "Garanti Süresi (Ay)": e.target.value }))}
                                         />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] font-semibold text-amber-600">HB SKU (Katalog Kodu - Opsiyonel)</Label>
+                                        <Input 
+                                            className="h-8 text-sm border-amber-200 focus-visible:ring-amber-500"
+                                            placeholder="Örn: HBV00000XYZ"
+                                            value={hbSku}
+                                            onChange={(e) => setHbSku(e.target.value)}
+                                        />
+                                        <p className="text-[9px] text-muted-foreground italic">Eğer HB kataloğunda ürün varsa kodunu girerek direkt eşleşebilirsiniz.</p>
                                     </div>
                                 </div>
                             </div>
