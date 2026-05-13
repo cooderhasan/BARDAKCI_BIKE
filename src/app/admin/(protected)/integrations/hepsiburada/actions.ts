@@ -344,8 +344,16 @@ export async function searchHepsiburadaCategories(query: string) {
         });
 
         // Search by name and ensure it's a leaf category
-        const data = await client.getCategories({ name: query, leaf: true, size: 50 });
-        return { success: true, data: data.data || [] };
+        // Increase size to 1000 to catch more results and filter locally for better accuracy
+        const data = await client.getCategories({ name: query, leaf: true, size: 1000 });
+        
+        // Filter results locally to make sure query matches name or any part of the path
+        const filteredData = (data.data || []).filter((c: any) => {
+            const searchStr = `${c.name} ${c.paths?.join(" ")}`.toLowerCase();
+            return searchStr.includes(query.toLowerCase());
+        }).slice(0, 100);
+
+        return { success: true, data: filteredData };
     } catch (error: any) {
         console.error("searchHepsiburadaCategories error:", error);
         return { success: false, message: "Hata: " + error.message };
