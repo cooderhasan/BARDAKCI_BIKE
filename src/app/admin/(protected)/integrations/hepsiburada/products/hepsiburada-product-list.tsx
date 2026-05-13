@@ -36,24 +36,39 @@ import { Label } from "@/components/ui/label";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-function DynamicAttributeField({ attr, categoryId, onChange }: { attr: any, categoryId: string, onChange: (val: string, name: string) => void }) {
+function DynamicAttributeField({ attr, categoryId, onChange, product }: { attr: any, categoryId: string, onChange: (val: string, name: string) => void, product: any }) {
     const [values, setValues] = useState<{id: string, value: string}[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isManual, setIsManual] = useState(false);
 
     useEffect(() => {
-        if (attr.type === 'enum') {
+        if (attr.type === 'enum' && !isManual) {
             setLoading(true);
             getHepsiburadaAttributeValues(categoryId, attr.id).then(res => {
                 if (res.success) setValues(res.data);
                 setLoading(false);
             });
         }
-    }, [attr.id, categoryId, attr.type]);
+        // Paket görseli zorunluysa ve boşsa ana görseli öner
+        if (attr.name.includes("Paket Görseli") && product?.images?.[0]) {
+            onChange(product.images[0], attr.name);
+        }
+    }, [attr.id, categoryId, attr.type, isManual]);
 
-    if (attr.type === 'enum') {
+    if (attr.type === 'enum' && !isManual) {
         return (
             <div className="space-y-1">
-                <Label className="text-xs">{attr.name} {attr.mandatory && "*"}</Label>
+                <div className="flex justify-between items-center">
+                    <Label className="text-xs">{attr.name} {attr.mandatory && "*"}</Label>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-4 text-[9px] text-blue-500 hover:text-blue-700 p-0"
+                        onClick={() => setIsManual(true)}
+                    >
+                        Elle Gir
+                    </Button>
+                </div>
                 <Select onValueChange={(val) => onChange(val, attr.name)} disabled={loading}>
                     <SelectTrigger className="h-8 text-sm">
                         <SelectValue placeholder={loading ? "Yükleniyor..." : `${attr.name} seçin...`} />
@@ -70,10 +85,23 @@ function DynamicAttributeField({ attr, categoryId, onChange }: { attr: any, cate
 
     return (
         <div className="space-y-1">
-            <Label className="text-xs">{attr.name} {attr.mandatory && "*"}</Label>
+            <div className="flex justify-between items-center">
+                <Label className="text-xs">{attr.name} {attr.mandatory && "*"}</Label>
+                {attr.type === 'enum' && (
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-4 text-[9px] text-blue-500 hover:text-blue-700 p-0"
+                        onClick={() => setIsManual(false)}
+                    >
+                        Listeden Seç
+                    </Button>
+                )}
+            </div>
             <Input 
                 className="h-8 text-sm"
                 placeholder={`${attr.name} değerini girin...`}
+                defaultValue={attr.name.includes("Paket Görseli") ? product?.images?.[0] : ""}
                 onChange={(e) => onChange(e.target.value, attr.name)}
             />
         </div>
@@ -300,6 +328,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                                             attr={attr} 
                                             categoryId={selectedProduct?.categories.find((c: any) => c.hbCategoryId)?.hbCategoryId || ""}
                                             onChange={(val, name) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: { name, value: val } }))}
+                                            product={selectedProduct}
                                         />
                                     ))}
                                 </div>
