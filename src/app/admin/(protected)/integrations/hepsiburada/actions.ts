@@ -335,7 +335,9 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
 
         const client = new HepsiburadaClient({
             username: config.username,
-            password: config.password
+            password: config.password,
+            merchantId: config.merchantId || config.username,
+            isTestMode: config.isTestMode ?? true,
         });
 
         const data = await client.getCategoryAttributes(categoryId);
