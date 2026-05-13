@@ -480,7 +480,7 @@ function HepsiburadaCategorySearch({
     };
 
     const handleSelect = (cat: HepsiburadaCategory) => {
-        onChange(cat.categoryId);
+        onChange(String(cat.categoryId));
         setSelectedName(cat.name);
         setSearch("");
         setResults([]);

@@ -29,7 +29,7 @@ export async function createCategory(data: { name: string; slug: string; order?:
                 headerOrder: data.headerOrder ?? 0,
                 trendyolCategoryId: data.trendyolCategoryId ?? null,
                 n11CategoryId: data.n11CategoryId ?? null,
-                hbCategoryId: data.hbCategoryId ?? null,
+                hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : null,
                 googleProductCategory: data.googleProductCategory ?? null,
             },
         });
@@ -48,6 +48,7 @@ export async function updateCategory(id: string, data: { name?: string; slug?: s
             where: { id },
             data: {
                 ...data,
+                hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : (data.hbCategoryId === null ? null : undefined),
                 parentId: data.parentId === undefined ? undefined : (data.parentId || null),
             },
         });
