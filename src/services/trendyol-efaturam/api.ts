@@ -230,10 +230,10 @@ export class TrendyolEFaturamClient {
         const taxableTotal = rawInvoiceData.taxExcludedPrice;
         const totalTax = rawInvoiceData.taxAmount;
 
-        const formattedData: any = {
+        const formattedData: EArchiveInvoiceData = {
             autoInvoiceId: true,
-            userId: Number(this.userId || 43406),
-            companyId: String(this.userId || 43406), // Bazı API'ler String bekliyor olabilir
+            userId: 43406,
+            companyId: 43144000001,
             source: "WEB",
             recipientInfo: {
                 taxId: rawInvoiceData.receiverTaxId.toString(),
