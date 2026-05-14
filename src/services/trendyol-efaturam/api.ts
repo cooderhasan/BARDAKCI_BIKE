@@ -343,7 +343,7 @@ export class TrendyolEFaturamClient {
                 itemName: line.name,
                 quantity: Number(line.quantity),
                 unitCode: "C62",
-                unitPriceAmount: this.toKurus(line.unitPrice), // double but kuruş
+                unitPriceAmount: this.toKurus(line.unitPrice),
                 taxPercent: Number(line.taxRate),
                 taxAmount: this.toKurus(line.taxAmount),
                 taxableAmount: this.toKurus(line.amount - line.taxAmount),
@@ -388,9 +388,7 @@ export class TrendyolEFaturamClient {
                 paymentMeans: "CREDIT_CARD",
                 paymentDate: new Date().toISOString().split("T")[0],
                 purchaseUrl: "https://www.trendyol.com",
-            },
-            source: "PARTNER",
-            autoInvoiceId: true
+            }
         };
 
         if (invoicePrefix && invoicePrefix.trim() !== "") {
