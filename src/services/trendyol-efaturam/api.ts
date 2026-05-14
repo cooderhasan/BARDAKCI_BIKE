@@ -331,7 +331,7 @@ export class TrendyolEFaturamClient {
                 address: rawInvoiceData.receiverAddress || "ADRES BELİRTİLMEMİŞ",
                 countryCode: "TR",
                 email: rawInvoiceData.receiverEmail || "",
-                phone: rawInvoiceData.receiverPhone || "",
+                taxOffice: "",
             },
             invoiceInfo: {
                 invoiceType: "EARSIVFATURA",
@@ -343,29 +343,22 @@ export class TrendyolEFaturamClient {
                 itemName: line.name,
                 quantity: Number(line.quantity),
                 unitCode: "C62",
-                unitPriceAmount: this.toKurus(line.unitPrice),
+                unitPriceAmount: this.toKurus(line.unitPrice), // double but kuruş
                 taxPercent: Number(line.taxRate),
                 taxAmount: this.toKurus(line.taxAmount),
-                totalTax: {
-                    totalTaxAmount: this.toKurus(line.taxAmount),
-                    subTotalTaxes: [{
-                        taxAmount: this.toKurus(line.taxAmount),
-                        taxableAmount: this.toKurus(line.amount - line.taxAmount),
-                        taxPercent: Number(line.taxRate),
-                        taxCode: "0015",
-                    }]
-                },
                 taxableAmount: this.toKurus(line.amount - line.taxAmount),
                 totalAmount: this.toKurus(line.amount),
                 totalDiscountAmount: line.discountAmount ? this.toKurus(line.discountAmount) : 0,
+                taxName: "KDV",
+                taxCode: "0015"
             })),
             totalTax: {
                 totalTaxAmount: this.toKurus(totalTax),
                 subTotalTaxes: [{
                     taxAmount: this.toKurus(totalTax),
                     taxableAmount: this.toKurus(taxableTotal),
-                    taxPercent: Number(rawInvoiceData.invoiceLines[0]?.taxRate || 20),
-                    taxCode: "0015",
+                    percent: Number(rawInvoiceData.invoiceLines[0]?.taxRate || 20),
+                    taxType: "KDV",
                 }],
             },
             invoiceTotal: {
@@ -376,16 +369,17 @@ export class TrendyolEFaturamClient {
                 allowanceTotalAmount: rawInvoiceData.discountAmount ? this.toKurus(rawInvoiceData.discountAmount) : 0,
             },
             notes: rawInvoiceData.notes || "",
-            paymentInfo: {
-                paymentDate: new Date().toISOString().split("T")[0],
-                paymentMethod: "KREDIKARTI/BANKAKARTI",
-                paymentAgent: "Trendyol Ödeme",
-            },
             deliveryInfo: {
-                deliveryDate: new Date().toISOString().split("T")[0],
-                deliveryAgent: "TRENDYOL LOJİSTİK ANONİM ŞİRKETİ",
-                vkn: "8590921777",
+                carrierTaxId: "8590921777",
+                carrierName: "TRENDYOL LOJİSTİK A.Ş.",
+                sentAt: new Date().toISOString().split("T")[0],
             },
+            paymentInfo: {
+                paymentType: "KREDIKARTI/BANKAKARTI",
+                paymentMeans: "CREDIT_CARD",
+            },
+            source: "PARTNER",
+            autoInvoiceId: true
         };
 
         if (invoicePrefix && invoicePrefix.trim() !== "") {
