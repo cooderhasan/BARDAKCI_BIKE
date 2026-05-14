@@ -311,15 +311,12 @@ export class TrendyolEFaturamClient {
         const taxableTotal = rawInvoiceData.taxExcludedPrice;
         const totalTax = rawInvoiceData.taxAmount;
 
-        // Ayarlardan gelen prefix'i kullan, yoksa DAP kullan.
-        const invoicePrefix = this.auth.earchivePrefix || "DAP";
-        console.log(`🏷️ Kullanılacak prefix: ${invoicePrefix} | userId=${this.userId} | companyId=${(this as any).companyId}`);
+        // Ayarlardan gelen prefix'i kullan
+        const invoicePrefix = this.auth.earchivePrefix;
+        console.log(`🏷️ Kullanılacak prefix: ${invoicePrefix || "VARSAYILAN"} | userId=${this.userId} | companyId=${(this as any).companyId}`);
 
         const formattedData: any = {
             autoInvoiceId: true,
-            invoiceSeries: invoicePrefix, // Bazı versiyonlar bunu kullanır
-            prefix: invoicePrefix,        // Bazı versiyonlar bunu kullanır
-            vknPrefix: invoicePrefix,     // Bazı versiyonlar bunu kullanır
             userId: this.userId,
             companyId: (this as any).companyId,
             source: "PARTNER",
@@ -378,7 +375,21 @@ export class TrendyolEFaturamClient {
                 allowanceTotalAmount: rawInvoiceData.discountAmount ? this.toKurus(rawInvoiceData.discountAmount) : 0,
             },
             notes: rawInvoiceData.notes,
+            paymentInfo: {
+                paymentDate: new Date().toISOString().split("T")[0],
+                paymentMethod: "KREDIKARTI/BANKAKARTI",
+                paymentAgent: "Online Ödeme",
+            },
+            deliveryInfo: {
+                deliveryDate: new Date().toISOString().split("T")[0],
+                deliveryAgent: "Kargo",
+            },
         };
+
+        if (invoicePrefix && invoicePrefix.trim() !== "") {
+            formattedData.prefix = invoicePrefix;
+            formattedData.invoiceSeries = invoicePrefix;
+        }
 
         return await this.request("POST", "/api/invoice/documents/earchive", formattedData);
     }
