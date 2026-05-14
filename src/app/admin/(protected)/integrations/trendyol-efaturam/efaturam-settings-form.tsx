@@ -103,8 +103,8 @@ export function EFaturamSettingsForm({ initialData }: Props) {
                             <Input
                                 id="earchivePrefix"
                                 name="earchivePrefix"
-                                defaultValue={initialData?.earchivePrefix || "DAP"}
-                                placeholder="Örn: DAP veya TYA"
+                                defaultValue={initialData?.earchivePrefix}
+                                placeholder="Örn: DAP veya TYA (Boş bırakabilirsiniz)"
                             />
                         </div>
                         <div className="space-y-2">
@@ -112,8 +112,8 @@ export function EFaturamSettingsForm({ initialData }: Props) {
                             <Input
                                 id="efaturaPrefix"
                                 name="efaturaPrefix"
-                                defaultValue={initialData?.efaturaPrefix || "DIP"}
-                                placeholder="Örn: DIP veya TYE"
+                                defaultValue={initialData?.efaturaPrefix}
+                                placeholder="Örn: DIP veya TYE (Boş bırakabilirsiniz)"
                             />
                         </div>
                     </div>

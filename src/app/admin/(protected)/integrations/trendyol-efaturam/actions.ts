@@ -22,8 +22,8 @@ export async function saveEFaturamConfig(prevState: any, formData: FormData) {
         const username = formData.get("username") as string;
         const password = formData.get("password") as string;
         const companyId = formData.get("companyId") as string;
-        const earchivePrefix = formData.get("earchivePrefix") as string || "DAP";
-        const efaturaPrefix = formData.get("efaturaPrefix") as string || "DIP";
+        const earchivePrefix = (formData.get("earchivePrefix") as string) || "";
+        const efaturaPrefix = (formData.get("efaturaPrefix") as string) || "";
         const isActive = formData.get("isActive") === "on";
         const isTestMode = formData.get("isTestMode") === "on";
 
