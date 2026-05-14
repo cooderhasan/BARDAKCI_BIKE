@@ -18,4 +18,10 @@ HB_SIT_TEST_STEPS.md
 COOLIFY_SETUP.md
 PAZARYERI_YOL_HARITASI.md
 yol_haritasi.md
-yapılacaklar.md
+yapilacaklar.md
+check-*.ts
+fix-*.ts
+debug-*.ts
+*.txt
+*.xlsx
+*.docx
