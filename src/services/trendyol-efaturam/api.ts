@@ -232,6 +232,7 @@ export class TrendyolEFaturamClient {
 
         const formattedData: EArchiveInvoiceData = {
             autoInvoiceId: true,
+            invoiceSeries: "TYA", // API için tanımlı olan ön ek
             userId: 43406,
             companyId: 43144000001,
             source: "WEB",
