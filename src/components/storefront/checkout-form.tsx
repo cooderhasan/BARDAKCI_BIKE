@@ -50,9 +50,10 @@ interface CheckoutFormProps {
         }[];
     }[];
     freeShippingLimit: number;
+    bankTransferDiscount: number;
 }
 
-export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit }: CheckoutFormProps) {
+export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, bankTransferDiscount }: CheckoutFormProps) {
     // ...
     const router = useRouter();
     const { items, getSummary, discountRate, clearCart } = useCartStore();
@@ -108,7 +109,15 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit }:
         }
     }
 
-    const grandTotal = summary.total + shippingCost;
+    let baseTotal = summary.total;
+    let bankDiscountAmount = 0;
+
+    if (paymentMethod === "BANK_TRANSFER" && bankTransferDiscount > 0) {
+        bankDiscountAmount = (baseTotal * bankTransferDiscount) / 100;
+        baseTotal -= bankDiscountAmount;
+    }
+
+    const grandTotal = baseTotal + shippingCost;
     const canUseCurrentAccount = initialData?.currentAccount && initialData.currentAccount.availableLimit >= grandTotal;
 
     if (items.length === 0) {
@@ -518,8 +527,14 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit }:
                                     </div>
                                     {summary.discountAmount > 0 && (
                                         <div className="flex justify-between text-green-600 font-medium">
-                                            <span>İskonto ({Math.round((summary.discountAmount / (summary.total + summary.discountAmount)) * 100)}%)</span>
+                                            <span>Müşteri İskontosu</span>
                                             <span>-{formatPrice(summary.discountAmount)}</span>
+                                        </div>
+                                    )}
+                                    {bankDiscountAmount > 0 && (
+                                        <div className="flex justify-between text-blue-600 font-medium italic">
+                                            <span>Havale İndirimi (%{bankTransferDiscount})</span>
+                                            <span>-{formatPrice(bankDiscountAmount)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between text-gray-600 dark:text-gray-400">

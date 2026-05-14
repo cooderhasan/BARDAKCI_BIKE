@@ -350,6 +350,21 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                         placeholder="TR00 0000 0000 0000 0000 0000 00"
                                     />
                                 </div>
+
+                                <div className="space-y-2 mt-4">
+                                    <Label htmlFor="bankTransferDiscount">Havale İndirimi (%)</Label>
+                                    <Input
+                                        id="bankTransferDiscount"
+                                        type="number"
+                                        value={settings.bankTransferDiscount || "0"}
+                                        onChange={(e) => updateField("bankTransferDiscount", e.target.value)}
+                                        placeholder="Örn: 5"
+                                        className="max-w-xs"
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                        Havale ile ödemeyi seçen müşterilere uygulanacak indirim oranı. 0 yazarsanız indirim uygulanmaz.
+                                    </p>
+                                </div>
                                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-4">
                                     <p className="text-sm text-amber-800 dark:text-amber-200">
                                         <strong>Not:</strong> Bu bilgiler sadece havale ile ödeme yapan müşterilere sipariş onay sayfasında gösterilecektir.

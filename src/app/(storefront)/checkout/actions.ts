@@ -179,8 +179,23 @@ export async function createOrder(data: CreateOrderData) {
             })
         );
 
-        const total = grandTotal + (data.shippingCost || 0); // Include shipping cost in final total
-        const discountAmount = totalDiscountAmount; // For record keeping
+        // Fetch Site Settings for Bank Info & Discounts
+        const settingsRecord = await prisma.siteSettings.findUnique({
+            where: { key: "general" },
+        });
+        const settings = settingsRecord?.value as any || {};
+        const bankTransferDiscountRate = Number(settings.bankTransferDiscount) || 0;
+
+        let finalGrandTotal = grandTotal + (data.shippingCost || 0);
+        let appliedBankDiscount = 0;
+
+        if (data.paymentMethod === "BANK_TRANSFER" && bankTransferDiscountRate > 0) {
+            appliedBankDiscount = (grandTotal * bankTransferDiscountRate) / 100;
+            finalGrandTotal -= appliedBankDiscount;
+        }
+
+        const total = finalGrandTotal;
+        const discountAmount = totalDiscountAmount + appliedBankDiscount; // For record keeping
         const vatAmount = totalVatAmount;
         const paymentMethod = data.paymentMethod || "BANK_TRANSFER";
         const orderNumber = generateOrderNumber();
@@ -342,11 +357,8 @@ export async function createOrder(data: CreateOrderData) {
             });
         }
 
-        // Fetch Site Settings for Bank Info
-        const settingsRecord = await prisma.siteSettings.findUnique({
-            where: { key: "general" },
-        });
-        const settings = settingsRecord?.value as any || {};
+        // Site Settings already fetched earlier for bank info
+
 
         // Send confirmation email (to user email or guest email)
         // ONLY if payment method is NOT Credit Card. 

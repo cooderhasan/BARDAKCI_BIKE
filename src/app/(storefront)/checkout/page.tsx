@@ -68,6 +68,7 @@ export default async function CheckoutPage() {
 
     const settings = await getSiteSettings();
     const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
+    const bankTransferDiscount = Number(settings.bankTransferDiscount) || 0;
 
     // Serialize Decimal fields for Client Component
     const serializedCargoCompanies = cargoCompanies.map(company => ({
@@ -83,5 +84,12 @@ export default async function CheckoutPage() {
         }))
     }));
 
-    return <CheckoutForm initialData={initialData} cargoCompanies={serializedCargoCompanies} freeShippingLimit={freeShippingLimit} />;
+    return (
+        <CheckoutForm
+            initialData={initialData}
+            cargoCompanies={serializedCargoCompanies}
+            freeShippingLimit={freeShippingLimit}
+            bankTransferDiscount={bankTransferDiscount}
+        />
+    );
 }
