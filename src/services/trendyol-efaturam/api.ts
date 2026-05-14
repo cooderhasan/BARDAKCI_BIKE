@@ -123,9 +123,9 @@ export class TrendyolEFaturamClient {
                 return true;
             }
 
-            console.error("❌ Token alınamadı. Response:", JSON.stringify(response.data).substring(0, 500));
-            console.error("   Response Headers:", JSON.stringify(response.headers).substring(0, 500));
-            return false;
+            const errorDetail = `Token alınamadı. Yanıt: ${JSON.stringify(response.data).substring(0, 200)}`;
+            console.error(`❌ ${errorDetail}`);
+            throw new Error(errorDetail);
         } catch (error: any) {
             console.error("❌ Trendyol e-Faturam Login Error:", error.response?.status, error.response?.data || error.message);
             throw new Error(
@@ -202,7 +202,9 @@ export class TrendyolEFaturamClient {
      */
     async testConnection(): Promise<{ success: boolean; message: string }> {
         try {
-            await this.login();
+            const success = await this.login();
+            if (!success) throw new Error("Giriş yapıldı ama yetki anahtarı (token) alınamadı.");
+            
             return {
                 success: true,
                 message: `Bağlantı başarılı! (${this.auth.isTestMode ? 'Test' : 'Canlı'} ortam)`,
