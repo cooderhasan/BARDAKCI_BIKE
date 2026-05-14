@@ -139,6 +139,7 @@ export class TrendyolEFaturamClient {
                 // Token'ı çözüp ID'leri alalım
                 const decoded = this.decodeToken(token);
                 if (decoded) {
+                    console.log('🔑 DECODED TOKEN:', JSON.stringify(decoded, null, 2));
                     this.userId = decoded.userId || decoded.id || decoded.sub || (typeof response.data === 'number' ? response.data : 43406);
                     // Eğer token içinde companyId yoksa, bilinen TCKN'yi (26479888956) veya userId'yi deneyelim
                     (this as any).companyId = decoded.companyId || decoded.cid || decoded.account_id || this.userId;
