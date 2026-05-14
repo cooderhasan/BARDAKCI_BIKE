@@ -259,6 +259,15 @@ export class TrendyolEFaturamClient {
                 unitPriceAmount: this.toKurus(line.unitPrice),
                 taxPercent: Number(line.taxRate),
                 taxAmount: this.toKurus(line.taxAmount),
+                totalTax: {
+                    totalTaxAmount: this.toKurus(line.taxAmount),
+                    subTotalTaxes: [{
+                        taxAmount: this.toKurus(line.taxAmount),
+                        taxableAmount: this.toKurus(line.amount - line.taxAmount),
+                        taxPercent: Number(line.taxRate),
+                        taxCode: "0015",
+                    }]
+                },
                 taxableAmount: this.toKurus(line.amount - line.taxAmount),
                 totalAmount: this.toKurus(line.amount),
                 totalDiscountAmount: line.discountAmount ? this.toKurus(line.discountAmount) : 0,
