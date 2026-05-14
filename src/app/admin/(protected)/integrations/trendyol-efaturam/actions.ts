@@ -51,8 +51,8 @@ export async function saveEFaturamConfig(prevState: any, formData: FormData) {
 
 export async function testEFaturamConnection() {
     try {
-        const config = await (prisma as any).trendyolEFaturamConfig.findFirst();
-        if (!config) return { success: false, message: "Ayarlar bulunamadı. Önce kaydedin." };
+        const config = await (prisma as any).trendyolEFaturamConfig.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Aktif ayar bulunamadı. Önce ayarları kaydedin ve 'Aktif' yapın." };
 
         const client = new TrendyolEFaturamClient({
             username: config.username,

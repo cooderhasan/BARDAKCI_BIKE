@@ -61,7 +61,7 @@ export class TrendyolEFaturamClient {
     constructor(auth: EFaturamAuth) {
         this.auth = auth;
         this.baseUrl = auth.isTestMode
-            ? "https://stage-apigateway.trendyolefaturam.com"
+            ? "https://stage-apigateway.trendyolecozum.com"
             : "https://apigateway.trendyolecozum.com";
     }
 
@@ -72,14 +72,23 @@ export class TrendyolEFaturamClient {
         try {
             console.log(`📡 Trendyol e-Faturam Login Attempt (${this.auth.isTestMode ? 'TEST' : 'CANLI'})...`);
             console.log(`   Base URL: ${this.baseUrl}`);
+            console.log(`   Username/Email: ${this.auth.username}`);
+
+            const payload: any = {
+                password: this.auth.password,
+            };
+
+            // Username email formatındaysa hem email hem username gönder (garanti olsun)
+            if (this.auth.username.includes("@")) {
+                payload.email = this.auth.username;
+                payload.username = this.auth.username;
+            } else {
+                payload.username = this.auth.username;
+            }
 
             const response = await axios.post(
                 `${this.baseUrl}/api/auth/signin`,
-                {
-                    email: this.auth.username,
-                    username: this.auth.username, // Bazı sürümler bunu bekliyor
-                    password: this.auth.password,
-                },
+                payload,
                 {
                     headers: {
                         "Content-Type": "application/json",
