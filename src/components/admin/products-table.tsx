@@ -49,10 +49,10 @@ interface Product {
     isTrendyolActive: boolean;
     isN11Active: boolean;
     isBundle?: boolean;
-    category: {
+    categories: {
         id: string;
         name: string;
-    } | null;
+    }[];
     brand: {
         id: string;
         name: string;
@@ -357,8 +357,16 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            {product.category?.name || (
+                                         <TableCell>
+                                            {product.categories && product.categories.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {product.categories.map((cat) => (
+                                                        <span key={cat.id} className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                                            {cat.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
                                                 <span className="text-gray-400">-</span>
                                             )}
                                         </TableCell>

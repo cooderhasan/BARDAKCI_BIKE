@@ -57,7 +57,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         prisma.product.findMany({
             where,
             include: {
-                category: true,
+                categories: true,
                 brand: true,
             },
             orderBy: { createdAt: "desc" },
