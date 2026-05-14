@@ -86,12 +86,9 @@ export class TrendyolEFaturamClient {
                 payload.username = this.auth.username;
             }
 
-            // CompanyId varsa taxId olarak da gönder (bazı Trendyol versiyonları bunu bekler)
-            if (this.auth.companyId) {
-                payload.taxId = this.auth.companyId;
-                payload.tenantId = this.auth.companyId;
-            }
-
+            // CompanyId varsa taxId olarak da gönder (Sadece deneme amaçlı, hata verirse kaldırılabilir)
+            // Bireysel girişte genelde taxId istenmez.
+            
             const response = await axios.post(
                 `${this.baseUrl}/api/auth/signin`,
                 payload,
@@ -107,40 +104,42 @@ export class TrendyolEFaturamClient {
             console.log(`📡 Trendyol Login Status: ${response.status}`);
             
             // Token response header veya body'den gelebilir
+            // Tüm headerları küçük harfe çevirip kontrol edelim
+            const headers = response.headers;
             const token =
-                response.headers["access_token"] ||
-                response.headers["access-token"] ||
-                response.headers["authorization"]?.replace("Bearer ", "") ||
+                headers["access_token"] ||
+                headers["access-token"] ||
+                headers["token"] ||
+                headers["authorization"]?.replace("Bearer ", "") ||
+                headers["auth-token"] ||
                 response.data?.access_token ||
                 response.data?.accessToken ||
                 response.data?.token;
 
             if (token) {
                 this.accessToken = token;
-                // Token'ı 55 dakika geçerli say (genelde 1 saat geçerlidir)
                 this.tokenExpiry = Date.now() + 55 * 60 * 1000;
                 console.log("✅ Trendyol e-Faturam Login Success");
                 return true;
             }
 
-            // Eğer token direkt response data ise
-            if (typeof response.data === "string" && response.data.length > 20) {
-                this.accessToken = response.data;
-                this.tokenExpiry = Date.now() + 55 * 60 * 1000;
-                console.log("✅ Trendyol e-Faturam Login Success (raw token)");
-                return true;
-            }
-
-            const errorDetail = `Token alınamadı. Yanıt: ${JSON.stringify(response.data).substring(0, 200)}`;
+            // Eğer yanıt sayısal bir değerse (örn: 43406), bu başarılı bir giriştir ama token header'dadır
+            // Headerları detaylı loglayalım ki görebilelim
+            const allHeaderKeys = Object.keys(headers).join(", ");
+            const errorDetail = `Giriş yapıldı (Yanıt: ${JSON.stringify(response.data)}), ancak token bulunamadı. Mevcut Başlıklar: ${allHeaderKeys}`;
+            
             console.error(`❌ ${errorDetail}`);
             throw new Error(errorDetail);
         } catch (error: any) {
-            console.error("❌ Trendyol e-Faturam Login Error:", error.response?.status, error.response?.data || error.message);
-            throw new Error(
-                `E-Faturam login hatası: ${error.response?.status || "NETWORK"} - ${
-                    JSON.stringify(error.response?.data) || error.message
-                }`
-            );
+            if (error.response) {
+                console.error("❌ Trendyol Login Error Detail:", error.response.status, error.response.data);
+                throw new Error(
+                    `E-Faturam login hatası: ${error.response.status} - ${
+                        JSON.stringify(error.response.data) || error.message
+                    }`
+                );
+            }
+            throw error;
         }
     }
 
