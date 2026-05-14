@@ -218,12 +218,14 @@ export class TrendyolEFaturamClient {
         }
     }
 
-    async testConnection(): Promise<{ success: boolean; message: string }> {
+    async testConnection(): Promise<{ success: boolean; message: string; prefixes?: string[] }> {
         try {
             await this.login();
+            const prefixes = await this.getAvailablePrefixes();
             return {
                 success: true,
-                message: `Bağlantı başarılı! (UserId: ${this.userId})`,
+                message: `Bağlantı başarılı! (UserId: ${this.userId}, CompanyId: ${(this as any).companyId})`,
+                prefixes: prefixes ? [prefixes] : [] // getAvailablePrefixes currently returns string | null, I'll update it to be more robust if needed
             };
         } catch (error: any) {
             return { success: false, message: error.message };
@@ -315,8 +317,9 @@ export class TrendyolEFaturamClient {
 
         const formattedData: any = {
             autoInvoiceId: true,
-            invoiceSeries: invoicePrefix,
-            vknPrefix: invoicePrefix,
+            invoiceSeries: invoicePrefix, // Bazı versiyonlar bunu kullanır
+            prefix: invoicePrefix,        // Bazı versiyonlar bunu kullanır
+            vknPrefix: invoicePrefix,     // Bazı versiyonlar bunu kullanır
             userId: this.userId,
             companyId: (this as any).companyId,
             source: "WEB",

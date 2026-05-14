@@ -39,8 +39,14 @@ export function EFaturamSettingsForm({ initialData }: Props) {
         setIsTesting(true);
         try {
             const res = await testEFaturamConnection();
-            if (res.success) toast.success(res.message);
-            else toast.error(res.message);
+            if (res.success) {
+                const prefixInfo = res.prefixes && res.prefixes.length > 0 
+                    ? `\nKullanılabilir Prefixler: ${res.prefixes.join(", ")}` 
+                    : "\nOtomatik prefix bulunamadı.";
+                toast.success(res.message + prefixInfo);
+            } else {
+                toast.error(res.message);
+            }
         } catch (error) {
             toast.error("Bağlantı testi sırasında hata oluştu.");
         } finally {
