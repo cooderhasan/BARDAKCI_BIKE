@@ -253,7 +253,7 @@ export class TrendyolEFaturamClient {
         console.log(`   Toplam: ${invoiceData.payableAmount} ${invoiceData.currency}`);
         console.log(`   Kalem Sayısı: ${invoiceData.invoiceLines.length}`);
 
-        const result = await this.request("POST", "/api/invoice/e-arsiv/create", invoiceData);
+        const result = await this.request("POST", "/api/invoice/documents/earchive", invoiceData);
         console.log("✅ E-Arşiv Fatura oluşturuldu:", JSON.stringify(result).substring(0, 300));
         return result;
     }
@@ -263,7 +263,7 @@ export class TrendyolEFaturamClient {
      */
     async createEInvoice(invoiceData: any): Promise<any> {
         console.log(`📄 E-Fatura Oluşturuluyor... Ref: ${invoiceData.localReferenceId}`);
-        const result = await this.request("POST", "/api/invoice/e-fatura/create", invoiceData);
+        const result = await this.request("POST", "/api/invoice/documents/outgoing-einvoice", invoiceData);
         console.log("✅ E-Fatura oluşturuldu:", JSON.stringify(result).substring(0, 300));
         return result;
     }
