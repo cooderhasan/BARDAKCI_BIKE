@@ -393,8 +393,7 @@ export class TrendyolEFaturamClient {
         };
 
         if (invoicePrefix && invoicePrefix.trim() !== "") {
-            formattedData.prefix = invoicePrefix;
-            formattedData.invoiceSeries = invoicePrefix;
+            formattedData.prefix = invoicePrefix.trim().substring(0, 3).toUpperCase();
         }
 
         return await this.request("POST", "/api/invoice/documents/earchive", formattedData);
