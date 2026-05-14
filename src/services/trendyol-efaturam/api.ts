@@ -155,13 +155,6 @@ export class TrendyolEFaturamClient {
         await this.ensureToken();
 
         try {
-            // İsteğe userId ve companyId (taxId) ekle
-            if (data && typeof data === 'object') {
-                data.userId = this.userId;
-                data.companyId = this.auth.companyId ? parseInt(this.auth.companyId) : this.userId;
-                data.source = "API";
-            }
-
             const response = await axios({
                 method,
                 url: `${this.baseUrl}${endpoint}`,
@@ -215,6 +208,8 @@ export class TrendyolEFaturamClient {
         // Ham veriyi Kuruş bazlı dokümantasyon formatına çevirelim
         const formattedData: EArchiveInvoiceData = {
             source: "API",
+            userId: this.userId || undefined,
+            companyId: this.auth.companyId ? parseInt(this.auth.companyId) : (this.userId || undefined),
             recipientInfo: {
                 taxId: rawInvoiceData.receiverTaxId,
                 name: rawInvoiceData.receiverName,
