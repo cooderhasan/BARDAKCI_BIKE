@@ -333,10 +333,11 @@ export class TrendyolEFaturamClient {
                 email: rawInvoiceData.receiverEmail || "",
                 taxOffice: rawInvoiceData.receiverTaxOffice || "MERKEZ",
             },
+            issuedAt: new Date().toISOString(),
             invoiceInfo: {
                 invoiceType: "EARSIVFATURA",
                 invoiceTypeCode: rawInvoiceData.invoiceTypeCode || "SATIS",
-                invoiceDate: new Date().toISOString().split("T")[0],
+                invoiceDate: new Date().toISOString(),
                 currencyCode: "TRY",
             },
             invoiceLines: rawInvoiceData.invoiceLines.map((line: any) => ({
@@ -381,12 +382,12 @@ export class TrendyolEFaturamClient {
             deliveryInfo: {
                 carrierTaxId: "8590921777",
                 carrierName: "TRENDYOL LOJİSTİK A.Ş.",
-                sentAt: new Date().toISOString().split("T")[0],
+                sentAt: new Date().toISOString(),
             },
             paymentInfo: {
                 paymentType: "KREDIKARTI/BANKAKARTI",
                 paymentMeans: "CREDIT_CARD",
-                paymentDate: new Date().toISOString().split("T")[0],
+                paymentDate: new Date().toISOString(),
                 purchaseUrl: "https://www.trendyol.com",
             }
         };
