@@ -378,12 +378,13 @@ export class TrendyolEFaturamClient {
             notes: rawInvoiceData.notes || "",
             paymentInfo: {
                 paymentDate: new Date().toISOString().split("T")[0],
-                paymentMethod: "KREDIKARTI/BANKAKARTI",
-                paymentAgent: "Online Ödeme",
+                paymentMethod: "ODEMEARACISI",
+                paymentAgent: "Trendyol Ödeme",
             },
             deliveryInfo: {
                 deliveryDate: new Date().toISOString().split("T")[0],
-                deliveryAgent: "Kargo",
+                deliveryAgent: "Trendyol Ekspress Kargo",
+                vkn: "3130557669",
             },
         };
 
