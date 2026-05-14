@@ -84,6 +84,7 @@ export class TrendyolEFaturamClient {
                     headers: {
                         "Content-Type": "application/json",
                         "Accept": "application/json",
+                        "User-Agent": this.auth.companyId ? `${this.auth.companyId} - SelfIntegration` : "SelfIntegration",
                     },
                 }
             );
@@ -151,6 +152,7 @@ export class TrendyolEFaturamClient {
                     Authorization: `Bearer ${this.accessToken}`,
                     "Content-Type": "application/json",
                     Accept: "application/json",
+                    "User-Agent": this.auth.companyId ? `${this.auth.companyId} - SelfIntegration` : "SelfIntegration",
                 },
                 timeout: 30000,
             });
@@ -171,6 +173,7 @@ export class TrendyolEFaturamClient {
                         Authorization: `Bearer ${this.accessToken}`,
                         "Content-Type": "application/json",
                         Accept: "application/json",
+                        "User-Agent": this.auth.companyId ? `${this.auth.companyId} - SelfIntegration` : "SelfIntegration",
                     },
                     timeout: 30000,
                 });
