@@ -182,12 +182,29 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
 
             let successCount = 0;
             for (const chunk of chunks) {
-                await client.uploadInventory(chunk);
+                const uploadResult = await client.uploadInventory(chunk);
+                const trackingId = uploadResult?.id;
+                console.log(`✅ HB Upload OK - Tracking ID: ${trackingId}`);
+                
+                // 5 saniye bekleyip sonucu kontrol et
+                if (trackingId) {
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    try {
+                        const statusResult = await client.checkInventoryUploadStatus(trackingId);
+                        console.log(`📊 HB Status: ${statusResult?.status}, Total: ${statusResult?.total}`);
+                        if (statusResult?.errors?.length > 0) {
+                            console.error(`❌ HB Upload Errors:`, JSON.stringify(statusResult.errors));
+                        }
+                    } catch(e: any) {
+                        console.log(`⚠️ HB Status Check: ${e.message}`);
+                    }
+                }
+                
                 successCount += chunk.length;
-                await new Promise(resolve => setTimeout(resolve, 500)); // Sleep between chunks
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            return { success: true, message: `${successCount} varyant/ürün için stok ve fiyat güncellendi.` };
+            return { success: true, message: `Hepsiburada Sync - ${successCount} varyant/ürün için stok ve fiyat güncellendi.` };
         } catch (apiError: any) {
             return { success: false, message: "HB API Hatası: " + apiError.message };
         }

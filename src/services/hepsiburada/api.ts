@@ -145,6 +145,28 @@ export class HepsiburadaClient {
     }
 
     /**
+     * Check inventory upload status by tracking ID
+     * GET /listings/merchantid/{merchantId}/inventory-uploads/id/{trackingId}
+     */
+    async checkInventoryUploadStatus(trackingId: string) {
+        await this.init();
+        if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
+
+        const url = `${this.listingBaseUrl}/listings/merchantid/${this.creds.merchantId}/inventory-uploads/id/${trackingId}`;
+        const response = await fetch(url, {
+            method: "GET",
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HB Status Check Error: ${response.status} - ${errorText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
      * Get Orders
      * GET /orders/merchantid/{merchantId}
      * status: New, Unacked, Packed, Shipped, Delivered, Cancelled, UnDelivered
