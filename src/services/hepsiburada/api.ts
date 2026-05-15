@@ -119,6 +119,28 @@ export class HepsiburadaClient {
     }
 
     /**
+     * Get all listings for this merchant (to map merchantSku -> hepsiburadaSku)
+     * GET /listings/merchantid/{merchantId}
+     */
+    async getListings(limit = 100, offset = 0) {
+        await this.init();
+        if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
+
+        const url = `${this.listingBaseUrl}/listings/merchantid/${this.creds.merchantId}?limit=${limit}&offset=${offset}`;
+        const response = await fetch(url, {
+            method: "GET",
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HB Listings Error: ${response.status} - ${errorText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
      * Create/Update Listings (Bulk) - Stok ve Fiyat Güncelleme
      * POST /listings/merchantid/{merchantId}/inventory-uploads
      */

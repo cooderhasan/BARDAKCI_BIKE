@@ -114,47 +114,84 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
 
         const hbItems: any[] = [];
 
-        // 2. Map to Hepsiburada format (simplified inventory payload)
-        // HB Inventory: { merchantSku, availableStock, price, dispatchTime, cargoCompany1, cargoCompany2, cargoCompany3, maximumPurchasableQuantity }
+        // 2. HB Listing'lerini çekip merchantSku -> hepsiburadaSku eşlemesi yap
+        // Bu zorunlu: HB envanter güncellemesi için hepsiburadaSku ŞART!
+        const client = new HepsiburadaClient({
+            username: config.username,
+            password: config.password,
+            merchantId: config.merchantId || config.username,
+            isTestMode: config.isTestMode ?? true,
+        });
+
+        let hbSkuMap: Record<string, string> = {};
+        try {
+            const listings = await client.getListings(500, 0);
+            if (Array.isArray(listings)) {
+                for (const l of listings) {
+                    if (l.merchantSku && l.hepsiburadaSku) {
+                        hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
+                    }
+                }
+            }
+            console.log(`📋 HB Listing eşlemesi: ${Object.keys(hbSkuMap).length} ürün bulundu`);
+        } catch (e: any) {
+            console.error(`⚠️ HB Listing çekilemedi: ${e.message}`);
+        }
 
         // Fetch default critical stock from settings
         const generalSettings = await getSiteSettings("general");
         const defaultCritical = Number(generalSettings?.defaultCriticalStock || 10);
 
         for (const p of products) {
-            const basePrice = Number((p as any).hepsiburadaPrice) || Number(p.listPrice); // Use HB price if available
+            const basePrice = Number((p as any).hepsiburadaPrice) || Number(p.listPrice);
             const criticalStock = p.criticalStock ?? defaultCritical;
 
             // Variants?
             if ((p as any).variants && (p as any).variants.length > 0) {
                 for (const v of (p as any).variants) {
-                    if (!v.sku && !v.barcode) continue; // Need identifier (MerchantSku)
+                    if (!v.sku && !v.barcode) continue;
+
+                    const merchantSku = v.sku || v.barcode;
+                    const hepsiburadaSku = hbSkuMap[merchantSku];
+                    if (!hepsiburadaSku) {
+                        console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} - atlanıyor`);
+                        continue;
+                    }
 
                     const varPrice = basePrice + Number(v.priceAdjustment || 0);
                     const availableStock = Math.max(0, v.stock - criticalStock);
 
                     const hbItem = {
-                        MerchantSku: v.sku || v.barcode,
-                        AvailableStock: Math.round(availableStock),
-                        Price: Number(varPrice.toFixed(2)),
-                        DispatchTime: 1,
-                        CargoCompany1: "Yurtiçi Kargo",
-                        MaximumPurchasableQuantity: 100
+                        hepsiburadaSku,
+                        merchantSku,
+                        availableStock: Math.round(availableStock),
+                        price: Number(varPrice.toFixed(2)),
+                        dispatchTime: 1,
+                        cargoCompany1: "Yurtiçi Kargo",
+                        maximumPurchasableQuantity: 100
                     };
                     console.log(`📦 HB Inventory Item (Variant):`, hbItem);
                     hbItems.push(hbItem);
                 }
             } else {
                 if (p.sku || p.barcode) {
+                    const merchantSku = p.sku || p.barcode || '';
+                    const hepsiburadaSku = hbSkuMap[merchantSku];
+                    if (!hepsiburadaSku) {
+                        console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} - atlanıyor`);
+                        continue;
+                    }
+
                     const availableStock = Math.max(0, p.stock - criticalStock);
                     
                     const hbItem = {
-                        MerchantSku: p.sku || p.barcode,
-                        AvailableStock: Math.round(availableStock),
-                        Price: Number(basePrice.toFixed(2)),
-                        DispatchTime: 1,
-                        CargoCompany1: "Yurtiçi Kargo",
-                        MaximumPurchasableQuantity: 100
+                        hepsiburadaSku,
+                        merchantSku,
+                        availableStock: Math.round(availableStock),
+                        price: Number(basePrice.toFixed(2)),
+                        dispatchTime: 1,
+                        cargoCompany1: "Yurtiçi Kargo",
+                        maximumPurchasableQuantity: 100
                     };
                     console.log(`📦 HB Inventory Item:`, hbItem);
                     hbItems.push(hbItem);
@@ -162,15 +199,9 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
             }
         }
 
-        if (hbItems.length === 0) return { success: false, message: "Gönderilecek uygun (SKU/Barkod'lu) ürün bulunamadı." };
+        if (hbItems.length === 0) return { success: false, message: "HB'de eşleşen ürün bulunamadı. Önce ürünleri HB kataloğuna ekleyin." };
 
-        // 3. Send to HB
-        const client = new HepsiburadaClient({
-            username: config.username,
-            password: config.password,
-            merchantId: config.merchantId || config.username,
-            isTestMode: config.isTestMode ?? true,
-        });
+        // 3. Send to HB (client zaten yukarıda oluşturuldu)
 
         try {
             // Chunking logic for Hepsiburada
