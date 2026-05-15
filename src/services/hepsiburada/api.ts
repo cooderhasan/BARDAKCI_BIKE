@@ -331,9 +331,15 @@ export class HepsiburadaClient {
         await this.init();
         const url = `${this.orderBaseUrl}/packages/merchantid/${this.creds.merchantId}`;
         
+        // Resmi HB docs formatı: lineItemRequests (id+quantity), packageNumber, deci
         const payload = {
-            orderId,
-            lineItemIds
+            lineItemRequests: lineItemIds.map(id => ({
+                id,
+                quantity: 1
+            })),
+            packageNumber: `PKG-${Date.now()}`,
+            parcelQuantity: 1,
+            deci: 1.0
         };
 
         console.log(`📦 HB Package URL: ${url}`);
