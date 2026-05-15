@@ -632,51 +632,51 @@ export async function createHepsiburadaTestOrder() {
         const lineItemId = crypto.randomUUID();
         const merchantId = config.merchantId || config.username;
 
-        // HB SIT sipariş formatı - camelCase, orderNumber üst seviyede, items array
+        // HB SIT sipariş formatı - PascalCase (OrderLines, OrderNumber vb.)
         const payload = {
-            orderNumber: orderId,
-            orderDate: new Date().toISOString(),
-            items: [{
-                id: lineItemId,
-                name: "SIT Test Ürünü",
-                sku: testSku,
-                merchantSku: testMerchantSku,
-                quantity: 1,
-                merchantId: merchantId,
-                totalPrice: {
-                    currency: "TRY",
-                    amount: testPrice
+            OrderNumber: orderId,
+            OrderDate: new Date().toISOString(),
+            OrderLines: [{
+                Id: lineItemId,
+                ProductName: "SIT Test Ürünü",
+                Sku: testSku,
+                MerchantSku: testMerchantSku,
+                Quantity: 1,
+                MerchantId: merchantId,
+                TotalPrice: {
+                    Currency: "TRY",
+                    Amount: testPrice
                 },
-                unitPrice: {
-                    currency: "TRY",
-                    amount: testPrice
+                UnitPrice: {
+                    Currency: "TRY",
+                    Amount: testPrice
                 },
-                vat: {
-                    currency: "TRY",
-                    amount: Number((testPrice * 0.20).toFixed(2))
+                Vat: {
+                    Currency: "TRY",
+                    Amount: Number((testPrice * 0.20).toFixed(2))
                 },
-                vatRate: 20,
-                customerName: "Serinmotor Test",
-                customerId: "dfc8a27f-faae-4cb2-859c-8a7d50ee77be",
-                status: "Delivered",
-                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                lastStatusUpdateDate: new Date().toISOString(),
-                shippingAddress: {
-                    addressId: crypto.randomUUID(),
-                    address: "Test Mahallesi Test Caddesi No:1 Kadıköy",
-                    name: "Test Müşteri",
-                    email: "test@serinmotor.com",
-                    countryCode: "TR",
-                    phoneNumber: "905551112233",
-                    city: "İstanbul",
-                    town: "KADIKÖY"
+                VatRate: 20,
+                CustomerName: "Serinmotor Test",
+                CustomerId: "dfc8a27f-faae-4cb2-859c-8a7d50ee77be",
+                Status: "Delivered",
+                DueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                LastStatusUpdateDate: new Date().toISOString(),
+                ShippingAddress: {
+                    AddressId: crypto.randomUUID(),
+                    Address: "Test Mahallesi Test Caddesi No:1 Kadıköy",
+                    Name: "Test Müşteri",
+                    Email: "test@serinmotor.com",
+                    CountryCode: "TR",
+                    PhoneNumber: "905551112233",
+                    City: "İstanbul",
+                    Town: "KADIKÖY"
                 },
-                invoice: {
-                    address: {
-                        addressId: crypto.randomUUID(),
-                        address: "Fatura Adresi Test No:1 Kadıköy",
-                        name: "Test Müşteri",
-                        email: "test@serinmotor.com"
+                Invoice: {
+                    Address: {
+                        AddressId: crypto.randomUUID(),
+                        Address: "Fatura Adresi Test No:1 Kadıköy",
+                        Name: "Test Müşteri",
+                        Email: "test@serinmotor.com"
                     }
                 }
             }]
