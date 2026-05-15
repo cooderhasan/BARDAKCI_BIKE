@@ -125,12 +125,11 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
 
         let hbSkuMap: Record<string, string> = {};
         try {
-            const listings = await client.getListings(500, 0);
-            if (Array.isArray(listings)) {
-                for (const l of listings) {
-                    if (l.merchantSku && l.hepsiburadaSku) {
-                        hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
-                    }
+            const listingsResponse = await client.getListings(500, 0);
+            const listingsArray = listingsResponse?.listings || listingsResponse?.items || (Array.isArray(listingsResponse) ? listingsResponse : []);
+            for (const l of listingsArray) {
+                if (l.merchantSku && l.hepsiburadaSku) {
+                    hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
                 }
             }
             console.log(`📋 HB Listing eşlemesi: ${Object.keys(hbSkuMap).length} ürün bulundu`);
