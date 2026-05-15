@@ -136,13 +136,9 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     const hbItem = {
                         merchantSku: v.sku || v.barcode,
                         availableStock: Math.round(availableStock),
-                        AvailableStock: Math.round(availableStock), // PascalCase version
                         price: Number(varPrice.toFixed(2)),
-                        Price: Number(varPrice.toFixed(2)), // PascalCase version
                         dispatchTime: 1,
-                        DispatchTime: 1, // PascalCase version
                         cargoCompany1: "Yurtiçi Kargo",
-                        CargoCompany1: "Yurtiçi Kargo", // PascalCase version
                         maximumPurchasableQuantity: 100
                     };
                     console.log(`📦 HB Inventory Item (Variant):`, hbItem);
@@ -155,13 +151,9 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     const hbItem = {
                         merchantSku: p.sku || p.barcode,
                         availableStock: Math.round(availableStock),
-                        AvailableStock: Math.round(availableStock),
                         price: Number(basePrice.toFixed(2)),
-                        Price: Number(basePrice.toFixed(2)),
                         dispatchTime: 1,
-                        DispatchTime: 1,
                         cargoCompany1: "Yurtiçi Kargo",
-                        CargoCompany1: "Yurtiçi Kargo",
                         maximumPurchasableQuantity: 100
                     };
                     console.log(`📦 HB Inventory Item:`, hbItem);
@@ -549,7 +541,7 @@ export async function createHepsiburadaTestOrder() {
         
         const payload = {
             Customer: {
-                CustomerId: "dfc8a27f-faae-4cb2-859c-8a7d50ee77be", // Dokümandaki test ID
+                CustomerId: "dfc8a27f-faae-4cb2-859c-8a7d50ee77be",
                 Name: "Serinmotor SIT Test"
             },
             DeliveryAddress: {
@@ -567,7 +559,12 @@ export async function createHepsiburadaTestOrder() {
                 Price: {
                     Amount: Number(product.listPrice) || 150.0,
                     Currency: "TRY"
-                }
+                },
+                TotalPrice: {
+                    Amount: Number(product.listPrice) || 150.0,
+                    Currency: "TRY"
+                },
+                CargoCompanyId: 1 // Yurtiçi Kargo
             }]
         };
 
