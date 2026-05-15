@@ -11,6 +11,7 @@ export function HepsiburadaTestOrderButton() {
     const [orders, setOrders] = useState<any[]>([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [packagedOrders, setPackagedOrders] = useState<Record<string, string>>({}); // orderNumber -> packageNumber
 
     const loadOrders = async () => {
         setOrdersLoading(true);
@@ -56,6 +57,9 @@ export function HepsiburadaTestOrderButton() {
             const res = await packageHepsiburadaOrder(orderNumber, lineIds);
             if (res.success) {
                 toast.success(res.message);
+                // packageNumber'ı response'dan veya generate edilmişten al
+                const pkgNum = res.data?.packageNumber || res.data?.id || `PKG-${Date.now()}`;
+                setPackagedOrders(prev => ({ ...prev, [orderNumber]: pkgNum }));
                 await loadOrders();
             } else {
                 toast.error(res.message);
@@ -189,16 +193,17 @@ export function HepsiburadaTestOrderButton() {
                                     </Button>
                                 )}
 
-                                {/* Adım 3: Fatura Gönder */}
-                                {order.status === 'Packed' && order.lines?.some((l: any) => l.packageNumber) && (
+                                {/* Adım 3: Fatura Gönder - paketlenmiş siparişlerde göster */}
+                                {(packagedOrders[order.orderNumber] || order.lines?.some((l: any) => l.packageNumber)) && (
                                     <Button
                                         size="sm"
                                         variant="outline"
                                         className="flex-1 h-7 text-[11px] border-green-200 text-green-700 hover:bg-green-50 gap-1"
                                         disabled={actionLoading?.startsWith('inv-')}
                                         onClick={() => {
-                                            const pkg = order.lines?.find((l: any) => l.packageNumber)?.packageNumber;
+                                            const pkg = packagedOrders[order.orderNumber] || order.lines?.find((l: any) => l.packageNumber)?.packageNumber;
                                             if (pkg) handleInvoice(pkg);
+                                            else toast.error("Package number bulunamadı.");
                                         }}
                                     >
                                         {actionLoading?.startsWith('inv-') 
