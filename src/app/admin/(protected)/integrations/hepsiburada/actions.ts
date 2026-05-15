@@ -134,12 +134,15 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     const availableStock = Math.max(0, v.stock - criticalStock);
 
                     const hbItem = {
-                        merchantSku: v.sku || v.barcode, // Important: Must match HB Listing SKU
+                        merchantSku: v.sku || v.barcode,
                         availableStock: availableStock,
-                        price: varPrice,
-                        dispatchTime: 1, // Reduced for SIT compatibility
+                        stock: availableStock, // Redundant for compatibility
+                        price: varPrice.toFixed(2).replace('.', ','), // Format as string with comma
+                        salePrice: varPrice, // Redundant for compatibility
+                        dispatchTime: 1,
                         cargoCompany1: "Yurtici Kargo",
-                        maximumPurchasableQuantity: 100
+                        maximumPurchasableQuantity: 100,
+                        taxPercentage: 20 // Default VAT
                     };
                     console.log(`📦 HB Inventory Item (Variant):`, hbItem);
                     hbItems.push(hbItem);
@@ -151,10 +154,13 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     const hbItem = {
                         merchantSku: p.sku || p.barcode,
                         availableStock: availableStock,
-                        price: basePrice,
-                        dispatchTime: 1, // Reduced for SIT compatibility
+                        stock: availableStock,
+                        price: basePrice.toFixed(2).replace('.', ','),
+                        salePrice: basePrice,
+                        dispatchTime: 1,
                         cargoCompany1: "Yurtici Kargo",
-                        maximumPurchasableQuantity: 100
+                        maximumPurchasableQuantity: 100,
+                        taxPercentage: 20
                     };
                     console.log(`📦 HB Inventory Item:`, hbItem);
                     hbItems.push(hbItem);
