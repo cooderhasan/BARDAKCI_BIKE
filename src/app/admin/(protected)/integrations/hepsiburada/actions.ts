@@ -627,44 +627,61 @@ export async function createHepsiburadaTestOrder() {
             console.log("⚠️ Listing çekilemedi, varsayılan SKU kullanılacak:", e.message);
         }
 
+        const orderId = `SIT-${Date.now()}`;
+        const lineItemId = `LI-${Date.now()}`;
+        const merchantId = config.merchantId || config.username;
+
+        // HB SIT sipariş formatı - resmi dokümantasyona uygun
         const payload = {
-            Customer: {
+            items: [{
+                id: lineItemId,
+                orderNumber: orderId,
+                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                lastStatusUpdateDate: new Date().toISOString(),
+                name: "SIT Test Ürünü",
+                sku: testSku,
+                merchantSku: testMerchantSku,
+                quantity: 1,
+                merchantId: merchantId,
+                totalPrice: {
+                    currency: "TRY",
+                    amount: testPrice
+                },
+                unitPrice: {
+                    currency: "TRY",
+                    amount: testPrice
+                },
+                vat: {
+                    currency: "TRY",
+                    amount: Number((testPrice * 0.20).toFixed(2))
+                },
+                vatRate: 20,
+                customerName: "Serinmotor Test Müşteri",
                 CustomerId: "dfc8a27f-faae-4cb2-859c-8a7d50ee77be",
-                Name: "Serinmotor SIT Test"
-            },
-            DeliveryAddress: {
-                AddressDetail: "Test Adresi No 1",
-                City: "İstanbul",
-                District: "Kadıköy",
-                Town: "Caferağa",
-                Email: "test@serinmotor.com",
-                Name: "Test Müşteri",
-                PhoneNumber: "905551112233",
-                CountryCode: "TR"
-            },
-            LineItems: [{
-                Sku: testSku,
-                MerchantSku: testMerchantSku,
-                Quantity: 1,
-                Price: {
-                    Amount: testPrice,
-                    Currency: "TRY"
+                status: "Delivered",
+                shippingAddress: {
+                    addressId: "1dc456e8-d13c-46f4-80bd-d395608da395",
+                    address: "Test Mahallesi Test Caddesi No:1 Kadıköy",
+                    name: "Test Müşteri",
+                    email: "test@serinmotor.com",
+                    countryCode: "TR",
+                    phoneNumber: "905551112233",
+                    city: "İstanbul",
+                    town: "KADIKÖY"
                 },
-                TotalPrice: {
-                    Amount: testPrice,
-                    Currency: "TRY"
-                },
-                Tax: {
-                    Amount: Number((testPrice * 0.20).toFixed(2)),
-                    Currency: "TRY"
-                },
-                CargoCompanyId: 1
+                invoice: {
+                    address: {
+                        addressId: "1dc456e8-d13c-46f4-80bd-d395608da395",
+                        address: "Fatura Adresi Test No:1 Kadıköy",
+                        name: "Test Müşteri",
+                        email: "test@serinmotor.com"
+                    }
+                }
             }]
         };
 
         console.log("🛒 SIT Order Payload:", JSON.stringify(payload, null, 2));
 
-        const merchantId = config.merchantId || config.username;
         const response = await fetch(sitUrl, {
             method: "POST",
             headers: {
@@ -682,7 +699,7 @@ export async function createHepsiburadaTestOrder() {
             return { success: false, message: `HB SIT Hatası: ${response.status} - ${responseText}` };
         }
 
-        return { success: true, message: `Hepsiburada SIT test siparişi oluşturuldu! (${testMerchantSku})` };
+        return { success: true, message: `Hepsiburada SIT test siparişi oluşturuldu! Order: ${orderId} (${testMerchantSku})` };
 
     } catch (error: any) {
         console.error("❌ SIT Order Exception:", error);
