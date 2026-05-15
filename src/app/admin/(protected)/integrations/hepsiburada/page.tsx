@@ -2,6 +2,7 @@
 import { getHepsiburadaConfig } from "./actions";
 import { HepsiburadaSettingsForm } from "./hepsiburada-settings-form";
 import { HepsiburadaSyncButton } from "./hepsiburada-sync-button";
+import { HepsiburadaTestOrderButton } from "./hepsiburada-test-order-button";
 import { Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -39,6 +40,10 @@ export default async function HepsiburadaIntegrationPage() {
                     </div>
 
                     <HepsiburadaSyncButton />
+
+                    {config?.isTestMode && (
+                        <HepsiburadaTestOrderButton />
+                    )}
                 </div>
             </div>
         </div>

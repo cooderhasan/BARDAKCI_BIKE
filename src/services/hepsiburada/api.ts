@@ -278,4 +278,57 @@ export class HepsiburadaClient {
             return { success: true, raw: responseText };
         }
     }
+
+    /**
+     * Package Items
+     * POST /orders/merchantid/{merchantId}/packages
+     */
+    async packageItems(orderId: string, lineItemIds: string[]) {
+        await this.init();
+        const url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}/packages`;
+        
+        const payload = {
+            orderId,
+            lineItemIds
+        };
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`HB Package Error: ${response.status} - ${err}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
+     * Upload Invoice Link
+     * POST /orders/merchantid/{merchantId}/packages/{packageId}/invoice-links
+     */
+    async uploadInvoiceLink(packageId: string, invoiceUrl: string) {
+        await this.init();
+        const url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}/packages/${packageId}/invoice-links`;
+        
+        const payload = [{
+            url: invoiceUrl
+        }];
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`HB Invoice Upload Error: ${response.status} - ${err}`);
+        }
+
+        return true;
+    }
 }

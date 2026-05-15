@@ -519,3 +519,63 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
         return { success: false, message: "Hata: " + error.message };
     }
 }
+
+/**
+ * SIT Test Siparişi Oluşturma
+ * Sadece isTestMode true iken çalışır
+ */
+export async function createHepsiburadaTestOrder() {
+    try {
+        const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
+        if (!config) return { success: false, message: "Aktif bir SIT (Test) bağlantısı bulunamadı." };
+
+        // Test için kullanılacak bir ürün bul (barkodu olan herhangi bir ürün)
+        const product = await prisma.product.findFirst({
+            where: { isActive: true, barcode: { not: null } }
+        });
+
+        if (!product) return { success: false, message: "Test siparişi için sistemde barkodlu ürün bulunamadı." };
+
+        const sitUrl = `https://oms-external-sit.hepsiburada.com/orders/merchantid/${config.merchantId}`;
+        
+        const payload = {
+            items: [{
+                merchantSku: product.sku || product.barcode,
+                quantity: 1,
+                price: Number(product.listPrice) || 100
+            }],
+            customer: {
+                name: "Serinmotor SIT Test",
+                email: "test@serinmotor.com",
+                phone: "5551112233"
+            },
+            shippingAddress: {
+                addressLine1: "Test Adresi No 1",
+                city: "İstanbul",
+                town: "Kadıköy"
+            }
+        };
+
+        const response = await fetch(sitUrl, {
+            method: "POST",
+            headers: {
+                "Authorization": `Basic ${Buffer.from(`${config.username}:${config.password}`).toString("base64")}`,
+                "Content-Type": "application/json",
+                "User-Agent": "serinmotor_dev"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            console.error("❌ SIT Order Error:", response.status, err);
+            throw new Error(`SIT Sipariş Hatası: ${response.status} - ${err}`);
+        }
+
+        return { success: true, message: "Hepsiburada SIT üzerinden hayali bir sipariş başarıyla oluşturuldu!" };
+
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
+
