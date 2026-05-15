@@ -533,12 +533,34 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
             }
         }];
 
-        console.log("📡 HB Product Payload:", JSON.stringify(payload).substring(0, 500));
+        console.log("📡 HB Product Payload (FULL):", JSON.stringify(payload, null, 2));
 
         const result = await client.createProduct(payload);
 
-        // Sonuç başarılı ise DB güncelle
+        // Sonuç başarılı ise tracking kontrol et
         const trackingId = result?.trackingId || result?.id || null;
+        console.log("📡 HB Product Upload Result:", JSON.stringify(result));
+
+        // Tracking ID varsa 5 saniye sonra durumu kontrol et
+        let trackingStatus = null;
+        if (trackingId) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            try {
+                const sitSuffix = (config.isTestMode ?? true) ? "-sit" : "";
+                const statusUrl = `https://mpop${sitSuffix}.hepsiburada.com/product/api/products/trackingId/${trackingId}`;
+                const statusRes = await fetch(statusUrl, {
+                    headers: {
+                        "Authorization": `Basic ${Buffer.from(`${config.merchantId || config.username}:${config.password}`).toString("base64")}`,
+                        "User-Agent": "serinmotor_dev",
+                        "Accept": "application/json"
+                    }
+                });
+                trackingStatus = await statusRes.text();
+                console.log("📊 HB Product Tracking Status:", trackingStatus);
+            } catch (e: any) {
+                console.log("⚠️ Tracking check failed:", e.message);
+            }
+        }
 
         await (prisma as any).hepsiburadaProduct.upsert({
             where: { productId: product.id },
