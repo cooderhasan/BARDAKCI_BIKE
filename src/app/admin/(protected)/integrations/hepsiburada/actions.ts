@@ -618,21 +618,26 @@ export async function createHepsiburadaTestOrder() {
 
         let testSku = "HBV0000116MZS";
         let testMerchantSku = "DENEME22";
+        let testListingId = ""; // Gerçek listing UUID'si
         let testPrice = 485;
 
         // Aktif listing'den ilk ürünü bul
         try {
             const listingsResponse = await client.getListings(10, 0);
             const listings = listingsResponse?.listings || [];
-            const activeProduct = listings.find((l: any) => l.availableStock > 0 && l.price > 0);
+            const activeProduct = listings.find((l: any) => l.availableStock > 0 && l.price > 0 && l.isSalable);
             if (activeProduct) {
                 testSku = activeProduct.hepsiburadaSku;
                 testMerchantSku = activeProduct.merchantSku;
+                testListingId = activeProduct.listingId; // Gerçek UUID
                 testPrice = activeProduct.price;
-                console.log(`🛒 Test siparişi için aktif ürün: ${testSku} (${testMerchantSku}) - ${testPrice} TL`);
+                console.log(`🛒 Test siparişi için aktif ürün: ${testSku} (${testMerchantSku}) listingId: ${testListingId} - ${testPrice} TL`);
+            } else {
+                return { success: false, message: "HB'de aktif ve satılabilir listing bulunamadı." };
             }
         } catch (e: any) {
-            console.log("⚠️ Listing çekilemedi, varsayılan SKU kullanılacak:", e.message);
+            console.log("⚠️ Listing çekilemedi:", e.message);
+            return { success: false, message: "HB Listing çekilemedi: " + e.message };
         }
 
         const orderId = `HB${Date.now()}`;
@@ -641,7 +646,7 @@ export async function createHepsiburadaTestOrder() {
 
         // HB SIT sipariş formatı - Resmi dokümantasyona uygun (PascalCase)
         // https://developers.hepsiburada.com/hepsiburada/reference/post_orders-merchantid-merchantid
-        // Üst seviye: Customer, DeliveryAddress, LineItems
+        // ListingId = listing UUID'si (hepsiburadaSku DEĞİL!)
         const payload = {
             Customer: {
                 CustomerId: "dfc8a27f-faae-4cb2-859c-8a7d50ee77be",
@@ -658,7 +663,7 @@ export async function createHepsiburadaTestOrder() {
                 PhoneNumber: "905551112233"
             },
             LineItems: [{
-                ListingId: testSku,
+                ListingId: testListingId,
                 MerchantSku: testMerchantSku,
                 MerchantId: merchantId,
                 Quantity: 1,
