@@ -104,10 +104,10 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
             whereClause.id = { in: productIds };
         }
 
-        // 1. Fetch products (Include variants)
+        // 1. Fetch products (Include variants + HB product mapping)
         const products = await prisma.product.findMany({
             where: whereClause,
-            include: { variants: true }
+            include: { variants: true, hepsiburadaProduct: true }
         });
 
         if (products.length === 0) return { success: false, message: "Ürün bulunamadı." };
@@ -145,13 +145,16 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
             const basePrice = Number((p as any).hepsiburadaPrice) || Number(p.listPrice);
             const criticalStock = p.criticalStock ?? defaultCritical;
 
+            // HB merchantSku: önce hepsiburadaProduct.merchantSku, sonra product.sku/barcode
+            const hbMerchantSku = (p as any).hepsiburadaProduct?.merchantSku || p.sku || p.barcode || '';
+
             // Variants?
             if ((p as any).variants && (p as any).variants.length > 0) {
                 for (const v of (p as any).variants) {
                     if (!v.sku && !v.barcode) continue;
 
                     const merchantSku = v.sku || v.barcode;
-                    const hepsiburadaSku = hbSkuMap[merchantSku];
+                    const hepsiburadaSku = hbSkuMap[merchantSku] || hbSkuMap[hbMerchantSku];
                     if (!hepsiburadaSku) {
                         console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} - atlanıyor`);
                         continue;
@@ -162,7 +165,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
 
                     const hbItem = {
                         hepsiburadaSku,
-                        merchantSku,
+                        merchantSku: merchantSku,
                         availableStock: Math.round(availableStock),
                         price: Number(varPrice.toFixed(2)),
                         dispatchTime: 1,
@@ -173,28 +176,26 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     hbItems.push(hbItem);
                 }
             } else {
-                if (p.sku || p.barcode) {
-                    const merchantSku = p.sku || p.barcode || '';
-                    const hepsiburadaSku = hbSkuMap[merchantSku];
-                    if (!hepsiburadaSku) {
-                        console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} - atlanıyor`);
-                        continue;
-                    }
-
-                    const availableStock = Math.max(0, p.stock - criticalStock);
-                    
-                    const hbItem = {
-                        hepsiburadaSku,
-                        merchantSku,
-                        availableStock: Math.round(availableStock),
-                        price: Number(basePrice.toFixed(2)),
-                        dispatchTime: 1,
-                        cargoCompany1: "Yurtiçi Kargo",
-                        maximumPurchasableQuantity: 100
-                    };
-                    console.log(`📦 HB Inventory Item:`, hbItem);
-                    hbItems.push(hbItem);
+                const merchantSku = hbMerchantSku;
+                const hepsiburadaSku = hbSkuMap[merchantSku];
+                if (!hepsiburadaSku) {
+                    console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} (ürün: ${p.name}) - atlanıyor`);
+                    continue;
                 }
+
+                const availableStock = Math.max(0, p.stock - criticalStock);
+                
+                const hbItem = {
+                    hepsiburadaSku,
+                    merchantSku,
+                    availableStock: Math.round(availableStock),
+                    price: Number(basePrice.toFixed(2)),
+                    dispatchTime: 1,
+                    cargoCompany1: "Yurtiçi Kargo",
+                    maximumPurchasableQuantity: 100
+                };
+                console.log(`📦 HB Inventory Item:`, hbItem);
+                hbItems.push(hbItem);
             }
         }
 
