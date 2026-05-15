@@ -122,22 +122,18 @@ export class HepsiburadaClient {
      * Create/Update Listings (Bulk) - Stok ve Fiyat Güncelleme
      * POST /listings/merchantid/{merchantId}/inventory-uploads
      */
-    async uploadInventory(payload: any) {
+    async uploadInventory(items: any[]) {
         await this.init();
         if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
 
         const url = `${this.listingBaseUrl}/listings/merchantid/${this.creds.merchantId}/inventory-uploads`;
 
-        // Ensure payload is an object with items key, even if an array was passed
-        const finalBody = Array.isArray(payload) ? { items: payload } : payload;
-        const itemCount = finalBody.items?.length || 0;
-
-        console.log(`📡 HB Inventory Upload: ${url} - ${itemCount} item(s)`);
+        console.log(`📡 HB Inventory Upload: ${url} - ${items.length} item(s)`);
 
         const response = await fetch(url, {
             method: "POST",
             headers: this.getHeaders(),
-            body: JSON.stringify(finalBody)
+            body: JSON.stringify(items)
         });
 
         if (!response.ok) {
