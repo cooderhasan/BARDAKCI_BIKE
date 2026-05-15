@@ -605,8 +605,8 @@ export async function createHepsiburadaTestOrder() {
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif bir SIT (Test) bağlantısı bulunamadı." };
-        // SIT Sipariş Oluşturma için özel STUB adresi
-        const sitUrl = `https://oms-stub-external-sit.hepsiburada.com/orders/merchantId/${config.merchantId}`;
+        // SIT Sipariş Oluşturma - standart OMS endpoint
+        const sitUrl = `https://oms-external-sit.hepsiburada.com/orders/merchantid/${config.merchantId}`;
 
         // Aktif listing'den gerçek SKU bilgilerini çek
         const client = new HepsiburadaClient({
