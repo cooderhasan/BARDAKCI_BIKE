@@ -627,54 +627,54 @@ export async function createHepsiburadaTestOrder() {
             console.log("⚠️ Listing çekilemedi, varsayılan SKU kullanılacak:", e.message);
         }
 
-        const orderId = `SIT-${Date.now()}`;
-        const lineItemId = `LI-${Date.now()}`;
+        const orderId = `SIT${Date.now()}`;
+        const lineItemId = `${Date.now()}`;
         const merchantId = config.merchantId || config.username;
 
-        // HB SIT sipariş formatı - resmi dokümantasyona uygun
+        // HB SIT sipariş formatı - OrderNumber ve OrderLines (PascalCase) zorunlu
         const payload = {
-            items: [{
-                id: lineItemId,
-                orderNumber: orderId,
-                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                lastStatusUpdateDate: new Date().toISOString(),
-                name: "SIT Test Ürünü",
-                sku: testSku,
-                merchantSku: testMerchantSku,
-                quantity: 1,
-                merchantId: merchantId,
-                totalPrice: {
-                    currency: "TRY",
-                    amount: testPrice
+            OrderNumber: orderId,
+            OrderLines: [{
+                Id: lineItemId,
+                DueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                LastStatusUpdateDate: new Date().toISOString(),
+                Name: "SIT Test Ürünü",
+                Sku: testSku,
+                MerchantSku: testMerchantSku,
+                Quantity: 1,
+                MerchantId: merchantId,
+                TotalPrice: {
+                    Currency: "TRY",
+                    Amount: testPrice
                 },
-                unitPrice: {
-                    currency: "TRY",
-                    amount: testPrice
+                UnitPrice: {
+                    Currency: "TRY",
+                    Amount: testPrice
                 },
-                vat: {
-                    currency: "TRY",
-                    amount: Number((testPrice * 0.20).toFixed(2))
+                Vat: {
+                    Currency: "TRY",
+                    Amount: Number((testPrice * 0.20).toFixed(2))
                 },
-                vatRate: 20,
-                customerName: "Serinmotor Test Müşteri",
+                VatRate: 20,
+                CustomerName: "Serinmotor Test Müşteri",
                 CustomerId: "dfc8a27f-faae-4cb2-859c-8a7d50ee77be",
-                status: "Delivered",
-                shippingAddress: {
-                    addressId: "1dc456e8-d13c-46f4-80bd-d395608da395",
-                    address: "Test Mahallesi Test Caddesi No:1 Kadıköy",
-                    name: "Test Müşteri",
-                    email: "test@serinmotor.com",
-                    countryCode: "TR",
-                    phoneNumber: "905551112233",
-                    city: "İstanbul",
-                    town: "KADIKÖY"
+                Status: "Delivered",
+                ShippingAddress: {
+                    AddressId: "1dc456e8-d13c-46f4-80bd-d395608da395",
+                    Address: "Test Mahallesi Test Caddesi No:1 Kadıköy",
+                    Name: "Test Müşteri",
+                    Email: "test@serinmotor.com",
+                    CountryCode: "TR",
+                    PhoneNumber: "905551112233",
+                    City: "İstanbul",
+                    Town: "KADIKÖY"
                 },
-                invoice: {
-                    address: {
-                        addressId: "1dc456e8-d13c-46f4-80bd-d395608da395",
-                        address: "Fatura Adresi Test No:1 Kadıköy",
-                        name: "Test Müşteri",
-                        email: "test@serinmotor.com"
+                Invoice: {
+                    Address: {
+                        AddressId: "1dc456e8-d13c-46f4-80bd-d395608da395",
+                        Address: "Fatura Adresi Test No:1 Kadıköy",
+                        Name: "Test Müşteri",
+                        Email: "test@serinmotor.com"
                     }
                 }
             }]
