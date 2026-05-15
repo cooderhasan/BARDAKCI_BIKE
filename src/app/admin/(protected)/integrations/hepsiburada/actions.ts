@@ -531,13 +531,6 @@ export async function createHepsiburadaTestOrder() {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif bir SIT (Test) bağlantısı bulunamadı." };
 
-        // Test için kullanılacak bir ürün bul (barkodu olan herhangi bir ürün)
-        const product = await prisma.product.findFirst({
-            where: { isActive: true, barcode: { not: null } }
-        });
-
-        if (!product) return { success: false, message: "Test siparişi için sistemde barkodlu ürün bulunamadı." };
-
         // SIT Sipariş Oluşturma için özel STUB adresi
         const sitUrl = `https://oms-stub-external-sit.hepsiburada.com/orders/merchantId/${config.merchantId}`;
         
