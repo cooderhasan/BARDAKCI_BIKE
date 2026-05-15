@@ -47,19 +47,19 @@ export function HepsiburadaTestOrderButton() {
         }
     };
 
-    const handlePackage = async (orderNumber: string, lineIds: string[]) => {
+    const handlePackage = async (orderNum: string, orderId: string, lineIds: string[]) => {
         if (!lineIds.length) {
             toast.error("Paketlenecek kalem bulunamadı.");
             return;
         }
-        setActionLoading(`pack-${orderNumber}`);
+        setActionLoading(`pack-${orderNum}`);
         try {
-            const res = await packageHepsiburadaOrder(orderNumber, lineIds);
+            const res = await packageHepsiburadaOrder(orderId, lineIds);
             if (res.success) {
                 toast.success(res.message);
-                // packageNumber'ı action response'undan al
+                // packageNumber'ı orderNumber key ile kaydet
                 const pkgNum = res.packageNumber || `PKG-${Date.now()}`;
-                setPackagedOrders(prev => ({ ...prev, [orderNumber]: pkgNum }));
+                setPackagedOrders(prev => ({ ...prev, [orderNum]: pkgNum }));
                 await loadOrders();
             } else {
                 toast.error(res.message);
@@ -181,6 +181,7 @@ export function HepsiburadaTestOrderButton() {
                                         className="flex-1 h-7 text-[11px] border-blue-200 text-blue-700 hover:bg-blue-50 gap-1"
                                         disabled={actionLoading === `pack-${order.orderNumber}`}
                                         onClick={() => handlePackage(
+                                            order.orderNumber,
                                             order.orderId || order.orderNumber,
                                             order.lines?.map((l: any) => l.id).filter(Boolean) || []
                                         )}
