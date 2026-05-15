@@ -460,12 +460,17 @@ export async function getHepsiburadaAttributeValues(categoryId: string, attribut
     }
 }
 
-export async function updateHepsiburadaSku(productId: string, hbSku: string) {
+export async function updateHepsiburadaSku(productId: string, hbSku: string, hbMerchantSku?: string) {
     try {
+        const updateData: any = {};
+        const createData: any = { productId };
+        if (hbSku) { updateData.hbSku = hbSku; createData.hbSku = hbSku; }
+        if (hbMerchantSku) { updateData.merchantSku = hbMerchantSku; createData.merchantSku = hbMerchantSku; }
+        
         await (prisma as any).hepsiburadaProduct.upsert({
             where: { productId },
-            update: { hbSku },
-            create: { productId, hbSku }
+            update: updateData,
+            create: createData
         });
         return { success: true, message: "HB SKU güncellendi." };
     } catch (error: any) {
@@ -483,7 +488,8 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
             include: {
                 brand: true,
                 categories: true,
-                variants: true
+                variants: true,
+                hepsiburadaProduct: true
             }
         });
 
@@ -507,8 +513,8 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
             categoryId: Number((mappedCat as any).hbCategoryId),
             merchant: merchantId,
             attributes: {
-                merchantSku: product.sku || product.barcode || product.id,
-                VaryantGroupID: product.sku || product.id,
+                merchantSku: (product as any).hepsiburadaProduct?.merchantSku || product.sku || product.barcode || product.id,
+                VaryantGroupID: (product as any).hepsiburadaProduct?.merchantSku || product.sku || product.id,
                 Barcode: product.barcode || product.sku || "",
                 UrunAdi: product.name,
                 UrunAciklamasi: product.description || product.name,
@@ -569,13 +575,14 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
                 isSynced: true, 
                 lastSyncedAt: new Date(), 
                 lastSyncError: null,
-                merchantSku: product.sku || product.barcode || product.id,
+                // merchantSku'yu sadece daha önce set edilmemişse ana SKU ile doldur
+                ...( !(product as any).hepsiburadaProduct?.merchantSku ? { merchantSku: product.sku || product.barcode || product.id } : {}),
             },
             create: { 
                 productId: product.id, 
                 isSynced: true, 
                 lastSyncedAt: new Date(),
-                merchantSku: product.sku || product.barcode || product.id,
+                merchantSku: (product as any).hepsiburadaProduct?.merchantSku || product.sku || product.barcode || product.id,
             }
         });
 

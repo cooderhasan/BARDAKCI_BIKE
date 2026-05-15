@@ -120,6 +120,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
     const [showAttrModal, setShowAttrModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [hbSku, setHbSku] = useState("");
+    const [hbMerchantSku, setHbMerchantSku] = useState("");
     const [categoryAttrs, setCategoryAttrs] = useState<any[]>([]);
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
@@ -139,6 +140,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
 
         setSelectedProduct(product);
         setHbSku(product.hepsiburadaProduct?.hbSku || "");
+        setHbMerchantSku(product.hepsiburadaProduct?.merchantSku || "");
         setShowAttrModal(true);
         setAttrLoading(true);
         setAttrMappings({});
@@ -173,9 +175,9 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
         setShowAttrModal(false);
 
         try {
-            // HB SKU girildiyse veritabanına kaydet
-        if (hbSku) {
-            await updateHepsiburadaSku(selectedProduct.id, hbSku);
+            // HB SKU veya merchantSku girildiyse veritabanına kaydet
+        if (hbSku || hbMerchantSku) {
+            await updateHepsiburadaSku(selectedProduct.id, hbSku, hbMerchantSku);
         }
 
         const res = await sendProductToHepsiburada(selectedProduct.id, finalAttrs);
@@ -304,6 +306,16 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                                             defaultValue="24"
                                             onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, "GarantiSuresi": { name: "Garanti Süresi (Ay)", value: e.target.value } }))}
                                         />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] font-semibold text-orange-600">HB Satıcı Stok Kodu (merchantSku)</Label>
+                                        <Input 
+                                            className="h-8 text-sm border-orange-200 focus-visible:ring-orange-500"
+                                            placeholder="HB kataloğundaki satıcı stok kodunuz"
+                                            value={hbMerchantSku}
+                                            onChange={(e) => setHbMerchantSku(e.target.value)}
+                                        />
+                                        <p className="text-[9px] text-muted-foreground italic">HB'deki satıcı stok kodunu buraya girin. Boş bırakırsanız ana stok kodunuz kullanılır.</p>
                                     </div>
                                     <div className="space-y-1">
                                         <Label className="text-[10px] font-semibold text-amber-600">HB SKU (Katalog Kodu - Opsiyonel)</Label>
