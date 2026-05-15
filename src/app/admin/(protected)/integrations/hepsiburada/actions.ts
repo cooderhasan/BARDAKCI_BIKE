@@ -783,9 +783,10 @@ export async function packageHepsiburadaOrder(orderNumber: string, lineItemIds: 
         console.log(`📦 Paketleme: Order ${orderNumber}, Lines: ${lineItemIds.join(", ")}`);
         
         const result = await client.packageItems(orderNumber, lineItemIds);
-        console.log("📦 Paketleme Sonucu:", JSON.stringify(result));
+        const pkgNumber = result?.packageNumber || result?.id || `PKG-${orderNumber}`;
+        console.log("📦 Paketleme Sonucu:", JSON.stringify(result), "PackageNumber:", pkgNumber);
         
-        return { success: true, message: `Sipariş ${orderNumber} paketlendi!`, data: result };
+        return { success: true, message: `Sipariş paketlendi!`, packageNumber: pkgNumber };
     } catch (error: any) {
         console.error("❌ Paketleme Hatası:", error);
         return { success: false, message: "Paketleme Hatası: " + error.message };

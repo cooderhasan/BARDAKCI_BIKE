@@ -57,8 +57,8 @@ export function HepsiburadaTestOrderButton() {
             const res = await packageHepsiburadaOrder(orderNumber, lineIds);
             if (res.success) {
                 toast.success(res.message);
-                // packageNumber'ı response'dan veya generate edilmişten al
-                const pkgNum = res.data?.packageNumber || res.data?.id || `PKG-${Date.now()}`;
+                // packageNumber'ı action response'undan al
+                const pkgNum = res.packageNumber || `PKG-${Date.now()}`;
                 setPackagedOrders(prev => ({ ...prev, [orderNumber]: pkgNum }));
                 await loadOrders();
             } else {
