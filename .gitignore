@@ -47,3 +47,7 @@ next-env.d.ts
 *.sql
 !prisma/migrations/**/*.sql
 *.dump
+
+# Debug scripts (temporary, not for production)
+debug_*.js
+check_*.js
