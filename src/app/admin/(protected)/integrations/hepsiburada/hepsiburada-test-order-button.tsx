@@ -177,7 +177,7 @@ export function HepsiburadaTestOrderButton() {
                                         className="flex-1 h-7 text-[11px] border-blue-200 text-blue-700 hover:bg-blue-50 gap-1"
                                         disabled={actionLoading === `pack-${order.orderNumber}`}
                                         onClick={() => handlePackage(
-                                            order.orderNumber,
+                                            order.orderId || order.orderNumber,
                                             order.lines?.map((l: any) => l.id).filter(Boolean) || []
                                         )}
                                     >

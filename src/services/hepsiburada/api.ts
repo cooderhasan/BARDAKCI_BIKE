@@ -325,16 +325,19 @@ export class HepsiburadaClient {
 
     /**
      * Package Items
-     * POST /orders/merchantid/{merchantId}/packages
+     * POST /packages/merchantid/{merchantId}
      */
     async packageItems(orderId: string, lineItemIds: string[]) {
         await this.init();
-        const url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}/packages`;
+        const url = `${this.orderBaseUrl}/packages/merchantid/${this.creds.merchantId}`;
         
         const payload = {
             orderId,
             lineItemIds
         };
+
+        console.log(`📦 HB Package URL: ${url}`);
+        console.log(`📦 HB Package Payload:`, JSON.stringify(payload));
 
         const response = await fetch(url, {
             method: "POST",
