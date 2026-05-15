@@ -732,19 +732,31 @@ export async function getHepsiburadaSitOrders() {
         
         return { 
             success: true, 
-            orders: orders.map((o: any) => ({
-                orderNumber: o.orderNumber,
-                status: o.status,
-                orderDate: o.orderDate,
-                lines: (o.lines || o.orderLines || []).map((l: any) => ({
-                    id: l.id || l.lineItemId,
-                    merchantSku: l.merchantSku,
-                    hepsiburadaSku: l.hepsiburadaSku || l.sku,
-                    quantity: l.quantity,
-                    status: l.status,
-                    packageNumber: l.packageNumber || null,
-                }))
-            }))
+            orders: (() => {
+                // HB düz dizi döner — her item bir line item. orderNumber ile gruplayalım
+                const grouped: Record<string, any> = {};
+                for (const item of orders) {
+                    const key = item.orderNumber;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            orderNumber: item.orderNumber,
+                            orderId: item.orderId,
+                            status: item.status,
+                            orderDate: item.orderDate,
+                            lines: []
+                        };
+                    }
+                    grouped[key].lines.push({
+                        id: item.id,
+                        merchantSku: item.merchantSKU || item.merchantSku,
+                        hepsiburadaSku: item.sku,
+                        quantity: item.quantity,
+                        status: item.status,
+                        packageNumber: item.packageNumber || null,
+                    });
+                }
+                return Object.values(grouped);
+            })()
         };
     } catch (error: any) {
         console.error("❌ SIT Orders Error:", error);
