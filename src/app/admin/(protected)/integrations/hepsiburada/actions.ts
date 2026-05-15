@@ -538,7 +538,7 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
         const result = await client.createProduct(payload);
 
         // Sonuç başarılı ise tracking kontrol et
-        const trackingId = result?.trackingId || result?.id || null;
+        const trackingId = result?.data?.trackingId || result?.trackingId || result?.id || null;
         console.log("📡 HB Product Upload Result:", JSON.stringify(result));
 
         // Tracking ID varsa 5 saniye sonra durumu kontrol et
