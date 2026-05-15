@@ -365,11 +365,16 @@ export class HepsiburadaClient {
      */
     async uploadInvoiceLink(packageId: string, invoiceUrl: string) {
         await this.init();
-        const url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}/packages/${packageId}/invoice-links`;
+        // Fatura linki radium servisi üzerinden gönderilir
+        const url = `https://radium.hepsiburada.com/api/order/invoice_link`;
         
-        const payload = [{
-            url: invoiceUrl
-        }];
+        const payload = {
+            shipmentPackageId: packageId,
+            invoiceLink: invoiceUrl
+        };
+
+        console.log(`🧾 HB Invoice URL: ${url}`);
+        console.log(`🧾 HB Invoice Payload:`, JSON.stringify(payload));
 
         const response = await fetch(url, {
             method: "POST",
