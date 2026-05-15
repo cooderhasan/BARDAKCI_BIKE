@@ -60,7 +60,7 @@ export function HepsiburadaTestOrderButton() {
                 // packageNumber'ı orderNumber key ile kaydet
                 const pkgNum = res.packageNumber || `PKG-${Date.now()}`;
                 setPackagedOrders(prev => ({ ...prev, [orderNum]: pkgNum }));
-                await loadOrders();
+                // loadOrders() çağırmıyoruz - HB paketlenmiş siparişi listeden kaldırır
             } else {
                 toast.error(res.message);
             }
@@ -173,8 +173,8 @@ export function HepsiburadaTestOrderButton() {
 
                             {/* Aksiyon butonları */}
                             <div className="flex gap-2 pt-1">
-                                {/* Adım 2: Paketle */}
-                                {(order.status === 'Open' || order.status === 'New' || order.status === 'Unpacked') && (
+                                {/* Adım 2: Paketle - henüz paketlenmemiş siparişlerde göster */}
+                                {!packagedOrders[order.orderNumber] && (order.status === 'Open' || order.status === 'New' || order.status === 'Unpacked') && (
                                     <Button
                                         size="sm"
                                         variant="outline"
