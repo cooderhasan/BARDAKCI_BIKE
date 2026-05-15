@@ -581,15 +581,16 @@ export async function createHepsiburadaTestOrder() {
         });
 
         if (!response.ok) {
-            const err = await response.text();
-            console.error("❌ SIT Order Error:", response.status, err);
-            throw new Error(`SIT Sipariş Hatası: ${response.status} - ${err}`);
+            const errorText = await response.text();
+            console.error("❌ SIT Order Detail Error:", response.status, errorText);
+            return { success: false, message: `HB SIT Hatası: ${response.status} - ${errorText}` };
         }
 
         return { success: true, message: "Hepsiburada SIT üzerinden hayali bir sipariş başarıyla oluşturuldu!" };
 
     } catch (error: any) {
-        return { success: false, message: error.message };
+        console.error("❌ SIT Order Exception:", error);
+        return { success: false, message: `Sistem Hatası: ${error.message}` };
     }
 }
 
