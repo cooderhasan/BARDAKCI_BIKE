@@ -133,27 +133,31 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     const varPrice = basePrice + Number(v.priceAdjustment || 0);
                     const availableStock = Math.max(0, v.stock - criticalStock);
 
-                    hbItems.push({
+                    const hbItem = {
                         merchantSku: v.sku || v.barcode, // Important: Must match HB Listing SKU
                         availableStock: availableStock,
                         price: varPrice,
-                        dispatchTime: 3, // Default dispatch time
-                        cargoCompany1: "DHL eCommerce",
-                        maximumPurchasableQuantity: 10
-                    });
+                        dispatchTime: 1, // Reduced for SIT compatibility
+                        cargoCompany1: "Yurtici Kargo",
+                        maximumPurchasableQuantity: 100
+                    };
+                    console.log(`📦 HB Inventory Item (Variant):`, hbItem);
+                    hbItems.push(hbItem);
                 }
             } else {
                 if (p.sku || p.barcode) {
                     const availableStock = Math.max(0, p.stock - criticalStock);
                     
-                    hbItems.push({
+                    const hbItem = {
                         merchantSku: p.sku || p.barcode,
                         availableStock: availableStock,
                         price: basePrice,
-                        dispatchTime: 3,
-                        cargoCompany1: "DHL eCommerce",
-                        maximumPurchasableQuantity: 10
-                    });
+                        dispatchTime: 1, // Reduced for SIT compatibility
+                        cargoCompany1: "Yurtici Kargo",
+                        maximumPurchasableQuantity: 100
+                    };
+                    console.log(`📦 HB Inventory Item:`, hbItem);
+                    hbItems.push(hbItem);
                 }
             }
         }
