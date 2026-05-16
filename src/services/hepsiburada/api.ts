@@ -372,15 +372,18 @@ export class HepsiburadaClient {
         const finalUrl = invoiceUrl.endsWith(".pdf") ? invoiceUrl : "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
 
         const payload = {
-            InvoiceLink: finalUrl,
-            ContentType: "pdf",
-            Invoices: [{
-                InvoiceLink: finalUrl,
-                ContentType: "pdf",
-                OrderNumber: orderNumber,
-                ArrangementDate: new Date().toISOString(),
-                SerialNumber: "SRN",
-                RowNumber: "1"
+            invoiceLink: finalUrl,
+            contentType: "pdf",
+            arrangementDate: new Date().toISOString(),
+            serialNumber: "SRN",
+            rowNumber: "1",
+            invoices: [{
+                invoiceLink: finalUrl,
+                contentType: "pdf",
+                orderNumber: orderNumber,
+                arrangementDate: new Date().toISOString(),
+                serialNumber: "SRN",
+                rowNumber: "1"
             }]
         };
 
