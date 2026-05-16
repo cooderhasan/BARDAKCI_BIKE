@@ -71,10 +71,10 @@ export function HepsiburadaTestOrderButton() {
         }
     };
 
-    const handleInvoice = async (packageNumber: string) => {
+    const handleInvoice = async (packageNumber: string, orderNumber: string) => {
         setActionLoading(`inv-${packageNumber}`);
         try {
-            const res = await sendHepsiburadaInvoiceLink(packageNumber);
+            const res = await sendHepsiburadaInvoiceLink(packageNumber, orderNumber);
             if (res.success) {
                 toast.success(res.message);
                 await loadOrders();
@@ -203,7 +203,7 @@ export function HepsiburadaTestOrderButton() {
                                         disabled={actionLoading?.startsWith('inv-')}
                                         onClick={() => {
                                             const pkg = packagedOrders[order.orderNumber] || order.lines?.find((l: any) => l.packageNumber)?.packageNumber;
-                                            if (pkg) handleInvoice(pkg);
+                                            if (pkg) handleInvoice(pkg, order.orderNumber);
                                             else toast.error("Package number bulunamadı.");
                                         }}
                                     >

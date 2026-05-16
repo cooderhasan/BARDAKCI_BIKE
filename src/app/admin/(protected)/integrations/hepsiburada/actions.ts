@@ -797,7 +797,7 @@ export async function packageHepsiburadaOrder(orderNumber: string, lineItemIds: 
  * SIT Fatura Linki Gönder
  * Adım 3: Paketlenmiş siparişe fatura linki iletir
  */
-export async function sendHepsiburadaInvoiceLink(packageNumber: string, invoiceUrl?: string) {
+export async function sendHepsiburadaInvoiceLink(packageNumber: string, orderNumber: string, invoiceUrl?: string) {
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif SIT bağlantısı bulunamadı." };
@@ -811,9 +811,9 @@ export async function sendHepsiburadaInvoiceLink(packageNumber: string, invoiceU
 
         const fakeInvoiceUrl = invoiceUrl || `https://serinmotor.com/invoices/test-${Date.now()}.pdf`;
         
-        console.log(`🧾 Fatura Linki: Package ${packageNumber}, URL: ${fakeInvoiceUrl}`);
+        console.log(`🧾 Fatura Linki: Package ${packageNumber}, Order ${orderNumber}, URL: ${fakeInvoiceUrl}`);
         
-        const result = await client.uploadInvoiceLink(packageNumber, fakeInvoiceUrl);
+        const result = await client.uploadInvoiceLink(packageNumber, fakeInvoiceUrl, orderNumber);
         console.log("🧾 Fatura Sonucu:", result);
         
         return { success: true, message: `Fatura linki gönderildi! (${packageNumber})` };
