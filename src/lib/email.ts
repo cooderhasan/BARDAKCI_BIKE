@@ -3,6 +3,7 @@ import { OrderConfirmationEmail } from '@/emails/order-confirmation';
 import { AdminNewOrderEmail } from '@/emails/admin-new-order';
 import { ShippingNotificationEmail } from '@/emails/shipping-notification';
 import { AbandonedCartNotificationEmail } from '@/emails/abandoned-cart-notification';
+import { InvoiceNotificationEmail } from '@/emails/invoice-notification';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "emreserin78@gmail.com";
@@ -193,6 +194,49 @@ export async function sendAbandonedCartEmail(props: SendAbandonedCartNotificatio
         return { success: true, data };
     } catch (error) {
         console.error('Abandoned cart email sending failed:', error);
+        return { success: false, error };
+    }
+}
+
+interface SendInvoiceNotificationProps {
+    to: string;
+    orderNumber: string;
+    customerName: string;
+    invoiceNo: string;
+    invoiceUrl: string;
+    totalAmount: number;
+}
+
+export async function sendInvoiceNotificationEmail(props: SendInvoiceNotificationProps) {
+    if (!process.env.RESEND_API_KEY) {
+        console.warn('RESEND_API_KEY is not set. Invoice email sending skipped.');
+        return { success: false, error: 'API key missing' };
+    }
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'Fatura <fatura@serinmotor.com>',
+            to: [props.to],
+            subject: `Faturanız Hazır - #${props.orderNumber}`,
+            react: InvoiceNotificationEmail({
+                orderNumber: props.orderNumber,
+                customerName: props.customerName,
+                invoiceNo: props.invoiceNo,
+                invoiceUrl: props.invoiceUrl,
+                totalAmount: props.totalAmount,
+                invoiceDate: new Date().toLocaleDateString('tr-TR'),
+            }),
+        });
+
+        if (error) {
+            console.error('Invoice email sending error:', error);
+            return { success: false, error };
+        }
+
+        console.log(`📧 Fatura e-postası gönderildi: ${props.to} (Sipariş: ${props.orderNumber})`);
+        return { success: true, data };
+    } catch (error) {
+        console.error('Invoice email sending failed:', error);
         return { success: false, error };
     }
 }
