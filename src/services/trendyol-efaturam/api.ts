@@ -392,11 +392,32 @@ export class TrendyolEFaturamClient {
             }
         };
 
+        // Prefix gönderme stratejisi:
+        // Portal'daki prefix "Partner" tipinde olmalı. 
+        // Eğer prefix belirtilmişse gönder, yoksa sisteme otomatik seçtir.
         if (invoicePrefix && invoicePrefix.trim() !== "") {
             formattedData.prefix = invoicePrefix.trim().substring(0, 3).toUpperCase();
         }
 
-        return await this.request("POST", "/api/invoice/documents/earchive", formattedData);
+        console.log(`📤 E-Arşiv Fatura Payload:`, JSON.stringify(formattedData, null, 2));
+
+        try {
+            return await this.request("POST", "/api/invoice/documents/earchive", formattedData);
+        } catch (error: any) {
+            // Prefix hatası aldıysak, prefix olmadan tekrar dene
+            if (error.message?.includes("prefix") || error.message?.includes("Prefix")) {
+                console.warn(`⚠️ Prefix hatası! Prefix olmadan tekrar deneniyor...`);
+                delete formattedData.prefix;
+                
+                // source'u da WEB olarak dene
+                formattedData.source = "WEB";
+                delete formattedData.appCode;
+                
+                console.log(`📤 Retry Payload (no prefix, source=WEB):`, JSON.stringify(formattedData, null, 2));
+                return await this.request("POST", "/api/invoice/documents/earchive", formattedData);
+            }
+            throw error;
+        }
     }
 
     async createEInvoice(rawInvoiceData: any): Promise<any> {
