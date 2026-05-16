@@ -809,7 +809,7 @@ export async function sendHepsiburadaInvoiceLink(packageNumber: string, orderNum
             isTestMode: true,
         });
 
-        const fakeInvoiceUrl = invoiceUrl || `https://serinmotor.com/invoices/test-${Date.now()}.pdf`;
+        const fakeInvoiceUrl = invoiceUrl || `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`;
         
         console.log(`🧾 Fatura Linki: Package ${packageNumber}, Order ${orderNumber}, URL: ${fakeInvoiceUrl}`);
         
