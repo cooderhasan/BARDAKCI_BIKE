@@ -319,16 +319,13 @@ export async function sendOrderInvoice(orderId: string) {
         const invoiceId = result?.id || result?.invoiceId || result?.uuid || result?.invoiceUuid || null;
         const invoiceNo = result?.invoiceNumber || result?.invoiceNo || result?.documentNumber || null;
         
-        // PDF URL'ini bul: API cevabından veya invoiceId ile oluştur
+        // PDF URL'ini bul: API cevabından veya kalıcı download linki oluştur
         let invoiceUrl = result?.pdfUrl || result?.pdfLink || result?.url || result?.documentUrl || null;
         
-        // Eğer URL yoksa ama invoiceId varsa, kalıcı download linkini kullan
+        // Eğer URL yoksa ama invoiceId varsa, kalıcı (herkese açık) PDF linkini al
         if (!invoiceUrl && invoiceId) {
-            // Trendyol e-Faturam kalıcı PDF indirme linki
-            const baseUrl = config.isTestMode 
-                ? "https://stage-apigateway.trendyolecozum.com"
-                : "https://apigateway.trendyolecozum.com";
-            invoiceUrl = `${baseUrl}/api/invoice/permanent-document-download/${invoiceId}`;
+            const documentType = useEInvoice ? "EINVOICE" : "EARCHIVE";
+            invoiceUrl = await client.getPermanentDownloadUrl(invoiceId.toString(), documentType as any);
         }
 
         await prisma.order.update({

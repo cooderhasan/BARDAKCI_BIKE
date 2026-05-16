@@ -573,6 +573,35 @@ export class TrendyolEFaturamClient {
         return await this.request("GET", `/api/invoice/pdf/${invoiceId}`);
     }
 
+    /**
+     * Kalıcı, herkese açık PDF indirme linki oluştur
+     * Bu link auth gerektirmez, N11/HB/müşteriye gönderilebilir
+     * POST /api/invoice/documents/download/permanent-url
+     */
+    async getPermanentDownloadUrl(documentUuid: string, documentType: "EARCHIVE" | "EINVOICE" = "EARCHIVE"): Promise<string | null> {
+        try {
+            await this.ensureToken();
+            const payload = {
+                documentType,
+                fileExtension: "pdf",
+                documentUuid,
+                companyId: (this as any).companyId,
+            };
+            console.log(`📎 Kalıcı PDF link isteniyor: UUID=${documentUuid}, Type=${documentType}`);
+            
+            // Bu endpoint text/plain olarak URL döner
+            const result = await this.request("POST", "/api/invoice/documents/download/permanent-url", payload);
+            
+            // Cevap string ise direkt URL'dir, object ise url alanını al
+            const url = typeof result === "string" ? result : (result?.url || result?.downloadUrl || null);
+            console.log(`📎 Kalıcı PDF link:`, url);
+            return url;
+        } catch (error: any) {
+            console.error(`❌ Kalıcı PDF link hatası:`, error.message);
+            return null;
+        }
+    }
+
     async getInvoiceStatus(invoiceId: string): Promise<any> {
         return await this.request("GET", `/api/invoice/status/${invoiceId}`);
     }
