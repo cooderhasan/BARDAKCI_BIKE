@@ -459,6 +459,64 @@ export class N11Client {
             return { success: false, message: error.message };
         }
     }
+    /**
+     * N11'e fatura linki gönderme (SOAP - SellerInvoiceService)
+     * saveLinkSellerInvoice: Sipariş numarasına fatura PDF linki bağlar
+     * Kurallar:
+     * - URL https ile başlamalı
+     * - Dosya uzantısı: pdf, png veya jpeg
+     * - Maks 2048 karakter
+     * - Her siparişe 1 aktif fatura linki (yenisi eskisini siler)
+     */
+    async uploadInvoiceLink(orderNumber: string, invoiceUrl: string) {
+        if (!this.creds) await this.init();
+
+        // URL'deki & karakterlerini XML-safe yap
+        const safeUrl = invoiceUrl.replace(/&/g, '&amp;');
+
+        const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:SaveLinkSellerInvoiceRequest>
+         <auth>
+            <appKey>${this.creds!.apiKey}</appKey>
+            <appSecret>${this.creds!.apiSecret}</appSecret>
+         </auth>
+         <orderNumber>${orderNumber}</orderNumber>
+         <url>${safeUrl}</url>
+      </sch:SaveLinkSellerInvoiceRequest>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+        try {
+            console.log(`🧾 N11 Fatura Link Gönderimi: Order=${orderNumber}, URL=${invoiceUrl}`);
+            
+            const response = await fetch("https://api.n11.com/ws/sellerInvoiceService/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/xml;charset=UTF-8",
+                    "SOAPAction": ""
+                },
+                body: soapEnvelope
+            });
+            
+            const text = await response.text();
+            console.log(`🧾 N11 Fatura Response:`, text.substring(0, 500));
+            
+            if (text.includes("<status>success</status>") || text.includes("Success")) {
+                return { success: true, message: `Fatura linki N11'e gönderildi. (Sipariş: ${orderNumber})` };
+            }
+
+            // Hata mesajını parse et
+            const errorMatch = text.match(/<errorMessage>(.*?)<\/errorMessage>/);
+            const errorMsg = errorMatch?.[1] || "Bilinmeyen hata";
+            
+            return { success: false, message: `N11 Fatura Hatası: ${errorMsg}` };
+        } catch (error: any) {
+            return { success: false, message: `N11 Fatura Bağlantı Hatası: ${error.message}` };
+        }
+    }
 }
 
 

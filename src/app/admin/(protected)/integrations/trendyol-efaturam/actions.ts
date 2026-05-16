@@ -273,12 +273,38 @@ export async function sendOrderInvoice(orderId: string) {
             },
         });
 
+        // 8. Pazaryeri siparişi ise fatura linkini otomatik gönder
+        let marketplaceMessage = "";
+        if (invoiceUrl && order.source !== "WEB") {
+            try {
+                if (order.source === "N11") {
+                    const { N11Client } = await import("@/services/n11/api");
+                    const n11 = new N11Client();
+                    const n11Result = await n11.uploadInvoiceLink(order.orderNumber, invoiceUrl);
+                    if (n11Result.success) {
+                        marketplaceMessage = " | N11'e fatura linki iletildi ✅";
+                    } else {
+                        marketplaceMessage = ` | N11 fatura hatası: ${n11Result.message}`;
+                    }
+                } else if (order.source === "HEPSIBURADA") {
+                    // HB canlıya geçince aktif olacak
+                    // const { HepsiburadaClient } = await import("@/services/hepsiburada/api");
+                    // const hb = new HepsiburadaClient();
+                    // await hb.uploadInvoiceLink(packageNumber, invoiceUrl, order.orderNumber);
+                    marketplaceMessage = " | HB fatura linki (canlı ortamda otomatik gönderilecek)";
+                }
+            } catch (mpError: any) {
+                console.error(`⚠️ Pazaryeri fatura link hatası (${order.source}):`, mpError.message);
+                marketplaceMessage = ` | ${order.source} fatura link hatası: ${mpError.message}`;
+            }
+        }
+
         revalidatePath("/admin/orders");
 
         const modeLabel = config.isTestMode ? " (Test Modu)" : "";
         return {
             success: true,
-            message: `✅ Fatura başarıyla gönderildi${modeLabel}! ${invoiceNo ? `Fatura No: ${invoiceNo}` : ""}`,
+            message: `✅ Fatura başarıyla gönderildi${modeLabel}! ${invoiceNo ? `Fatura No: ${invoiceNo}` : ""}${marketplaceMessage}`,
         };
     } catch (error: any) {
         console.error("❌ Fatura gönderim hatası:", error.message);
