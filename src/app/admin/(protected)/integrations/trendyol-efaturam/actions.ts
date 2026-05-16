@@ -386,27 +386,29 @@ export async function sendOrderInvoice(orderId: string) {
 
         // 10. Müşteriye fatura e-postası gönder (PDF linki ile)
         let emailMessage = "";
-        if (invoiceUrl) {
-            const customerEmail = order.guestEmail || order.user?.email;
-            const shippingAddr = order.shippingAddress as any;
-            const customerName = shippingAddr?.fullName || shippingAddr?.name || order.user?.name || "Müşteri";
-            
-            if (customerEmail) {
-                try {
-                    const { sendInvoiceNotificationEmail } = await import("@/lib/email");
-                    await sendInvoiceNotificationEmail({
-                        to: customerEmail,
-                        orderNumber: order.orderNumber,
-                        customerName,
-                        invoiceNo: invoiceNo || `INV-${order.orderNumber}`,
-                        invoiceUrl,
-                        totalAmount: Number(order.total),
-                    });
-                    emailMessage = " | Fatura e-postası gönderildi 📧";
-                } catch (emailErr: any) {
-                    console.warn("⚠️ Fatura e-postası gönderilemedi:", emailErr.message);
-                    emailMessage = " | Fatura e-postası gönderilemedi";
-                }
+        const customerEmail = order.guestEmail || order.user?.email;
+        const shippingAddr = order.shippingAddress as any;
+        const customerName = shippingAddr?.fullName || shippingAddr?.name || order.user?.name || "Müşteri";
+        
+        if (!invoiceUrl) {
+            emailMessage = " | Mail gönderilemedi (PDF Linki Alınamadı)";
+        } else if (!customerEmail) {
+            emailMessage = " | Mail gönderilemedi (Müşteri E-postası Yok)";
+        } else {
+            try {
+                const { sendInvoiceNotificationEmail } = await import("@/lib/email");
+                await sendInvoiceNotificationEmail({
+                    to: customerEmail,
+                    orderNumber: order.orderNumber,
+                    customerName,
+                    invoiceNo: invoiceNo || `INV-${order.orderNumber}`,
+                    invoiceUrl,
+                    totalAmount: Number(order.total),
+                });
+                emailMessage = " | Fatura e-postası gönderildi 📧";
+            } catch (emailErr: any) {
+                console.warn("⚠️ Fatura e-postası gönderilemedi:", emailErr.message);
+                emailMessage = ` | Mail hatası: ${emailErr.message}`;
             }
         }
 
