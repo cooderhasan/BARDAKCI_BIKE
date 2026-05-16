@@ -70,6 +70,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
     const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "ALL");
     const [cargoFilter, setCargoFilter] = useState(searchParams.get("cargo") || "ALL");
     const [sourceFilter, setSourceFilter] = useState(searchParams.get("source") || "ALL");
+    const [invoiceFilter, setInvoiceFilter] = useState(searchParams.get("invoice") || "ALL");
     const [startDate, setStartDate] = useState(searchParams.get("startDate") || "");
     const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
 
@@ -106,6 +107,9 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
         if (sourceFilter && sourceFilter !== "ALL") params.set("source", sourceFilter);
         else params.delete("source");
 
+        if (invoiceFilter && invoiceFilter !== "ALL") params.set("invoice", invoiceFilter);
+        else params.delete("invoice");
+
         if (startDate) params.set("startDate", startDate);
         else params.delete("startDate");
 
@@ -124,6 +128,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
         setStatusFilter("ALL");
         setCargoFilter("ALL");
         setSourceFilter("ALL");
+        setInvoiceFilter("ALL");
         setStartDate("");
         setEndDate("");
         router.push("/admin/orders");
@@ -396,6 +401,22 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                 <SelectItem value="TRENDYOL">Trendyol</SelectItem>
                                 <SelectItem value="N11">N11</SelectItem>
                                 <SelectItem value="HEPSIBURADA">Hepsiburada</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Invoice Filter */}
+                    <div className="w-full md:w-[140px] space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fatura</label>
+                        <Select value={invoiceFilter} onValueChange={setInvoiceFilter}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Tümü" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Tümü</SelectItem>
+                                <SelectItem value="SENT">✅ Kesildi</SelectItem>
+                                <SelectItem value="NONE">⏳ Kesilmedi</SelectItem>
+                                <SelectItem value="ERROR">❌ Hatalı</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

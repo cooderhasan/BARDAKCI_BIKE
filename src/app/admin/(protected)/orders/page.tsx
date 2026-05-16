@@ -9,6 +9,7 @@ interface OrdersPageProps {
         status?: string;
         cargo?: string;
         source?: string;
+        invoice?: string;
         startDate?: string;
         endDate?: string;
     }>;
@@ -24,6 +25,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const status = params.status as OrderStatus | string | undefined;
     const cargo = params.cargo;
     const source = params.source;
+    const invoice = params.invoice;
     const startDate = params.startDate ? new Date(params.startDate) : undefined;
     const endDate = params.endDate ? new Date(params.endDate) : undefined;
 
@@ -83,6 +85,17 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     { NOT: { cargoCompany: null } }
                 ]
             });
+        }
+    }
+
+    // Invoice Filtering
+    if (invoice && invoice !== "ALL") {
+        if (invoice === "SENT") {
+            andClauses.push({ invoiceNo: { not: null } });
+        } else if (invoice === "NONE") {
+            andClauses.push({ invoiceNo: null });
+        } else if (invoice === "ERROR") {
+            andClauses.push({ invoiceStatus: "ERROR" });
         }
     }
 
