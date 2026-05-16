@@ -256,6 +256,54 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
         }
     };
 
+    const handleBulkInvoice = async () => {
+        // Sadece faturası kesilmemiş siparişleri filtrele
+        const invoicableOrders = orders.filter(
+            o => selectedIds.includes(o.id) && !(o as any).invoiceNo
+        );
+        if (invoicableOrders.length === 0) {
+            toast.info("Seçili siparişlerin tamamının faturası zaten kesilmiş.");
+            return;
+        }
+
+        if (!confirm(`${invoicableOrders.length} adet sipariş için fatura kesilecek. Onaylıyor musunuz?`)) {
+            return;
+        }
+
+        // UI'ı kitlemeden arka planda işle
+        let success = 0;
+        let failed = 0;
+        const total = invoicableOrders.length;
+        
+        const toastId = toast.loading(`Toplu fatura: 0/${total} işleniyor...`);
+
+        for (let i = 0; i < invoicableOrders.length; i++) {
+            const order = invoicableOrders[i];
+            try {
+                toast.loading(`Toplu fatura: ${i + 1}/${total} - #${order.orderNumber}...`, { id: toastId });
+                const result = await sendOrderInvoice(order.id);
+                if (result.success) {
+                    success++;
+                } else {
+                    failed++;
+                    console.warn(`Fatura hatası (#${order.orderNumber}):`, result.message);
+                }
+            } catch (error) {
+                failed++;
+                console.error(`Fatura exception (#${order.orderNumber}):`, error);
+            }
+        }
+
+        toast.dismiss(toastId);
+        if (failed === 0) {
+            toast.success(`✅ ${success} fatura başarıyla kesildi!`);
+        } else {
+            toast.warning(`${success} başarılı, ${failed} hatalı fatura.`);
+        }
+        setSelectedIds([]);
+        router.refresh();
+    };
+
     const handleYKSync = async () => {
         setIsSyncingYK(true);
         try {
@@ -324,6 +372,15 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                         >
                             <Printer className="h-4 w-4" />
                             Toplu Yazdır
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-white dark:bg-gray-800 gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                            onClick={handleBulkInvoice}
+                        >
+                            <ReceiptText className="h-4 w-4" />
+                            Toplu Fatura
                         </Button>
                         <Button
                             variant="ghost"
