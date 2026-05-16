@@ -356,12 +356,25 @@ export async function sendOrderInvoice(orderId: string) {
                         marketplaceMessage = " | N11'e fatura linki gönderilemedi (PDF URL bulunamadı)";
                     }
                 } else if (order.source === "HEPSIBURADA") {
-                    // HB canlıya geçince aktif olacak
-                    // const { HepsiburadaClient } = await import("@/services/hepsiburada/api");
-                    // const hb = new HepsiburadaClient();
-                    // await hb.uploadInvoiceLink(packageNumber, invoiceUrl, order.orderNumber);
-                    marketplaceMessage = " | HB fatura linki (canlı ortamda otomatik gönderilecek)";
-                }
+                    if (invoiceUrl) {
+                        const hbConfig = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
+                        if (hbConfig) {
+                            const { HepsiburadaClient } = await import("@/services/hepsiburada/api");
+                            const hb = new HepsiburadaClient({
+                                username: hbConfig.username,
+                                password: hbConfig.password,
+                                merchantId: hbConfig.merchantId,
+                                isTestMode: hbConfig.isTestMode ?? false,
+                            });
+                            const packageId = order.shipmentPackageId || order.orderNumber;
+                            await hb.uploadInvoiceLink(packageId, invoiceUrl, order.orderNumber);
+                            marketplaceMessage = " | HB'ye fatura linki iletildi ✅";
+                        } else {
+                            marketplaceMessage = " | HB entegrasyon ayarı bulunamadı";
+                        }
+                    } else {
+                        marketplaceMessage = " | HB'ye fatura linki gönderilemedi (PDF URL bulunamadı)";
+                    }
             } catch (mpError: any) {
                 console.error(`⚠️ Pazaryeri fatura link hatası (${order.source}):`, mpError.message);
                 marketplaceMessage = ` | ${order.source} fatura link hatası: ${mpError.message}`;
