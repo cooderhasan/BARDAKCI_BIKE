@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -461,26 +461,32 @@ function HepsiburadaCategorySearch({
     const [isManual, setIsManual] = useState(false);
     const [manualId, setManualId] = useState("");
 
-    const handleSearch = async (q: string) => {
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleSearch = (q: string) => {
         setSearch(q);
-        if (q.length < 2) { setResults([]); return; }
-        setLoading(true);
-        setError("");
-        try {
-            // Use the NEW search action that queries the full HB database
-            const res = await searchHepsiburadaCategories(q);
-            if (res.success && res.data) {
-                setResults(res.data as HepsiburadaCategory[]);
-                setOpen(true);
-            } else {
-                setError(res.message || "Kategoriler alınamadı.");
+        if (q.length < 2) { setResults([]); setOpen(false); return; }
+
+        // Debounce 300ms
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            setLoading(true);
+            setError("");
+            try {
+                const res = await searchHepsiburadaCategories(q);
+                if (res.success && res.data) {
+                    setResults(res.data as HepsiburadaCategory[]);
+                    setOpen(true);
+                } else {
+                    setError(res.message || "Kategoriler alınamadı.");
+                }
+            } catch (error) {
+                console.error("Search error:", error);
+                setError("Bağlantı hatası.");
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error("Search error:", error);
-            setError("Bağlantı hatası.");
-        } finally {
-            setLoading(false);
-        }
+        }, 300);
     };
 
     const handleSelect = (cat: HepsiburadaCategory) => {

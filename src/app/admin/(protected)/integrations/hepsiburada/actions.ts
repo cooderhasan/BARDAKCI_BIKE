@@ -414,36 +414,64 @@ export async function getHepsiburadaCategories() {
     }
 }
 
+// Server-side cache for HB categories (avoid re-fetching 6500 categories on every search)
+let hbCategoryCache: { data: any[]; timestamp: number } | null = null;
+const HB_CACHE_TTL = 60 * 60 * 1000; // 1 saat
+
+async function getHBCategoriesCached(): Promise<any[]> {
+    if (hbCategoryCache && Date.now() - hbCategoryCache.timestamp < HB_CACHE_TTL) {
+        return hbCategoryCache.data;
+    }
+
+    const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
+    if (!config) throw new Error("Aktif entegrasyon bulunamadı.");
+
+    const client = new HepsiburadaClient({
+        username: config.username,
+        password: config.password,
+        merchantId: config.merchantId,
+        isTestMode: config.isTestMode ?? true
+    });
+
+    console.log("📡 HB Kategorileri cache'leniyor (ilk yükleme)...");
+    const data = await client.getCategories({ status: "ACTIVE" });
+    const categories = data.data || [];
+    console.log(`✅ HB ${categories.length} kategori cache'lendi.`);
+
+    hbCategoryCache = { data: categories, timestamp: Date.now() };
+    return categories;
+}
+
 export async function searchHepsiburadaCategories(query: string) {
     try {
         if (!query || query.length < 2) return { success: true, data: [] };
 
-        const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
-        if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
+        const allCategories = await getHBCategoriesCached();
 
-        const client = new HepsiburadaClient({
-            username: config.username,
-            password: config.password,
-            merchantId: config.merchantId,
-            isTestMode: config.isTestMode ?? true
+        // Arama terimlerini ayır (boşlukla birden fazla kelime destekle)
+        const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+
+        // Hem kategori adında hem de path'lerinde ara
+        const filteredData = allCategories.filter((c: any) => {
+            const searchStr = `${c.name} ${c.displayName || ""} ${(c.paths || []).join(" ")}`.toLowerCase();
+            // Tüm terimler eşleşmeli (AND mantığı)
+            return terms.every(term => searchStr.includes(term));
         });
 
-        // Search by name and ensure it's a leaf category
-        // Increase size to 1000 to catch more results and filter locally for better accuracy
-        const data = await client.getCategories({ name: query, leaf: true, size: 1000 });
-        
-        // Filter results locally to make sure query matches name or any part of the path
-        const filteredData = (data.data || []).filter((c: any) => {
-            const searchStr = `${c.name} ${c.paths?.join(" ")}`.toLowerCase();
-            return searchStr.includes(query.toLowerCase());
-        }).slice(0, 100);
+        // Sadece leaf kategorileri öncelikle göster, sonra diğerleri
+        const sorted = filteredData.sort((a: any, b: any) => {
+            if (a.leaf && !b.leaf) return -1;
+            if (!a.leaf && b.leaf) return 1;
+            return 0;
+        }).slice(0, 50);
 
-        return { success: true, data: filteredData };
+        return { success: true, data: sorted };
     } catch (error: any) {
         console.error("searchHepsiburadaCategories error:", error);
         return { success: false, message: "Hata: " + error.message };
     }
 }
+
 export async function getHepsiburadaCategoryAttributes(categoryId: string) {
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
