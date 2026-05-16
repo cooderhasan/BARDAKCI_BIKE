@@ -62,12 +62,10 @@ export class HepsiburadaClient {
 
     private getAuthHeader() {
         if (!this.creds) throw new Error("Creds missing");
-        // Yeni HB Auth Yapısı (Ağustos 2024):
-        // username = {MerchantID}{ServisAnahtarı} (birleşik, ayraç yok)
-        // password = {ServisAnahtarı}
-        const authUsername = `${this.creds.username}${this.creds.password}`;
-        const authPassword = this.creds.password;
-        const pair = `${authUsername}:${authPassword}`;
+        // HB Yeni Auth Yapısı (Ağustos 2024):
+        // Basic Auth: username = MerchantID, password = ServisAnahtarı
+        // User-Agent header = entegratör kullanıcı adı (serinmotor_dev)
+        const pair = `${this.creds.username}:${this.creds.password}`;
         return `Basic ${Buffer.from(pair).toString("base64")}`;
     }
 
@@ -95,6 +93,10 @@ export class HepsiburadaClient {
             
             console.log(`📡 HB Bağlantı Testi: ${testUrl}`);
             console.log(`   Ortam: ${this.isTestMode ? "TEST (SIT)" : "CANLI (Production)"}`);
+            console.log(`   MerchantID: ${this.creds.username}`);
+            console.log(`   ServisAnahtarı: ${this.creds.password?.substring(0, 4)}...`);
+            console.log(`   User-Agent: ${this.userAgent}`);
+            console.log(`   Auth Pair: ${this.creds.username}:${this.creds.password?.substring(0, 4)}***`);
 
             const response = await fetch(testUrl, {
                 headers: this.getHeaders(),
