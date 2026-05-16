@@ -446,6 +446,7 @@ export class TrendyolEFaturamClient {
             appCode: "SelfIntegration",
             recipientInfo: {
                 taxId: rawInvoiceData.receiverTaxId.toString(),
+                alias: rawInvoiceData.receiverAlias || "",
                 name: rawInvoiceData.receiverName,
                 surname: rawInvoiceData.receiverSurname || "",
                 title: rawInvoiceData.receiverTitle || "",
@@ -458,7 +459,7 @@ export class TrendyolEFaturamClient {
             },
             issuedAt: new Date().toISOString(),
             invoiceInfo: {
-                invoiceType: "EFATURA",
+                invoiceType: rawInvoiceData.receiverAlias ? "TEMELFATURA" : "TEMELFATURA",
                 invoiceTypeCode: rawInvoiceData.invoiceTypeCode || "SATIS",
                 invoiceDate: new Date().toISOString(),
                 currencyCode: "TRY",
@@ -546,13 +547,22 @@ export class TrendyolEFaturamClient {
     /**
      * Alıcının e-Fatura mükellefi olup olmadığını kontrol et
      * VKN ile sorgulama yapılır
+     * Döküman: GET /api/invoice/taxpayers/{taxId}
+     * Dönüş: alias listesi (e-Fatura adresi)
      */
-    async checkTaxpayer(taxId: string): Promise<{ isEInvoiceUser: boolean }> {
+    async checkTaxpayer(taxId: string): Promise<{ isEInvoiceUser: boolean; alias?: string; title?: string }> {
         try {
             await this.ensureToken();
-            const result = await this.request("GET", `/api/taxpayer/taxpayers/${taxId}`);
-            // Kayıt varsa e-Fatura mükellefi
-            return { isEInvoiceUser: true };
+            const result = await this.request("GET", `/api/invoice/taxpayers/${taxId}`);
+            // Sonuç dizi olarak döner, ilk kaydın alias'ını al
+            if (Array.isArray(result) && result.length > 0) {
+                return {
+                    isEInvoiceUser: true,
+                    alias: result[0].alias,
+                    title: result[0].title,
+                };
+            }
+            return { isEInvoiceUser: false };
         } catch (error: any) {
             // 404 = e-Fatura mükellefi değil
             return { isEInvoiceUser: false };

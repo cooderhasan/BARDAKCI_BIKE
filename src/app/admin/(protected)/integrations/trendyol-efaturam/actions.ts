@@ -290,8 +290,12 @@ export async function sendOrderInvoice(orderId: string) {
             try {
                 const taxpayerCheck = await client.checkTaxpayer(taxId);
                 useEInvoice = taxpayerCheck.isEInvoiceUser;
-                if (useEInvoice) invoiceType = "e-Fatura";
-                console.log(`🔍 Mükellef Sorgusu: VKN=${taxId} → ${useEInvoice ? "E-FATURA MÜKELLEFİ ✅" : "E-FATURA MÜKELLEFİ DEĞİL → E-ARŞİV"}`);
+                if (useEInvoice) {
+                    invoiceType = "e-Fatura";
+                    // Mükellef alias'ını payload'a ekle (e-Fatura için zorunlu)
+                    invoicePayload.receiverAlias = taxpayerCheck.alias;
+                }
+                console.log(`🔍 Mükellef Sorgusu: VKN=${taxId} → ${useEInvoice ? `E-FATURA MÜKELLEFİ ✅ (alias: ${taxpayerCheck.alias})` : "E-FATURA MÜKELLEFİ DEĞİL → E-ARŞİV"}`);
             } catch (e) {
                 console.warn(`⚠️ Mükellef sorgusu başarısız, e-Arşiv olarak devam ediliyor.`);
             }
