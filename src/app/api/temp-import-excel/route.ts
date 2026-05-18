@@ -7,8 +7,8 @@ export async function GET() {
     try {
         console.log("🚀 Canlı Sunucuda Excel Aktarım API'si Çalıştırıldı...");
         
-        // Excel dosyasını oku (proje kök dizininde yer almaktadır)
-        const filePath = path.join(process.cwd(), "Satisbilgisi-18-05-2026-16_49.xlsx");
+        // Excel dosyasını oku (public klasöründe yer almaktadır)
+        const filePath = path.join(process.cwd(), "public", "Satisbilgisi-18-05-2026-16_49.xlsx");
         const workbook = XLSX.readFile(filePath);
         const sheetName = "Listelerim";
         const sheet = workbook.Sheets[sheetName];
