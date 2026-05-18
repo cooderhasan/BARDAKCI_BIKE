@@ -241,7 +241,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                         },
                         source: "HEPSIBURADA",
                         cargoCompany: item.shippingCompanyName || null,
-                        shipmentPackageId: String(item.id || ""),
+                        shipmentPackageId: String(item.packageNumber || item.id || ""),
                     }
                 });
 

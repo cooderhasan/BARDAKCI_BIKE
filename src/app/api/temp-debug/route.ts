@@ -112,7 +112,16 @@ export async function GET() {
                 
                 if (existing) {
                     saveSuccess = true;
-                    dbError = "Zaten kayıtlı";
+                    const correctPackageNumber = String(item.packageNumber || item.id || "");
+                    if (existing.shipmentPackageId !== correctPackageNumber) {
+                        await prisma.order.update({
+                            where: { id: existing.id },
+                            data: { shipmentPackageId: correctPackageNumber }
+                        });
+                        dbError = `Zaten kayıtlıydı. Paket numarası başarıyla '${correctPackageNumber}' olarak ONARILDI! ✅`;
+                    } else {
+                        dbError = "Zaten kayıtlı ve paket numarası doğru.";
+                    }
                 } else {
                     // Kalem filtresini simüle edelim. productId null ise hata fırlatacak mı?
                     const filteredItems = orderItems.filter(i => i.productId);
@@ -144,7 +153,7 @@ export async function GET() {
                             },
                             source: "HEPSIBURADA",
                             cargoCompany: item.shippingCompanyName || null,
-                            shipmentPackageId: String(item.id || ""),
+                            shipmentPackageId: String(item.packageNumber || item.id || ""),
                         }
                     });
                     saveSuccess = true;
