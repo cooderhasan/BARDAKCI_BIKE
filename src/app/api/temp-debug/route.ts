@@ -113,14 +113,28 @@ export async function GET() {
                 if (existing) {
                     saveSuccess = true;
                     const correctPackageNumber = String(item.packageNumber || item.id || "");
+                    const cargoName = item.cargoCompany || (item.cargoCompanyModel && item.cargoCompanyModel.name) || item.shippingCompanyName || null;
+                    
+                    const updateData: any = {};
+                    let updated = false;
+                    
                     if (existing.shipmentPackageId !== correctPackageNumber) {
+                        updateData.shipmentPackageId = correctPackageNumber;
+                        updated = true;
+                    }
+                    if (existing.cargoCompany !== cargoName) {
+                        updateData.cargoCompany = cargoName;
+                        updated = true;
+                    }
+                    
+                    if (updated) {
                         await prisma.order.update({
                             where: { id: existing.id },
-                            data: { shipmentPackageId: correctPackageNumber }
+                            data: updateData
                         });
-                        dbError = `Zaten kayıtlıydı. Paket numarası başarıyla '${correctPackageNumber}' olarak ONARILDI! ✅`;
+                        dbError = `Zaten kayıtlıydı. Paket numarası '${correctPackageNumber}' ve Kargo Firması '${cargoName}' olarak başarıyla ONARILDI! ✅`;
                     } else {
-                        dbError = "Zaten kayıtlı ve paket numarası doğru.";
+                        dbError = `Zaten kayıtlı ve veriler doğru. Paket: ${existing.shipmentPackageId}, Kargo: ${existing.cargoCompany}`;
                     }
                 } else {
                     // Kalem filtresini simüle edelim. productId null ise hata fırlatacak mı?
@@ -152,7 +166,7 @@ export async function GET() {
                                 create: filteredItems
                             },
                             source: "HEPSIBURADA",
-                            cargoCompany: item.shippingCompanyName || null,
+                            cargoCompany: item.cargoCompany || (item.cargoCompanyModel && item.cargoCompanyModel.name) || item.shippingCompanyName || null,
                             shipmentPackageId: String(item.packageNumber || item.id || ""),
                         }
                     });

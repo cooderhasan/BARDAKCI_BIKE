@@ -240,7 +240,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                             create: orderItems.filter(i => i.productId)
                         },
                         source: "HEPSIBURADA",
-                        cargoCompany: item.shippingCompanyName || null,
+                        cargoCompany: item.cargoCompany || (item.cargoCompanyModel && item.cargoCompanyModel.name) || item.shippingCompanyName || null,
                         shipmentPackageId: String(item.packageNumber || item.id || ""),
                     }
                 });
