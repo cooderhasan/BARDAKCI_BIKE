@@ -316,8 +316,12 @@ export async function sendOrderInvoice(orderId: string) {
         // 8. Sonucu DB'ye kaydet
         console.log(`📋 E-Faturam API Yanıtı:`, JSON.stringify(result, null, 2));
         
-        const invoiceId = result?.id || result?.invoiceId || result?.uuid || result?.invoiceUuid || null;
-        const invoiceNo = result?.invoiceNumber || result?.invoiceNo || result?.documentNumber || null;
+        // E-Faturam API'si UUID'yi (ETTN) benzersiz kimlik olarak `uuid` veya `invoiceUuid` alanında döner.
+        // Kalıcı indirme linki (permanent download url) oluşturabilmek için UUID gereklidir.
+        const invoiceId = result?.uuid || result?.invoiceUuid || result?.id || null;
+        
+        // Fatura Numarası (örn: GRS2024000000001) API tarafından `invoiceId`, `invoiceNumber` veya `invoiceNo` olarak döner.
+        const invoiceNo = result?.invoiceNumber || result?.invoiceNo || result?.invoiceId || result?.documentNumber || null;
         
         // PDF URL'ini bul: API cevabından veya kalıcı download linki oluştur
         let invoiceUrl = result?.pdfUrl || result?.pdfLink || result?.url || result?.documentUrl || null;
@@ -387,7 +391,6 @@ export async function sendOrderInvoice(orderId: string) {
         // 10. Müşteriye fatura e-postası gönder (PDF linki ile)
         let emailMessage = "";
         const customerEmail = order.guestEmail || order.user?.email;
-        const shippingAddr = order.shippingAddress as any;
         const customerName = shippingAddr?.fullName || shippingAddr?.name || order.user?.name || "Müşteri";
         
         if (!invoiceUrl) {
