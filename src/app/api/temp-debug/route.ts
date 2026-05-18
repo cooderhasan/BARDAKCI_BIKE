@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { HepsiburadaClient } from "@/services/hepsiburada/api";
 
 export async function GET() {
