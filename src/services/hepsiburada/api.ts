@@ -404,8 +404,8 @@ export class HepsiburadaClient {
         // Fatura linki: PUT /packages/merchantid/{merchantId}/packagenumber/{packageNumber}/invoice
         const url = `${this.orderBaseUrl}/packages/merchantid/${this.creds.merchantId}/packagenumber/${packageId}/invoice`;
         
-        // SIT ortamı için geçerli bir PDF URL'i gereklidir. 
-        const finalUrl = invoiceUrl.endsWith(".pdf") ? invoiceUrl : "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+        // Eğer geçerli bir fatura URL'i varsa doğrudan kullan, yoksa fallback olarak dummy.pdf kullan
+        const finalUrl = invoiceUrl || "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
 
         const payload = {
             invoiceLink: finalUrl,
