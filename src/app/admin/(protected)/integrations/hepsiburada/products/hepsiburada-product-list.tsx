@@ -192,7 +192,16 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                 toast.success(res.message);
                 setProducts(prev => prev.map(p => 
                     p.id === selectedProduct.id 
-                    ? { ...p, hepsiburadaProduct: { isSynced: true, lastSyncedAt: new Date() } }
+                    ? { 
+                        ...p, 
+                        hepsiburadaProduct: { 
+                            ...p.hepsiburadaProduct,
+                            hbSku: hbSku || (p as any).hepsiburadaProduct?.hbSku || "",
+                            merchantSku: hbMerchantSku || (p as any).hepsiburadaProduct?.merchantSku || "",
+                            isSynced: true, 
+                            lastSyncedAt: new Date() 
+                        } 
+                      }
                     : p
                 ));
             } else {
