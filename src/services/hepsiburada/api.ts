@@ -273,7 +273,10 @@ export class HepsiburadaClient {
     async getAttributeValues(categoryId: string, attributeId: string) {
         await this.init();
         const sitSuffix = this.isTestMode ? "-sit" : "";
-        const url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/${categoryId}/attribute/${attributeId}/values`;
+        // Hepsiburada API'sinde renk ve menşei gibi çok sayıda seçenek içeren özellik değerleri varsayılan boyutta
+        // kesintiye uğrayabilir. Tüm ana renkleri (Siyah, Beyaz vb.) ve menşeileri (Çin vb.) tam çekebilmek için
+        // sayfa boyutunu explicit olarak 5000 olarak ayarlıyoruz.
+        const url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/${categoryId}/attribute/${attributeId}/values?page=0&size=5000`;
         const response = await fetch(url, {
             headers: this.getHeaders(),
         });
