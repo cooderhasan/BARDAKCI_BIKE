@@ -226,6 +226,30 @@ export class HepsiburadaClient {
     }
 
     /**
+     * Get Single Order by Order Number
+     * GET /orders/merchantid/{merchantId}/ordernumber/{orderNumber}
+     */
+    async getOrderByNumber(orderNumber: string) {
+        await this.init();
+        if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
+
+        const url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}/ordernumber/${orderNumber}`;
+        console.log(`📡 HB Fetching Single Order: ${url}`);
+
+        const response = await fetch(url, {
+            headers: this.getHeaders(),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ HB Single Order API Error: ${response.status}`, errorText);
+            throw new Error(`HB Single Order API Error: ${response.status} - ${errorText}`);
+        }
+
+        return await response.json();
+    }
+
+    /**
      * Get All Categories
      * SIT: GET https://mpop-sit.hepsiburada.com/product/api/categories/get-all-categories
      * PROD: GET https://mpop.hepsiburada.com/product/api/categories/get-all-categories

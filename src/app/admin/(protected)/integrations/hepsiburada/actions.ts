@@ -90,7 +90,7 @@ export async function enqueueHepsiburadaSync() {
     }
 }
 
-export async function syncOrdersFromHepsiburada() {
+export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -102,23 +102,37 @@ export async function syncOrdersFromHepsiburada() {
             isTestMode: config.isTestMode ?? false,
         });
 
-        // HB sipariş durumları: New, Approved, Unacked, Packed
         let allItems: any[] = [];
 
-        for (const status of ["New", "Approved", "Unacked", "Packed"]) {
+        if (specificOrderNumber) {
             try {
-                const res = await client.getOrders({ status, size: 100 });
-                if (res?.items && res.items.length > 0) {
-                    console.log(`📦 HB ${status}: ${res.items.length} sipariş bulundu`);
-                    allItems.push(...res.items);
+                const res = await client.getOrderByNumber(specificOrderNumber);
+                const items = res?.items || (Array.isArray(res) ? res : [res]);
+                if (items && items.length > 0) {
+                    console.log(`📦 HB Specific Order '${specificOrderNumber}': ${items.length} kalem bulundu`);
+                    allItems.push(...items);
                 }
             } catch (err: any) {
-                console.warn(`⚠️ HB ${status} siparişleri çekilirken hata:`, err.message);
+                console.warn(`⚠️ HB Specific Order '${specificOrderNumber}' çekilemedi:`, err.message);
+                return { success: false, message: `Sipariş Hepsiburada'dan çekilemedi: ${err.message}` };
+            }
+        } else {
+            // HB sipariş durumları: New, Approved, Unacked, Packed
+            for (const status of ["New", "Approved", "Unacked", "Packed"]) {
+                try {
+                    const res = await client.getOrders({ status, size: 100 });
+                    if (res?.items && res.items.length > 0) {
+                        console.log(`📦 HB ${status}: ${res.items.length} sipariş bulundu`);
+                        allItems.push(...res.items);
+                    }
+                } catch (err: any) {
+                    console.warn(`⚠️ HB ${status} siparişleri çekilirken hata:`, err.message);
+                }
             }
         }
 
         if (allItems.length === 0) {
-            return { success: true, message: "Yeni Hepsiburada siparişi bulunamadı." };
+            return { success: true, message: "Hepsiburada siparişi bulunamadı." };
         }
 
         let importedCount = 0;
