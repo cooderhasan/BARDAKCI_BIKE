@@ -585,7 +585,7 @@ export class TrendyolEFaturamClient {
             const payload = {
                 documentType,
                 fileExtension: "pdf",
-                documentUuid,
+                invoiceUuid: documentUuid,
                 companyId: (this as any).companyId,
             };
             console.log(`📎 Kalıcı PDF link isteniyor: UUID=${documentUuid}, Type=${documentType}`);
