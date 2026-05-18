@@ -46,7 +46,7 @@ function DynamicAttributeField({ attr, categoryId, onChange, product }: { attr: 
         if (attr.type === 'enum' && !isManual) {
             setLoading(true);
             getHepsiburadaAttributeValues(categoryId, attr.id).then(res => {
-                if (res.success) setValues(res.data);
+                if (res.success && res.data) setValues(res.data);
                 setLoading(false);
             });
         }

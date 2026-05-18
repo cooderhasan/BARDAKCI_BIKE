@@ -514,8 +514,35 @@ export async function getHepsiburadaAttributeValues(categoryId: string, attribut
             isTestMode: config.isTestMode ?? true,
         });
 
-        const data = await client.getAttributeValues(categoryId, attributeId);
-        return { success: true, data: data || [] };
+        const rawData = await client.getAttributeValues(categoryId, attributeId);
+        
+        // 1. Dönen verinin dizi (array) veya sayfalı obje (paginated object) olduğunu belirle
+        let items: any[] = [];
+        if (Array.isArray(rawData)) {
+            items = rawData;
+        } else if (rawData && Array.isArray((rawData as any).content)) {
+            items = (rawData as any).content;
+        } else if (rawData && typeof rawData === 'object') {
+            // Eğer doğrudan bir nesne ise ve içinde array barındıran bir anahtar varsa bulmaya çalış
+            const foundArray = Object.values(rawData).find(val => Array.isArray(val));
+            if (foundArray) items = foundArray as any[];
+        }
+
+        // 2. Nitelik değerlerini standardize et ({ id, value } formatına dönüştür)
+        const formattedData = items.map((item: any) => {
+            if (typeof item === 'string') {
+                return { id: item, value: item };
+            }
+            if (item && typeof item === 'object') {
+                const id = item.attributeValueId || item.id || item.valueId || "";
+                const value = item.attributeValue || item.value || item.name || "";
+                return { id: String(id), value: String(value) };
+            }
+            return { id: "", value: "" };
+        }).filter(item => item.value !== "");
+
+        console.log(`📊 Standardized HB Attribute Values for ${attributeId} (count: ${formattedData.length}):`, formattedData.slice(0, 5));
+        return { success: true, data: formattedData };
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };
     }
