@@ -127,14 +127,39 @@ export async function GET() {
                         updated = true;
                     }
                     
-                    if (updated) {
-                        await prisma.order.update({
-                            where: { id: existing.id },
-                            data: updateData
-                        });
-                        dbError = `Zaten kayıtlıydı. Paket numarası '${correctPackageNumber}' ve Kargo Firması '${cargoName}' olarak başarıyla ONARILDI! ✅`;
+                    // Eksik ürün kalemlerini onar
+                    const existingItems = await prisma.orderItem.findMany({
+                        where: { orderId: existing.id }
+                    });
+                    
+                    let itemsRepaired = false;
+                    if (existingItems.length === 0) {
+                        const filteredItems = orderItems.filter(i => i.productId);
+                        if (filteredItems.length > 0) {
+                            await prisma.orderItem.createMany({
+                                data: filteredItems.map(i => ({
+                                    ...i,
+                                    orderId: existing.id
+                                }))
+                            });
+                            itemsRepaired = true;
+                        }
+                    }
+                    
+                    if (updated || itemsRepaired) {
+                        if (updated) {
+                            await prisma.order.update({
+                                where: { id: existing.id },
+                                data: updateData
+                            });
+                        }
+                        
+                        let msg = `Zaten kayıtlıydı.`;
+                        if (updated) msg += ` Paket numarası '${correctPackageNumber}', Kargo '${cargoName}' olarak güncellendi.`;
+                        if (itemsRepaired) msg += ` Eksik ürün kalemleri otomatik olarak ONARILDI! ✅`;
+                        dbError = msg;
                     } else {
-                        dbError = `Zaten kayıtlı ve veriler doğru. Paket: ${existing.shipmentPackageId}, Kargo: ${existing.cargoCompany}`;
+                        dbError = `Zaten kayıtlı ve veriler doğru. Paket: ${existing.shipmentPackageId}, Kargo: ${existing.cargoCompany}, Kalem Sayısı: ${existingItems.length}`;
                     }
                 } else {
                     // Kalem filtresini simüle edelim. productId null ise hata fırlatacak mı?
