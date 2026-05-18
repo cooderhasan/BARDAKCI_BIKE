@@ -539,6 +539,23 @@ export async function updateHepsiburadaSku(productId: string, hbSku: string, hbM
     }
 }
 
+function getAbsoluteImageUrl(url: string): string {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url;
+    }
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://serinmotor.com";
+    if (baseUrl.endsWith("/")) {
+        baseUrl = baseUrl.slice(0, -1);
+    }
+    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    let absoluteUrl = `${baseUrl}${cleanUrl}`;
+    if (absoluteUrl.startsWith("http://") && !absoluteUrl.includes("localhost")) {
+        absoluteUrl = absoluteUrl.replace("http://", "https://");
+    }
+    return absoluteUrl;
+}
+
 export async function sendProductToHepsiburada(productId: string, attributes: any[]) {
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
@@ -586,12 +603,12 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
                 tax_vat_rate: String(product.vatRate || 20),
                 price: String(hbPrice).replace(".", ","),
                 stock: String(Math.max(0, product.stock - (product.criticalStock || 0))),
-                // Görseller
-                ...(product.images[0] ? { Image1: product.images[0] } : {}),
-                ...(product.images[1] ? { Image2: product.images[1] } : {}),
-                ...(product.images[2] ? { Image3: product.images[2] } : {}),
-                ...(product.images[3] ? { Image4: product.images[3] } : {}),
-                ...(product.images[4] ? { Image5: product.images[4] } : {}),
+                // Görseller - Mutlak HTTPS URL formatına dönüştürüldü
+                ...(product.images[0] ? { Image1: getAbsoluteImageUrl(product.images[0]) } : {}),
+                ...(product.images[1] ? { Image2: getAbsoluteImageUrl(product.images[1]) } : {}),
+                ...(product.images[2] ? { Image3: getAbsoluteImageUrl(product.images[2]) } : {}),
+                ...(product.images[3] ? { Image4: getAbsoluteImageUrl(product.images[3]) } : {}),
+                ...(product.images[4] ? { Image5: getAbsoluteImageUrl(product.images[4]) } : {}),
                 // HB SKU (Katalog Kodu) varsa ekle (Buybox eşleşmesi için)
                 ...((product as any).hepsiburadaProduct?.hbSku ? { hbSku: (product as any).hepsiburadaProduct.hbSku } : {}),
                 // Kullanıcının girdiği dinamik kategori özellikleri (ID bazlı gönderim)
