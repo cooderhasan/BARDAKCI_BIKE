@@ -104,13 +104,14 @@ export async function GET() {
             const taxNumber = invoice.taxNumber || invoice.turkishIdentityNumber || "";
             const taxOffice = invoice.taxOffice || "";
 
+            let dbItems: any[] = [];
+
             try {
                 // Test amaçlı transaction başlatmadan doğrudan yazmayı deneyelim
                 const existing = await prisma.order.findUnique({
                     where: { orderNumber: calculatedOrderNumber }
                 });
                 
-                let dbItems: any[] = [];
                 if (existing) {
                     saveSuccess = true;
                     const correctPackageNumber = String(item.packageNumber || item.id || "");
