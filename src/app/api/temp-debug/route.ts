@@ -136,15 +136,9 @@ export async function GET() {
                                 city: shipping.city || "",
                                 district: shipping.town || shipping.district || "",
                                 phone: customerPhone,
+                                taxNumber: taxNumber || undefined,
+                                taxOffice: taxOffice || undefined,
                             },
-                            billingAddress: invoice.address ? {
-                                fullName: invoice.name || customerName,
-                                address: invoice.address || "",
-                                city: invoice.city || "",
-                                district: invoice.town || "",
-                                taxNumber: taxNumber,
-                                taxOffice: taxOffice,
-                            } : undefined,
                             items: {
                                 create: filteredItems
                             },
