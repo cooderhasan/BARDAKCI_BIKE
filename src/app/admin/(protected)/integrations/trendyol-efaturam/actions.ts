@@ -258,7 +258,42 @@ export async function sendOrderInvoice(orderId: string) {
         });
 
         if (!order) return { success: false, message: "Sipariş bulunamadı." };
-        if ((order as any).invoiceNo) return { success: false, message: `Bu sipariş için zaten fatura kesilmiş: ${(order as any).invoiceNo}` };
+        if ((order as any).invoiceNo) {
+            const invoiceUrl = (order as any).invoiceUrl;
+            if (order.source !== "WEB" && invoiceUrl) {
+                try {
+                    if (order.source === "HEPSIBURADA") {
+                        const hbConfig = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
+                        if (hbConfig) {
+                            const { HepsiburadaClient } = await import("@/services/hepsiburada/api");
+                            const hb = new HepsiburadaClient({
+                                username: hbConfig.username,
+                                password: hbConfig.password,
+                                merchantId: hbConfig.merchantId,
+                                isTestMode: hbConfig.isTestMode ?? false,
+                            });
+                            const packageId = order.shipmentPackageId || order.orderNumber;
+                            await hb.uploadInvoiceLink(packageId, invoiceUrl, order.orderNumber);
+                            return { success: true, message: "Mevcut fatura linki Hepsiburada'ya başarıyla yeniden gönderildi ve güncellendi! ✅" };
+                        } else {
+                            return { success: false, message: "Bu sipariş için fatura zaten kesilmişti, ancak Hepsiburada ayarları bulunamadığı için link güncellenemedi." };
+                        }
+                    } else if (order.source === "N11") {
+                        const { N11Client } = await import("@/services/n11/api");
+                        const n11 = new N11Client();
+                        const n11Result = await n11.uploadInvoiceLink(order.orderNumber, invoiceUrl);
+                        if (n11Result.success) {
+                            return { success: true, message: "Mevcut fatura linki N11'e başarıyla yeniden gönderildi ve güncellendi! ✅" };
+                        } else {
+                            return { success: false, message: `Bu sipariş için fatura zaten kesilmişti. N11'e gönderim hatası: ${n11Result.message}` };
+                        }
+                    }
+                } catch (mpError: any) {
+                    return { success: false, message: `Fatura zaten kesilmişti. Pazaryerine yeniden gönderim sırasında hata oluştu: ${mpError.message}` };
+                }
+            }
+            return { success: false, message: `Bu sipariş için zaten fatura kesilmiş: ${(order as any).invoiceNo}` };
+        }
 
         // 3. Gerekli bilgi kontrolü
         const shippingAddr = order.shippingAddress as any;
