@@ -298,14 +298,32 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
 
         let hbSkuMap: Record<string, string> = {};
         try {
-            const listingsResponse = await client.getListings(500, 0);
-            const listingsArray = listingsResponse?.listings || listingsResponse?.items || (Array.isArray(listingsResponse) ? listingsResponse : []);
-            for (const l of listingsArray) {
-                if (l.merchantSku && l.hepsiburadaSku) {
-                    hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
+            let offset = 0;
+            let limit = 100;
+            let hasMore = true;
+            let pageNum = 1;
+            console.log(`📡 HB Listing çekimi başlıyor (Sayfalı)...`);
+            while (hasMore) {
+                const listingsResponse = await client.getListings(limit, offset);
+                const listingsArray = listingsResponse?.listings || listingsResponse?.items || (Array.isArray(listingsResponse) ? listingsResponse : []);
+                if (listingsArray.length === 0) {
+                    hasMore = false;
+                } else {
+                    for (const l of listingsArray) {
+                        if (l.merchantSku && l.hepsiburadaSku) {
+                            hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
+                        }
+                    }
+                    console.log(`   📄 HB Sayfa ${pageNum} çekildi: ${listingsArray.length} ürün geldi.`);
+                    if (listingsArray.length < limit) {
+                        hasMore = false;
+                    } else {
+                        offset += limit;
+                        pageNum++;
+                    }
                 }
             }
-            console.log(`📋 HB Listing eşlemesi: ${Object.keys(hbSkuMap).length} ürün bulundu`);
+            console.log(`📋 HB Toplam Eşleşen Listing: ${Object.keys(hbSkuMap).length} ürün bulundu`);
             const target = "HBCV000007MQETQ";
             const foundKeys = Object.entries(hbSkuMap).filter(([k, v]) => k.includes(target) || v.includes(target));
             if (foundKeys.length > 0) {
