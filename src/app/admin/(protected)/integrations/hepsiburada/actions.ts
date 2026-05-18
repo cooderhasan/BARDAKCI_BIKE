@@ -244,12 +244,13 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
 
         const whereClause: any = {
-            isActive: true,
-            isHepsiburadaActive: true
+            isActive: true
         };
 
         if (productIds && productIds.length > 0) {
             whereClause.id = { in: productIds };
+        } else {
+            whereClause.isHepsiburadaActive = true;
         }
 
         // 1. Fetch products (Include variants + HB product mapping)
@@ -302,7 +303,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     if (!v.sku && !v.barcode) continue;
 
                     const merchantSku = v.sku || v.barcode;
-                    const hepsiburadaSku = hbSkuMap[merchantSku] || hbSkuMap[hbMerchantSku];
+                    const hepsiburadaSku = hbSkuMap[merchantSku] || hbSkuMap[hbMerchantSku] || (p as any).hepsiburadaProduct?.hbSku;
                     if (!hepsiburadaSku) {
                         console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} - atlanıyor`);
                         continue;
@@ -325,7 +326,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                 }
             } else {
                 const merchantSku = hbMerchantSku;
-                const hepsiburadaSku = hbSkuMap[merchantSku];
+                const hepsiburadaSku = hbSkuMap[merchantSku] || (p as any).hepsiburadaProduct?.hbSku;
                 if (!hepsiburadaSku) {
                     console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} (ürün: ${p.name}) - atlanıyor`);
                     continue;
@@ -560,7 +561,14 @@ export async function updateHepsiburadaSku(productId: string, hbSku: string, hbM
             update: updateData,
             create: createData
         });
-        return { success: true, message: "HB SKU güncellendi." };
+
+        // Ürün Hepsiburada ile eşleştirildiğinde, entegrasyon durumunu da otomatik olarak aktif et
+        await prisma.product.update({
+            where: { id: productId },
+            data: { isHepsiburadaActive: true }
+        });
+
+        return { success: true, message: "HB SKU güncellendi ve entegrasyon aktif edildi." };
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };
     }

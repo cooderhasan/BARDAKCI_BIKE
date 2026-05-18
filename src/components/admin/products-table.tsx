@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
-import { deleteProduct, toggleProductStatus, toggleTrendyolStatus, toggleN11Status } from "@/app/admin/(protected)/products/actions";
+import { deleteProduct, toggleProductStatus, toggleTrendyolStatus, toggleN11Status, toggleHepsiburadaStatus } from "@/app/admin/(protected)/products/actions";
 import { syncProductsToHepsiburada } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
 import { toast } from "sonner";
 
@@ -188,6 +188,18 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
             toast.success(!isN11Active ? "Ürün N11'de satışa açıldı." : "Ürün N11'de satışa kapatıldı.");
             setProducts(prev => prev.map(p =>
                 p.id === productId ? { ...p, isN11Active: !isN11Active } : p
+            ));
+        } catch {
+            toast.error("İşlem sırasında bir hata oluştu.");
+        }
+    };
+
+    const handleToggleHepsiburadaStatus = async (productId: string, isHepsiburadaActive: boolean) => {
+        try {
+            await toggleHepsiburadaStatus(productId, !isHepsiburadaActive);
+            toast.success(!isHepsiburadaActive ? "Ürün Hepsiburada'da satışa açıldı." : "Ürün Hepsiburada'da satışa kapatıldı.");
+            setProducts(prev => prev.map(p =>
+                p.id === productId ? { ...p, isHepsiburadaActive: !isHepsiburadaActive } : p
             ));
         } catch {
             toast.error("İşlem sırasında bir hata oluştu.");
@@ -479,11 +491,10 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleHepsiburadaSync(product.id)}
-                                                    disabled={hbSyncing === product.id}
-                                                    title="Hepsiburada'ya Sync Et"
+                                                    onClick={() => handleToggleHepsiburadaStatus(product.id, !!(product as any).isHepsiburadaActive)}
+                                                                                                        title={(product as any).isHepsiburadaActive ? "Hepsiburada'da Satışa Kapat" : "Hepsiburada'da Satışa Aç"}
                                                 >
-                                                    <RefreshCw className={`h-4 w-4 ${hbSyncing === product.id ? 'animate-spin' : ''}`} />
+                                                    <RefreshCw className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         </TableCell>
@@ -527,7 +538,16 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                             Görüntüle
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem
+                                                    {(product as any).isHepsiburadaActive && (
+                                                         <DropdownMenuItem
+                                                             onClick={() => handleHepsiburadaSync(product.id)}
+                                                             disabled={hbSyncing === product.id}
+                                                         >
+                                                             <RefreshCw className={`h-4 w-4 mr-2 ${hbSyncing === product.id ? 'animate-spin' : ''}`} />
+                                                             HB Fiyat/Stok Güncelle
+                                                         </DropdownMenuItem>
+                                                     )}
+<DropdownMenuItem
                                                         onClick={() =>
                                                             handleToggleStatus(product.id, product.isActive)
                                                         }

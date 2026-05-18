@@ -396,6 +396,30 @@ export async function toggleN11Status(productId: string, isN11Active: boolean) {
     return { success: true };
 }
 
+export async function toggleHepsiburadaStatus(productId: string, isHepsiburadaActive: boolean) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        throw new Error("Unauthorized");
+    }
+
+    await prisma.product.update({
+        where: { id: productId },
+        data: { isHepsiburadaActive },
+    });
+
+    // --- OTOMATİK PAZARYERİ SENKRONİZASYONU ---
+    // Hepsiburada durumu değiştiğinde (kapatılmış olabilir), hemen kuyruğa at
+    try {
+        const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+        await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: [productId] });
+    } catch (e) {
+        console.error("Marketplace sync queue error:", e);
+    }
+
+    revalidatePath("/admin/products");
+    return { success: true };
+}
+
 export async function syncProductToMarketplaces(productId: string) {
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -413,7 +437,7 @@ export async function syncProductToMarketplaces(productId: string) {
     // Trendyol Sync
     if ((product as any).isTrendyolActive) {
         try {
-            const res = await syncProductsToTrendyol(productId);
+            const res = await syncProductsToTrendyol([productId]);
             results.push(`Trendyol: ${res.success ? "Başarılı" : res.message}`);
         } catch (e: any) {
             results.push(`Trendyol: Hata (${e.message})`);
@@ -423,7 +447,7 @@ export async function syncProductToMarketplaces(productId: string) {
     // N11 Sync
     if ((product as any).isN11Active) {
         try {
-            const res = await syncProductsToN11(productId);
+            const res = await syncProductsToN11([productId]);
             results.push(`N11: ${res.success ? "Başarılı" : res.message}`);
         } catch (e: any) {
             results.push(`N11: Hata (${e.message})`);
@@ -433,7 +457,7 @@ export async function syncProductToMarketplaces(productId: string) {
     // Hepsiburada Sync
     if ((product as any).isHepsiburadaActive) {
         try {
-            const res = await syncProductsToHepsiburada(productId);
+            const res = await syncProductsToHepsiburada([productId]);
             results.push(`Hepsiburada: ${res.success ? "Başarılı" : res.message}`);
         } catch (e: any) {
             results.push(`Hepsiburada: Hata (${e.message})`);
