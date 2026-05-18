@@ -1,9 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { HepsiburadaClient } from "@/services/hepsiburada/api";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        const { searchParams } = new URL(request.url);
+        const orderNumber = searchParams.get("orderNumber") || "4623285863";
+        
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) {
             return NextResponse.json({ success: false, error: "Aktif entegrasyon bulunamadı." });
@@ -16,7 +19,6 @@ export async function GET() {
             isTestMode: config.isTestMode ?? false,
         });
 
-        const orderNumber = "4623285863";
         let rawOrderData: any = null;
         let fetchError: string | null = null;
 
