@@ -693,14 +693,12 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
                 isSynced: true, 
                 lastSyncedAt: new Date(), 
                 lastSyncError: null,
-                // merchantSku'yu sadece daha önce set edilmemişse ana SKU ile doldur
-                ...( !(product as any).hepsiburadaProduct?.merchantSku ? { merchantSku: product.sku || product.barcode || product.id } : {}),
             },
             create: { 
                 productId: product.id, 
                 isSynced: true, 
                 lastSyncedAt: new Date(),
-                merchantSku: (product as any).hepsiburadaProduct?.merchantSku || product.sku || product.barcode || product.id,
+                merchantSku: product.sku || product.barcode || product.id,
             }
         });
 
