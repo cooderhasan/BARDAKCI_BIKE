@@ -42,11 +42,13 @@ export async function GET(request: NextRequest) {
         for (const item of allItems) {
             const calculatedOrderNumber = item.orderNumber || item.orderId || String(item.id);
             
+            const merchantSkuVal = item.merchantSku || item.merchantSKU;
+            
             // Ürün eşleştirme adımlarını taklit edelim
             let product = null;
             const hbConditions: any[] = [];
-            if (item.merchantSku) {
-                hbConditions.push({ merchantSku: String(item.merchantSku) });
+            if (merchantSkuVal) {
+                hbConditions.push({ merchantSku: String(merchantSkuVal) });
             }
             if (item.sku) {
                 hbConditions.push({ hbSku: String(item.sku) });
@@ -67,7 +69,7 @@ export async function GET(request: NextRequest) {
             let directProduct = null;
             if (!product) {
                 const searchConditions: any[] = [];
-                if (item.merchantSku) searchConditions.push({ sku: String(item.merchantSku) });
+                if (merchantSkuVal) searchConditions.push({ sku: String(merchantSkuVal) });
                 if (item.sku) searchConditions.push({ sku: String(item.sku) });
                 if (item.barcode) searchConditions.push({ barcode: String(item.barcode) });
 

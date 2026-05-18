@@ -155,10 +155,12 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                 // Ürünü bul (HepsiburadaProduct eşleşmelerinden veya doğrudan merchantSku, sku, barcode ile)
                 let product = null;
 
+                const merchantSkuVal = item.merchantSku || item.merchantSKU;
+                
                 // 1. Önce HepsiburadaProduct tablosundaki özel sihirbaz eşleşmelerine bakalım
                 const hbConditions: any[] = [];
-                if (item.merchantSku) {
-                    hbConditions.push({ merchantSku: String(item.merchantSku) });
+                if (merchantSkuVal) {
+                    hbConditions.push({ merchantSku: String(merchantSkuVal) });
                 }
                 if (item.sku) {
                     hbConditions.push({ hbSku: String(item.sku) });
@@ -178,7 +180,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                 // 2. Eğer özel eşleşme bulunamazsa, doğrudan Product tablosundaki sku ve barkod ile eşleştir
                 if (!product) {
                     const searchConditions: any[] = [];
-                    if (item.merchantSku) searchConditions.push({ sku: String(item.merchantSku) });
+                    if (merchantSkuVal) searchConditions.push({ sku: String(merchantSkuVal) });
                     if (item.sku) searchConditions.push({ sku: String(item.sku) });
                     if (item.barcode) searchConditions.push({ barcode: String(item.barcode) });
 
