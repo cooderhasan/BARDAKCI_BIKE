@@ -102,10 +102,10 @@ export async function syncOrdersFromHepsiburada() {
             isTestMode: config.isTestMode ?? false,
         });
 
-        // HB sipariş durumları: New (yeni gelen), Approved (onaylanmış, paketlenecek)
+        // HB sipariş durumları: New, Approved, Unacked, Packed
         let allItems: any[] = [];
 
-        for (const status of ["New", "Approved"]) {
+        for (const status of ["New", "Approved", "Unacked", "Packed"]) {
             try {
                 const res = await client.getOrders({ status, size: 100 });
                 if (res?.items && res.items.length > 0) {
