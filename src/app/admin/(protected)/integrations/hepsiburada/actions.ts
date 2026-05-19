@@ -138,120 +138,150 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
         let importedCount = 0;
         let skippedCount = 0;
 
+        // HB her satır ayrı item olarak gelir, orderNumber ile grupla
+        const groupedOrders = new Map<string, any[]>();
         for (const item of allItems) {
-            try {
-                // HB her satır ayrı item olarak gelir, orderNumber ile grupla
-                const orderNumber = item.orderNumber || item.orderId || String(item.id);
+            const orderNumber = item.orderNumber || item.orderId || String(item.id);
+            if (!groupedOrders.has(orderNumber)) {
+                groupedOrders.set(orderNumber, []);
+            }
+            groupedOrders.get(orderNumber)!.push(item);
+        }
 
+        for (const [orderNumber, items] of groupedOrders.entries()) {
+            try {
                 // Daha önce import edilmiş mi?
                 const existing = await prisma.order.findUnique({
-                    where: { orderNumber }
+                    where: { orderNumber },
+                    include: { items: true }
                 });
+
                 if (existing) {
-                    skippedCount++;
+                    if (existing.items.length === 0) {
+                        // Daha önce ürün eşleşmediği için boş eklenmiş, silip yeniden deneyelim.
+                        await prisma.order.delete({ where: { id: existing.id } });
+                    } else {
+                        skippedCount++;
+                        continue;
+                    }
+                }
+
+                const orderItemsToCreate: any[] = [];
+                let totalOrderLineTotal = 0;
+                let discountTotal = 0;
+                let vatAmountTotal = 0;
+                let shippingAddressInfo = items[0].shippingAddress || {};
+                let invoiceInfo = items[0].invoice || {};
+                let customerName = shippingAddressInfo.name || items[0].customerName || "Hepsiburada Müşterisi";
+                let customerEmail = shippingAddressInfo.email || items[0].customerEmail || "hb@customer.com";
+                let customerPhone = shippingAddressInfo.phoneNumber || shippingAddressInfo.phone || "";
+                let cargoCompany = items[0].cargoCompany || (items[0].cargoCompanyModel && items[0].cargoCompanyModel.name) || items[0].shippingCompanyName || null;
+                let packageId = String(items[0].packageNumber || items[0].id || "");
+
+                const stockUpdates: {id: string, qty: number}[] = [];
+
+                for (const item of items) {
+                    let product = null;
+                    const merchantSkuVal = item.merchantSku || item.merchantSKU;
+
+                    // 1. Önce HepsiburadaProduct tablosundaki özel sihirbaz eşleşmelerine bakalım
+                    const hbConditions: any[] = [];
+                    if (merchantSkuVal) hbConditions.push({ merchantSku: String(merchantSkuVal) });
+                    if (item.sku) {
+                        hbConditions.push({ hbSku: String(item.sku) });
+                        hbConditions.push({ merchantSku: String(item.sku) });
+                    }
+
+                    if (hbConditions.length > 0) {
+                        const hbMapping = await prisma.hepsiburadaProduct.findFirst({
+                            where: { OR: hbConditions },
+                            include: { product: true }
+                        });
+                        if (hbMapping && hbMapping.product) product = hbMapping.product;
+                    }
+
+                    // 2. Özel eşleşme bulunamazsa, doğrudan Product tablosundaki sku ve barkod ile eşleştir
+                    if (!product) {
+                        const searchConditions: any[] = [];
+                        if (merchantSkuVal) searchConditions.push({ sku: String(merchantSkuVal) });
+                        if (item.sku) searchConditions.push({ sku: String(item.sku) });
+                        if (item.barcode) searchConditions.push({ barcode: String(item.barcode) });
+
+                        if (searchConditions.length > 0) {
+                            product = await prisma.product.findFirst({
+                                where: { OR: searchConditions }
+                            });
+                        }
+                    }
+
+                    if (!product) {
+                        console.warn(`⚠️ HB Sipariş ${orderNumber}: Ürün eşleşmedi (SKU: ${merchantSkuVal})`);
+                        continue;
+                    }
+
+                    const unitPrice = item.unitPrice?.amount || item.unitPrice || item.totalPrice?.amount || 0;
+                    const quantity = item.quantity || 1;
+                    const lineTotal = unitPrice * quantity;
+                    const vatRate = item.vatRate || item.vat || 20;
+
+                    orderItemsToCreate.push({
+                        productId: product.id,
+                        quantity: quantity,
+                        unitPrice: unitPrice,
+                        productName: item.name || item.productName || "HB Ürün",
+                        lineTotal: lineTotal,
+                        vatRate: vatRate,
+                        discountRate: 0
+                    });
+
+                    totalOrderLineTotal += lineTotal;
+                    vatAmountTotal += lineTotal * (vatRate / (100 + vatRate));
+                    discountTotal += item.hbDiscount?.amount || item.discountPriceToBeInvoicedHb || 0;
+                    
+                    stockUpdates.push({id: product.id, qty: quantity});
+                }
+
+                if (orderItemsToCreate.length === 0) {
+                    console.log(`⚠️ HB Sipariş ${orderNumber}: Eşleşen ürün bulunamadığı için aktarılmadı.`);
                     continue;
                 }
 
-                // Ürünü bul (HepsiburadaProduct eşleşmelerinden veya doğrudan merchantSku, sku, barcode ile)
-                let product = null;
-
-                const merchantSkuVal = item.merchantSku || item.merchantSKU;
-                
-                // 1. Önce HepsiburadaProduct tablosundaki özel sihirbaz eşleşmelerine bakalım
-                const hbConditions: any[] = [];
-                if (merchantSkuVal) {
-                    hbConditions.push({ merchantSku: String(merchantSkuVal) });
-                }
-                if (item.sku) {
-                    hbConditions.push({ hbSku: String(item.sku) });
-                    hbConditions.push({ merchantSku: String(item.sku) });
-                }
-
-                if (hbConditions.length > 0) {
-                    const hbMapping = await prisma.hepsiburadaProduct.findFirst({
-                        where: { OR: hbConditions },
-                        include: { product: true }
-                    });
-                    if (hbMapping && hbMapping.product) {
-                        product = hbMapping.product;
-                    }
-                }
-
-                // 2. Eğer özel eşleşme bulunamazsa, doğrudan Product tablosundaki sku ve barkod ile eşleştir
-                if (!product) {
-                    const searchConditions: any[] = [];
-                    if (merchantSkuVal) searchConditions.push({ sku: String(merchantSkuVal) });
-                    if (item.sku) searchConditions.push({ sku: String(item.sku) });
-                    if (item.barcode) searchConditions.push({ barcode: String(item.barcode) });
-
-                    if (searchConditions.length > 0) {
-                        product = await prisma.product.findFirst({
-                            where: { OR: searchConditions }
-                        });
-                    }
-                }
-
-                // Fiyat bilgileri
-                const unitPrice = item.unitPrice?.amount || item.unitPrice || item.totalPrice?.amount || 0;
-                const quantity = item.quantity || 1;
-                const lineTotal = unitPrice * quantity;
-                const vatRate = item.vatRate || item.vat || 20;
-
-                // Sipariş kalemlerini oluştur
-                const orderItems: any[] = [{
-                    productId: product?.id || null,
-                    quantity: quantity,
-                    unitPrice: unitPrice,
-                    productName: item.name || item.productName || "HB Ürün",
-                    lineTotal: lineTotal,
-                    vatRate: vatRate,
-                    discountRate: 0
-                }];
-
-                // Müşteri ve adres bilgileri
-                const shipping = item.shippingAddress || {};
-                const invoice = item.invoice || {};
-                const customerName = shipping.name || item.customerName || "Hepsiburada Müşterisi";
-                const customerEmail = shipping.email || item.customerEmail || "hb@customer.com";
-                const customerPhone = shipping.phoneNumber || shipping.phone || "";
-
-                // Fatura bilgileri (VKN/TCKN)
-                const taxNumber = invoice.taxNumber || invoice.turkishIdentityNumber || "";
-                const taxOffice = invoice.taxOffice || "";
+                const taxNumber = invoiceInfo.taxNumber || invoiceInfo.turkishIdentityNumber || "";
+                const taxOffice = invoiceInfo.taxOffice || "";
 
                 await prisma.order.create({
                     data: {
                         orderNumber: orderNumber,
                         status: "CONFIRMED",
-                        total: item.totalPrice?.amount || lineTotal,
-                        subtotal: lineTotal,
-                        discountAmount: item.hbDiscount?.amount || item.discountPriceToBeInvoicedHb || 0,
+                        total: totalOrderLineTotal - discountTotal,
+                        subtotal: totalOrderLineTotal,
+                        discountAmount: discountTotal,
                         appliedDiscountRate: 0,
-                        vatAmount: lineTotal * (vatRate / (100 + vatRate)),
+                        vatAmount: vatAmountTotal,
                         guestEmail: customerEmail,
                         shippingAddress: {
                             fullName: customerName,
-                            address: shipping.address || "",
-                            city: shipping.city || "",
-                            district: shipping.town || shipping.district || "",
+                            address: shippingAddressInfo.address || "",
+                            city: shippingAddressInfo.city || "",
+                            district: shippingAddressInfo.town || shippingAddressInfo.district || "",
                             phone: customerPhone,
                             taxNumber: taxNumber || undefined,
                             taxOffice: taxOffice || undefined,
                         },
                         items: {
-                            create: orderItems.filter(i => i.productId)
+                            create: orderItemsToCreate
                         },
                         source: "HEPSIBURADA",
-                        cargoCompany: item.cargoCompany || (item.cargoCompanyModel && item.cargoCompanyModel.name) || item.shippingCompanyName || null,
-                        shipmentPackageId: String(item.packageNumber || item.id || ""),
+                        cargoCompany: cargoCompany,
+                        shipmentPackageId: packageId,
                     }
                 });
 
                 // Stok düş
-                if (product) {
+                for (const update of stockUpdates) {
                     await prisma.product.update({
-                        where: { id: product.id },
-                        data: { stock: { decrement: quantity } }
+                        where: { id: update.id },
+                        data: { stock: { decrement: update.qty } }
                     });
                 }
 
