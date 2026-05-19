@@ -261,7 +261,7 @@ export class HepsiburadaClient {
         
         let allCategories: any[] = [];
         let page = 0;
-        const size = 5000;
+        const size = 1000;
         let hasMore = true;
 
         console.log(`📡 HB Fetching Categories started...`);
@@ -283,11 +283,11 @@ export class HepsiburadaClient {
 
             const data = await response.json();
             const items = data.data || [];
-            allCategories = allCategories.concat(items);
-
-            if (items.length < size || (data.totalPages && page >= data.totalPages - 1)) {
+            
+            if (items.length === 0) {
                 hasMore = false;
             } else {
+                allCategories = allCategories.concat(items);
                 page++;
             }
         }
