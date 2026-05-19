@@ -120,7 +120,8 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
             // Son 7 günün siparişlerini çekmek için beginDate ayarla
             const beginDate = new Date();
             beginDate.setDate(beginDate.getDate() - 7);
-            const beginDateStr = beginDate.toISOString();
+            // HB API requires YYYY-MM-DDTHH:mm:ss format
+            const beginDateStr = beginDate.toISOString().split('.')[0];
 
             // HB sipariş durumları: New, Approved, Unacked, Packed
             for (const status of ["New", "Approved", "Unacked", "Packed"]) {
