@@ -102,6 +102,14 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
             isTestMode: config.isTestMode ?? false,
         });
 
+        // 🛠️ GEÇİCİ TEST: Spesifik siparişin durumunu kontrol etmek için log bırakalım
+        try {
+            const testOrder = await client.getOrderByNumber("4454906686");
+            console.log("🛠️ TEST HB SİPARİŞ DETAYI (4454906686):", JSON.stringify(testOrder).substring(0, 800));
+        } catch(e: any) {
+            console.log("🛠️ TEST HB SİPARİŞ ÇEKİLEMEDİ (4454906686):", e.message);
+        }
+
         let allItems: any[] = [];
 
         if (specificOrderNumber) {
