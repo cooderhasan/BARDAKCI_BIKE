@@ -131,15 +131,11 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
             const endDate = new Date();
             const endDateStr = endDate.toISOString().split('.')[0];
             
-            const beginDate = new Date();
-            beginDate.setDate(beginDate.getDate() - 7);
-            // HB API requires YYYY-MM-DDTHH:mm:ss format
-            const beginDateStr = beginDate.toISOString().split('.')[0];
-
+            // Tarih filtrelerini Hepsiburada'nın inisiyatifine (varsayılan 24 saat) bırakıyoruz
             // Bazı statüler API dokümanında farklı (Open), ya da statü parametresi göndermeyerek ("") hepsini çekebiliriz
             for (const status of ["", "New", "Approved", "Unacked", "Packaged", "Open", "Shipped"]) {
                 try {
-                    const res = await client.getOrders({ status, size: 100, beginDate: beginDateStr });
+                    const res = await client.getOrders({ status, size: 100 });
                     if (res?.items && res.items.length > 0) {
                         console.log(`📦 HB Status '${status || "ALL"}': ${res.items.length} sipariş bulundu`);
                         allItems.push(...res.items);
