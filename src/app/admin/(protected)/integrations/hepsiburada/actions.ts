@@ -476,7 +476,7 @@ export async function getHepsiburadaCategories() {
             isTestMode: config.isTestMode ?? true
         });
 
-        const data = await client.getCategories({ size: 1000 });
+        const data = await client.getCategories();
         return { success: true, data: data.data || [] };
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };

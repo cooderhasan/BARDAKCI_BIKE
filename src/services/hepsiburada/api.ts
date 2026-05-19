@@ -257,22 +257,43 @@ export class HepsiburadaClient {
     async getCategories(params: { leaf?: boolean; status?: string } = {}) {
         await this.init();
         const sitSuffix = this.isTestMode ? "-sit" : "";
-        const { leaf = true, status = "ACTIVE" } = params;
+        const { leaf, status = "ACTIVE" } = params;
         
-        let url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/get-all-categories?status=${status}&size=50000`;
-        
-        console.log(`📡 HB Fetching Categories: ${url}`);
+        let allCategories: any[] = [];
+        let page = 0;
+        const size = 5000;
+        let hasMore = true;
 
-        const response = await fetch(url, {
-            headers: this.getHeaders(),
-        });
+        console.log(`📡 HB Fetching Categories started...`);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HB Category API Error: ${response.status} - ${errorText.substring(0, 200)}`);
+        while (hasMore) {
+            let url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/categories/get-all-categories?status=${status}&page=${page}&size=${size}`;
+            if (leaf !== undefined) {
+                url += `&leaf=${leaf}`;
+            }
+
+            const response = await fetch(url, {
+                headers: this.getHeaders(),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HB Category API Error: ${response.status} - ${errorText.substring(0, 200)}`);
+            }
+
+            const data = await response.json();
+            const items = data.data || [];
+            allCategories = allCategories.concat(items);
+
+            if (items.length < size || (data.totalPages && page >= data.totalPages - 1)) {
+                hasMore = false;
+            } else {
+                page++;
+            }
         }
-
-        return await response.json();
+        
+        console.log(`✅ HB Fetching Categories completed. Total: ${allCategories.length}`);
+        return { data: allCategories };
     }
 
     /**
