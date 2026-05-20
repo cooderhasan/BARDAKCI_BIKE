@@ -23,7 +23,7 @@ import {
     Link2
 } from "lucide-react";
 import { toast } from "sonner";
-import { sendProductToHepsiburada, getHepsiburadaCategoryAttributes, getHepsiburadaAttributeValues, updateHepsiburadaSku } from "../actions";
+import { sendProductToHepsiburada, getHepsiburadaCategoryAttributes, getHepsiburadaAttributeValues, updateHepsiburadaSku, enqueueHepsiburadaSync } from "../actions";
 import {
     Dialog,
     DialogContent,
@@ -123,6 +123,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
+    const [syncing, setSyncing] = useState(false);
     
     const [showAttrModal, setShowAttrModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -137,6 +138,25 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
         p.sku?.toLowerCase().includes(search.toLowerCase()) ||
         p.barcode?.toLowerCase().includes(search.toLowerCase())
     );
+
+    const handleBulkSync = async () => {
+        setSyncing(true);
+        try {
+            const res = await enqueueHepsiburadaSync();
+            if (res.success) {
+                toast.success(res.message, {
+                    description: "Ürünler arka planda sırayla güncelleniyor. Panelden çıkış yapabilirsiniz.",
+                    duration: 5000
+                });
+            } else {
+                toast.error(res.message);
+            }
+        } catch (error) {
+            toast.error("Kuyruk işlemi başlatılamadı.");
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const handleOpenWizard = async (product: any) => {
         const mappedCat = product.categories.find((c: any) => c.hbCategoryId !== null && c.hbCategoryId !== undefined);
@@ -216,7 +236,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input 
@@ -225,6 +245,22 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button 
+                        onClick={handleBulkSync} 
+                        disabled={syncing}
+                        variant="outline"
+                        className="border-blue-200 text-blue-600 hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
+                    >
+                        {syncing ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
+                        <span className="hidden sm:inline">Tümünü Kuyrukta Güncelle</span>
+                        <span className="sm:hidden">Toplu Güncelle</span>
+                    </Button>
+
+                    <Badge variant="outline" className="h-10 px-4 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 border-blue-100 dark:border-blue-900 font-bold">
+                        {initialProducts.length} ÜRÜN
+                    </Badge>
                 </div>
             </div>
 
