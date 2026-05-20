@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { BulkN11PriceForm } from "@/components/admin/bulk-n11-price-form";
 import { BulkHbPriceForm } from "@/components/admin/bulk-hb-price-form";
+import { BulkPriceTransferForm } from "@/components/admin/bulk-price-transfer-form";
 
 export default async function BulkUpdatesPage() {
     const [categories, brands] = await Promise.all([
@@ -38,12 +39,13 @@ export default async function BulkUpdatesPage() {
             </div>
 
             <Tabs defaultValue="price" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 max-w-[1000px]">
-                    <TabsTrigger value="price">Fiyat Güncelleme</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-6 max-w-[1200px]">
+                    <TabsTrigger value="price">Ana Fiyat</TabsTrigger>
                     <TabsTrigger value="trendyol">Trendyol Fiyatları</TabsTrigger>
                     <TabsTrigger value="n11">N11 Fiyatları</TabsTrigger>
-                    <TabsTrigger value="hepsiburada">Hepsiburada Fiyatları</TabsTrigger>
-                    <TabsTrigger value="stock">Stok Güncelleme</TabsTrigger>
+                    <TabsTrigger value="hepsiburada">HB Fiyatları</TabsTrigger>
+                    <TabsTrigger value="transfer" className="text-emerald-700 bg-emerald-50/50">Fiyat Transferi</TabsTrigger>
+                    <TabsTrigger value="stock">Stoklar</TabsTrigger>
                 </TabsList>
                 <TabsContent value="price" className="mt-6">
                     <BulkPriceForm categories={categories} brands={brands} />
@@ -56,6 +58,9 @@ export default async function BulkUpdatesPage() {
                 </TabsContent>
                 <TabsContent value="hepsiburada" className="mt-6">
                     <BulkHbPriceForm categories={categories} brands={brands} />
+                </TabsContent>
+                <TabsContent value="transfer" className="mt-6">
+                    <BulkPriceTransferForm categories={categories} brands={brands} />
                 </TabsContent>
                 <TabsContent value="stock" className="mt-6">
                     <BulkStockForm categories={categories} brands={brands} />

@@ -623,3 +623,169 @@ export async function executeBulkHepsiburadaPriceUpdate(
     }
 }
 
+// ==================== CROSS PLATFORM PRICE TRANSFER ====================
+
+export type PriceField = "listPrice" | "salePrice" | "trendyolPrice" | "n11Price" | "hepsiburadaPrice";
+
+export interface PriceTransferCriteria extends BulkUpdateCriteria {
+    sourceField: PriceField;
+    targetField: PriceField;
+    onlyEmptyTarget: boolean;
+}
+
+export interface PriceTransferParams {
+    operation: "INCREASE_PERCENTAGE" | "DECREASE_PERCENTAGE" | "INCREASE_FIXED" | "DECREASE_FIXED" | "MULTIPLY" | "COPY";
+    value: number;
+}
+
+export interface PriceTransferPreviewResult {
+    id: string;
+    name: string;
+    sourcePrice: number;
+    oldTargetPrice: number;
+    newTargetPrice: number;
+    sku: string | null;
+    barcode: string | null;
+}
+
+export async function previewBulkPriceTransfer(
+    criteria: PriceTransferCriteria,
+    params: PriceTransferParams
+): Promise<PriceTransferPreviewResult[]> {
+    const where: any = {};
+
+    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
+    if (criteria.categoryId && criteria.categoryId !== "ALL") {
+        where.categories = { some: { id: criteria.categoryId } };
+    }
+
+    const products = await prisma.product.findMany({
+        where,
+        select: {
+            id: true,
+            name: true,
+            sku: true,
+            barcode: true,
+            listPrice: true,
+            salePrice: true,
+            trendyolPrice: true,
+            n11Price: true,
+            hepsiburadaPrice: true,
+        },
+    });
+
+    const results: PriceTransferPreviewResult[] = [];
+
+    for (const p of products) {
+        let sourceVal = p[criteria.sourceField] ? Number(p[criteria.sourceField]) : 0;
+        
+        if (!sourceVal && (criteria.sourceField === 'trendyolPrice' || criteria.sourceField === 'n11Price' || criteria.sourceField === 'hepsiburadaPrice')) {
+            sourceVal = Number(p.listPrice);
+        }
+
+        let targetVal = p[criteria.targetField] ? Number(p[criteria.targetField]) : 0;
+
+        if (criteria.onlyEmptyTarget && targetVal > 0) {
+            continue;
+        }
+
+        let newTargetPrice = sourceVal;
+
+        switch (params.operation) {
+            case "INCREASE_PERCENTAGE":
+                newTargetPrice = sourceVal + (sourceVal * (params.value / 100));
+                break;
+            case "DECREASE_PERCENTAGE":
+                newTargetPrice = sourceVal - (sourceVal * (params.value / 100));
+                break;
+            case "INCREASE_FIXED":
+                newTargetPrice = sourceVal + params.value;
+                break;
+            case "DECREASE_FIXED":
+                newTargetPrice = sourceVal - params.value;
+                break;
+            case "MULTIPLY":
+                newTargetPrice = sourceVal * params.value;
+                break;
+            case "COPY":
+                newTargetPrice = sourceVal;
+                break;
+        }
+
+        if (newTargetPrice < 0) newTargetPrice = 0;
+        newTargetPrice = Number(newTargetPrice.toFixed(2));
+
+        if (newTargetPrice !== targetVal) {
+            results.push({
+                id: p.id,
+                name: p.name,
+                sourcePrice: sourceVal,
+                oldTargetPrice: targetVal,
+                newTargetPrice: newTargetPrice,
+                sku: p.sku,
+                barcode: p.barcode,
+            });
+        }
+    }
+
+    return results;
+}
+
+export async function executeBulkPriceTransfer(
+    criteria: PriceTransferCriteria,
+    params: PriceTransferParams
+) {
+    const session = await auth();
+    if (!session?.user?.id) {
+        throw new Error("Unauthorized");
+    }
+
+    const preview = await previewBulkPriceTransfer(criteria, params);
+    const CHUNK_SIZE = 50;
+
+    try {
+        for (let i = 0; i < preview.length; i += CHUNK_SIZE) {
+            const chunk = preview.slice(i, i + CHUNK_SIZE);
+            await prisma.$transaction(
+                chunk.map((item) =>
+                    prisma.product.update({
+                        where: { id: item.id },
+                        data: { [criteria.targetField]: item.newTargetPrice },
+                    })
+                )
+            );
+        }
+
+        await prisma.adminLog.create({
+            data: {
+                action: "BULK_PRICE_TRANSFER",
+                details: `Transferred prices from ${criteria.sourceField} to ${criteria.targetField} for ${preview.length} products. Params: ${JSON.stringify(params)}`,
+                entityId: "BULK",
+                entityType: "PRODUCT",
+                adminId: session.user.id,
+            }
+        });
+
+        try {
+            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+            const productIds = preview.map(p => p.id);
+            if (productIds.length > 0) {
+                if (criteria.targetField === 'trendyolPrice') {
+                    await addMarketplaceSyncJob({ marketplace: "trendyol", type: "prices", productIds }).catch(() => {});
+                } else if (criteria.targetField === 'n11Price') {
+                    await addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds }).catch(() => {});
+                } else if (criteria.targetField === 'hepsiburadaPrice') {
+                    await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds }).catch(() => {});
+                }
+            }
+        } catch (e) {
+            console.error("Bulk price transfer sync queue error:", e);
+        }
+
+        return { success: true, count: preview.length };
+    } catch (error) {
+        console.error("Bulk price transfer error:", error);
+        throw new Error("Fiyat transferi sırasında hata oluştu.");
+    }
+}
+
