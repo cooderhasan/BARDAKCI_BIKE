@@ -7,7 +7,7 @@ export const marketplaceSyncQueue = new Queue(QUEUE_NAMES.MARKETPLACE_SYNC, {
 });
 
 export interface SyncJobData {
-    marketplace: "trendyol" | "n11";
+    marketplace: "trendyol" | "n11" | "hepsiburada";
     type: "products" | "prices" | "stocks";
     productIds?: string[]; // If empty, sync all applicable
 }

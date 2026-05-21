@@ -283,6 +283,13 @@ export async function syncOrdersFromN11() {
                     }
                 });
 
+                // Trigger stock sync to other marketplaces
+                const affectedProductIds = Array.from(new Set(orderItems.map(item => item.productId)));
+                if (affectedProductIds.length > 0) {
+                    addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: affectedProductIds }).catch(console.error);
+                    addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: affectedProductIds }).catch(console.error);
+                }
+
                 // AUTOMATIC STOCK CONFIRMATION (Official: PUT /rest/order/v1/update with status 'Picking')
                 try {
                     const acceptRes = await client.acceptOrder(lineIds);

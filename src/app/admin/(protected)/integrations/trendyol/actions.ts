@@ -581,6 +581,13 @@ export async function syncOrdersFromTrendyol() {
                     }
                 });
 
+                // Trigger stock sync to other marketplaces
+                const affectedProductIds = Array.from(new Set(resolvedItems.map(item => item.productId)));
+                if (affectedProductIds.length > 0) {
+                    addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: affectedProductIds }).catch(console.error);
+                    addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: affectedProductIds }).catch(console.error);
+                }
+
                 importedCount++;
             } else {
                 if (missingBarcodeForThisOrder) {

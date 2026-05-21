@@ -313,6 +313,13 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                     });
                 }
 
+                // Trigger stock sync to other marketplaces
+                const affectedProductIds = Array.from(new Set(orderItemsToCreate.map(item => item.productId)));
+                if (affectedProductIds.length > 0) {
+                    addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: affectedProductIds }).catch(console.error);
+                    addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: affectedProductIds }).catch(console.error);
+                }
+
                 importedCount++;
                 console.log(`✅ HB Sipariş import edildi: ${orderNumber}`);
 
