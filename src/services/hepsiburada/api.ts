@@ -207,14 +207,14 @@ export class HepsiburadaClient {
         
         let url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}?limit=${size}&offset=${page * size}`;
         if (status) {
-            url += `&status=${status}`;
+            url += `&status=${encodeURIComponent(status)}`;
         }
         
         const begin = options.begindate || options.beginDate;
         const end = options.enddate || options.endDate;
 
-        if (begin) url += `&begindate=${begin}`;
-        if (end) url += `&enddate=${end}`;
+        if (begin) url += `&begindate=${encodeURIComponent(begin)}`;
+        if (end) url += `&enddate=${encodeURIComponent(end)}`;
 
         console.log(`📡 HB Fetching Orders: ${url}`);
 
