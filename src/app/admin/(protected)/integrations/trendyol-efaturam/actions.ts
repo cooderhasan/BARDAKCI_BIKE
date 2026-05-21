@@ -365,6 +365,13 @@ export async function sendOrderInvoice(orderId: string) {
         if (!invoiceUrl && invoiceId) {
             const documentType = useEInvoice ? "EINVOICE" : "EARCHIVE";
             invoiceUrl = await client.getPermanentDownloadUrl(invoiceId.toString(), documentType as any);
+
+            // Toplu işlemlerde PDF'in hazırlanması zaman alabilir. Eğer ilk sorguda link alınamadıysa 2 saniye bekleyip tekrar deneyelim.
+            if (!invoiceUrl) {
+                console.log("⏳ PDF linki henüz hazır değil, 2 saniye bekleniyor...");
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                invoiceUrl = await client.getPermanentDownloadUrl(invoiceId.toString(), documentType as any);
+            }
         }
 
         await prisma.order.update({
