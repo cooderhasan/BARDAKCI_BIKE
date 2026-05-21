@@ -365,18 +365,20 @@ export async function createOrder(data: CreateOrderData) {
         // For Credit Card, we will send email in the PayTR Callback (success)
         if (paymentMethod !== "CREDIT_CARD") {
             const emailTo = userForEmail?.email || data.guestEmail;
+            const emailItems = orderItems.map((item) => ({
+                productName: item.productName,
+                quantity: item.quantity,
+                unitPrice: Number(item.unitPrice),
+                lineTotal: item.lineTotal,
+                variantInfo: item.variantInfo || undefined,
+            }));
+
             if (emailTo) {
                 sendOrderConfirmationEmail({
                     to: emailTo,
                     orderNumber: order.orderNumber,
                     customerName: data.shippingAddress.name,
-                    items: orderItems.map((item) => ({
-                        productName: item.productName,
-                        quantity: item.quantity,
-                        unitPrice: Number(item.unitPrice),
-                        lineTotal: item.lineTotal,
-                        variantInfo: item.variantInfo || undefined,
-                    })),
+                    items: emailItems,
                     totalAmount: total,
                     paymentMethod: paymentMethod,
                     bankInfo: paymentMethod === "BANK_TRANSFER" ? {
@@ -403,6 +405,7 @@ export async function createOrder(data: CreateOrderData) {
                 totalAmount: total,
                 orderId: order.id,
                 cargoCompany: data.cargoCompany,
+                items: emailItems,
             }).catch((err) => {
                 console.error("Failed to send admin notification email:", err);
             });

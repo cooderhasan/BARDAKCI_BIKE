@@ -17,6 +17,7 @@ interface SendOrderConfirmationProps {
         quantity: number;
         unitPrice: number;
         lineTotal: number;
+        variantInfo?: string;
     }[];
     totalAmount: number;
     paymentMethod: "BANK_TRANSFER" | "CREDIT_CARD" | "CURRENT_ACCOUNT";
@@ -40,6 +41,13 @@ interface SendAdminNewOrderProps {
     totalAmount: number;
     orderId: string;
     cargoCompany?: string;
+    items: {
+        productName: string;
+        quantity: number;
+        unitPrice: number;
+        lineTotal: number;
+        variantInfo?: string;
+    }[];
 }
 
 export async function sendOrderConfirmationEmail(props: SendOrderConfirmationProps) {
@@ -97,6 +105,7 @@ export async function sendAdminNewOrderEmail(props: SendAdminNewOrderProps) {
                 customerName: props.customerName,
                 companyName: props.companyName,
                 totalAmount: props.totalAmount,
+                items: props.items,
             }),
         });
 

@@ -22,6 +22,7 @@ interface OrderItem {
     quantity: number;
     unitPrice: number; // or Decimal converted
     lineTotal: number;
+    variantInfo?: string;
 }
 
 interface OrderConfirmationEmailProps {
@@ -70,7 +71,12 @@ export const OrderConfirmationEmail = ({
                                 <Row key={index} className="border-b border-gray-200 pb-2 mb-2">
                                     <Column>
                                         <Text className="m-0 text-sm font-semibold">{item.productName}</Text>
-                                        <Text className="m-0 text-xs text-gray-500">Adet: {item.quantity}</Text>
+                                        {item.variantInfo && (
+                                            <Text className="m-0 text-xs text-gray-500 italic">Varyant: {item.variantInfo}</Text>
+                                        )}
+                                        <Text className="m-0 text-xs text-gray-500">
+                                            {item.quantity} adet x {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(item.unitPrice)}
+                                        </Text>
                                     </Column>
                                     <Column align="right">
                                         <Text className="m-0 text-sm font-semibold">

@@ -74,19 +74,20 @@ export async function POST(req: NextRequest) {
             try {
                 const shippingAddress = order.shippingAddress as any; // Cast JSON to any
                 const emailTo = order.user?.email || order.guestEmail;
+                const emailItems = order.items.map((item) => ({
+                    productName: item.productName,
+                    quantity: item.quantity,
+                    unitPrice: Number(item.unitPrice),
+                    lineTotal: Number(item.lineTotal),
+                    variantInfo: item.variantInfo || undefined,
+                }));
 
                 if (emailTo) {
                     await sendOrderConfirmationEmail({
                         to: emailTo,
                         orderNumber: order.orderNumber,
                         customerName: shippingAddress?.name || "Değerli Müşterimiz",
-                        items: order.items.map((item) => ({
-                            productName: item.productName,
-                            quantity: item.quantity,
-                            unitPrice: Number(item.unitPrice),
-                            lineTotal: Number(item.lineTotal),
-                            variantInfo: item.variantInfo || undefined,
-                        })),
+                        items: emailItems,
                         totalAmount: Number(order.total),
                         paymentMethod: "CREDIT_CARD",
                         shippingAddress: {
@@ -106,6 +107,7 @@ export async function POST(req: NextRequest) {
                     totalAmount: Number(order.total),
                     orderId: order.id,
                     cargoCompany: order.cargoCompany || undefined,
+                    items: emailItems,
                 });
 
                 console.log(`Emails sent for Order ${orderId}`);
