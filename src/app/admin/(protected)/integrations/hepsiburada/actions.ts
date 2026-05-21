@@ -133,7 +133,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
             
             // Tarih filtrelerini Hepsiburada'nın inisiyatifine (varsayılan 24 saat) bırakıyoruz
             // Bazı statüler API dokümanında farklı (Open), ya da statü parametresi göndermeyerek ("") hepsini çekebiliriz
-            for (const status of ["", "New", "Approved", "Unacked", "Packed", "Open", "Shipped"]) {
+            for (const status of ["", "Created", "New", "Approved", "Unacked", "Packed", "Open", "Shipped"]) {
                 try {
                     const res = await client.getOrders({ status, size: 100 });
                     if (res?.items && res.items.length > 0) {
