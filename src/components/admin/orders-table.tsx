@@ -91,6 +91,29 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
         setSelectedIds([]); // Reset selection on page change or filter change
     }, [initialOrders]);
 
+    // Auto-open order detail if "open" parameter is present
+    useEffect(() => {
+        const openId = searchParams.get("open");
+        if (openId) {
+            const foundOrder = orders.find(o => o.id === openId);
+            if (foundOrder) {
+                setSelectedOrder(foundOrder);
+                setIsOpen(true);
+            }
+        }
+    }, [searchParams, orders]);
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (!open) {
+            const params = new URLSearchParams(searchParams.toString());
+            if (params.has("open")) {
+                params.delete("open");
+                router.push(`?${params.toString()}`);
+            }
+        }
+    };
+
     // Handle Search/Filter Application
     const applyFilters = () => {
         const params = new URLSearchParams(searchParams.toString());
@@ -774,7 +797,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
             </div>
 
             {/* Order Detail Dialog */}
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <Dialog open={isOpen} onOpenChange={handleOpenChange}>
                 <DialogContent className="!max-w-none w-[95vw] sm:w-[90vw] xl:!w-[1250px] max-h-[92vh] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 scrollbar-track-transparent p-0">
                     <DialogHeader className="px-10 pt-10 border-b pb-6 mb-6">
                         <div className="flex flex-row items-center justify-between">

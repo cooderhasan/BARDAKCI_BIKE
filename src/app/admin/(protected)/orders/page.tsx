@@ -35,6 +35,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     if (search) {
         andClauses.push({
             OR: [
+                { id: search },
                 { orderNumber: { contains: search, mode: "insensitive" } },
                 { user: { email: { contains: search, mode: "insensitive" } } },
                 { user: { companyName: { contains: search, mode: "insensitive" } } },
