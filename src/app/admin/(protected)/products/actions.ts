@@ -64,6 +64,7 @@ export async function createProduct(formData: FormData) {
         length: formData.get("length") ? Number(formData.get("length")) : null,
         desi: formData.get("desi") ? Number(formData.get("desi")) : null,
         referenceUrl: (formData.get("referenceUrl") as string) || undefined,
+        n11CatalogId: (formData.get("n11CatalogId") as string) || null,
     };
 
     const categoryIdsJson = formData.get("categoryIds") as string;
@@ -196,6 +197,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         length: formData.get("length") ? Number(formData.get("length")) : null,
         desi: formData.get("desi") ? Number(formData.get("desi")) : null,
         referenceUrl: (formData.get("referenceUrl") as string) || undefined,
+        n11CatalogId: (formData.get("n11CatalogId") as string) || null,
     };
 
     const categoryIdsJson = formData.get("categoryIds") as string;

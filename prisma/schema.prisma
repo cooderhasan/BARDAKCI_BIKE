@@ -234,6 +234,7 @@ model Product {
   gtin         String?   // GTIN / EAN (Global Trade Item Number)
   mpn          String?   // Manufacturer Part Number
   referenceUrl String?   // AI için referans alınan kaynak URL
+  n11CatalogId String?
 
   categoryId  String? // Deprecated: Use categories relation instead
   category    Category?   @relation("LegacyCategory", fields: [categoryId], references: [id])

@@ -445,7 +445,8 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                     // Only use mapped attributes from UI (with valid IDs)
                     // Variant-specific info (color/size) goes into title, not attributes
                     // because N11 requires category attribute IDs for variant attributes
-                    attributes: mappedAttributes
+                    attributes: mappedAttributes,
+                    ...(product.n11CatalogId && { catalogId: Number(product.n11CatalogId) })
                 };
             });
 
@@ -485,7 +486,8 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 vatRate: 20,
                 quantity: product.stock || 0,
                 images: absoluteImages,
-                attributes: mappedAttributes
+                attributes: mappedAttributes,
+                ...(product.n11CatalogId && { catalogId: Number(product.n11CatalogId) })
             };
         }
 

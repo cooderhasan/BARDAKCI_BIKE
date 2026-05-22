@@ -72,6 +72,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         googlePrice: anyProduct.googlePrice ? Number(anyProduct.googlePrice) : null,
         gtin: anyProduct.gtin || null,
         mpn: anyProduct.mpn || null,
+        n11CatalogId: anyProduct.n11CatalogId || null,
         variants: product.variants.map((v) => ({
             ...v,
             color: v.color || "",

@@ -100,6 +100,7 @@ interface Product {
     variants?: ProductVariant[];
     categories?: { id: string }[];
     referenceUrl?: string | null;
+    n11CatalogId?: string | null;
     bundleItems?: BundleItemData[];
 }
 
@@ -151,6 +152,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         length: product?.length ?? "",
         desi: product?.desi ?? "",
         referenceUrl: product?.referenceUrl || "",
+        n11CatalogId: product?.n11CatalogId || "",
         isBundle: product?.isBundle || false,
     });
 
@@ -1179,6 +1181,33 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     onCheckedChange={(c) => handleChange("isN11Active", c)}
                                 />
                             </div>
+
+                            {formData.isN11Active && (
+                                <div className="p-4 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/30 dark:bg-purple-950/10 space-y-3">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="n11CatalogId" className="text-purple-700 dark:text-purple-300 font-semibold flex items-center gap-1.5">
+                                            <span>N11 Katalog (Buybox) ID</span>
+                                        </Label>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            Eğer ürün barkodu N11 kurallarına (sadece numerik olması gerekir) uymuyorsa, ürünü N11 kataloğundaki bir ürünle eşleştirmek için N11 Katalog ID'sini girebilirsiniz.
+                                        </p>
+                                        <Input
+                                            id="n11CatalogId"
+                                            type="text"
+                                            value={formData.n11CatalogId}
+                                            onChange={(e) => {
+                                                // Only allow numbers
+                                                const val = e.target.value;
+                                                if (/^\d*$/.test(val)) {
+                                                    handleChange("n11CatalogId", val);
+                                                }
+                                            }}
+                                            placeholder="Örn: 123456789"
+                                            className="border-purple-200 dark:border-purple-800 focus:border-purple-500 bg-white dark:bg-gray-800 font-mono"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-orange-50 dark:bg-orange-900/10">
                                 <div className="space-y-0.5">
