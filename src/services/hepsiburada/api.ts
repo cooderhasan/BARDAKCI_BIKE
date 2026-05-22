@@ -195,20 +195,23 @@ export class HepsiburadaClient {
     }
 
     /**
-     * Get Orders
+     * Get Orders (Ödemesi tamamlanmış siparişleri listele)
      * GET /orders/merchantid/{merchantId}
-     * status: New, Unacked, Packed, Shipped, Delivered, Cancelled, UnDelivered
+     * Bu endpoint sadece Open ve Unpacked statüsündeki siparişleri döner.
+     * NOT: Bu endpoint "status" query parametresi ALMAZ! 
+     * Farklı statüdeki siparişler için ayrı endpoint'ler kullanılmalıdır:
+     *   - /orders/merchantid/{id}/cancelled (iptal edilen)
+     *   - /orders/merchantid/{id}/paymentawaiting (ödeme bekleyen)
+     *   - /packages/merchantid/{id}/shipped (kargoya verilen)
+     *   - /packages/merchantid/{id}/delivered (teslim edilen)
      */
-    async getOrders(options: { status?: string; beginDate?: string; endDate?: string; begindate?: string; enddate?: string; page?: number; size?: number } = {}) {
+    async getOrders(options: { beginDate?: string; endDate?: string; begindate?: string; enddate?: string; page?: number; size?: number } = {}) {
         await this.init();
         if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
 
-        const { status, page = 0, size = 50 } = options;
+        const { page = 0, size = 50 } = options;
         
         let url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}?limit=${size}&offset=${page * size}`;
-        if (status) {
-            url += `&status=${encodeURIComponent(status)}`;
-        }
         
         const begin = options.begindate || options.beginDate;
         const end = options.enddate || options.endDate;

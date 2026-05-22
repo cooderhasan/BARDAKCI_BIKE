@@ -102,16 +102,6 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
             isTestMode: config.isTestMode ?? false,
         });
 
-        // 🛠️ GEÇİCİ TEST: Spesifik siparişin durumunu kontrol etmek için log bırakalım
-        try {
-            const testOrder = await client.getOrderByNumber("4454906686");
-            const items = Array.isArray(testOrder) ? testOrder : (testOrder.items ? testOrder.items : [testOrder]);
-            const statuses = items.map((i: any) => i.status).join(", ");
-            console.log(`🛠️ TEST HB SİPARİŞ DURUMU (4454906686): ${statuses}`);
-        } catch(e: any) {
-            console.log("🛠️ TEST HB SİPARİŞ ÇEKİLEMEDİ (4454906686):", e.message);
-        }
-
         let allItems: any[] = [];
 
         if (specificOrderNumber) {
@@ -155,50 +145,47 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                 intervals.push({ start, end });
             }
 
-            const statuses = ["", "New", "Approved", "Unacked", "Packed", "Open", "Shipped"];
-
+            // HB'nin bu endpointi sadece ödemesi tamamlanmış (Open/Unpacked) siparişleri döner.
+            // status parametresi bu endpoint tarafından desteklenmiyor - gönderilirse hata alınır.
             for (const interval of intervals) {
                 const startStr = formatHBDate(interval.start);
                 const endStr = formatHBDate(interval.end);
                 
-                for (const status of statuses) {
-                    let page = 0;
-                    const size = 100;
-                    let hasMore = true;
-                    
-                    while (hasMore) {
-                        try {
-                            console.log(`📡 HB Fetching Page ${page} for status '${status || "ALL"}', range: [${startStr} - ${endStr}]`);
-                            const res = await client.getOrders({
-                                status,
-                                size,
-                                page,
-                                begindate: startStr,
-                                enddate: endStr
-                            });
-                            
-                            const items = res?.items || [];
-                            if (items.length > 0) {
-                                console.log(`📦 HB Page ${page} (status '${status || "ALL"}'): ${items.length} sipariş bulundu`);
-                                allItems.push(...items);
-                            }
-                            
-                            if (items.length < size) {
-                                hasMore = false;
-                            } else {
-                                page++;
-                                if (page > 50) {
-                                    console.warn("⚠️ HB Fetching reached safety limit of 50 pages, stopping.");
-                                    hasMore = false;
-                                }
-                            }
-                            
-                            // Sleep slightly to respect rate limits
-                            await sleep(200);
-                        } catch (err: any) {
-                            console.warn(`⚠️ HB ${status || "ALL"} siparişleri çekilirken hata (Sayfa ${page}, Tarih [${startStr} - ${endStr}]):`, err.message);
-                            hasMore = false;
+                let page = 0;
+                const size = 100;
+                let hasMore = true;
+                
+                while (hasMore) {
+                    try {
+                        console.log(`📡 HB Fetching Page ${page}, range: [${startStr} - ${endStr}]`);
+                        const res = await client.getOrders({
+                            size,
+                            page,
+                            begindate: startStr,
+                            enddate: endStr
+                        });
+                        
+                        const items = res?.items || [];
+                        if (items.length > 0) {
+                            console.log(`📦 HB Page ${page}: ${items.length} sipariş bulundu`);
+                            allItems.push(...items);
                         }
+                        
+                        if (items.length < size) {
+                            hasMore = false;
+                        } else {
+                            page++;
+                            if (page > 50) {
+                                console.warn("⚠️ HB Fetching reached safety limit of 50 pages, stopping.");
+                                hasMore = false;
+                            }
+                        }
+                        
+                        // Sleep slightly to respect rate limits
+                        await sleep(200);
+                    } catch (err: any) {
+                        console.warn(`⚠️ HB siparişleri çekilirken hata (Sayfa ${page}, Tarih [${startStr} - ${endStr}]):`, err.message);
+                        hasMore = false;
                     }
                 }
             }
