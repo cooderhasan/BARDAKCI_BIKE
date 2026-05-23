@@ -268,7 +268,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                             console.log(`📦 HB [Packages] Page ${page}: 0 sipariş`);
                         }
                         
-                        if (items.length < size) {
+                        if (packages.length < size) {
                             hasMore = false;
                         } else {
                             page++;
