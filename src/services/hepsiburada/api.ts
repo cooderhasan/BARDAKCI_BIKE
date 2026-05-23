@@ -286,22 +286,23 @@ export class HepsiburadaClient {
     }
 
     /**
-     * Get Unpacked Packages (Paketlenmiş ama henüz kargoya verilmemiş siparişler)
-     * GET /packages/merchantid/{merchantId}/querytype/unpackaged
-     * Bu endpoint, gönderime hazır siparişleri döner.
+     * Get Packaged Orders (Paketlenmiş / Gönderime Hazır siparişler)
+     * GET /packages/merchantid/{merchantId}
+     * Bu endpoint, paketlenmiş ama henüz kargoya verilmemiş siparişleri döner.
+     * "Gönderime Hazır" durumundaki siparişler buradan gelir.
      */
-    async getUnpackedOrders(options: { begindate?: string; enddate?: string; page?: number; size?: number } = {}) {
+    async getPackagedOrders(options: { begindate?: string; enddate?: string; page?: number; size?: number } = {}) {
         await this.init();
         if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
 
         const { page = 0, size = 50 } = options;
         
-        let url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}?limit=${size}&offset=${page * size}`;
+        let url = `${this.orderBaseUrl}/packages/merchantid/${this.creds.merchantId}?limit=${size}&offset=${page * size}`;
         
         if (options.begindate) url += `&begindate=${encodeURIComponent(options.begindate)}`;
         if (options.enddate) url += `&enddate=${encodeURIComponent(options.enddate)}`;
 
-        console.log(`📡 HB Fetching Unpacked Orders: ${url}`);
+        console.log(`📡 HB Fetching Packaged Orders: ${url}`);
 
         const response = await fetch(url, {
             headers: this.getHeaders(),
@@ -309,24 +310,28 @@ export class HepsiburadaClient {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`❌ HB Unpacked Orders API Error: ${response.status}`, errorText);
-            throw new Error(`HB Unpacked API Error: ${response.status} - ${errorText}`);
+            console.error(`❌ HB Packaged Orders API Error: ${response.status}`, errorText);
+            throw new Error(`HB Packaged API Error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
         if (Array.isArray(data)) {
+            console.log(`📦 HB Packaged raw response: array with ${data.length} items`);
             return { items: data };
         }
         if (data && typeof data === 'object' && !data.items) {
-            const possibleKeys = ['content', 'orders', 'data', 'results'];
+            const possibleKeys = ['content', 'orders', 'data', 'results', 'packages'];
             for (const key of possibleKeys) {
                 if (Array.isArray(data[key])) {
+                    console.log(`📦 HB Packaged raw response: object with '${key}' key, ${data[key].length} items`);
                     return { items: data[key] };
                 }
             }
+            console.log(`📦 HB Packaged raw response (keys):`, Object.keys(data));
         }
         return data;
     }
+
 
     /**
      * Get All Categories
