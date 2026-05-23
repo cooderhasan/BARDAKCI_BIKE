@@ -208,14 +208,62 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                             console.log(`📦 HB [Packages] Raw preview:`, JSON.stringify(res).substring(0, 500));
                         }
                         
-                        const items = res?.items || (Array.isArray(res) ? res : []);
-                        if (items.length > 0) {
-                            console.log(`📦 HB [Packages] Page ${page}: ${items.length} sipariş bulundu`);
+                        const packages = res?.items || (Array.isArray(res) ? res : []);
+                        if (packages.length > 0) {
+                            console.log(`📦 HB [Packages] Page ${page}: ${packages.length} paket bulundu`);
                             if (page === 0) {
-                                console.log(`📦 HB [Packages] First item keys:`, Object.keys(items[0]));
-                                console.log(`📦 HB [Packages] First item sample:`, JSON.stringify(items[0]).substring(0, 500));
+                                console.log(`📦 HB [Packages] First package keys:`, Object.keys(packages[0]));
+                                console.log(`📦 HB [Packages] First package sample:`, JSON.stringify(packages[0]).substring(0, 800));
                             }
-                            allItems.push(...items);
+                            
+                            // Packages endpointi paket objesi döner, her paketin içinde items[] var.
+                            // Paket bilgilerini (müşteri, adres, kargo) her line item'a ekleyip düzleştiriyoruz.
+                            for (const pkg of packages) {
+                                const lineItems = pkg.items || [];
+                                if (lineItems.length === 0) {
+                                    console.log(`⚠️ HB [Packages] Paket ${pkg.packageNumber || pkg.id} içinde ürün yok`);
+                                    continue;
+                                }
+                                
+                                console.log(`📦 HB [Packages] Paket ${pkg.packageNumber}: ${lineItems.length} ürün, müşteri: ${pkg.customerName || pkg.recipientName}`);
+                                if (lineItems[0]) {
+                                    console.log(`📦 HB [Packages] Line item keys:`, Object.keys(lineItems[0]));
+                                    console.log(`📦 HB [Packages] Line item sample:`, JSON.stringify(lineItems[0]).substring(0, 500));
+                                }
+                                
+                                for (const lineItem of lineItems) {
+                                    // Her line item'a paket seviyesindeki bilgileri ekle
+                                    allItems.push({
+                                        ...lineItem,
+                                        // Sipariş numarası: line item'da orderNumber varsa onu kullan, yoksa packageNumber
+                                        orderNumber: lineItem.orderNumber || lineItem.orderId || pkg.packageNumber || String(pkg.id),
+                                        // Müşteri bilgileri
+                                        customerName: pkg.customerName || pkg.recipientName || lineItem.customerName,
+                                        customerEmail: pkg.email || lineItem.customerEmail,
+                                        // Adres bilgilerini shippingAddress formatına dönüştür
+                                        shippingAddress: {
+                                            name: pkg.recipientName || pkg.customerName || "",
+                                            address: pkg.shippingAddressDetail || "",
+                                            city: pkg.shippingCity || "",
+                                            town: pkg.shippingTown || "",
+                                            district: pkg.shippingDistrict || "",
+                                            phoneNumber: pkg.phoneNumber || "",
+                                            email: pkg.email || "",
+                                        },
+                                        // Fatura bilgileri
+                                        invoice: {
+                                            taxNumber: pkg.taxNumber || pkg.identityNo || "",
+                                            taxOffice: pkg.taxOffice || "",
+                                            turkishIdentityNumber: pkg.identityNo || "",
+                                        },
+                                        // Kargo
+                                        cargoCompany: pkg.cargoCompany || lineItem.cargoCompany,
+                                        packageNumber: pkg.packageNumber,
+                                        // Kaynak bilgisi (orders vs packages ayırmak için)
+                                        _source: "packages",
+                                    });
+                                }
+                            }
                         } else {
                             console.log(`📦 HB [Packages] Page ${page}: 0 sipariş`);
                         }
