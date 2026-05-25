@@ -102,7 +102,7 @@ export async function testEFaturamPrefixes() {
 /**
  * Sipariş verisinden e-Arşiv fatura payload'u oluşturur
  */
-function buildInvoicePayload(order: any): EArchiveInvoiceData {
+function buildInvoicePayload(order: any): any {
     const shippingAddress = order.shippingAddress as any;
     const user = order.user;
 
@@ -133,7 +133,7 @@ function buildInvoicePayload(order: any): EArchiveInvoiceData {
     }
 
     // Fatura kalemlerini oluştur
-    const invoiceLines: InvoiceLine[] = order.items.map((item: any) => {
+    const invoiceLines: any[] = order.items.map((item: any) => {
         const unitPriceInclTax = Number(item.unitPrice); // KDV DAHİL fiyat
         const quantity = item.quantity;
         const vatRate = item.vatRate || 20;
@@ -259,7 +259,45 @@ export async function sendOrderInvoice(orderId: string) {
 
         if (!order) return { success: false, message: "Sipariş bulunamadı." };
         if ((order as any).invoiceNo) {
-            const invoiceUrl = (order as any).invoiceUrl;
+            let invoiceUrl = (order as any).invoiceUrl;
+
+            // Eğer fatura linki veritabanında yoksa ama invoiceId varsa E-Faturam'dan yeniden çekmeyi deneyelim
+            if (!invoiceUrl && (order as any).invoiceId) {
+                try {
+                    console.log(`🔄 Veritabanında fatura linki yok. E-Faturam'dan yeniden çekiliyor: ${(order as any).invoiceId}`);
+                    const client = new TrendyolEFaturamClient({
+                        username: config.username,
+                        password: config.password,
+                        companyId: config.companyId,
+                        earchivePrefix: config.earchivePrefix,
+                        efaturaPrefix: config.efaturaPrefix,
+                        isTestMode: config.isTestMode,
+                    });
+
+                    const taxId = (order.shippingAddress as any)?.taxNumber || order.user?.taxNumber || "11111111111";
+                    const isRealTaxId = taxId && taxId !== "11111111111" && taxId.length === 10;
+                    let useEInvoice = false;
+
+                    if (isRealTaxId) {
+                        const taxpayerCheck = await client.checkTaxpayer(taxId);
+                        useEInvoice = taxpayerCheck.isEInvoiceUser;
+                    }
+
+                    const documentType = useEInvoice ? "EINVOICE" : "EARCHIVE";
+                    const fetchedUrl = await client.getPermanentDownloadUrl((order as any).invoiceId, documentType);
+                    if (fetchedUrl) {
+                        invoiceUrl = fetchedUrl;
+                        await prisma.order.update({
+                            where: { id: orderId },
+                            data: { invoiceUrl: fetchedUrl },
+                        });
+                        console.log(`✅ Fatura linki başarıyla çekildi ve DB'ye kaydedildi: ${fetchedUrl}`);
+                    }
+                } catch (urlError: any) {
+                    console.error("⚠️ Mevcut fatura linkini yeniden çekme hatası:", urlError.message);
+                }
+            }
+
             if (order.source !== "WEB" && invoiceUrl) {
                 try {
                     if (order.source === "HEPSIBURADA") {
@@ -292,6 +330,11 @@ export async function sendOrderInvoice(orderId: string) {
                     return { success: false, message: `Fatura zaten kesilmişti. Pazaryerine yeniden gönderim sırasında hata oluştu: ${mpError.message}` };
                 }
             }
+
+            if (!invoiceUrl) {
+                return { success: false, message: `Bu sipariş için fatura kesilmiş (${(order as any).invoiceNo}) ancak PDF indirme linki bulunamadığı için pazaryerine gönderilemedi.` };
+            }
+
             return { success: false, message: `Bu sipariş için zaten fatura kesilmiş: ${(order as any).invoiceNo}` };
         }
 
@@ -361,17 +404,43 @@ export async function sendOrderInvoice(orderId: string) {
         // PDF URL'ini bul: API cevabından veya kalıcı download linki oluştur
         let invoiceUrl = result?.pdfUrl || result?.pdfLink || result?.url || result?.documentUrl || null;
         
-        // Eğer URL yoksa ama invoiceId varsa, kalıcı (herkese açık) PDF linkini al
-        if (!invoiceUrl && invoiceId) {
-            const documentType = useEInvoice ? "EINVOICE" : "EARCHIVE";
-            invoiceUrl = await client.getPermanentDownloadUrl(invoiceId.toString(), documentType as any);
+        // Eğer URL yoksa veya PDF henüz üretilmemişse polling ile kontrol edelim
+        let isPdfAccessible = false;
+        const documentType = useEInvoice ? "EINVOICE" : "EARCHIVE";
 
-            // Toplu işlemlerde PDF'in hazırlanması zaman alabilir. Eğer ilk sorguda link alınamadıysa 2 saniye bekleyip tekrar deneyelim.
-            if (!invoiceUrl) {
-                console.log("⏳ PDF linki henüz hazır değil, 2 saniye bekleniyor...");
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                invoiceUrl = await client.getPermanentDownloadUrl(invoiceId.toString(), documentType as any);
+        // Maksimum 6 deneme, her deneme arasında 2 saniye bekleme (Toplam 12 saniye limit)
+        for (let attempt = 1; attempt <= 6; attempt++) {
+            try {
+                // 1. URL'i bul veya çek
+                if (!invoiceUrl && invoiceId) {
+                    console.log(`⏳ PDF URL henüz yok, E-Faturam'dan isteniyor... (Deneme ${attempt})`);
+                    invoiceUrl = await client.getPermanentDownloadUrl(invoiceId.toString(), documentType as any);
+                }
+
+                // 2. URL varsa PDF'in erişilebilir olduğunu doğrula
+                if (invoiceUrl) {
+                    console.log(`📡 PDF Link kontrol ediliyor (Deneme ${attempt}): ${invoiceUrl}`);
+                    const checkRes = await fetch(invoiceUrl, { method: "GET" });
+                    const contentType = checkRes.headers.get("content-type") || "";
+                    if (checkRes.ok && contentType.toLowerCase().includes("application/pdf")) {
+                        isPdfAccessible = true;
+                        console.log(`✅ Fatura PDF'i başarıyla doğrulandı (Hazır).`);
+                        break;
+                    } else {
+                        console.log(`⏳ PDF henüz hazır değil (Status: ${checkRes.status}, Content-Type: ${contentType}).`);
+                    }
+                }
+            } catch (err: any) {
+                console.log(`⚠️ PDF doğrulama deneme ${attempt} hatası:`, err.message);
             }
+
+            if (attempt < 6) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+
+        if (!isPdfAccessible) {
+            console.warn("⚠️ Fatura PDF'i belirtilen sürede hazır hale gelmedi veya doğrulanamadı.");
         }
 
         await prisma.order.update({
