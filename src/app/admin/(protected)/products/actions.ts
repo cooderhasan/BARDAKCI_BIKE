@@ -306,7 +306,9 @@ export async function updateProduct(productId: string, formData: FormData) {
         
         // Yedek olarak kuyruğa da ekleyebiliriz (opsiyonel)
         const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+        await addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: [productId] }).catch(console.error);
         await addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: [productId] }).catch(console.error);
+        await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: [productId] }).catch(console.error);
     } catch (e) {
         console.error("Marketplace instant sync error:", e);
     }
