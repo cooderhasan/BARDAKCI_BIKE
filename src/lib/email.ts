@@ -4,6 +4,7 @@ import { AdminNewOrderEmail } from '@/emails/admin-new-order';
 import { ShippingNotificationEmail } from '@/emails/shipping-notification';
 import { AbandonedCartNotificationEmail } from '@/emails/abandoned-cart-notification';
 import { InvoiceNotificationEmail } from '@/emails/invoice-notification';
+import { PasswordResetEmail } from '@/emails/password-reset';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "emreserin78@gmail.com";
@@ -246,6 +247,46 @@ export async function sendInvoiceNotificationEmail(props: SendInvoiceNotificatio
         return { success: true, data };
     } catch (error) {
         console.error('Invoice email sending failed:', error);
+        return { success: false, error };
+    }
+}
+
+// ==================== PASSWORD RESET ====================
+
+interface SendPasswordResetEmailProps {
+    to: string;
+    customerName: string;
+    resetUrl: string;
+    expiresInMinutes?: number;
+}
+
+export async function sendPasswordResetEmail(props: SendPasswordResetEmailProps) {
+    if (!process.env.RESEND_API_KEY) {
+        console.warn('RESEND_API_KEY is not set. Password reset email sending skipped.');
+        return { success: false, error: 'API key missing' };
+    }
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'Hesap <hesap@serinmotor.com>',
+            to: [props.to],
+            subject: 'Şifre Sıfırlama Talebi',
+            react: PasswordResetEmail({
+                customerName: props.customerName,
+                resetUrl: props.resetUrl,
+                expiresInMinutes: props.expiresInMinutes || 60,
+            }),
+        });
+
+        if (error) {
+            console.error('Password reset email sending error:', error);
+            return { success: false, error };
+        }
+
+        console.log(`🔑 Şifre sıfırlama e-postası gönderildi: ${props.to}`);
+        return { success: true, data };
+    } catch (error) {
+        console.error('Password reset email sending failed:', error);
         return { success: false, error };
     }
 }

@@ -125,6 +125,16 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                             </div>
                         </div>
 
+                        {/* Forgot Password Link */}
+                        <div className="flex justify-end -mt-1">
+                            <Link
+                                href="/forgot-password"
+                                className="text-sm text-[#009AD0] hover:text-[#007EA8] hover:underline transition-colors"
+                            >
+                                Şifremi Unuttum
+                            </Link>
+                        </div>
+
                         {/* Submit Button */}
                         <Button
                             type="submit"

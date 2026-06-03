@@ -791,3 +791,18 @@ model TrendyolEFaturamConfig {
 
   @@map("trendyol_efaturam_configs")
 }
+
+// ==================== PASSWORD RESET ====================
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
