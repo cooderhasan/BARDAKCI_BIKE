@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,10 +46,28 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
 
         try {
             const result = await registerUser(formData);
-            
+
             if (result.success) {
-                setSuccess(true);
-                toast.success("Kayıt başarılı! Yönlendiriliyorsunuz...");
+                if (isCorporate) {
+                    // Kurumsal kayıtta otomatik giriş yapılmaz; onay beklenir
+                    setSuccess(true);
+                } else {
+                    // Bireysel kayıtta otomatik giriş yap
+                    toast.success("Kayıt başarılı! Giriş yapılıyor...");
+                    const email = String(formData.get("email"));
+                    const password = String(formData.get("password"));
+                    const loginResult = await signIn("credentials", {
+                        email,
+                        password,
+                        redirect: false,
+                    });
+                    if (loginResult?.ok) {
+                        router.push(callbackUrl || "/account");
+                    } else {
+                        // Otomatik giriş başarısız olursa login sayfasına yönlendir
+                        router.push(callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login");
+                    }
+                }
             } else {
                 toast.error(result.error || "Kayıt sırasında bir hata oluştu.");
             }
@@ -249,7 +268,7 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                     </div>
 
                     <Button type="submit" className="w-full h-12 text-lg" disabled={loading}>
-                        {loading ? "Kayıt yapılıyor..." : "Kayıt Ol"}
+                        {loading ? (isCorporate ? "Başvuru gönderiliyor..." : "Kayıt yapılıyor...") : "Kayıt Ol"}
                     </Button>
                 </form>
 
