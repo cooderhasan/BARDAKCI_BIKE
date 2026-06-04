@@ -5,6 +5,7 @@ import path from "path";
 const nextConfig: NextConfig = {
   output: "standalone",
   reactCompiler: false,
+  serverExternalPackages: ['@react-pdf/renderer'],
   typescript: {
     ignoreBuildErrors: true,
   },

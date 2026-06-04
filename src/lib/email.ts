@@ -5,6 +5,7 @@ import { ShippingNotificationEmail } from '@/emails/shipping-notification';
 import { AbandonedCartNotificationEmail } from '@/emails/abandoned-cart-notification';
 import { InvoiceNotificationEmail } from '@/emails/invoice-notification';
 import { PasswordResetEmail } from '@/emails/password-reset';
+import { generateOrderContracts } from './pdf-generator';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "emreserin78@gmail.com";
@@ -31,8 +32,11 @@ interface SendOrderConfirmationProps {
         address: string;
         city: string;
         district?: string;
+        phone?: string;
     };
     cargoCompany?: string;
+    shippingCost?: number;
+    source?: string;
 }
 
 interface SendAdminNewOrderProps {
@@ -58,6 +62,45 @@ export async function sendOrderConfirmationEmail(props: SendOrderConfirmationPro
     }
 
     try {
+        let attachments: { filename: string; content: Buffer }[] | undefined = undefined;
+        
+        // PDF'leri yalnızca kendi e-ticaret sitemizden (WEB) gelen siparişler için üretiyoruz
+        if ((props.source || "WEB") === "WEB") {
+            try {
+                const pdfs = await generateOrderContracts({
+                    orderNumber: props.orderNumber,
+                    customerName: props.customerName,
+                    customerPhone: props.shippingAddress.phone || "",
+                    customerEmail: props.to,
+                    shippingAddress: {
+                        address: props.shippingAddress.address,
+                        city: props.shippingAddress.city,
+                        district: props.shippingAddress.district,
+                    },
+                    items: props.items,
+                    totalAmount: props.totalAmount,
+                    paymentMethod: props.paymentMethod,
+                    shippingCost: props.shippingCost,
+                });
+                attachments = [
+                    {
+                        filename: 'on-bilgilendirme-formu.pdf',
+                        content: pdfs.preInfoForm,
+                    },
+                    {
+                        filename: 'mesafeli-satis-sozlesmesi.pdf',
+                        content: pdfs.distanceSalesContract,
+                    },
+                    {
+                        filename: 'iptal-ve-iade-kosullari.pdf',
+                        content: pdfs.cancellationRefundPolicy,
+                    }
+                ];
+            } catch (pdfErr) {
+                console.error('Sözleşme PDFleri üretilirken hata oluştu:', pdfErr);
+            }
+        }
+
         const { data, error } = await resend.emails.send({
             from: 'Sipariş <siparis@serinmotor.com>',
             to: [props.to],
@@ -70,6 +113,7 @@ export async function sendOrderConfirmationEmail(props: SendOrderConfirmationPro
                 paymentMethod: props.paymentMethod,
                 bankInfo: props.bankInfo,
             }),
+            attachments: attachments && attachments.length > 0 ? attachments : undefined,
         });
 
         if (error) {

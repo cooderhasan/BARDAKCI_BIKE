@@ -94,8 +94,11 @@ export async function POST(req: NextRequest) {
                             address: shippingAddress?.address || "",
                             city: shippingAddress?.city || "",
                             district: shippingAddress?.district || "",
+                            phone: shippingAddress?.phone || "",
                         },
                         cargoCompany: order.cargoCompany || undefined,
+                        shippingCost: Number(order.shippingCost || 0),
+                        source: order.source,
                     });
                 }
 

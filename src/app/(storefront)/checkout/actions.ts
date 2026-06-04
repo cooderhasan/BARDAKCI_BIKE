@@ -389,8 +389,11 @@ export async function createOrder(data: CreateOrderData) {
                         address: data.shippingAddress.address,
                         city: data.shippingAddress.city,
                         district: data.shippingAddress.district,
+                        phone: data.shippingAddress.phone,
                     },
                     cargoCompany: data.cargoCompany,
+                    shippingCost: data.shippingCost,
+                    source: order.source,
                 }).catch((err) => {
                     console.error("Failed to send order confirmation email:", err);
                 });
