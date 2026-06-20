@@ -10,7 +10,7 @@ DATABASE_URL=postgres://postgres:YIVjfixFdgdSPMDEm9pf7UMFfO354AggIMrJAszjyyWGKjd
 
 # NextAuth (ÖNEMLİ: Güçlü bir secret oluşturun)
 AUTH_SECRET=BURAYA_GUCLU_SECRET_GIRIN
-NEXTAUTH_URL=https://bagajlastigi.com
+NEXTAUTH_URL=https://bardakcibike.com.tr
 
 # Upload Path
 NEXT_PUBLIC_UPLOAD_PATH=/app/public/uploads

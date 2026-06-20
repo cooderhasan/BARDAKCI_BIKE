@@ -8,7 +8,7 @@ import { PasswordResetEmail } from '@/emails/password-reset';
 import { generateOrderContracts } from './pdf-generator';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "emreserin78@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@bardakcibike.com.tr";
 
 interface SendOrderConfirmationProps {
     to: string;
@@ -102,7 +102,7 @@ export async function sendOrderConfirmationEmail(props: SendOrderConfirmationPro
         }
 
         const { data, error } = await resend.emails.send({
-            from: 'Sipariş <siparis@serinmotor.com>',
+            from: 'Sipariş <siparis@bardakcibike.com.tr>',
             to: [props.to],
             subject: `Siparişiniz Alındı - #${props.orderNumber}`,
             react: OrderConfirmationEmail({
@@ -141,7 +141,7 @@ export async function sendAdminNewOrderEmail(props: SendAdminNewOrderProps) {
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Sipariş Bildirim <siparis@serinmotor.com>',
+            from: 'Sipariş Bildirim <siparis@bardakcibike.com.tr>',
             to: [ADMIN_EMAIL],
             subject: `Yeni Sipariş: #${props.orderNumber} - ${props.companyName}`,
             react: AdminNewOrderEmail({
@@ -182,7 +182,7 @@ export async function sendShippingNotificationEmail(props: SendShippingNotificat
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Sipariş <siparis@serinmotor.com>',
+            from: 'Sipariş <siparis@bardakcibike.com.tr>',
             to: [props.to],
             // Bcc to admin to track sent emails
             bcc: ADMIN_EMAIL ? [ADMIN_EMAIL] : undefined,
@@ -229,7 +229,7 @@ export async function sendAbandonedCartEmail(props: SendAbandonedCartNotificatio
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Serin Motor <siparis@serinmotor.com>',
+            from: 'Bardakcı Bike <siparis@bardakcibike.com.tr>',
             to: [props.to],
             subject: 'Sepetinizde Ürünler Sizi Bekliyor!',
             react: AbandonedCartNotificationEmail({
@@ -269,7 +269,7 @@ export async function sendInvoiceNotificationEmail(props: SendInvoiceNotificatio
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Fatura <fatura@serinmotor.com>',
+            from: 'Fatura <fatura@bardakcibike.com.tr>',
             to: [props.to],
             subject: `Faturanız Hazır - #${props.orderNumber}`,
             react: InvoiceNotificationEmail({
@@ -312,7 +312,7 @@ export async function sendPasswordResetEmail(props: SendPasswordResetEmailProps)
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Hesap <hesap@serinmotor.com>',
+            from: 'Hesap <hesap@bardakcibike.com.tr>',
             to: [props.to],
             subject: 'Şifre Sıfırlama Talebi',
             react: PasswordResetEmail({

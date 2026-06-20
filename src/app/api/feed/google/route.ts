@@ -20,7 +20,7 @@ function escapeXml(str: string): string {
 
 export async function GET(request: Request) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
     // Aktif ve Google'a işaretlenmiş ürünleri çek
     const products = await (prisma as any).product.findMany({
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
       const mainCatData = product.categories?.[0] || product.category;
       const productTypeName = mainCatData?.name || "";
       
-      const googleCategoryFallback = "Araçlar ve Motorlu Taşıtlar > Araç Parçaları ve Aksesuarları";
+      const googleCategoryFallback = "Spor ve Fitness > Açık Hava Aktiviteleri > Bisiklet";
       
       const googleCategory = 
         product.categories?.find((c: any) => c.googleProductCategory && c.googleProductCategory.trim() !== "")?.googleProductCategory || 

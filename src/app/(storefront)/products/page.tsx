@@ -26,7 +26,7 @@ interface ProductsPageProps {
 export async function generateMetadata({ searchParams }: ProductsPageProps): Promise<Metadata> {
     const params = await searchParams;
     let title = "Tüm Ürünler";
-    let description = "En kaliteli motosiklet yedek parça ve aksesuarları uygun fiyatlarla.";
+    let description = "En kaliteli bisiklet yedek parça ve aksesuarları uygun fiyatlarla.";
 
     if (params.category) {
         const category = await prisma.category.findUnique({
@@ -42,14 +42,14 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
         description = `"${params.search}" için bulunan sonuçlar.`;
     } else if (params.is_on_sale === "true") {
         title = "İndirimli Ürünler";
-        description = "En uygun fiyatlı motosiklet yedek parça ve fırsat ürünleri.";
+        description = "En uygun fiyatlı bisiklet yedek parça ve fırsat ürünleri.";
     }
 
     return {
-        title: `${title} | Serin Motor`,
+        title: `${title} | Bardakcı Bike`,
         description,
         alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://serinmotor.com"}/products`
+            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/products`
         }
     };
 }

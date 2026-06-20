@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     }
 
     const useSalePrice = settings.xmlUseSalePrice === "true";
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
     // 2. Fetch Active Products
     const products = await prisma.product.findMany({
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
 <channel>
-<title>${escapeXml(settings.siteName || "Serin Motor")}</title>
+<title>${escapeXml(settings.siteName || "Bardakcı Bike")}</title>
 <link>${baseUrl}</link>
 <description>${escapeXml(settings.seoDescription || "B2B E-Ticaret")}</description>
 `;
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
         const hasVariants = product.variants.length > 0;
         const mainCatData = product.categories?.[0] || (product as any).category;
         const mainCategory = mainCatData?.name || "Diğer";
-        const fallbackCat = "Araçlar ve Motorlu Taşıtlar > Araç Parçaları ve Aksesuarları";
+        const fallbackCat = "Spor ve Fitness > Açık Hava Aktiviteleri > Bisiklet";
         
         let googleCategory = fallbackCat;
         if (mainCatData?.googleProductCategory && mainCatData.googleProductCategory.trim() !== "") {

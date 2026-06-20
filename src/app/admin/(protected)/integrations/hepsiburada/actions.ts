@@ -868,7 +868,7 @@ function getAbsoluteImageUrl(url: string): string {
     if (url.startsWith("http://") || url.startsWith("https://")) {
         return url;
     }
-    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://serinmotor.com";
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr";
     if (baseUrl.endsWith("/")) {
         baseUrl = baseUrl.slice(0, -1);
     }
@@ -960,7 +960,7 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
                 const statusRes = await fetch(statusUrl, {
                     headers: {
                         "Authorization": `Basic ${Buffer.from(`${config.merchantId || config.username}:${config.password}`).toString("base64")}`,
-                        "User-Agent": "serinmotor_dev",
+                        "User-Agent": "bardakcibike_dev",
                         "Accept": "application/json"
                     }
                 });
@@ -1090,7 +1090,7 @@ export async function createHepsiburadaTestOrder() {
                 "Authorization": `Basic ${Buffer.from(`${merchantId}:${config.password}`).toString("base64")}`,
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "User-Agent": "serinmotor_dev"
+                "User-Agent": "bardakcibike_dev"
             },
             body: JSON.stringify(payload)
         });

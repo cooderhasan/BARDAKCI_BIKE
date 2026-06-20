@@ -35,10 +35,10 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     if (!category) return { title: "Kategori Bulunamadı" };
 
     return {
-        title: `${category.name} | Serin Motor`,
+        title: `${category.name} | Bardakcı Bike`,
         description: `${category.name} kategorisindeki en kaliteli yedek parça ve aksesuarları inceleyin.`,
         alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://serinmotor.com"}/category/${slug}`
+            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/category/${slug}`
         }
     };
 }

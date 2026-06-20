@@ -5,10 +5,10 @@ interface PageProps {
 }
 
 export const metadata = {
-    title: "İndirimli Ürünler | Serin Motor",
-    description: "En uygun fiyatlı motosiklet yedek parça ve fırsat ürünleri.",
+    title: "İndirimli Ürünler | Bardakcı Bike",
+    description: "En uygun fiyatlı bisiklet yedek parça ve fırsat ürünleri.",
     alternates: {
-        canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://serinmotor.com"}/indirimli-urunler`
+        canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/indirimli-urunler`
     }
 };
 

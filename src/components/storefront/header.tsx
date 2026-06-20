@@ -140,14 +140,14 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 ) : (
                                     <div className="flex items-center gap-2 transition-transform duration-300 group-hover:scale-105">
                                         <div className="w-10 h-10 md:w-14 md:h-14 bg-[#009AD0] rounded-xl flex items-center justify-center transform -rotate-3 shadow-lg group-hover:rotate-0 transition-transform">
-                                            <span className="text-white font-extrabold text-xl md:text-3xl">L</span>
+                                            <span className="text-white font-extrabold text-xl md:text-3xl">B</span>
                                         </div>
                                         <div className="flex flex-col leading-none">
                                             <span className="font-black text-xl md:text-3xl text-gray-900 dark:text-white tracking-tight uppercase">
-                                                SERİN
+                                                BARDAKCI
                                             </span>
                                             <span className="font-bold text-[10px] md:text-base text-[#009AD0] tracking-widest uppercase">
-                                                MOTOR
+                                                BIKE
                                             </span>
                                         </div>
                                     </div>

@@ -170,19 +170,19 @@ const PreInformationFormDocument: React.FC<OrderPdfProps> = (props) => {
                 <Text style={styles.sectionTitle}>1. SATICIYA İLİŞKİN BİLGİLER</Text>
                 <View style={styles.row}>
                     <Text style={styles.label}>Ticari Ünvan:</Text>
-                    <Text style={styles.value}>Serin Motor - Emre Serin</Text>
+                    <Text style={styles.value}>Bardakcı Bike - Mehmet Fatih Bardakcı</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>Adres:</Text>
-                    <Text style={styles.value}>Çatalhüyük mah. asarçayı cad. no 122 1/C Karatay / KONYA</Text>
+                    <Text style={styles.value}>Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>Telefon:</Text>
-                    <Text style={styles.value}>+905353783949</Text>
+                    <Text style={styles.value}>+905345194472</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>E-posta Adresi:</Text>
-                    <Text style={styles.value}>emreserin78@gmail.com</Text>
+                    <Text style={styles.value}>info@bardakcibike.com.tr</Text>
                 </View>
 
                 <Text style={styles.sectionTitle}>2. ALICIYA İLİŞKİN BİLGİLER</Text>
@@ -303,7 +303,7 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
                 
                 <Text style={styles.paragraph}>
                     Tüm kullanıcılar üyelik işlemlerini gerçekleştirdikleri anda satış sözleşmesini okuduklarını ve onayladıklarını kabul etmiş sayılırlar.
-                    {'\n'}İşbu sözleşme www.serinmotor.com ile Müşteri arasındaki sanal ortamda satış sözleşmesidir.
+                    {'\n'}İşbu sözleşme www.bardakcibike.com.tr ile Müşteri arasındaki sanal ortamda satış sözleşmesidir.
                 </Text>
 
                 <Text style={styles.sectionTitle}>Madde - 1: KONU</Text>
@@ -314,23 +314,23 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
                 <Text style={styles.sectionTitle}>Madde - 2: SATICI BİLGİLERİ</Text>
                 <View style={styles.row}>
                     <Text style={styles.label}>Ticari Ünvan:</Text>
-                    <Text style={styles.value}>Serin Motor - Emre Serin</Text>
+                    <Text style={styles.value}>Bardakcı Bike - Mehmet Fatih Bardakcı</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>Adres:</Text>
-                    <Text style={styles.value}>Çatalhüyük mah. asarçayı cad. no 122 1/C Karatay / KONYA</Text>
+                    <Text style={styles.value}>Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>Telefon:</Text>
-                    <Text style={styles.value}>+905353783949</Text>
+                    <Text style={styles.value}>+905345194472</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>GSM / WhatsApp:</Text>
-                    <Text style={styles.value}>+905353783949</Text>
+                    <Text style={styles.value}>+905345194472</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>E-Posta:</Text>
-                    <Text style={styles.value}>emreserin78@gmail.com</Text>
+                    <Text style={styles.value}>info@bardakcibike.com.tr</Text>
                 </View>
 
                 <Text style={styles.sectionTitle}>Madde - 3: ALICI BİLGİLERİ</Text>
@@ -424,9 +424,9 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
 
                 <Text style={styles.sectionTitle}>FİRMA BİLGİLERİ</Text>
                 <Text style={styles.paragraph}>
-                    Serin Motor - Emre Serin
-                    {'\n'}Adres: Çatalhüyük mah. asarçayı cad. no 122 1/C Karatay / KONYA
-                    {'\n'}Telefon: +905353783949 | E-Posta: emreserin78@gmail.com
+                    Bardakcı Bike - Mehmet Fatih Bardakcı
+                    {'\n'}Adres: Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA
+                    {'\n'}Telefon: +905345194472 | E-Posta: info@bardakcibike.com.tr
                 </Text>
             </Page>
         </Document>
@@ -477,11 +477,11 @@ const CancellationRefundPolicyDocument: React.FC<{ dateStr?: string }> = ({ date
                 <Text style={styles.paragraph}>
                     11. Alıcı 14 gün içinde cayma hakkını kullanabilir.
                     {'\n'}12. Cayma Hakkı Bildirimi:
-                    {'\n'}ŞİRKET: Serin Motor - Emre Serin
-                    {'\n'}ADI/UNVANI: Emre Serin
-                    {'\n'}ADRES: Çatalhüyük mah. asarçayı cad. no 122 1/C Karatay / KONYA
-                    {'\n'}TELEFON: +905353783949
-                    {'\n'}E-POSTA: emreserin78@gmail.com
+                    {'\n'}ŞİRKET: Bardakcı Bike - Mehmet Fatih Bardakcı
+                    {'\n'}ADI/UNVANI: Mehmet Fatih Bardakcı
+                    {'\n'}ADRES: Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA
+                    {'\n'}TELEFON: +905345194472
+                    {'\n'}E-POSTA: info@bardakcibike.com.tr
                 </Text>
 
                 <Text style={styles.sectionTitle}>CAYMA HAKKI SÜRESİ:</Text>
@@ -517,7 +517,7 @@ const CancellationRefundPolicyDocument: React.FC<{ dateStr?: string }> = ({ date
 
                 <Text style={styles.sectionTitle}>ÖDEME VE TESLİMAT:</Text>
                 <Text style={styles.paragraph}>
-                    24. Banka hesabı: TR94 0001 0001 6879 5109 5650 02 (Ziraat Bankası)
+                    24. Banka hesabı: TR250006200077000006896031 (Garanti Bankası)
                     {'\n'}25. Kredi kartı ile online ödeme yapılabilir.
                 </Text>
             </Page>

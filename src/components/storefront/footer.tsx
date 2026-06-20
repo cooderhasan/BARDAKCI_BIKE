@@ -41,21 +41,21 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
                             ) : (
                                 <div className="flex items-center gap-2 transition-transform duration-300 group-hover:scale-105">
                                     <div className="w-10 h-10 bg-[#009AD0] rounded-xl flex items-center justify-center transform -rotate-3 shadow-lg shadow-[#009AD0]/20 group-hover:rotate-0 transition-transform">
-                                        <span className="text-white font-extrabold text-xl">L</span>
+                                        <span className="text-white font-extrabold text-xl">B</span>
                                     </div>
                                     <div className="flex flex-col leading-none">
                                         <span className="font-black text-2xl text-white tracking-tight uppercase">
-                                            SERİN
+                                            BARDAKCI
                                         </span>
                                         <span className="font-bold text-sm text-[#009AD0] tracking-widest uppercase">
-                                            MOTOR
+                                            BIKE
                                         </span>
                                     </div>
                                 </div>
                             )}
                         </div>
                         <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto md:mx-0">
-                            {settings?.seoDescription || "Motosiklet yedek parça, aksesuar ve modifiye ürünlerinde güvenilir adres. Orijinal ve yan sanayi yedek parça seçenekleri."}
+                            {settings?.seoDescription || "Bisiklet yedek parça, aksesuar ve ekipmanlarında güvenilir adres. Orijinal ve kaliteli ürün seçenekleri."}
                         </p>
                         <div className="flex justify-center md:justify-start gap-3 pt-2">
                             {/* Social Icons - Modern Glass Style */}
@@ -208,7 +208,7 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
 
                 <div className="border-t border-white/5 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-6 text-sm">
                     <div className="text-gray-500 text-center md:text-left">
-                        <p>© {new Date().getFullYear()} {settings?.companyName || "Serin Motor"}. Tüm hakları saklıdır.</p>
+                        <p>© {new Date().getFullYear()} {settings?.companyName || "Bardakcı Bike"}. Tüm hakları saklıdır.</p>
                         <p className="mt-1 flex items-center justify-center md:justify-start gap-1">
                             Designed & Developed by
                             <a

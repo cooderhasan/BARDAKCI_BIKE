@@ -10,7 +10,7 @@ async function pushInventoryDirect() {
 
     const payload = [
       {
-        "merchantSku": "SRN-8349909",
+        "merchantSku": "BRD-8349909",
         "price": 650.00,
         "availableStock": 98,
         "dispatchTime": 3,
@@ -29,7 +29,7 @@ async function pushInventoryDirect() {
       headers: {
         'Authorization': auth,
         'Content-Type': 'application/json',
-        'User-Agent': 'serinmotor_dev'
+        'User-Agent': 'bardakcibike_dev'
       }
     };
 

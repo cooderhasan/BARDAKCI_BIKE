@@ -42,10 +42,10 @@ const nextConfig: NextConfig = {
         has: [
           {
             type: 'host',
-            value: 'ladamarketi.com',
+            value: 'bardakcibike.com.tr',
           },
         ],
-        destination: 'https://www.ladamarketi.com/:path*',
+        destination: 'https://www.bardakcibike.com.tr/:path*',
         permanent: true,
       },
       {

@@ -109,7 +109,7 @@ export async function sendCartReminderAction(cartId: string) {
             }
         }
 
-        const domain = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+        const domain = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
         let totalAmount = 0;
 
         const emailItems = cart.items.map((item: any) => {

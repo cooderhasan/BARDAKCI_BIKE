@@ -9,8 +9,8 @@ async function main() {
     console.log("Sending hardcoded test admin email...");
     
     const { data, error } = await resend.emails.send({
-        from: 'Sipariş Bildirim <siparis@serinmotor.com>',
-        to: ["emreserin78@gmail.com"],
+        from: 'Sipariş Bildirim <siparis@bardakcibike.com.tr>',
+        to: ["info@bardakcibike.com.tr"],
         subject: `Yeni Sipariş: #TEST-HARDCODED`,
         react: AdminNewOrderEmail({
             orderNumber: "TEST-HARDCODED",

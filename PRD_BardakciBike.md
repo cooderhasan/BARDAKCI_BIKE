@@ -1,7 +1,7 @@
-# Product Requirement Document (PRD) - Serin Motor E-Commerce Platform
+# Product Requirement Document (PRD) - Bardakcı Bike E-Commerce Platform
 
 ## 1. Project Overview
-**Serin Motor** (https://www.serinmotor.com) is a modern B2B/B2C e-commerce platform specializing in motorcycle spare parts, accessories, and gear. The application is built using Next.js, Prisma, PostgreSQL, and Tailwind CSS. It supports multiple customer tiers (Individual retail customers, Approved corporate dealers, and Guests) and features robust marketplace integrations (Trendyol, Hepsiburada, N11) with automated stock synchronization.
+**Bardakcı Bike** (https://www.bardakcibike.com.tr) is a modern B2B/B2C e-commerce platform specializing in bicycle spare parts, accessories, and gear. The application is built using Next.js, Prisma, PostgreSQL, and Tailwind CSS. It supports multiple customer tiers (Individual retail customers, Approved corporate dealers, and Guests) and features robust marketplace integrations (Trendyol, Hepsiburada, N11) with automated stock synchronization.
 
 ---
 
@@ -44,7 +44,7 @@
 
 ### Flow 1: E2E Guest Purchase Flow
 1. Navigate to Homepage (`/`).
-2. Search for a product (e.g., "kask" or select from categories).
+2. Search for a product (e.g., "lastik" or select from categories).
 3. View the product detail page, select a variant if applicable, and click **Add to Cart**.
 4. Go to `/cart`, verify the item and totals, click **Proceed to Checkout**.
 5. Fill in the Guest shipping/billing address details (including Name, Address, City, TC No/Tax ID).

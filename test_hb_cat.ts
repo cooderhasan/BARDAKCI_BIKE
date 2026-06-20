@@ -15,7 +15,7 @@ async function run() {
     const res = await fetch(url, {
         headers: {
             Authorization: 'Basic ' + Buffer.from(config.merchantId + ':' + config.password).toString('base64'),
-            'User-Agent': 'serinmotor_dev',
+            'User-Agent': 'bardakcibike_dev',
             Accept: 'application/json'
         }
     });

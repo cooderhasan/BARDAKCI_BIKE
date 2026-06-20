@@ -367,7 +367,7 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
                                             Birincil İthalatçı Adı <span className="text-red-500">*</span>
                                         </Label>
                                         <Input 
-                                            placeholder="Örn: Serinmotor, GMS, RBK..." 
+                                            placeholder="Örn: Bardakcı Bike, GMS, RBK..." 
                                             onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, 1216: e.target.value }))}
                                         />
                                     </div>

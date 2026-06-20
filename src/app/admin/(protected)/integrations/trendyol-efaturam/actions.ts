@@ -188,7 +188,7 @@ function buildInvoicePayload(order: any): any {
 
     // Sipariş kaynağına göre web adresi
     const purchaseUrlMap: Record<string, string> = {
-        "WEB": "https://serinmotor.com",
+        "WEB": "https://www.bardakcibike.com.tr",
         "TRENDYOL": "https://www.trendyol.com",
         "N11": "https://www.n11.com",
         "HEPSIBURADA": "https://www.hepsiburada.com",
@@ -210,7 +210,7 @@ function buildInvoicePayload(order: any): any {
     const source = order.source || "WEB";
     const cargoName = order.cargoCompany || "";
     const cargoInfo = cargoInfoMap[cargoName] || { taxId: "3130557323", name: "YURTİÇİ KARGO SERVİSİ A.Ş." };
-    const purchaseUrl = purchaseUrlMap[source] || "https://serinmotor.com";
+    const purchaseUrl = purchaseUrlMap[source] || "https://www.bardakcibike.com.tr";
 
     return {
         scenario: "EARSIVFATURA",

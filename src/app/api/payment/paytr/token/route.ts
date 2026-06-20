@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         const tokenData = {
             user_ip: req.headers.get("x-forwarded-for") || "127.0.0.1",
             merchant_oid: order.id,
-            email: (order as any).guestEmail || session?.user?.email || "guest@serinmotor.com",
+            email: (order as any).guestEmail || session?.user?.email || "guest@bardakcibike.com.tr",
             payment_amount: Number(order.total),
             user_basket: basketItems,
             user_name: shippingAddress?.name || "Müşteri",

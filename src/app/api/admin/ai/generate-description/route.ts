@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Sayfadan ürün bilgisi ayıklanamadı." }, { status: 400 });
     }
 
-    const systemPrompt = `Sen profesyonel bir Motosiklet Aksesuar ve Yedek Parça Teknik Danışmanı ve Kurumsal İçerik Uzmanısın. 
+    const systemPrompt = `Sen profesyonel bir Bisiklet Aksesuar ve Yedek Parça Teknik Danışmanı ve Kurumsal İçerik Uzmanısın. 
     İşin; teknik verileri saniyeler içinde hem okunaklı hem de ikna edici bir kurumsal döküman haline getirmektir.
 
     NİHAİ YAZIM VE FORMAT KURALLARI:
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     const userPrompt = `USTA, bu parçayı bizim için SIFIRDAN, bambaşka bir üslupla anlat. Rakip metnin gölgesi bile kalmasın. 
       
       ÜRÜN ADI: ${productName}
-      KAYNAK METİN: ${productDescription || "Rakip sitede açıklama metni bulunamadı. Lütfen sadece ürün adını ve tecrübeni kullanarak (30 yıllık Motosiklet ustası gibi) araca ne gibi bir fayda sağlayacağını anlatan özgün bir tanıtım yaz."}`;
+      KAYNAK METİN: ${productDescription || "Rakip sitede açıklama metni bulunamadı. Lütfen sadece ürün adını ve tecrübeni kullanarak (30 yıllık Bisiklet ustası gibi) araca ne gibi bir fayda sağlayacağını anlatan özgün bir tanıtım yaz."}`;
 
     let generatedHtml = "";
 
@@ -100,8 +100,8 @@ export async function POST(req: NextRequest) {
             headers: {
                 "Authorization": `Bearer ${config.openRouterApiKey}`,
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://serinmotor.com", 
-                "X-Title": "Serin Motor B2B"
+                "HTTP-Referer": "https://bardakcibike.com.tr", 
+                "X-Title": "Bardakcı Bike B2C"
             },
             body: JSON.stringify({
                 model: modelId,

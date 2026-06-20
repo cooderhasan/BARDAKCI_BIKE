@@ -3,7 +3,7 @@ const https = require('https');
 async function sendInventory() {
   const payload = [
     {
-      "merchantSku": "SRN-8349909",
+      "merchantSku": "BRD-8349909",
       "price": "150,00",
       "availableStock": 50,
       "dispatchTime": 2,
@@ -20,7 +20,7 @@ async function sendInventory() {
     headers: {
       'Authorization': 'Basic ' + Buffer.from('2c8b04a9-3898-4925-99a5-98875224b436:xraAz49GJu29').toString('base64'),
       'Content-Type': 'application/json',
-      'User-Agent': 'serinmotor_dev'
+      'User-Agent': 'bardakcibike_dev'
     }
   };
 

@@ -102,7 +102,7 @@ export const AdminNewOrderEmail = ({
 
                         <Section className="text-center mt-8">
                             <Link
-                                href={`https://www.serinmotor.com/admin/orders/${orderId}`}
+                                href={`https://www.bardakcibike.com.tr/admin/orders/${orderId}`}
                                 className="bg-[#000000] rounded text-white text-[12px] font-semibold no-underline text-center px-5 py-3"
                             >
                                 Siparişi Görüntüle

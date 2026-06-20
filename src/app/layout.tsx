@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com"),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr"),
     title: {
       default: general.seoTitle || general.siteName || "B2B E-Ticaret Platformu",
       template: `%s | ${general.siteName || "B2B"}`,

@@ -450,7 +450,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
         // Determine if product has variants
         const hasVariants = (product as any).variants && (product as any).variants.length > 0;
 
-        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
         
         // Görselleri tam URL'ye çevir (N11 tam URL ve tercihen https bekler)
         const absoluteImages = (product.images || []).map((url: string) => {

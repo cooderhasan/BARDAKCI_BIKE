@@ -20,7 +20,7 @@ async function main() {
         { attributeId: 338, attributeValueId: 6821 },       // Beden: Tek Ebat
         { attributeId: 1201, attributeValueId: 10621829 },  // Tamir Edilebilirlik: Tamir Edilmez
         { attributeId: 1209, attributeValueId: 10621791 },  // ECE Uygunluk: Görselinde bulunmuyor
-        { attributeId: 1216, customAttributeValue: "Serinmotor" }, // Birincil İthalatçı Adı
+        { attributeId: 1216, customAttributeValue: "Bardakcı Bike" }, // Birincil İthalatçı Adı
         { attributeId: 1116, customAttributeValue: "Ustanıza danışınız" }, // Kullanım Talimatı
     ];
 
@@ -40,7 +40,7 @@ async function main() {
             deliveryDuration: 3,
             fastDeliveryType: "SAME_DAY_SHIPPING"
         },
-        images: product.images.map((url: string) => ({ url: url.startsWith("http") ? url : `https://www.serinmotor.com${url}` })),
+        images: product.images.map((url: string) => ({ url: url.startsWith("http") ? url : `https://www.bardakcibike.com.tr${url}` })),
         attributes: defaultAttributes
     };
 

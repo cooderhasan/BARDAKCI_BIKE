@@ -44,7 +44,7 @@ export async function GET(request: Request) {
                 { attributeId: 1209, attributeValueId: 10621791 }
             ];
 
-            const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+            const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
             const imageUrls = testProduct.images
                 .map((url: string) => url.startsWith("http") ? url : `${siteUrl}${url.startsWith("/") ? "" : "/"}${url}`)
                 .filter((url: string) => url.startsWith("https://"));

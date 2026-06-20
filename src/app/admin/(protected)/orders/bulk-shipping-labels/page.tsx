@@ -116,7 +116,7 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                         <div>
                                             <div className="n11-header">Gönderici Bilgileri</div>
                                             <div className="text-sm font-medium">
-                                                <p>Şirket İsmi: <span className="ml-2">{settings.companyName || "SERİN MOTOR"}</span></p>
+                                                <p>Şirket İsmi: <span className="ml-2">{settings.companyName || "BARDAKCI BIKE"}</span></p>
                                                 <p>Şirket Tel: <span className="ml-3">{settings.phone}</span></p>
                                             </div>
                                         </div>
@@ -196,7 +196,7 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                                 {settings.logoUrl && (
                                                     <img src={settings.logoUrl} alt="Logo" className="h-12 w-auto object-contain mb-1" />
                                                 )}
-                                                <h1 className="text-lg font-bold uppercase mb-1">{settings.companyName || "SERİN MOTOR"}</h1>
+                                                <h1 className="text-lg font-bold uppercase mb-1">{settings.companyName || "BARDAKCI BIKE"}</h1>
                                                 <div className="text-sm font-medium">
                                                     <p>{settings.address}</p>
                                                     <p className="mt-1">{settings.phone} | {settings.email}</p>

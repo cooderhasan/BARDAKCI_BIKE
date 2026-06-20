@@ -25,7 +25,7 @@ export class HepsiburadaClient {
     private orderBaseUrl: string;
     private productUploadBaseUrl: string;
     private metadataBaseUrl: string;
-    private userAgent = "serinmotor_dev"; // Developer Username - HB header zorunlu
+    private userAgent = "bardakcibike_dev"; // Developer Username - HB header zorunlu
 
     private creds: HepsiburadaCreds | null = null;
     private isTestMode: boolean = false;
@@ -64,7 +64,7 @@ export class HepsiburadaClient {
         if (!this.creds) throw new Error("Creds missing");
         // HB Yeni Auth Yapısı (Ağustos 2024):
         // Basic Auth: username = MerchantID, password = ServisAnahtarı
-        // User-Agent header = entegratör kullanıcı adı (serinmotor_dev)
+        // User-Agent header = entegratör kullanıcı adı (bardakcibike_dev)
         const pair = `${this.creds.username}:${this.creds.password}`;
         return `Basic ${Buffer.from(pair).toString("base64")}`;
     }
@@ -74,7 +74,7 @@ export class HepsiburadaClient {
             "Authorization": this.getAuthHeader(),
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "serinmotor_dev",
+            "User-Agent": "bardakcibike_dev",
             ...extraHeaders,
         };
     }
@@ -518,14 +518,14 @@ export class HepsiburadaClient {
             invoiceLink: finalUrl,
             contentType: "pdf",
             arrangementDate: new Date().toISOString(),
-            serialNumber: "SRN",
+            serialNumber: "BRD",
             rowNumber: "1",
             invoices: [{
                 invoiceLink: finalUrl,
                 contentType: "pdf",
                 orderNumber: orderNumber,
                 arrangementDate: new Date().toISOString(),
-                serialNumber: "SRN",
+                serialNumber: "BRD",
                 rowNumber: "1"
             }]
         };

@@ -47,8 +47,7 @@ async function main() {
     console.log("✅ Created discount groups:", discountGroups.length);
 
     // Create admin user
-    // Create admin user
-    const adminEmail = process.env.ADMIN_EMAIL || "ahmetufekci91@gmail.com";
+    const adminEmail = process.env.ADMIN_EMAIL || "info@bardakcibike.com.tr";
     const adminPassword = await bcrypt.hash("Ahmet.91!Tufekci_2025*Guvenli", 12);
     const admin = await prisma.user.upsert({
         where: { email: adminEmail },
@@ -60,7 +59,7 @@ async function main() {
         create: {
             email: adminEmail,
             passwordHash: adminPassword,
-            companyName: "Serin Motor Admin",
+            companyName: "Bardakcı Bike Admin",
             role: "ADMIN",
             status: "APPROVED",
         },
@@ -77,11 +76,13 @@ async function main() {
         create: {
             key: "general",
             value: {
-                siteName: "B2B Toptancı",
-                companyName: "B2B E-Ticaret Ltd. Şti.",
-                phone: "+90 212 555 0000",
-                email: "info@b2b.com",
-                address: "İstanbul, Türkiye",
+                siteName: "Bardakcı Bike",
+                companyName: "Bardakcı Bike - Mehmet Fatih Bardakcı",
+                phone: "0534 519 44 72",
+                email: "info@bardakcibike.com.tr",
+                address: "Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA",
+                taxOffice: "Meram Vergi Dairesi",
+                taxNumber: "25403236566",
             },
         },
     });
@@ -93,14 +94,9 @@ async function main() {
             key: "bankAccounts",
             value: [
                 {
-                    bankName: "Ziraat Bankası",
-                    accountHolder: "B2B E-Ticaret Ltd. Şti.",
-                    iban: "TR00 0000 0000 0000 0000 0000 00",
-                },
-                {
-                    bankName: "İş Bankası",
-                    accountHolder: "B2B E-Ticaret Ltd. Şti.",
-                    iban: "TR00 0000 0000 0000 0000 0000 01",
+                    bankName: "Garanti Bankası",
+                    accountHolder: "Mehmet Fatih Bardakcı",
+                    iban: "TR250006200077000006896031",
                 },
             ],
         },

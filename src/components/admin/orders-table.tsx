@@ -694,7 +694,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         const phone = order.user?.phone || (order.shippingAddress as any)?.phone;
                                                         return phone ? (
                                                             <a
-                                                                href={`https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "90").replace(/^5/, "905")}?text=${encodeURIComponent(`Merhaba Serin Motor'dan #${order.orderNumber} numaralı siparişiniz için yazıyorum`)}`}
+                                                                href={`https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "90").replace(/^5/, "905")}?text=${encodeURIComponent(`Merhaba Bardakcı Bike'tan #${order.orderNumber} numaralı siparişiniz için yazıyorum`)}`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="text-green-500 hover:text-green-600 flex items-center gap-0.5 text-[10px]"

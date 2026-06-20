@@ -694,7 +694,7 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
         if (!brandId) return { success: false, message: "Ürünün markası Trendyol ile eşleşmemiş." };
 
         // 2. Trendyol Formatına Dönüştürme
-        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
         
         // Görselleri tam URL'ye çevir (Trendyol sadece https:// kabul eder)
         const imageUrls = product.images

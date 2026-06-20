@@ -20,10 +20,10 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
     if (!product) return { title: "Ürün Bulunamadı" };
 
-    const description = product.description?.replace(/<[^>]*>?/gm, "").slice(0, 160) || `${product.name} uygun fiyat ve taksit seçenekleriyle Serin Motor'da.`;
+    const description = product.description?.replace(/<[^>]*>?/gm, "").slice(0, 160) || `${product.name} uygun fiyat ve taksit seçenekleriyle Bardakcı Bike'ta.`;
 
     return {
-        title: `${product.name} | Serin Motor`,
+        title: `${product.name} | Bardakcı Bike`,
         description,
         openGraph: {
             title: product.name,
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             images: product.images || [],
         },
         alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://serinmotor.com"}/products/${slug}`
+            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/products/${slug}`
         }
     };
 }
@@ -129,7 +129,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         || null;
     const categoryPath = primaryCategory ? getCategoryPath(primaryCategory) : [];
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.serinmotor.com";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
     // 1. Product Schema
     const productSchema: any = {
@@ -141,7 +141,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         "mpn": product.sku || undefined,
         "brand": {
             "@type": "Brand",
-            "name": product.brand?.name || "Serin Motor",
+            "name": product.brand?.name || "Bardakcı Bike",
         },
         "offers": {
             "@type": "Offer",
@@ -153,7 +153,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
             "seller": {
                 "@type": "Organization",
-                "name": "Serin Motor",
+                "name": "Bardakcı Bike",
             },
         },
     };

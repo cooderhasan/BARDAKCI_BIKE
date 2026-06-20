@@ -19,7 +19,7 @@ export default async function ContactPage() {
                         Bize Ulaşın
                     </h1>
                     <p className="text-blue-100 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-                        Motosiklet aksesuar ve yedek parça ihtiyaçlarınız için her zaman yanınızdayız. Sorularınız için bize ulaşın.
+                        Bisiklet aksesuar ve yedek parça ihtiyaçlarınız için her zaman yanınızdayız. Sorularınız için bize ulaşın.
                     </p>
                 </div>
             </section>
@@ -37,13 +37,13 @@ export default async function ContactPage() {
                         </div>
                     </a>
 
-                    <a href={`mailto:${settings.email || 'info@serinmotor.com'}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
+                    <a href={`mailto:${settings.email || 'info@bardakcibike.com.tr'}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
                         <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-500 transition-colors">
                             <Mail className="w-5 h-5 text-purple-600 group-hover:text-white transition-colors" />
                         </div>
                         <div>
                             <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">E-posta</p>
-                            <p className="font-bold text-gray-900 dark:text-white text-sm">{settings.email || "info@serinmotor.com"}</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm">{settings.email || "info@bardakcibike.com.tr"}</p>
                         </div>
                     </a>
 
@@ -85,7 +85,7 @@ export default async function ContactPage() {
                                 <div>
                                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Firma Ünvanı</p>
                                     <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                        {settings.companyName || "Konya Serin Motor Motosiklet Parça Satış Hizmetleri"}
+                                        {settings.companyName || "Bardakcı Bike - Mehmet Fatih Bardakcı"}
                                     </p>
                                 </div>
 
@@ -97,7 +97,7 @@ export default async function ContactPage() {
                                     <div>
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Adres</p>
                                         <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                                            {settings.address || "Fatih Mahallesi Horozlu Sokak No 44-1 (Eski Sanayi) Selçuklu/KONYA"}
+                                            {settings.address || "Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA"}
                                         </p>
                                     </div>
                                 </div>
@@ -161,7 +161,7 @@ export default async function ContactPage() {
                                 style={{ border: 0 }}
                                 allowFullScreen
                                 loading="lazy"
-                                title="Konya Serin Motor Konum"
+                                title="Konya Bardakcı Bike Konum"
                             ></iframe>
                         </div>
                     </div>

@@ -389,7 +389,7 @@ export class TrendyolEFaturamClient {
                 paymentType: "KREDIKARTI/BANKAKARTI",
                 paymentMeans: "CREDIT_CARD",
                 paymentDate: new Date().toISOString(),
-                purchaseUrl: rawInvoiceData.purchaseUrl || "https://serinmotor.com",
+                purchaseUrl: rawInvoiceData.purchaseUrl || "https://bardakcibike.com.tr",
             }
         };
 
@@ -513,7 +513,7 @@ export class TrendyolEFaturamClient {
                 paymentType: "KREDIKARTI/BANKAKARTI",
                 paymentMeans: "CREDIT_CARD",
                 paymentDate: new Date().toISOString(),
-                purchaseUrl: rawInvoiceData.purchaseUrl || "https://serinmotor.com",
+                purchaseUrl: rawInvoiceData.purchaseUrl || "https://bardakcibike.com.tr",
             }
         };
 

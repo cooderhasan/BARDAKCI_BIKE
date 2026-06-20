@@ -35,7 +35,7 @@ async function createTestOrder() {
     headers: {
       'Authorization': auth,
       'Content-Type': 'application/json',
-      'User-Agent': 'serinmotor_dev'
+      'User-Agent': 'bardakcibike_dev'
     }
   };
 
