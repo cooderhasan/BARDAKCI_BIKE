@@ -172,7 +172,7 @@ export function generateSlug(text: string): string {
  * Format: ABC-12345
  */
 export function generateSKU(): string {
-    const prefix = "SRN";
+    const prefix = "BRD";
     const random = Math.floor(Math.random() * 10000000)
         .toString()
         .padStart(7, "0");
@@ -183,8 +183,8 @@ export function generateSKU(): string {
  * Generate valid EAN-13 barcode
  */
 export function generateBarcode(): string {
-    // Prefix 460 (Russia)
-    let code = "460" + Math.floor(Math.random() * 1000000000)
+    // Prefix 869 (Turkey - Domestic Production)
+    let code = "869" + Math.floor(Math.random() * 1000000000)
         .toString()
         .padStart(9, "0");
 
