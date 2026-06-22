@@ -799,7 +799,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         </div>
                                         <div>
                                             <span className="text-gray-500">Efektif Desi:</span>
-                                            <p className="font-bold text-blue-600">
+                                            <p className="font-bold text-[#17457C]">
                                                 {Math.max(autoDesi, Number(formData.weight) || 0, Number(formData.desi) || 0).toFixed(2)}
                                             </p>
                                         </div>
@@ -1120,7 +1120,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     />
                                 </Label>
                                 {uploading && (
-                                    <div className="mt-4 flex justify-center text-blue-600">
+                                    <div className="mt-4 flex justify-center text-[#17457C]">
                                         <Loader2 className="h-5 w-5 animate-spin mr-2" />
                                         <span className="text-sm">Yükleniyor...</span>
                                     </div>
@@ -1144,7 +1144,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                 <X className="h-4 w-4" />
                                             </button>
                                             {index === 0 && (
-                                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-blue-600 text-white text-xs rounded shadow-sm">
+                                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-[#17457C] text-white text-xs rounded shadow-sm">
                                                     Ana Görsel
                                                 </div>
                                             )}

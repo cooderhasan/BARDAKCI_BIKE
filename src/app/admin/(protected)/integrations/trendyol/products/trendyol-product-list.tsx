@@ -245,7 +245,7 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 {mappedBrand ? (
-                                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 border-none text-[10px]">
+                                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-[#17457C] border-none text-[10px]">
                                                         {product.brand?.name}
                                                     </Badge>
                                                 ) : (

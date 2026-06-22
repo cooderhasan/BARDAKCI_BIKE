@@ -139,14 +139,14 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2 transition-transform duration-300 group-hover:scale-105">
-                                        <div className="w-10 h-10 md:w-14 md:h-14 bg-[#009AD0] rounded-xl flex items-center justify-center transform -rotate-3 shadow-lg group-hover:rotate-0 transition-transform">
+                                        <div className="w-10 h-10 md:w-14 md:h-14 bg-[#17457C] rounded-xl flex items-center justify-center transform -rotate-3 shadow-lg group-hover:rotate-0 transition-transform">
                                             <span className="text-white font-extrabold text-xl md:text-3xl">B</span>
                                         </div>
                                         <div className="flex flex-col leading-none">
                                             <span className="font-black text-xl md:text-3xl text-gray-900 dark:text-white tracking-tight uppercase">
                                                 BARDAKCI
                                             </span>
-                                            <span className="font-bold text-[10px] md:text-base text-[#009AD0] tracking-widest uppercase">
+                                            <span className="font-bold text-[10px] md:text-base text-[#17457C] tracking-widest uppercase">
                                                 BIKE
                                             </span>
                                         </div>
@@ -158,7 +158,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             {phone && (
                                 <a
                                     href={`tel:${phone.replace(/\s/g, '')}`}
-                                    className="hidden lg:flex items-center gap-2 text-gray-600 hover:text-[#009AD0] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 border-l border-gray-200 ml-2 pl-4"
+                                    className="hidden lg:flex items-center gap-2 text-gray-600 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 border-l border-gray-200 ml-2 pl-4"
                                 >
                                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                                         <Phone className="h-4 w-4 text-green-600" />
@@ -186,7 +186,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 className="relative"
                             >
                                 {!mounted ? (
-                                    <button className="flex items-center gap-3 text-gray-700 hover:text-[#009AD0] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100">
+                                    <button className="flex items-center gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100">
                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                                             <User className="h-5 w-5" />
                                         </div>
@@ -198,9 +198,9 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 ) : (
                                     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen} modal={false}>
                                         <DropdownMenuTrigger asChild>
-                                            <button className="flex items-center gap-3 text-gray-700 hover:text-[#009AD0] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 outline-none">
-                                                <div className={`w-10 h-10 ${user ? 'bg-[#009AD0]/10' : 'bg-gray-100'} rounded-full flex items-center justify-center`}>
-                                                    <User className={`h-5 w-5 ${user ? 'text-[#009AD0]' : ''}`} />
+                                            <button className="flex items-center gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 outline-none">
+                                                <div className={`w-10 h-10 ${user ? 'bg-[#17457C]/10' : 'bg-gray-100'} rounded-full flex items-center justify-center`}>
+                                                    <User className={`h-5 w-5 ${user ? 'text-[#17457C]' : ''}`} />
                                                 </div>
                                                 <div className="hidden sm:flex flex-col items-start">
                                                     <span className="text-[10px] text-gray-500">Kullanıcı</span>
@@ -285,7 +285,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
 
                             {/* Cart - Visible for everyone */}
                             <Link href="/cart" className={cn(
-                                "flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 pl-4",
+                                "flex items-center gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 pl-4",
                                 user && "border-l"
                             )}>
                                 <div className="relative">
@@ -325,7 +325,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
 
             {/* Bottom Row: Category Navigation (Desktop) - STRIKING DESIGN */}
             <div
-                className="hidden md:block relative overflow-visible bg-[#009AD0] bg-gradient-to-r from-[#0081AF]/95 via-[#009AD0]/95 to-[#0081AF]/95 backdrop-blur-md shadow-lg"
+                className="hidden md:block relative overflow-visible bg-[#17457C] bg-gradient-to-r from-[#0d2e5c]/95 via-[#17457C]/95 to-[#0d2e5c]/95 backdrop-blur-md shadow-lg"
             >
                 {/* Glowing Line Effect */}
                 <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#4FC3F7] to-transparent opacity-50" />
@@ -350,7 +350,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                     }`}
                                 >
                                     <span className={`flex items-center gap-2 text-sm font-bold transition-colors text-center whitespace-nowrap ${
-                                        hoveredCategory === 'home' ? "text-[#009AD0]" : "text-white"
+                                        hoveredCategory === 'home' ? "text-[#17457C]" : "text-white"
                                     }`}>
                                         <Home className="w-4 h-4" />
                                         ANASAYFA
@@ -379,7 +379,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                                 }`}
                                             >
                                                 <span className={`text-sm font-bold transition-colors text-center whitespace-nowrap ${
-                                                    isHovered ? "text-[#009AD0]" : "text-white"
+                                                    isHovered ? "text-[#17457C]" : "text-white"
                                                 }`}>
                                                     {category.name}
                                                 </span>
@@ -387,7 +387,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
 
                                             {/* Mega Menu Dropdown */}
                                             {isHovered && hasChildren && (
-                                                <div className="absolute left-0 top-full w-full bg-white shadow-2xl border-t-2 border-[#009AD0] z-50 p-8 rounded-b-xl flex gap-8 animate-in fade-in duration-150">
+                                                <div className="absolute left-0 top-full w-full bg-white shadow-2xl border-t-2 border-[#17457C] z-50 p-8 rounded-b-xl flex gap-8 animate-in fade-in duration-150">
                                                     {/* Subcategories Grid */}
                                                     <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-3 content-start">
                                                         {category.children!.map(sub => (
@@ -395,9 +395,9 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                                                 key={sub.id} 
                                                                 href={`/category/${sub.slug}`} 
                                                                 onClick={() => setHoveredCategory(null)}
-                                                                className="text-sm text-gray-700 hover:text-[#009AD0] hover:font-medium hover:translate-x-1 transition-all flex items-center gap-2"
+                                                                className="text-sm text-gray-700 hover:text-[#17457C] hover:font-medium hover:translate-x-1 transition-all flex items-center gap-2"
                                                             >
-                                                                <span className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-[#009AD0]"></span>
+                                                                <span className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-[#17457C]"></span>
                                                                 {sub.name}
                                                             </Link>
                                                         ))}
@@ -470,7 +470,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             <p className="text-xs font-semibold text-gray-500 uppercase px-2 mb-2">Menü</p>
                             <Link
                                 href="/"
-                                className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-[#009AD0] hover:bg-blue-50 rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-[#17457C] hover:bg-blue-50 rounded-lg transition-colors"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 <Home className="w-4 h-4" />
@@ -478,10 +478,10 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             </Link>
                             <Link
                                 href="/products"
-                                className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-[#009AD0] hover:bg-blue-50 rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-[#17457C] hover:bg-blue-50 rounded-lg transition-colors"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#009AD0]" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#17457C]" />
                                 Tüm Ürünler
                             </Link>
                             {mobileCategoryTree.map((category) => {
@@ -532,7 +532,7 @@ function MobileCategoryItem({ category, hasChildren, onClose }: { category: Cate
             <div className="flex items-center">
                 <Link
                     href={`/category/${category.slug}`}
-                    className="flex-1 flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-[#009AD0] transition-colors"
+                    className="flex-1 flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-[#17457C] transition-colors"
                     onClick={onClose}
                 >
                     <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
@@ -541,7 +541,7 @@ function MobileCategoryItem({ category, hasChildren, onClose }: { category: Cate
                 {hasChildren && (
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="p-2.5 mr-1 rounded-lg text-gray-400 hover:text-[#009AD0] hover:bg-blue-50 transition-all"
+                        className="p-2.5 mr-1 rounded-lg text-gray-400 hover:text-[#17457C] hover:bg-blue-50 transition-all"
                     >
                         {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                     </button>
@@ -553,7 +553,7 @@ function MobileCategoryItem({ category, hasChildren, onClose }: { category: Cate
                         <Link
                             key={child.id}
                             href={`/category/${child.slug}`}
-                            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-500 hover:text-[#009AD0] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-500 hover:text-[#17457C] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
                             onClick={onClose}
                         >
                             <ChevronRight className="w-3 h-3 text-gray-300" />

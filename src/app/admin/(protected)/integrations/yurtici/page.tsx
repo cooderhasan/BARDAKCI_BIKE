@@ -40,7 +40,7 @@ export default async function YurticiIntegrationPage() {
                     <p className="text-xs text-gray-500 mt-1">Gönderi Oluştur</p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border rounded-lg p-4 text-center">
-                    <p className="text-2xl font-bold text-blue-600">queryShipment</p>
+                    <p className="text-2xl font-bold text-[#17457C]">queryShipment</p>
                     <p className="text-xs text-gray-500 mt-1">Durum Sorgula</p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border rounded-lg p-4 text-center">

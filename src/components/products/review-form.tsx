@@ -82,7 +82,7 @@ export function ReviewForm({ productId }: ReviewFormProps) {
             <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-[#009AD0] hover:bg-[#007baa] text-white"
+                className="bg-[#17457C] hover:bg-[#0f3460] text-white"
             >
                 {isSubmitting ? "Gönderiliyor..." : "Değerlendirmeyi Gönder"}
             </Button>

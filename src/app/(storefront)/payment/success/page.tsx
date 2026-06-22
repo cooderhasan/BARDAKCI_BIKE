@@ -31,7 +31,7 @@ export default function PaymentSuccessPage() {
 
                 <div className="pt-8 flex flex-col gap-3">
                     <Link href="/account/orders">
-                        <Button className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-lg">
+                        <Button className="w-full bg-[#17457C] hover:bg-[#0f3460] h-12 text-lg">
                             Siparişlerime Git
                             <ArrowRight className="ml-2 h-5 w-5" />
                         </Button>

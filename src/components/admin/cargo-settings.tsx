@@ -238,7 +238,7 @@ export function CargoSettings({ initialCompanies }: CargoSettingsProps) {
                             <button
                                 type="button"
                                 onClick={() => handleToggleDesiPanel(company.id)}
-                                className="flex items-center gap-2 text-sm font-medium hover:text-blue-600 transition-colors"
+                                className="flex items-center gap-2 text-sm font-medium hover:text-[#17457C] transition-colors"
                             >
                                 {expandedCompanyId === company.id ? (
                                     <ChevronUp className="h-4 w-4" />
@@ -382,7 +382,7 @@ export function CargoSettings({ initialCompanies }: CargoSettingsProps) {
                                                 size="sm"
                                                 onClick={handleSaveDesiRanges}
                                                 disabled={desiSaving}
-                                                className="bg-blue-600 hover:bg-blue-700"
+                                                className="bg-[#17457C] hover:bg-[#0f3460]"
                                             >
                                                 {desiSaving ? (
                                                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />

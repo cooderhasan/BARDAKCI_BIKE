@@ -209,7 +209,7 @@ export default async function StockReportPage() {
                                             <TableCell>
                                                 <Link
                                                     href={`/admin/products/${product.id}`}
-                                                    className="font-medium hover:text-blue-600 transition-colors"
+                                                    className="font-medium hover:text-[#17457C] transition-colors"
                                                 >
                                                     {product.name}
                                                 </Link>

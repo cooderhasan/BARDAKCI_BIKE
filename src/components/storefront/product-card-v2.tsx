@@ -143,7 +143,7 @@ export function ProductCardV2({
                     </div>
                     {/* Badge */}
                     {badge && (
-                        <div className="absolute top-3 right-3 z-10 bg-[#009AD0] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
+                        <div className="absolute top-3 right-3 z-10 bg-[#17457C] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
                             {badge}
                         </div>
                     )}
@@ -176,13 +176,13 @@ export function ProductCardV2({
                 <div className="p-4 flex-1 flex flex-col bg-white dark:bg-gray-800/50">
                     {/* Brand */}
                     {product.brand && (
-                        <p className="text-[#009AD0] font-bold text-xs uppercase tracking-wider mb-1">
+                        <p className="text-[#17457C] font-bold text-xs uppercase tracking-wider mb-1">
                             {product.brand.name}
                         </p>
                     )}
 
                     {/* Product Name */}
-                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 h-10 mb-3 group-hover:text-[#009AD0] transition-colors">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-snug line-clamp-2 h-10 mb-3 group-hover:text-[#17457C] transition-colors">
                         {product.name}
                     </h3>
 
@@ -207,7 +207,7 @@ export function ProductCardV2({
                         {product.stock > 0 && !hasVariants ? (
                             <Button
                                 onClick={handleAddToCart}
-                                className="w-full h-10 bg-[#009AD0] hover:bg-[#007EA8] text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2"
+                                className="w-full h-10 bg-[#17457C] hover:bg-[#0f3460] text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2"
                             >
                                 <ShoppingCart className="w-4 h-4" />
                                 <span>Sepete Ekle</span>

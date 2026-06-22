@@ -169,7 +169,7 @@ export default function AccountQuoteDetailPage() {
             {quote.validUntil && (
                 <Card className={isExpired ? "border-red-200 bg-red-50" : "border-blue-200 bg-blue-50"}>
                     <CardContent className="py-4 flex items-center gap-3">
-                        <Clock className={`h-5 w-5 ${isExpired ? "text-red-600" : "text-blue-600"}`} />
+                        <Clock className={`h-5 w-5 ${isExpired ? "text-red-600" : "text-[#17457C]"}`} />
                         <p className={isExpired ? "text-red-800" : "text-blue-800"}>
                             {isExpired
                                 ? "Bu teklifin süresi dolmuştur"
@@ -251,7 +251,7 @@ export default function AccountQuoteDetailPage() {
                             <hr />
                             <div className="flex justify-between text-xl font-bold">
                                 <span>Toplam</span>
-                                <span className="text-blue-600">{formatPrice(quote.total)}</span>
+                                <span className="text-[#17457C]">{formatPrice(quote.total)}</span>
                             </div>
                         </div>
                     </CardContent>

@@ -205,7 +205,7 @@ export default async function AdminDashboardPage() {
                     <CardTitle>Son Siparişler</CardTitle>
                     <Link
                         href="/admin/orders"
-                        className="text-sm text-blue-600 hover:text-blue-700"
+                        className="text-sm text-[#17457C] hover:text-blue-700"
                     >
                         Tümünü Gör →
                     </Link>
@@ -225,10 +225,10 @@ export default async function AdminDashboardPage() {
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
-                                            <ShoppingCart className="h-5 w-5 text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                                            <ShoppingCart className="h-5 w-5 text-gray-500 group-hover:text-[#17457C] dark:group-hover:text-blue-400" />
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                                            <p className="font-medium text-gray-900 dark:text-white group-hover:text-[#17457C] transition-colors">
                                                 {order.orderNumber}
                                             </p>
                                             <p className="text-sm text-gray-500">

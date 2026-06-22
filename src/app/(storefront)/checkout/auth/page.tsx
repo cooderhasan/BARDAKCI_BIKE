@@ -24,7 +24,7 @@ export default function CheckoutAuthPage() {
                 <div className="grid md:grid-cols-3 gap-6 mt-12">
                     {/* Login Option */}
                     <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center group hover:shadow-md transition-shadow">
-                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mb-6 text-blue-600 transition-transform group-hover:scale-110">
+                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mb-6 text-[#17457C] transition-transform group-hover:scale-110">
                             <LogIn className="w-8 h-8" />
                         </div>
                         <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Giriş Yap</h2>
@@ -32,7 +32,7 @@ export default function CheckoutAuthPage() {
                             Hesabınıza giriş yaparak kayıtlı adreslerinizi kullanın ve siparişlerinizi takip edin.
                         </p>
                         <Link href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="w-full">
-                            <Button className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 py-6">
+                            <Button className="w-full rounded-xl bg-[#17457C] hover:bg-[#0f3460] py-6">
                                 Giriş Yap
                             </Button>
                         </Link>

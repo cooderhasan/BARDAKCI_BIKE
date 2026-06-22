@@ -121,7 +121,7 @@ export default function GoogleMerchantPage() {
         </div>
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-blue-700">{stats.totalActive}</div>
-          <div className="text-xs text-blue-600 mt-1">Feed'e Dahil</div>
+          <div className="text-xs text-[#17457C] mt-1">Feed'e Dahil</div>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-green-700">{stats.totalWithCategory}</div>
@@ -177,7 +177,7 @@ export default function GoogleMerchantPage() {
           />
           <button
             onClick={copyFeedUrl}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-[#17457C] hover:bg-[#0f3460] text-white text-sm font-medium rounded-lg transition-colors"
           >
             {copied ? "✓ Kopyalandı" : "Kopyala"}
           </button>

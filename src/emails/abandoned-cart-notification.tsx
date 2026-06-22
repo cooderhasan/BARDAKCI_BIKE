@@ -98,7 +98,7 @@ export const AbandonedCartNotificationEmail = ({
                                     <Text className="text-[16px] font-bold m-0 text-gray-800">Sepet Toplamı:</Text>
                                 </Column>
                                 <Column align="right">
-                                    <Text className="text-[20px] font-bold m-0 text-blue-600">
+                                    <Text className="text-[20px] font-bold m-0 text-[#17457C]">
                                         {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(totalAmount)}
                                     </Text>
                                 </Column>
@@ -107,7 +107,7 @@ export const AbandonedCartNotificationEmail = ({
 
                         <Section className="text-center mt-[32px] mb-[32px]">
                             <Button
-                                className="bg-blue-600 rounded-xl text-white text-[15px] font-semibold no-underline text-center px-6 py-4 block transition-colors shadow-sm"
+                                className="bg-[#17457C] rounded-xl text-white text-[15px] font-semibold no-underline text-center px-6 py-4 block transition-colors shadow-sm"
                                 href={continueShoppingUrl}
                             >
                                 Sepetime Git ve Alışverişi Tamamla

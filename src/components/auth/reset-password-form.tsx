@@ -28,12 +28,12 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
         return (
             <div className="w-full max-w-md relative">
                 <div className="backdrop-blur-xl bg-white/80 dark:bg-gray-800/80 rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 overflow-hidden">
-                    <div className="bg-gradient-to-r from-[#009AD0] to-[#007EA8] px-8 py-10 text-center">
+                    <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-8 py-10 text-center">
                         <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg overflow-hidden relative">
                             {logoUrl ? (
                                 <Image src={logoUrl} alt={siteName || "Logo"} fill className="object-contain p-2" />
                             ) : (
-                                <span className="text-[#009AD0] font-black text-3xl">
+                                <span className="text-[#17457C] font-black text-3xl">
                                     {(siteName || "L").charAt(0).toUpperCase()}
                                 </span>
                             )}
@@ -52,7 +52,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                         </p>
                         <Link
                             href="/forgot-password"
-                            className="inline-flex items-center justify-center gap-2 w-full h-12 bg-gradient-to-r from-[#009AD0] to-[#007EA8] hover:from-[#007EA8] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg transition-all duration-300"
+                            className="inline-flex items-center justify-center gap-2 w-full h-12 bg-gradient-to-r from-[#17457C] to-[#0f3460] hover:from-[#0f3460] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg transition-all duration-300"
                         >
                             Yeni Şifre Sıfırlama Talebi
                         </Link>
@@ -104,7 +104,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
             {/* Glass Card */}
             <div className="backdrop-blur-xl bg-white/80 dark:bg-gray-800/80 rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 overflow-hidden">
                 {/* Header Section */}
-                <div className="bg-gradient-to-r from-[#009AD0] to-[#007EA8] px-8 py-10 text-center">
+                <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-8 py-10 text-center">
                     {/* Logo */}
                     <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform hover:scale-105 transition-transform overflow-hidden relative">
                         {logoUrl ? (
@@ -115,7 +115,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                                 className="object-contain p-2"
                             />
                         ) : (
-                            <span className="text-[#009AD0] font-black text-3xl">
+                            <span className="text-[#17457C] font-black text-3xl">
                                 {(siteName || "L").charAt(0).toUpperCase()}
                             </span>
                         )}
@@ -146,7 +146,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                             <div className="pt-4">
                                 <Link
                                     href="/login"
-                                    className="flex items-center justify-center gap-2 w-full h-12 bg-gradient-to-r from-[#009AD0] to-[#007EA8] hover:from-[#007EA8] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg shadow-[#009AD0]/25 hover:shadow-[#009AD0]/40 transition-all duration-300"
+                                    className="flex items-center justify-center gap-2 w-full h-12 bg-gradient-to-r from-[#17457C] to-[#0f3460] hover:from-[#0f3460] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg shadow-[#17457C]/25 hover:shadow-[#17457C]/40 transition-all duration-300"
                                 >
                                     <KeyRound className="h-5 w-5" />
                                     Giriş Yap
@@ -159,7 +159,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                             {/* New Password */}
                             <div className="space-y-2">
                                 <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
-                                    <Lock className="h-4 w-4 text-[#009AD0]" />
+                                    <Lock className="h-4 w-4 text-[#17457C]" />
                                     Yeni Şifre
                                 </Label>
                                 <Input
@@ -171,14 +171,14 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                                     minLength={6}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#009AD0]/20 focus:border-[#009AD0] transition-all"
+                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#17457C]/20 focus:border-[#17457C] transition-all"
                                 />
                             </div>
 
                             {/* Confirm Password */}
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPassword" className="text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
-                                    <Lock className="h-4 w-4 text-[#009AD0]" />
+                                    <Lock className="h-4 w-4 text-[#17457C]" />
                                     Şifre Tekrar
                                 </Label>
                                 <Input
@@ -190,7 +190,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                                     minLength={6}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#009AD0]/20 focus:border-[#009AD0] transition-all"
+                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#17457C]/20 focus:border-[#17457C] transition-all"
                                 />
                                 {confirmPassword && password !== confirmPassword && (
                                     <p className="text-xs text-red-500 mt-1">Şifreler eşleşmiyor</p>
@@ -204,7 +204,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                             {/* Submit Button */}
                             <Button
                                 type="submit"
-                                className="w-full h-12 bg-gradient-to-r from-[#009AD0] to-[#007EA8] hover:from-[#007EA8] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg shadow-[#009AD0]/25 hover:shadow-[#009AD0]/40 transition-all duration-300 flex items-center justify-center gap-2"
+                                className="w-full h-12 bg-gradient-to-r from-[#17457C] to-[#0f3460] hover:from-[#0f3460] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg shadow-[#17457C]/25 hover:shadow-[#17457C]/40 transition-all duration-300 flex items-center justify-center gap-2"
                                 disabled={loading || (!!confirmPassword && password !== confirmPassword)}
                             >
                                 {loading ? (

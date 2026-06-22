@@ -109,7 +109,7 @@ export function BulkHbPriceForm({ categories, brands }: BulkHbPriceFormProps) {
                 <Card className="border-blue-200 dark:border-blue-900">
                     <CardHeader className="bg-blue-50/50 dark:bg-blue-900/10">
                         <div className="flex items-center gap-2">
-                            <ShoppingBag className="h-5 w-5 text-blue-600" />
+                            <ShoppingBag className="h-5 w-5 text-[#17457C]" />
                             <CardTitle>Hepsiburada Hedef Seçimi</CardTitle>
                         </div>
                         <CardDescription>
@@ -210,7 +210,7 @@ export function BulkHbPriceForm({ categories, brands }: BulkHbPriceFormProps) {
                             </div>
                         </div>
 
-                        <Button onClick={handlePreview} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+                        <Button onClick={handlePreview} disabled={loading} className="w-full bg-[#17457C] hover:bg-[#0f3460]">
                             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Hepsiburada Önizleme Oluştur
                         </Button>
@@ -264,7 +264,7 @@ export function BulkHbPriceForm({ categories, brands }: BulkHbPriceFormProps) {
                                                     <TableCell>
                                                         <ArrowRight className="h-3 w-3 text-muted-foreground" />
                                                     </TableCell>
-                                                    <TableCell className="font-bold text-blue-600 text-xs">
+                                                    <TableCell className="font-bold text-[#17457C] text-xs">
                                                         {formatPrice(p.newPrice)}
                                                     </TableCell>
                                                 </TableRow>
@@ -287,7 +287,7 @@ export function BulkHbPriceForm({ categories, brands }: BulkHbPriceFormProps) {
                                 onClick={handleExecute}
                                 disabled={loading}
                                 size="lg"
-                                className="w-full bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-none"
+                                className="w-full bg-[#17457C] hover:bg-[#0f3460] shadow-lg shadow-blue-200 dark:shadow-none"
                             >
                                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 {previewResults.length} Ürünü Hepsiburada'da Güncelle

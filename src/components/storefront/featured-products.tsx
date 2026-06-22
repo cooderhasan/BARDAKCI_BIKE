@@ -48,12 +48,12 @@ export function FeaturedProducts({
         <section className="container mx-auto px-4">
             {/* Section Header */}
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white pl-3 border-l-4 border-[#009AD0]">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white pl-3 border-l-4 border-[#17457C]">
                     {title}
                 </h2>
                 <Link
                     href="/products"
-                    className="flex items-center gap-1 text-sm font-medium text-[#009AD0] hover:text-[#007EA8] transition-colors"
+                    className="flex items-center gap-1 text-sm font-medium text-[#17457C] hover:text-[#0f3460] transition-colors"
                 >
                     Tümünü Gör
                     <ChevronRight className="h-4 w-4" />

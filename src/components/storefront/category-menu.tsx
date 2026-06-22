@@ -53,13 +53,13 @@ export function CategoryMenu({ categories }: CategoryMenuProps) {
                                 className="flex items-center justify-between px-3 py-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-700 transition-all group-hover/item:shadow-sm"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 group-hover/item:bg-blue-100 group-hover/item:text-blue-600 transition-colors">
+                                    <div className="p-1.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 group-hover/item:bg-blue-100 group-hover/item:text-[#17457C] transition-colors">
                                         {getCategoryIcon(category.name)}
                                     </div>
                                     <span>{category.name}</span>
                                 </div>
                                 {category.children && category.children.length > 0 && (
-                                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover/item:text-blue-600 transition-transform group-hover/item:translate-x-0.5" />
+                                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover/item:text-[#17457C] transition-transform group-hover/item:translate-x-0.5" />
                                 )}
                             </Link>
 
@@ -67,7 +67,7 @@ export function CategoryMenu({ categories }: CategoryMenuProps) {
                             {category.children && category.children.length > 0 && (
                                 <div className="absolute left-[98%] top-0 w-[650px] min-h-[400px] bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700 rounded-xl ml-2 p-6 invisible opacity-0 group-hover/item:visible group-hover/item:opacity-100 transition-all duration-300 z-50 bg-[url('/pattern.png')] bg-no-repeat bg-right-bottom bg-contain">
                                     <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-                                        <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                                        <div className="p-2 bg-blue-100 rounded-lg text-[#17457C]">
                                             {getCategoryIcon(category.name)}
                                         </div>
                                         <span className="text-lg font-bold text-gray-800 dark:text-white">{category.name}</span>
@@ -81,7 +81,7 @@ export function CategoryMenu({ categories }: CategoryMenuProps) {
                                                 className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 group/sub transition-all border border-transparent hover:border-blue-100 hover:shadow-sm"
                                             >
                                                 {/* Image Box */}
-                                                <div className="w-14 h-14 bg-white dark:bg-gray-700 rounded-lg flex-shrink-0 flex items-center justify-center text-gray-400 group-hover/sub:text-blue-600 group-hover/sub:border-blue-200 border border-gray-200 dark:border-gray-600 p-1 transition-colors shadow-sm">
+                                                <div className="w-14 h-14 bg-white dark:bg-gray-700 rounded-lg flex-shrink-0 flex items-center justify-center text-gray-400 group-hover/sub:text-[#17457C] group-hover/sub:border-blue-200 border border-gray-200 dark:border-gray-600 p-1 transition-colors shadow-sm">
                                                     {child.imageUrl ? (
                                                         <img src={child.imageUrl} alt={child.name} className="w-full h-full object-contain" />
                                                     ) : (

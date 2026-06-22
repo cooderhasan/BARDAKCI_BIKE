@@ -83,7 +83,7 @@ export const OrderConfirmationEmail = ({
                             <Text className="text-gray-900 font-bold m-0 mb-2">
                                 Sipariş Numarası:
                             </Text>
-                            <Text className="text-blue-600 text-xl m-0 mb-4">
+                            <Text className="text-[#17457C] text-xl m-0 mb-4">
                                 #{orderNumber}
                             </Text>
 
@@ -186,7 +186,7 @@ export const OrderConfirmationEmail = ({
                                     </Text>
                                 </Column>
                                 <Column align="right">
-                                    <Text className="m-0 text-lg font-bold text-blue-600">
+                                    <Text className="m-0 text-lg font-bold text-[#17457C]">
                                         {formatPrice(total)}
                                     </Text>
                                 </Column>

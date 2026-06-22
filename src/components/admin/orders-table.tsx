@@ -383,7 +383,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
             {selectedIds.length > 0 && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-3 rounded-lg flex items-center justify-between animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-3">
-                        <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <CheckCircle2 className="h-5 w-5 text-[#17457C] dark:text-[#17457C]" />
                         <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
                             {selectedIds.length} sipariş seçildi
                         </span>
@@ -452,7 +452,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelectedIds([])}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                            className="text-[#17457C] hover:text-blue-700 hover:bg-blue-100"
                         >
                             İptal
                         </Button>
@@ -586,7 +586,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                             onClick={handleYKSync} 
                             disabled={isSyncingYK}
                             variant="outline" 
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50 gap-2 shrink-0"
+                            className="text-[#17457C] border-blue-200 hover:bg-blue-50 gap-2 shrink-0"
                             title="Yolda olan Yurtiçi Kargo durumlarını son 14 güne göre güncelle"
                         >
                             <RefreshCw className={`h-4 w-4 ${isSyncingYK ? "animate-spin" : ""}`} />
@@ -713,7 +713,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                             <div className="flex flex-col">
                                                 <span>{formatPrice(Number(order.total))}</span>
                                                 {order.payment && order.payment.method !== "BANK_TRANSFER" && order.payment.amount > 0 && Math.abs(order.payment.amount - Number(order.total)) > 0.5 && (
-                                                    <span className="text-[10px] text-blue-600 font-bold">
+                                                    <span className="text-[10px] text-[#17457C] font-bold">
                                                         Net: {formatPrice(order.payment.amount)}
                                                     </span>
                                                 )}
@@ -770,7 +770,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         <Button
                                                             variant="outline"
                                                             size="icon"
-                                                            className="border-blue-200 text-blue-600 hover:bg-blue-50 h-9 w-9"
+                                                            className="border-blue-200 text-[#17457C] hover:bg-blue-50 h-9 w-9"
                                                             title="Sistem Barkodu (Hızlı)"
                                                             onClick={() => window.open(`/admin/orders/bulk-shipping-labels?ids=${order.id}`, '_blank')}
                                                         >
@@ -993,7 +993,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                 </Button>
                                             </div>
                                             {selectedOrder.trackingUrl && (
-                                                <a href={selectedOrder.trackingUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1.5 inline-flex items-center gap-1">
+                                                <a href={selectedOrder.trackingUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#17457C] hover:underline mt-1.5 inline-flex items-center gap-1">
                                                     Kargo Takip ↗
                                                 </a>
                                             )}
@@ -1121,7 +1121,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                                             href={`/products/${item.product.slug}`}
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
-                                                                            className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-800 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-1.5 py-0.5 rounded transition-colors inline-flex items-center gap-1 border border-blue-100 dark:border-blue-800"
+                                                                            className="text-[10px] text-[#17457C] dark:text-[#17457C] hover:text-blue-800 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-1.5 py-0.5 rounded transition-colors inline-flex items-center gap-1 border border-blue-100 dark:border-blue-800"
                                                                             title="Sitede Görüntüle"
                                                                             onClick={(e) => e.stopPropagation()}
                                                                         >
@@ -1179,7 +1179,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                         <span>{formatPrice(Number(selectedOrder.total))}</span>
                                     </div>
                                     {selectedOrder.payment && selectedOrder.payment.amount > 0 && Math.abs(selectedOrder.payment.amount - Number(selectedOrder.total)) > 0.5 && (
-                                        <div className="flex justify-between text-sm font-bold text-blue-600 mt-2 pt-2 border-t border-blue-200">
+                                        <div className="flex justify-between text-sm font-bold text-[#17457C] mt-2 pt-2 border-t border-blue-200">
                                             <div className="flex flex-col">
                                                 <span>Alınan Net Ödeme</span>
                                                 {selectedOrder.payment.providerData?.installment_count && Number(selectedOrder.payment.providerData.installment_count) > 1 && (

@@ -63,7 +63,7 @@ export function AddedToCartModal() {
                                 </p>
                             </div>
 
-                            <div className="text-xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
+                            <div className="text-xl font-black text-[#17457C] dark:text-[#17457C] tracking-tight">
                                 {formatPrice(lastAddedItem.salePrice || lastAddedItem.listPrice)}
                             </div>
                         </div>

@@ -251,14 +251,14 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                         onClick={handleBulkSync} 
                         disabled={syncing}
                         variant="outline"
-                        className="border-blue-200 text-blue-600 hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
+                        className="border-blue-200 text-[#17457C] hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
                     >
                         {syncing ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
                         <span className="hidden sm:inline">Tümünü Kuyrukta Güncelle</span>
                         <span className="sm:hidden">Toplu Güncelle</span>
                     </Button>
 
-                    <Badge variant="outline" className="h-10 px-4 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400 border-blue-100 dark:border-blue-900 font-bold">
+                    <Badge variant="outline" className="h-10 px-4 rounded-xl bg-blue-50 text-[#17457C] dark:bg-blue-950/20 dark:text-[#17457C] border-blue-100 dark:border-blue-900 font-bold">
                         {initialProducts.length} ÜRÜN
                     </Badge>
                 </div>
@@ -293,13 +293,13 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="text-sm font-bold text-blue-600">
+                                        <span className="text-sm font-bold text-[#17457C]">
                                             {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(product.hepsiburadaPrice || product.listPrice))}
                                         </span>
                                     </TableCell>
                                     <TableCell>
                                         {mappedCat ? (
-                                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-none text-[10px]">
+                                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-[#17457C] border-none text-[10px]">
                                                 Katalog Hazır
                                             </Badge>
                                         ) : (
@@ -316,12 +316,12 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
                                             {isSynced ? (
-                                                <Button size="sm" variant="outline" className="h-8 border-blue-200 text-blue-600" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id}>
+                                                <Button size="sm" variant="outline" className="h-8 border-blue-200 text-[#17457C]" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id}>
                                                     <RefreshCcw className="w-3 h-3 mr-1" />
                                                     Güncelle
                                                 </Button>
                                             ) : (
-                                                <Button size="sm" className="h-8 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !mappedCat}>
+                                                <Button size="sm" className="h-8 bg-[#17457C] hover:bg-[#0f3460] text-white" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !mappedCat}>
                                                     <Link2 className="w-3 h-3 mr-1" />
                                                     HB Kataloğuna Gönder
                                                 </Button>
@@ -348,7 +348,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                         <div className="space-y-4 py-4 max-h-[50vh] overflow-y-auto">
                             {/* Temel Zorunlu Alanlar */}
                             <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-xl space-y-3 border border-blue-100 dark:border-blue-900/30">
-                                <h4 className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">Temel Bilgiler</h4>
+                                <h4 className="text-xs font-bold text-blue-700 dark:text-[#17457C] uppercase tracking-wider">Temel Bilgiler</h4>
                                 <div className="grid grid-cols-1 gap-3">
                                     <div className="space-y-1">
                                         <Label className="text-[10px] font-semibold">Garanti Süresi (Ay) *</Label>
@@ -402,7 +402,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
 
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setShowAttrModal(false)}>İptal</Button>
-                        <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSend}>Kataloğa Gönder</Button>
+                        <Button className="bg-[#17457C] hover:bg-[#0f3460] text-white" onClick={handleSend}>Kataloğa Gönder</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

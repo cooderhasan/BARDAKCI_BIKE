@@ -30,7 +30,7 @@ export function CategorySidebar({ categories }: CategorySidebarProps) {
     return (
         <div className="w-full bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#009AD0] to-[#007EA8] text-white px-5 py-4 rounded-t-xl">
+            <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] text-white px-5 py-4 rounded-t-xl">
                 <span className="font-bold text-base tracking-widest uppercase">Kategoriler</span>
             </div>
 
@@ -46,14 +46,14 @@ export function CategorySidebar({ categories }: CategorySidebarProps) {
                             <div className="flex items-center">
                                 <Link
                                     href={`/category/${category.slug}`}
-                                    className="flex-1 px-5 py-3.5 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-[#009AD0] hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                                    className="flex-1 px-5 py-3.5 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-[#17457C] hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                                 >
                                     {category.name}
                                 </Link>
                                 {hasChildren && (
                                     <button
                                         onClick={() => toggleCategory(category.id)}
-                                        className="px-4 py-3 text-gray-400 hover:text-[#009AD0] transition-colors"
+                                        className="px-4 py-3 text-gray-400 hover:text-[#17457C] transition-colors"
                                         aria-label={isOpen ? "Kapat" : "Aç"}
                                     >
                                         {isOpen ? (
@@ -72,7 +72,7 @@ export function CategorySidebar({ categories }: CategorySidebarProps) {
                                         <Link
                                             key={child.id}
                                             href={`/category/${child.slug}`}
-                                            className="flex items-center gap-2 px-5 py-2.5 pl-8 text-[13px] font-medium text-gray-600 dark:text-gray-300 hover:text-[#009AD0] hover:bg-gray-100/50 dark:hover:bg-gray-700/30 transition-colors"
+                                            className="flex items-center gap-2 px-5 py-2.5 pl-8 text-[13px] font-medium text-gray-600 dark:text-gray-300 hover:text-[#17457C] hover:bg-gray-100/50 dark:hover:bg-gray-700/30 transition-colors"
                                         >
                                             <ChevronRight className="h-3 w-3 text-gray-400" />
                                             {child.name}

@@ -289,7 +289,7 @@ export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
                                                     <TableCell>
                                                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                                     </TableCell>
-                                                    <TableCell className="font-bold text-blue-600">
+                                                    <TableCell className="font-bold text-[#17457C]">
                                                         {formatPrice(p.newPrice)}
                                                     </TableCell>
                                                 </TableRow>

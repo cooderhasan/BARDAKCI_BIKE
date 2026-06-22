@@ -251,7 +251,7 @@ export function BulkStockForm({ categories, brands }: BulkStockFormProps) {
                                                     <TableCell>
                                                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                                     </TableCell>
-                                                    <TableCell className="font-bold text-blue-600">
+                                                    <TableCell className="font-bold text-[#17457C]">
                                                         {p.newStock}
                                                     </TableCell>
                                                 </TableRow>

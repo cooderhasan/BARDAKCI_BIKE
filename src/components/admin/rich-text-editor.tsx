@@ -47,7 +47,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
             Link.configure({
                 openOnClick: false,
                 HTMLAttributes: {
-                    class: "text-blue-600 underline",
+                    class: "text-[#17457C] underline",
                 },
             }),
             TextAlign.configure({

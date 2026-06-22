@@ -45,10 +45,10 @@ export function CategorySectionModern({ categories }: CategorySectionProps) {
                                 )}
                             </div>
                             <div className="space-y-2 px-1">
-                                <h3 className="text-gray-900 dark:text-white font-black text-xl md:text-2xl group-hover:text-[#009AD0] transition-colors">
+                                <h3 className="text-gray-900 dark:text-white font-black text-xl md:text-2xl group-hover:text-[#17457C] transition-colors">
                                     {category.name}
                                 </h3>
-                                <div className="flex items-center gap-2 text-[#009AD0] font-bold">
+                                <div className="flex items-center gap-2 text-[#17457C] font-bold">
                                     <span className="text-xs uppercase tracking-widest">Ürünleri İncele</span>
                                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-2" />
                                 </div>
@@ -80,10 +80,10 @@ export function CategorySectionModern({ categories }: CategorySectionProps) {
                                     )}
                                 </div>
                                 <div className="space-y-1.5 px-1">
-                                    <h3 className="text-gray-900 dark:text-white font-extrabold text-lg group-hover:text-[#009AD0] transition-colors">
+                                    <h3 className="text-gray-900 dark:text-white font-extrabold text-lg group-hover:text-[#17457C] transition-colors">
                                         {category.name}
                                     </h3>
-                                    <div className="flex items-center gap-1.5 text-[#009AD0] font-bold">
+                                    <div className="flex items-center gap-1.5 text-[#17457C] font-bold">
                                         <span className="text-[10px] uppercase tracking-widest">İncele</span>
                                         <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5" />
                                     </div>

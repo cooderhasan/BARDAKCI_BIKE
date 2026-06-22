@@ -114,7 +114,7 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
 
                     <div className="pt-4">
                         <Link href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}>
-                            <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700">
+                            <Button size="lg" className="w-full bg-[#17457C] hover:bg-[#0f3460]">
                                 Giriş Yap
                             </Button>
                         </Link>
@@ -127,7 +127,7 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
     return (
         <Card className="w-full max-w-lg">
             <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden relative shadow-md">
+                <div className="w-16 h-16 bg-[#17457C] rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden relative shadow-md">
                     {logoUrl ? (
                         <Image
                             src={logoUrl}
@@ -156,7 +156,7 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                             id="isCorporate"
                             checked={isCorporate}
                             onChange={(e) => setIsCorporate(e.target.checked)}
-                            className="h-4 w-4 text-blue-600 rounded"
+                            className="h-4 w-4 text-[#17457C] rounded"
                         />
                         <Label htmlFor="isCorporate" className="cursor-pointer font-medium">
                             Kurumsal Üyelik Yapmak İstiyorum (Bayi)
@@ -276,7 +276,7 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                     <span className="text-gray-500">Zaten hesabınız var mı? </span>
                     <Link
                         href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}
-                        className="text-blue-600 hover:underline"
+                        className="text-[#17457C] hover:underline"
                     >
                         Giriş Yap
                     </Link>

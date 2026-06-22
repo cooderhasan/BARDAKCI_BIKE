@@ -38,7 +38,7 @@ interface Notification {
 }
 
 const notificationIcons: Record<string, React.ReactNode> = {
-    quote: <FileQuestion className="h-4 w-4 text-blue-600" />,
+    quote: <FileQuestion className="h-4 w-4 text-[#17457C]" />,
     user: <Users className="h-4 w-4 text-purple-600" />,
     stock: <Package className="h-4 w-4 text-orange-600" />,
     order: <ShoppingCart className="h-4 w-4 text-green-600" />,
@@ -159,7 +159,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                     )}
                     {notifications.find(n => n.id === "bank-transfers") && (
                         <Link href="/admin/bank-transfers">
-                            <Badge className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 gap-2 cursor-pointer border-none shadow-lg">
+                            <Badge className="bg-[#17457C] hover:bg-[#0f3460] text-white px-3 py-1.5 gap-2 cursor-pointer border-none shadow-lg">
                                 <Landmark className="h-3.5 w-3.5" />
                                 <span className="font-bold">{notifications.find(n => n.id === "bank-transfers")?.count} Yeni Havale</span>
                             </Badge>
@@ -222,7 +222,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                             className="relative h-9 w-9 rounded-full"
                         >
                             <Avatar className="h-9 w-9">
-                                <AvatarFallback className="bg-blue-600 text-white">
+                                <AvatarFallback className="bg-[#17457C] text-white">
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>

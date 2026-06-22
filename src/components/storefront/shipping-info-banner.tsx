@@ -19,7 +19,7 @@ export function ShippingInfoBanner() {
     if (!shippingDay) return null;
 
     return (
-        <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-[#009AD0] via-[#0088b9] to-[#007baa] p-4 text-white shadow-md transition-all hover:shadow-lg mb-6">
+        <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-[#17457C] via-[#123c6e] to-[#0f3460] p-4 text-white shadow-md transition-all hover:shadow-lg mb-6">
             {/* Background pattern/glass effect */}
             <div className="absolute top-0 right-0 -mr-6 -mt-6 h-24 w-24 rounded-full bg-white/10 blur-2xl group-hover:bg-white/20 transition-all"></div>
             <div className="absolute bottom-0 left-0 -ml-6 -mb-6 h-16 w-16 rounded-full bg-black/5 blur-xl"></div>

@@ -101,7 +101,7 @@ export function ContactForm() {
             </div>
 
             <Button
-                className="w-full bg-[#009AD0] hover:bg-[#007EA8] text-white"
+                className="w-full bg-[#17457C] hover:bg-[#0f3460] text-white"
                 size="lg"
                 disabled={pending || !token}
             >

@@ -64,7 +64,7 @@ export const AdminNewOrderEmail = ({
                                 </Column>
                                 <Column align="right">
                                     <Text className="font-bold text-gray-900 m-0">Sipariş No:</Text>
-                                    <Text className="text-blue-600 font-medium m-0">#{orderNumber}</Text>
+                                    <Text className="text-[#17457C] font-medium m-0">#{orderNumber}</Text>
                                 </Column>
                             </Row>
 
@@ -96,7 +96,7 @@ export const AdminNewOrderEmail = ({
 
                         <Section className="text-center">
                             <Button
-                                className="bg-blue-600 text-white font-bold px-6 py-3 rounded-md cursor-pointer"
+                                className="bg-[#17457C] text-white font-bold px-6 py-3 rounded-md cursor-pointer"
                                 href={adminUrl}
                             >
                                 Siparişi Görüntüle

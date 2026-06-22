@@ -288,7 +288,7 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
                                                     <td className="py-2.5 px-3">
                                                         <div className="font-black text-xs text-gray-900 leading-snug">{item.productName}</div>
                                                         {item.variantInfo && (
-                                                            <div className="text-[10px] font-bold text-blue-600 mt-0.5">Varyant: {item.variantInfo}</div>
+                                                            <div className="text-[10px] font-bold text-[#17457C] mt-0.5">Varyant: {item.variantInfo}</div>
                                                         )}
                                                     </td>
                                                     <td className="py-2.5 px-3 text-center font-mono font-bold text-xs text-gray-800">

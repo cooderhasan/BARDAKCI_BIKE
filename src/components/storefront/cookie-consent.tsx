@@ -28,7 +28,7 @@ export function CookieConsent() {
                 <div className="flex-1 text-sm text-gray-600">
                     <p>
                         Sizlere daha iyi hizmet sunabilmek için sitemizde çerezler (cookies) kullanılmaktadır.
-                        Detaylı bilgi için <Link href="/policies/gizlilik-i-lkelerimiz" className="text-blue-600 hover:underline font-medium">Gizlilik Politikamızı</Link> inceleyebilirsiniz.
+                        Detaylı bilgi için <Link href="/policies/gizlilik-i-lkelerimiz" className="text-[#17457C] hover:underline font-medium">Gizlilik Politikamızı</Link> inceleyebilirsiniz.
                     </p>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">

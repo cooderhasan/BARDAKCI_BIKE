@@ -148,7 +148,7 @@ export default async function TopProductsReportPage() {
                                         <TableCell>
                                             <Link
                                                 href={`/admin/products/${product.productId}`}
-                                                className="font-medium hover:text-blue-600 transition-colors"
+                                                className="font-medium hover:text-[#17457C] transition-colors"
                                             >
                                                 {product.productName}
                                             </Link>

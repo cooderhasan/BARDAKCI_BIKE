@@ -114,7 +114,7 @@ export function ProductCard({
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10 items-start">
                         {badge && (
-                            <Badge className="bg-[#009AD0]">{badge}</Badge>
+                            <Badge className="bg-[#17457C]">{badge}</Badge>
                         )}
                         {product.stock === 0 && (
                             <Badge variant="destructive">Stokta Yok</Badge>
@@ -144,7 +144,7 @@ export function ProductCard({
                             {product.category.name}
                         </p>
                     )}
-                    <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 mb-2 group-hover:text-[#009AD0] transition-colors flex-1">
+                    <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 mb-2 group-hover:text-[#17457C] transition-colors flex-1">
                         {product.name}
                     </h3>
 
@@ -155,7 +155,7 @@ export function ProductCard({
                                 {formatPrice(price.listPrice)}
                             </p>
                         )}
-                        <p className="text-lg font-bold text-[#009AD0] dark:text-[#009AD0]">
+                        <p className="text-lg font-bold text-[#17457C] dark:text-[#17457C]">
                             {formatPrice(price.finalPrice)}
                         </p>
                     </div>
@@ -174,7 +174,7 @@ export function ProductCard({
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="w-full mt-3 border-[#009AD0] text-[#009AD0] hover:bg-[#009AD0]/10"
+                                    className="w-full mt-3 border-[#17457C] text-[#17457C] hover:bg-[#17457C]/10"
                                 >
                                     <Eye className="w-4 h-4 mr-2" />
                                     Seçenekleri Gör
@@ -182,7 +182,7 @@ export function ProductCard({
                             ) : (
                                 <button
                                     onClick={handleAddToCart}
-                                    className="w-full mt-3 py-2.5 px-4 bg-[#009AD0] hover:bg-[#009AD0]/90 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+                                    className="w-full mt-3 py-2.5 px-4 bg-[#17457C] hover:bg-[#17457C]/90 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
                                 >
                                     <ShoppingCart className="w-4 h-4" />
                                     Sepete Ekle

@@ -54,7 +54,7 @@ export default async function AccountPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center gap-4">
                     <div className="bg-blue-100 dark:bg-blue-800 p-3 rounded-full">
-                        <Package className="h-6 w-6 text-blue-600 dark:text-blue-200" />
+                        <Package className="h-6 w-6 text-[#17457C] dark:text-blue-200" />
                     </div>
                     <div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Toplam Sipariş</p>

@@ -115,7 +115,7 @@ export function YurticiKargoSettingsForm({ config }: YurticiKargoSettingsFormPro
             <Card className="border-blue-100 dark:border-blue-900 shadow-sm bg-blue-50/30 dark:bg-blue-900/5">
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                        <RefreshCw className={`h-5 w-5 text-blue-600 ${isSyncing ? "animate-spin" : ""}`} />
+                        <RefreshCw className={`h-5 w-5 text-[#17457C] ${isSyncing ? "animate-spin" : ""}`} />
                         Hızlı Senkronizasyon
                     </CardTitle>
                     <CardDescription>

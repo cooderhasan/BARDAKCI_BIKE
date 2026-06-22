@@ -124,7 +124,7 @@ export function ReturnTable({ initialRequests }: ReturnTableProps) {
                                 <div className="text-xs text-gray-500 mt-0.5">
                                     {req.orderItem.quantity} Adet • {req.orderItem.variantInfo || "Standart"}
                                 </div>
-                                <div className="text-xs text-blue-600 mt-1">
+                                <div className="text-xs text-[#17457C] mt-1">
                                     Sipariş: #{req.order.orderNumber}
                                 </div>
                                 <div className="text-[10px] text-gray-400 mt-0.5">
@@ -173,7 +173,7 @@ export function ReturnTable({ initialRequests }: ReturnTableProps) {
                                             Reddet
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => openActionDialog(req, "COMPLETED")}>
-                                            <Archive className="mr-2 h-4 w-4 text-blue-600" />
+                                            <Archive className="mr-2 h-4 w-4 text-[#17457C]" />
                                             Tamamla (İade Alındı)
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />

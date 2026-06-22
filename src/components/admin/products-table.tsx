@@ -364,7 +364,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                             href={`/products/${product.slug}`} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer"
-                                                            className="font-medium hover:text-blue-600 transition-colors"
+                                                            className="font-medium hover:text-[#17457C] transition-colors"
                                                         >
                                                             {product.name}
                                                         </Link>
@@ -466,7 +466,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                    className="h-8 w-8 text-[#17457C] hover:text-blue-700 hover:bg-blue-50"
                                                     onClick={() => handleToggleN11Status(product.id, product.isN11Active)}
                                                     title={product.isN11Active ? "N11'de Satışa Kapat" : "N11'de Satışa Aç"}
                                                 >

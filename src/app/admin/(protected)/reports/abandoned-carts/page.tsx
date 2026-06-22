@@ -69,7 +69,7 @@ export default function AbandonedCartsPage() {
     if (loading) {
         return (
             <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-[#17457C]" />
             </div>
         );
     }
@@ -177,14 +177,14 @@ export default function AbandonedCartsPage() {
                                                             </div>
                                                             <div className="flex justify-between items-center pt-4 border-t">
                                                                 <span className="font-bold">Toplam Tutar:</span>
-                                                                <span className="font-bold text-lg text-blue-600">
+                                                                <span className="font-bold text-lg text-[#17457C]">
                                                                     {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
                                                                 </span>
                                                             </div>
                                                         </DialogContent>
                                                     </Dialog>
                                                 </TableCell>
-                                                <TableCell className="text-right font-semibold text-blue-600">
+                                                <TableCell className="text-right font-semibold text-[#17457C]">
                                                     {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(totalAmount)}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-gray-500">

@@ -1005,7 +1005,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     <p className="text-[10px] text-orange-600">HB kategorisini adıyla arayıp seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="googleProductCategory" className="text-blue-600">Google Ürün Kategorisi (Taxonomy)</Label>
+                                    <Label htmlFor="googleProductCategory" className="text-[#17457C]">Google Ürün Kategorisi (Taxonomy)</Label>
                                     <Input
                                         id="googleProductCategory"
                                         value={googleProductCategory || ""}

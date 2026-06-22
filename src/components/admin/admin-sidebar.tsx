@@ -210,14 +210,14 @@ export function AdminSidebar({ settings }: { settings?: any }) {
                                             className={cn(
                                                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative",
                                                 isActive
-                                                    ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 shadow-sm"
+                                                    ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-[#17457C] shadow-sm"
                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800/50 dark:hover:text-gray-200"
                                             )}
                                         >
                                             <item.icon
                                                 className={cn(
                                                     "h-[18px] w-[18px] flex-shrink-0 transition-colors",
-                                                    isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"
+                                                    isActive ? "text-[#17457C] dark:text-[#17457C]" : "text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300"
                                                 )}
                                             />
                                             {!collapsed && (
@@ -226,7 +226,7 @@ export function AdminSidebar({ settings }: { settings?: any }) {
 
                                             {/* Active Indicator Strip */}
                                             {isActive && !collapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-blue-600 dark:bg-blue-500 opacity-0 lg:opacity-100" />
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-[#17457C] dark:bg-blue-500 opacity-0 lg:opacity-100" />
                                                 // Hidden on mobile or handled by background
                                             )}
                                         </Link>

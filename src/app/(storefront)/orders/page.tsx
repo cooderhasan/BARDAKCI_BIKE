@@ -70,7 +70,7 @@ export default async function OrdersPage() {
                             <Accordion type="single" collapsible>
                                 <AccordionItem value="details" className="border-b-0">
                                     <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
-                                        <span className="text-sm font-medium text-blue-600 hover:text-blue-700">
+                                        <span className="text-sm font-medium text-[#17457C] hover:text-blue-700">
                                             Sipariş Detaylarını Göster ({order.items.length} Ürün)
                                         </span>
                                     </AccordionTrigger>

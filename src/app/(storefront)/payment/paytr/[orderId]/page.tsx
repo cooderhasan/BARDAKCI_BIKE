@@ -63,14 +63,14 @@ export default function PayTRPaymentPage({ params }: PaymentPageProps) {
                             <span>Güvenli Ödeme Ekranı</span>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-500 font-normal uppercase tracking-wider">Powered by</span>
-                                <span className="font-bold text-blue-600 italic">PayTR</span>
+                                <span className="font-bold text-[#17457C] italic">PayTR</span>
                             </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 min-h-[600px] flex flex-col items-center justify-center relative">
                         {loading && (
                             <div className="flex flex-col items-center gap-4">
-                                <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+                                <Loader2 className="h-10 w-10 text-[#17457C] animate-spin" />
                                 <p className="text-gray-500">Ödeme ekranı alınıyor, lütfen bekleyin...</p>
                             </div>
                         )}

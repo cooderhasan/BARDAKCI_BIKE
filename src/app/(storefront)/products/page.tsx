@@ -280,7 +280,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 <aside className="hidden lg:block w-64 flex-shrink-0 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
                         <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#009AD0]"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#17457C]"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
                             Filtreler
                         </h2>
                         <ProductFilters
@@ -306,7 +306,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                             </p>
                             <a
                                 href="/products"
-                                className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-[#009AD0] text-white font-medium hover:bg-[#007da8] transition-colors shadow-lg shadow-blue-500/20"
+                                className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl bg-[#17457C] text-white font-medium hover:bg-[#0f3460] transition-colors shadow-lg shadow-blue-500/20"
                             >
                                 Filtreleri Temizle
                             </a>

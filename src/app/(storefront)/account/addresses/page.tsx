@@ -35,7 +35,7 @@ export default async function AddressesPage() {
                 <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-900/10">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Varsayılan Adres</CardTitle>
-                        <MapPin className="h-4 w-4 text-blue-600" />
+                        <MapPin className="h-4 w-4 text-[#17457C]" />
                     </CardHeader>
                     <CardContent>
                         <div className="mt-2 space-y-1 text-sm">

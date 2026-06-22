@@ -47,7 +47,7 @@ export const PasswordResetEmail = ({
                         <Section className="text-center mt-[32px] mb-[32px]">
                             <Link
                                 href={resetUrl}
-                                className="bg-[#009AD0] text-white px-6 py-3 rounded-lg text-[14px] font-semibold no-underline"
+                                className="bg-[#17457C] text-white px-6 py-3 rounded-lg text-[14px] font-semibold no-underline"
                             >
                                 Şifremi Sıfırla
                             </Link>
@@ -68,7 +68,7 @@ export const PasswordResetEmail = ({
                         <Text className="text-[#999999] text-[11px] leading-[20px] mt-4">
                             Link çalışmıyorsa aşağıdaki URL&apos;yi tarayıcınıza yapıştırın:
                         </Text>
-                        <Text className="text-[#009AD0] text-[11px] leading-[20px] break-all">
+                        <Text className="text-[#17457C] text-[11px] leading-[20px] break-all">
                             {resetUrl}
                         </Text>
 

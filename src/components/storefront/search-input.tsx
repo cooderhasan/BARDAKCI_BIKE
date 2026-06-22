@@ -29,10 +29,10 @@ export function SearchInput() {
 
     return (
         <form onSubmit={handleSearch} className="relative w-full max-w-2xl mx-auto">
-            <div className="flex items-center bg-white dark:bg-gray-800 rounded-full shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200/60 dark:border-gray-700/60 focus-within:border-[#009AD0] focus-within:ring-4 focus-within:ring-[#009AD0]/10 overflow-hidden pl-5 pr-1 py-1">
+            <div className="flex items-center bg-white dark:bg-gray-800 rounded-full shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200/60 dark:border-gray-700/60 focus-within:border-[#17457C] focus-within:ring-4 focus-within:ring-[#17457C]/10 overflow-hidden pl-5 pr-1 py-1">
                 <div className="text-gray-400">
                     {isPending ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-[#009AD0]" />
+                        <Loader2 className="h-5 w-5 animate-spin text-[#17457C]" />
                     ) : (
                         <Search className="h-5 w-5" />
                     )}
@@ -47,7 +47,7 @@ export function SearchInput() {
                 <Button
                     type="submit"
                     size="sm"
-                    className="rounded-full px-6 bg-[#009AD0] hover:bg-[#007EA8] text-white shadow-md hover:shadow-lg transition-all"
+                    className="rounded-full px-6 bg-[#17457C] hover:bg-[#0f3460] text-white shadow-md hover:shadow-lg transition-all"
                     disabled={isPending}
                 >
                     Ara

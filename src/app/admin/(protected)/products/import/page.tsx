@@ -104,7 +104,7 @@ export default function ProductImportPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Upload className="h-6 w-6 text-blue-600" />
+                        <Upload className="h-6 w-6 text-[#17457C]" />
                         Toplu Ürün Yükleme
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400">
@@ -135,21 +135,21 @@ export default function ProductImportPage() {
                 <CardContent className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-3">
                         <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">1</div>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 text-[#17457C] flex items-center justify-center font-bold text-sm">1</div>
                             <div>
                                 <p className="font-medium">Şablonu İndirin</p>
                                 <p className="text-sm text-gray-500">Excel şablon dosyasını indirip ürün bilgilerini doldurun</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">2</div>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 text-[#17457C] flex items-center justify-center font-bold text-sm">2</div>
                             <div>
                                 <p className="font-medium">Dosyayı Yükleyin</p>
                                 <p className="text-sm text-gray-500">Doldurduğunuz Excel dosyasını yükleyin ve önizleyin</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">3</div>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 text-[#17457C] flex items-center justify-center font-bold text-sm">3</div>
                             <div>
                                 <p className="font-medium">Import Edin</p>
                                 <p className="text-sm text-gray-500">Hata yoksa import butonuna tıklayın</p>

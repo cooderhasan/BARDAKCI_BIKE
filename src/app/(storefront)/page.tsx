@@ -131,7 +131,7 @@ export default async function HomePage() {
                     <section className="grid gap-2 grid-cols-3 py-4 border-y border-gray-100 dark:border-gray-800">
                         <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 group text-center md:text-left">
                             <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 shrink-0">
-                                <Truck className="h-5 w-5 text-blue-600" />
+                                <Truck className="h-5 w-5 text-[#17457C]" />
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight">
@@ -231,10 +231,10 @@ export default async function HomePage() {
                                 </div>
                                 {banner.title && (
                                     <div className="space-y-1.5 px-1">
-                                        <h3 className="text-gray-900 dark:text-white font-bold text-lg group-hover:text-[#009AD0] transition-colors">
+                                        <h3 className="text-gray-900 dark:text-white font-bold text-lg group-hover:text-[#17457C] transition-colors">
                                             {banner.title}
                                         </h3>
-                                        <div className="flex items-center gap-1.5 text-[#009AD0] font-bold">
+                                        <div className="flex items-center gap-1.5 text-[#17457C] font-bold">
                                             <span className="text-xs uppercase tracking-wider">Ürünleri İncele</span>
                                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
                                         </div>

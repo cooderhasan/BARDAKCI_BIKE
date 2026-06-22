@@ -174,13 +174,13 @@ export function ProductCardModern({
                 <div className="p-3 md:p-5 flex-1 flex flex-col bg-white dark:bg-gray-800/50">
                     {/* Brand */}
                     {product.brand && (
-                        <p className="text-blue-600 dark:text-blue-400 font-bold text-[10px] uppercase tracking-widest mb-1 md:mb-1.5 opacity-80">
+                        <p className="text-[#17457C] dark:text-[#17457C] font-bold text-[10px] uppercase tracking-widest mb-1 md:mb-1.5 opacity-80">
                             {product.brand.name}
                         </p>
                     )}
 
                     {/* Product Name */}
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm leading-relaxed line-clamp-2 h-10 mb-2 md:mb-4 group-hover:text-blue-600 transition-colors">
+                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm leading-relaxed line-clamp-2 h-10 mb-2 md:mb-4 group-hover:text-[#17457C] transition-colors">
                         {product.name}
                     </h3>
 
@@ -203,7 +203,7 @@ export function ProductCardModern({
                                 {product.stock > 0 && !hasVariants ? (
                                     <button
                                         onClick={handleAddToCart}
-                                        className="h-9 w-9 md:w-auto md:px-3.5 flex items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:scale-105 hover:shadow-blue-600/40 transition-all duration-300 active:scale-95 gap-1.5 whitespace-nowrap"
+                                        className="h-9 w-9 md:w-auto md:px-3.5 flex items-center justify-center rounded-full bg-[#17457C] text-white text-[11px] font-bold shadow-lg shadow-[#17457C]/20 hover:bg-[#0f3460] hover:scale-105 hover:shadow-[#17457C]/40 transition-all duration-300 active:scale-95 gap-1.5 whitespace-nowrap"
                                         title="Sepete Ekle"
                                     >
                                         <span className="hidden md:inline">Sepete Ekle</span>

@@ -62,7 +62,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
             {/* Glass Card */}
             <div className="backdrop-blur-xl bg-white/80 dark:bg-gray-800/80 rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 overflow-hidden">
                 {/* Header Section */}
-                <div className="bg-gradient-to-r from-[#009AD0] to-[#007EA8] px-8 py-10 text-center">
+                <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-8 py-10 text-center">
                     {/* Logo */}
                     <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform hover:scale-105 transition-transform overflow-hidden relative">
                         {logoUrl ? (
@@ -73,7 +73,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                                 className="object-contain p-2"
                             />
                         ) : (
-                            <span className="text-[#009AD0] font-black text-3xl">
+                            <span className="text-[#17457C] font-black text-3xl">
                                 {(siteName || "L").charAt(0).toUpperCase()}
                             </span>
                         )}
@@ -92,7 +92,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                         {/* Email Field */}
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-[#009AD0]" />
+                                <Mail className="h-4 w-4 text-[#17457C]" />
                                 E-posta Adresi
                             </Label>
                             <div className="relative">
@@ -102,7 +102,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                                     type="email"
                                     placeholder="ornek@firma.com"
                                     required
-                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#009AD0]/20 focus:border-[#009AD0] transition-all"
+                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#17457C]/20 focus:border-[#17457C] transition-all"
                                 />
                             </div>
                         </div>
@@ -110,7 +110,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                         {/* Password Field */}
                         <div className="space-y-2">
                             <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
-                                <Lock className="h-4 w-4 text-[#009AD0]" />
+                                <Lock className="h-4 w-4 text-[#17457C]" />
                                 Şifre
                             </Label>
                             <div className="relative">
@@ -120,7 +120,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                                     type="password"
                                     placeholder="••••••••"
                                     required
-                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#009AD0]/20 focus:border-[#009AD0] transition-all"
+                                    className="h-12 pl-4 pr-4 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-[#17457C]/20 focus:border-[#17457C] transition-all"
                                 />
                             </div>
                         </div>
@@ -129,7 +129,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                         <div className="flex justify-end -mt-1">
                             <Link
                                 href="/forgot-password"
-                                className="text-sm text-[#009AD0] hover:text-[#007EA8] hover:underline transition-colors"
+                                className="text-sm text-[#17457C] hover:text-[#0f3460] hover:underline transition-colors"
                             >
                                 Şifremi Unuttum
                             </Link>
@@ -138,7 +138,7 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                         {/* Submit Button */}
                         <Button
                             type="submit"
-                            className="w-full h-12 bg-gradient-to-r from-[#009AD0] to-[#007EA8] hover:from-[#007EA8] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg shadow-[#009AD0]/25 hover:shadow-[#009AD0]/40 transition-all duration-300 flex items-center justify-center gap-2"
+                            className="w-full h-12 bg-gradient-to-r from-[#17457C] to-[#0f3460] hover:from-[#0f3460] hover:to-[#006282] text-white font-semibold rounded-xl shadow-lg shadow-[#17457C]/25 hover:shadow-[#17457C]/40 transition-all duration-300 flex items-center justify-center gap-2"
                             disabled={loading}
                         >
                             {loading ? (
@@ -168,11 +168,11 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
                     {/* Register Link */}
                     <Link
                         href="/register"
-                        className="flex items-center justify-center gap-3 w-full h-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-[#009AD0] dark:hover:border-[#009AD0]/50 transition-all duration-300 group"
+                        className="flex items-center justify-center gap-3 w-full h-12 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-[#17457C] dark:hover:border-[#17457C]/50 transition-all duration-300 group"
                     >
-                        <UserPlus className="h-5 w-5 text-gray-500 group-hover:text-[#009AD0] transition-colors" />
+                        <UserPlus className="h-5 w-5 text-gray-500 group-hover:text-[#17457C] transition-colors" />
                         Yeni Hesap Oluştur
-                        <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#009AD0] group-hover:translate-x-1 transition-all" />
+                        <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-[#17457C] group-hover:translate-x-1 transition-all" />
                     </Link>
                 </div>
             </div>
@@ -180,9 +180,9 @@ export function LoginForm({ logoUrl, siteName }: LoginFormProps) {
             {/* Footer Text */}
             <p className="text-center text-sm text-gray-500 mt-6">
                 Giriş yaparak{" "}
-                <Link href="/policies/distance-sales" className="text-[#009AD0] hover:underline">Kullanım Şartları</Link>
+                <Link href="/policies/distance-sales" className="text-[#17457C] hover:underline">Kullanım Şartları</Link>
                 {" "}ve{" "}
-                <Link href="/policies/privacy" className="text-[#009AD0] hover:underline">Gizlilik Politikası</Link>
+                <Link href="/policies/privacy" className="text-[#17457C] hover:underline">Gizlilik Politikası</Link>
                 'nı kabul etmiş olursunuz.
             </p>
         </div>

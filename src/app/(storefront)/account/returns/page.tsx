@@ -41,7 +41,7 @@ export default async function ReturnsPage() {
             case "REJECTED":
                 return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
             case "COMPLETED":
-                return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+                return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-[#17457C]";
             case "CANCELLED":
                 return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
             default:
@@ -97,7 +97,7 @@ export default async function ReturnsPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Link href={`/account/orders/${request.orderId}`} className="text-[#009AD0] hover:underline">
+                                        <Link href={`/account/orders/${request.orderId}`} className="text-[#17457C] hover:underline">
                                             #{request.order.orderNumber}
                                         </Link>
                                     </td>

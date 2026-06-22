@@ -108,7 +108,7 @@ export default async function SalesReportPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <TrendingUp className="h-6 w-6 text-blue-600" />
+                        <TrendingUp className="h-6 w-6 text-[#17457C]" />
                         Satış Özeti
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400">
@@ -217,7 +217,7 @@ export default async function SalesReportPage() {
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-2">
                                         <div
-                                            className="bg-blue-600 h-2 rounded-full transition-all"
+                                            className="bg-[#17457C] h-2 rounded-full transition-all"
                                             style={{ width: `${percentage}%` }}
                                         />
                                     </div>

@@ -9,7 +9,7 @@ export default async function ContactPage() {
     return (
         <div className="min-h-screen">
             {/* Hero Banner */}
-            <section className="relative bg-gradient-to-br from-[#002838] via-[#004a6e] to-[#009AD0] py-16 sm:py-20 overflow-hidden">
+            <section className="relative bg-gradient-to-br from-[#002838] via-[#004a6e] to-[#17457C] py-16 sm:py-20 overflow-hidden">
                 {/* Decorative circles */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
@@ -74,7 +74,7 @@ export default async function ContactPage() {
                     <div className="lg:col-span-2 space-y-6">
                         {/* Company Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg ring-1 ring-black/5 overflow-hidden">
-                            <div className="bg-gradient-to-r from-[#009AD0] to-[#007EA8] px-6 py-4">
+                            <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-6 py-4">
                                 <h2 className="text-white font-bold text-lg flex items-center gap-2">
                                     <Building2 className="w-5 h-5" />
                                     Firma Bilgileri
@@ -92,7 +92,7 @@ export default async function ContactPage() {
                                 {/* Address */}
                                 <div className="flex gap-3">
                                     <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <MapPin className="w-4 h-4 text-[#009AD0]" />
+                                        <MapPin className="w-4 h-4 text-[#17457C]" />
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Adres</p>
@@ -109,7 +109,7 @@ export default async function ContactPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Telefon</p>
-                                        <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05345194472'}`} className="block text-sm text-gray-700 dark:text-gray-300 hover:text-[#009AD0] transition-colors font-medium">
+                                        <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05345194472'}`} className="block text-sm text-gray-700 dark:text-gray-300 hover:text-[#17457C] transition-colors font-medium">
                                             {settings.phone || "0534 519 44 72"}
                                         </a>
                                     </div>
@@ -169,7 +169,7 @@ export default async function ContactPage() {
                     {/* Right: Contact Form */}
                     <div className="lg:col-span-3">
                         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg ring-1 ring-black/5 overflow-hidden h-full flex flex-col">
-                            <div className="bg-gradient-to-r from-[#009AD0] to-[#007EA8] px-6 py-4">
+                            <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-6 py-4">
                                 <h2 className="text-white font-bold text-lg">Mesaj Gönderin</h2>
                                 <p className="text-blue-100 text-sm mt-0.5">
                                     Formu doldurarak bize mesaj gönderin, en kısa sürede dönüş yapacağız.

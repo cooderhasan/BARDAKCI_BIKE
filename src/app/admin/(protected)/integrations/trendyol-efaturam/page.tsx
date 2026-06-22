@@ -39,7 +39,7 @@ export default async function TrendyolEFaturamPage() {
                         
                         <div className="grid gap-4">
                             <div className="flex items-start gap-3">
-                                <div className="mt-1 bg-blue-100 p-2 rounded-full text-blue-600">
+                                <div className="mt-1 bg-blue-100 p-2 rounded-full text-[#17457C]">
                                     <FileText className="w-4 h-4" />
                                 </div>
                                 <div>

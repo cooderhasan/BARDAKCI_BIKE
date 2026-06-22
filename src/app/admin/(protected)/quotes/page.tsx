@@ -50,7 +50,7 @@ export default async function QuotesPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <FileQuestion className="h-6 w-6 text-blue-600" />
+                        <FileQuestion className="h-6 w-6 text-[#17457C]" />
                         Teklifler
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400">

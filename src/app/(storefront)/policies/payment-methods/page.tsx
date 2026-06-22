@@ -10,7 +10,7 @@ export default function PaymentMethodsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Building2 className="h-6 w-6 text-blue-600" />
+                            <Building2 className="h-6 w-6 text-[#17457C]" />
                             Havale / EFT
                         </CardTitle>
                     </CardHeader>

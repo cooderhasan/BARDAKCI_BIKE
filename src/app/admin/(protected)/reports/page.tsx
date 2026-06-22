@@ -15,7 +15,7 @@ const reports = [
         description: "Günlük, haftalık ve aylık satış analizi",
         href: "/admin/reports/sales",
         icon: TrendingUp,
-        color: "bg-blue-100 text-blue-600",
+        color: "bg-blue-100 text-[#17457C]",
     },
     {
         title: "En Çok Satan Ürünler",
@@ -52,7 +52,7 @@ export default function ReportsPage() {
         <div className="space-y-6">
             <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <BarChart3 className="h-6 w-6 text-blue-600" />
+                    <BarChart3 className="h-6 w-6 text-[#17457C]" />
                     Raporlar
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400">

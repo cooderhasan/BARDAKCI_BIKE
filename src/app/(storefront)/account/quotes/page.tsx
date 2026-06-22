@@ -63,7 +63,7 @@ export default function AccountQuotesPage() {
         <div className="space-y-6">
             <div>
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    <FileQuestion className="h-6 w-6 text-blue-600" />
+                    <FileQuestion className="h-6 w-6 text-[#17457C]" />
                     Tekliflerim
                 </h2>
                 <p className="text-gray-500 mt-1">

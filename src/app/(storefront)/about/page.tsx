@@ -49,7 +49,7 @@ export default async function AboutPage() {
                     <div className="grid gap-8 md:grid-cols-3 mb-16">
                         <Card>
                             <CardContent className="pt-6 text-center space-y-4">
-                                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto">
+                                <div className="w-12 h-12 bg-blue-100 text-[#17457C] rounded-full flex items-center justify-center mx-auto">
                                     <ShieldCheck className="w-6 h-6" />
                                 </div>
                                 <h3 className="text-xl font-bold">Güvenilirlik</h3>

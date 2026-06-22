@@ -197,7 +197,7 @@ export default async function DealerPerformanceReportPage() {
                                         <TableCell>
                                             <Link
                                                 href={`/admin/customers`}
-                                                className="font-medium hover:text-blue-600 transition-colors"
+                                                className="font-medium hover:text-[#17457C] transition-colors"
                                             >
                                                 {dealer.companyName || "-"}
                                             </Link>

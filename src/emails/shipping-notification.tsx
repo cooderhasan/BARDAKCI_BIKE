@@ -56,7 +56,7 @@ export const ShippingNotificationEmail = ({
                             </Text>
 
                             <Button
-                                className="bg-blue-600 text-white font-bold px-6 py-3 rounded-md text-[14px]"
+                                className="bg-[#17457C] text-white font-bold px-6 py-3 rounded-md text-[14px]"
                                 href={trackingUrl}
                             >
                                 Kargo Takip

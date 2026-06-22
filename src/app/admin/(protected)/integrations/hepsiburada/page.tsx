@@ -32,7 +32,7 @@ export default async function HepsiburadaIntegrationPage() {
                         </ul>
 
                         <a href="/admin/integrations/hepsiburada/products">
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-500/20">
+                            <Button className="w-full bg-[#17457C] hover:bg-[#0f3460] text-white gap-2 shadow-lg shadow-blue-500/20">
                                 <Box className="w-4 h-4" />
                                 HB Ürünlerini Yönet
                             </Button>

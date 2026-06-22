@@ -85,7 +85,7 @@ export default function CartPage() {
                                     <div className="flex-1 min-w-0">
                                         <Link
                                             href={`/products/${item.slug}`}
-                                            className="font-medium text-gray-900 dark:text-white hover:text-blue-600 line-clamp-2 text-sm sm:text-base"
+                                            className="font-medium text-gray-900 dark:text-white hover:text-[#17457C] line-clamp-2 text-sm sm:text-base"
                                         >
                                             {item.name}
                                         </Link>
@@ -207,13 +207,13 @@ export default function CartPage() {
                             <Separator />
                             <div className="flex justify-between text-lg font-bold">
                                 <span>Toplam</span>
-                                <span className="text-blue-600">
+                                <span className="text-[#17457C]">
                                     {formatPrice(summary.total)}
                                 </span>
                             </div>
 
                             <Link href={isAuthenticated ? "/checkout" : "/checkout/auth"} className="block">
-                                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-6 text-lg font-bold shadow-lg shadow-blue-600/20">
+                                <Button className="w-full bg-[#17457C] hover:bg-[#0f3460] text-white rounded-xl py-6 text-lg font-bold shadow-lg shadow-[#17457C]/20">
                                     Siparişi Tamamla
                                 </Button>
                             </Link>

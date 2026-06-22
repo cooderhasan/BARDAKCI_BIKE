@@ -212,7 +212,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                         <Card className="border-l-4 border-l-blue-600">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Truck className="h-5 w-5 text-blue-600" />
+                                    <Truck className="h-5 w-5 text-[#17457C]" />
                                     Teslimat ve Kargo
                                 </CardTitle>
                             </CardHeader>
@@ -359,10 +359,10 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                     className={`flex items-start gap-4 p-4 border rounded-lg cursor-pointer transition-all ${paymentMethod === "CREDIT_CARD" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 ring-2 ring-blue-500 ring-offset-2" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
                                     onClick={() => setPaymentMethod("CREDIT_CARD")}
                                 >
-                                    <CreditCard className={`h-6 w-6 mt-1 ${paymentMethod === "CREDIT_CARD" ? "text-blue-600" : "text-gray-500"}`} />
+                                    <CreditCard className={`h-6 w-6 mt-1 ${paymentMethod === "CREDIT_CARD" ? "text-[#17457C]" : "text-gray-500"}`} />
                                     <div className="flex-1">
                                         <div className="flex justify-between">
-                                            <p className={`font-medium ${paymentMethod === "CREDIT_CARD" ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>
+                                            <p className={`font-medium ${paymentMethod === "CREDIT_CARD" ? "text-blue-700 dark:text-[#17457C]" : "text-gray-900 dark:text-white"}`}>
                                                 Kredi Kartı / Banka Kartı
                                             </p>
                                         </div>
@@ -370,7 +370,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                             PayTR güvencesiyle 12 aya varan taksit seçenekleri.
                                         </p>
                                     </div>
-                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === "CREDIT_CARD" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"}`}>
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === "CREDIT_CARD" ? "border-blue-600 bg-[#17457C] text-white" : "border-gray-300"}`}>
                                         {paymentMethod === "CREDIT_CARD" && <div className="w-2 h-2 rounded-full bg-white" />}
                                     </div>
                                 </div>
@@ -379,10 +379,10 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                     className={`flex items-start gap-4 p-4 border rounded-lg cursor-pointer transition-all ${paymentMethod === "BANK_TRANSFER" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 ring-2 ring-blue-500 ring-offset-2" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
                                     onClick={() => setPaymentMethod("BANK_TRANSFER")}
                                 >
-                                    <Building2 className={`h-6 w-6 mt-1 ${paymentMethod === "BANK_TRANSFER" ? "text-blue-600" : "text-gray-500"}`} />
+                                    <Building2 className={`h-6 w-6 mt-1 ${paymentMethod === "BANK_TRANSFER" ? "text-[#17457C]" : "text-gray-500"}`} />
                                     <div className="flex-1">
                                         <div className="flex justify-between">
-                                            <p className={`font-medium ${paymentMethod === "BANK_TRANSFER" ? "text-blue-700 dark:text-blue-400" : "text-gray-900 dark:text-white"}`}>
+                                            <p className={`font-medium ${paymentMethod === "BANK_TRANSFER" ? "text-blue-700 dark:text-[#17457C]" : "text-gray-900 dark:text-white"}`}>
                                                 Havale / EFT
                                             </p>
                                         </div>
@@ -390,7 +390,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                             Banka hesap bilgilerimize havale yaparak ödeme yapabilirsiniz.
                                         </p>
                                     </div>
-                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === "BANK_TRANSFER" ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"}`}>
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === "BANK_TRANSFER" ? "border-blue-600 bg-[#17457C] text-white" : "border-gray-300"}`}>
                                         {paymentMethod === "BANK_TRANSFER" && <div className="w-2 h-2 rounded-full bg-white" />}
                                     </div>
                                 </div>
@@ -532,7 +532,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                         </div>
                                     )}
                                     {bankDiscountAmount > 0 && (
-                                        <div className="flex justify-between text-blue-600 font-medium italic">
+                                        <div className="flex justify-between text-[#17457C] font-medium italic">
                                             <span>Havale İndirimi (%{bankTransferDiscount})</span>
                                             <span>-{formatPrice(bankDiscountAmount)}</span>
                                         </div>
@@ -562,7 +562,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                 <div className="flex justify-between items-end">
                                     <span className="font-bold text-lg">Toplam Tutar</span>
                                     <div className="text-right">
-                                        <div className="text-2xl font-bold text-blue-600">
+                                        <div className="text-2xl font-bold text-[#17457C]">
                                             {formatPrice(grandTotal)}
                                         </div>
 
@@ -571,7 +571,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
 
                                 <Button
                                     type="submit"
-                                    className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20"
+                                    className="w-full h-12 text-lg font-semibold bg-[#17457C] hover:bg-[#0f3460] shadow-lg shadow-[#17457C]/20"
                                     disabled={loading}
                                 >
                                     {loading ? (

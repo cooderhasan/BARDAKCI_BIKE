@@ -86,7 +86,7 @@ export function ProductFilters({
                                     className={cn(
                                         "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                                         !activeCategorySlug && !searchParams.get("category")
-                                            ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-blue-400"
+                                            ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-[#17457C]"
                                             : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                     )}
                                 >
@@ -99,7 +99,7 @@ export function ProductFilters({
                                         className={cn(
                                             "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                                             activeCategorySlug === category.slug || searchParams.get("category") === category.slug
-                                                ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-blue-400"
+                                                ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-[#17457C]"
                                                 : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                                         )}
                                     >
@@ -126,7 +126,7 @@ export function ProductFilters({
                                                 id={`brand-${brand.id}`}
                                                 checked={isSelected("brands", brand.slug)}
                                                 onCheckedChange={() => toggleFilter("brands", brand.slug)}
-                                                className="data-[state=checked]:bg-[#009AD0] data-[state=checked]:border-[#009AD0]"
+                                                className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
                                             />
                                             <Label
                                                 htmlFor={`brand-${brand.id}`}
@@ -176,7 +176,7 @@ export function ProductFilters({
                                 </div>
                             </div>
                             <Button
-                                className="w-full bg-gray-900 hover:bg-[#009AD0] text-white h-9 text-sm transition-colors"
+                                className="w-full bg-gray-900 hover:bg-[#17457C] text-white h-9 text-sm transition-colors"
                                 onClick={handlePriceFilter}
                             >
                                 Uygula
@@ -205,14 +205,14 @@ export function ProductFilters({
                                                 className={cn(
                                                     "w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 transition-all relative",
                                                     isSelected("colors", color)
-                                                        ? "ring-2 ring-[#009AD0] ring-offset-2 dark:ring-offset-gray-900 scale-110"
+                                                        ? "ring-2 ring-[#17457C] ring-offset-2 dark:ring-offset-gray-900 scale-110"
                                                         : "hover:scale-110 hover:border-gray-400"
                                                 )}
                                                 style={{ backgroundColor: mapColorToCss(color) }}
                                             />
                                             <span className={cn(
                                                 "text-[10px] text-center w-full truncate px-0.5",
-                                                isSelected("colors", color) ? "text-[#009AD0] font-medium" : "text-gray-500"
+                                                isSelected("colors", color) ? "text-[#17457C] font-medium" : "text-gray-500"
                                             )}>
                                                 {color}
                                             </span>
@@ -240,8 +240,8 @@ export function ProductFilters({
                                             className={cn(
                                                 "px-3 py-1.5 rounded-lg text-sm font-medium border transition-all",
                                                 isSelected("sizes", size)
-                                                    ? "bg-[#009AD0] text-white border-[#009AD0] shadow-sm"
-                                                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[#009AD0] hover:text-[#009AD0]"
+                                                    ? "bg-[#17457C] text-white border-[#17457C] shadow-sm"
+                                                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[#17457C] hover:text-[#17457C]"
                                             )}
                                         >
                                             {size}

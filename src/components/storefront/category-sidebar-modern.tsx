@@ -34,7 +34,7 @@ export function CategorySidebarModern({ categories }: CategorySidebarProps) {
             <div className="relative overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-white/20 shadow-sm p-4 group">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="flex items-center gap-3 relative z-10">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-[#17457C] dark:text-[#17457C]">
                         <Menu className="h-5 w-5" />
                     </div>
                     <div>
@@ -66,7 +66,7 @@ export function CategorySidebarModern({ categories }: CategorySidebarProps) {
                             <div className="flex items-center p-1">
                                 <Link
                                     href={`/category/${category.slug}`}
-                                    className="flex-1 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-3"
+                                    className="flex-1 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-[#17457C] dark:group-hover:text-blue-400 transition-colors flex items-center gap-3"
                                 >
                                     <span className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-blue-500 transition-colors" />
                                     {category.name}
@@ -77,7 +77,7 @@ export function CategorySidebarModern({ categories }: CategorySidebarProps) {
                                             e.preventDefault();
                                             toggleCategory(category.id);
                                         }}
-                                        className="p-2 mr-1 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                                        className="p-2 mr-1 rounded-lg text-gray-400 hover:text-[#17457C] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
                                         aria-label={isOpen ? "Kapat" : "Aç"}
                                     >
                                         {isOpen ? (
@@ -102,7 +102,7 @@ export function CategorySidebarModern({ categories }: CategorySidebarProps) {
                                             <Link
                                                 key={child.id}
                                                 href={`/category/${child.slug}`}
-                                                className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group/sub"
+                                                className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-[#17457C] dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors group/sub"
                                             >
                                                 <div className="w-1 h-1 rounded-full bg-gray-300 group-hover/sub:bg-blue-400 transition-colors" />
                                                 {child.name}

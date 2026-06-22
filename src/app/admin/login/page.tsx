@@ -14,7 +14,7 @@ function SubmitButton() {
 
     return (
         <Button
-            className="w-full h-12 bg-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 hover:bg-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full h-12 bg-[#17457C] bg-gradient-to-r from-blue-600 to-indigo-600 hover:bg-[#0f3460] hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-2"
             type="submit"
             disabled={pending}
         >
@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
                     {/* Header Section */}
                     <div className="px-8 pt-10 pb-8 text-center relative">
                         {/* Shield Icon */}
-                        <div className="w-20 h-20 bg-blue-600 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30 transform hover:scale-105 transition-transform">
+                        <div className="w-20 h-20 bg-[#17457C] bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30 transform hover:scale-105 transition-transform">
                             <Shield className="h-10 w-10 text-white" />
                         </div>
 

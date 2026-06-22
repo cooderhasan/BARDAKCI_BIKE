@@ -99,7 +99,7 @@ export function SearchablePicker({
                 >
                   <span className="truncate pr-2">{option}</span>
                   {value === option && (
-                    <Check className="h-4 w-4 text-blue-600 shrink-0" />
+                    <Check className="h-4 w-4 text-[#17457C] shrink-0" />
                   )}
                 </button>
               ))}

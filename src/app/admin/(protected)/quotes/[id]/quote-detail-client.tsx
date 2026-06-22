@@ -311,7 +311,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
                         <hr />
                         <div className="flex justify-between text-lg font-bold">
                             <span>Toplam</span>
-                            <span className="text-blue-600">{formatPrice(total)}</span>
+                            <span className="text-[#17457C]">{formatPrice(total)}</span>
                         </div>
                     </CardContent>
                 </Card>

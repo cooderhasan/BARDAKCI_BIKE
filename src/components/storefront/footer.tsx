@@ -22,7 +22,7 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
     return (
         <footer className="bg-gradient-to-b from-[#002838] to-[#001018] text-gray-300 border-t border-white/10 relative overflow-hidden">
             {/* Subtle Top Glow */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#009AD0]/50 to-transparent" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#17457C]/50 to-transparent" />
 
             <div className="container mx-auto px-4 py-16 pb-24 md:pb-16 text-center md:text-left relative z-10">
                 <div className="grid gap-12 grid-cols-2 md:grid-cols-4">
@@ -40,14 +40,14 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
                                 />
                             ) : (
                                 <div className="flex items-center gap-2 transition-transform duration-300 group-hover:scale-105">
-                                    <div className="w-10 h-10 bg-[#009AD0] rounded-xl flex items-center justify-center transform -rotate-3 shadow-lg shadow-[#009AD0]/20 group-hover:rotate-0 transition-transform">
+                                    <div className="w-10 h-10 bg-[#17457C] rounded-xl flex items-center justify-center transform -rotate-3 shadow-lg shadow-[#17457C]/20 group-hover:rotate-0 transition-transform">
                                         <span className="text-white font-extrabold text-xl">B</span>
                                     </div>
                                     <div className="flex flex-col leading-none">
                                         <span className="font-black text-2xl text-white tracking-tight uppercase">
                                             BARDAKCI
                                         </span>
-                                        <span className="font-bold text-sm text-[#009AD0] tracking-widest uppercase">
+                                        <span className="font-bold text-sm text-[#17457C] tracking-widest uppercase">
                                             BIKE
                                         </span>
                                     </div>
@@ -129,23 +129,23 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
 
                     {/* Quick Links */}
                     <div className="md:pl-8">
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#009AD0]/30 pb-2 inline-block">Hızlı Bağlantılar</h4>
+                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#17457C]/30 pb-2 inline-block">Hızlı Bağlantılar</h4>
                         <ul className="space-y-3 text-sm">
                             <li>
                                 <Link href="/products" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                    <span className="h-1 w-1 bg-[#009AD0] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
                                     Ürünler
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/about" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                    <span className="h-1 w-1 bg-[#009AD0] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
                                     Hakkımızda
                                 </Link>
                             </li>
                             <li>
                                 <Link href="/contact" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                    <span className="h-1 w-1 bg-[#009AD0] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
                                     İletişim
                                 </Link>
                             </li>
@@ -154,12 +154,12 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
 
                     {/* Corporate & Policies */}
                     <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#009AD0]/30 pb-2 inline-block">Kurumsal</h4>
+                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#17457C]/30 pb-2 inline-block">Kurumsal</h4>
                         <ul className="space-y-3 text-sm">
                             {footerPolicies.map((policy) => (
                                 <li key={policy.slug}>
                                     <Link href={`/policies/${policy.slug}`} className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                        <span className="h-1 w-1 bg-[#009AD0] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                        <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
                                         {policy.title}
                                     </Link>
                                 </li>
@@ -169,11 +169,11 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
 
                     {/* Contact */}
                     <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#009AD0]/30 pb-2 inline-block">Bize Ulaşın</h4>
+                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#17457C]/30 pb-2 inline-block">Bize Ulaşın</h4>
                         <ul className="space-y-4 text-sm text-gray-400">
                             {settings?.phone && (
                                 <li className="flex items-start gap-3 group">
-                                    <div className="min-w-[2rem] w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#009AD0] transition-colors">
+                                    <div className="min-w-[2rem] w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#17457C] transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-300 group-hover:text-white">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                                         </svg>
@@ -183,7 +183,7 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
                             )}
                             {settings?.email && (
                                 <li className="flex items-start gap-3 group">
-                                    <div className="min-w-[2rem] w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#009AD0] transition-colors">
+                                    <div className="min-w-[2rem] w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#17457C] transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-300 group-hover:text-white">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                                         </svg>
@@ -193,7 +193,7 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
                             )}
                             {settings?.address && (
                                 <li className="flex items-start gap-3 group">
-                                    <div className="min-w-[2rem] w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#009AD0] transition-colors">
+                                    <div className="min-w-[2rem] w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#17457C] transition-colors">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-300 group-hover:text-white">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
@@ -215,7 +215,7 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
                                 href="https://www.hasandurmus.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[#009AD0] hover:text-white transition-colors font-medium"
+                                className="text-[#17457C] hover:text-white transition-colors font-medium"
                             >
                                 Hasan Durmuş
                             </a>

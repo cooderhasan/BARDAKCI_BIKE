@@ -197,7 +197,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                         size="icon"
                         onClick={() => setCollapsed(!collapsed)}
                         className={cn(
-                            "absolute top-3 right-3 hidden lg:flex h-7 w-7 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 z-20 transition-all",
+                            "absolute top-3 right-3 hidden lg:flex h-7 w-7 rounded-lg text-gray-400 hover:text-[#17457C] hover:bg-blue-50 dark:hover:bg-blue-900/20 z-20 transition-all",
                             collapsed && "top-auto bottom-4 right-1/2 translate-x-1/2 bg-gray-100 dark:bg-gray-800 text-gray-500 shadow-sm"
                         )}
                     >
@@ -260,7 +260,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                                                 "flex items-center gap-3 px-3 py-2.5 mx-1 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
                                                 isActive
                                                     ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25 ring-1 ring-blue-400/20"
-                                                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/10"
+                                                    : "text-gray-600 hover:text-[#17457C] hover:bg-blue-50/80 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/10"
                                             )}
                                         >
                                             {/* Hover Glow Effect */}
@@ -271,7 +271,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                                             <item.icon
                                                 className={cn(
                                                     "h-[18px] w-[18px] flex-shrink-0 transition-transform duration-300 relative z-10",
-                                                    isActive ? "text-white" : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500 dark:group-hover:text-blue-400",
+                                                    isActive ? "text-white" : "text-gray-400 group-hover:text-[#17457C] dark:text-gray-500 dark:group-hover:text-blue-400",
                                                     !collapsed && "group-hover:scale-110"
                                                 )}
                                             />

@@ -70,7 +70,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                        <Link href="/account/orders" className="hover:text-[#009AD0] flex items-center gap-1 transition-colors">
+                        <Link href="/account/orders" className="hover:text-[#17457C] flex items-center gap-1 transition-colors">
                             <ArrowLeft className="w-4 h-4" />
                             Siparişlerim
                         </Link>
@@ -88,7 +88,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     </p>
                 </div>
                 {order.trackingUrl && (
-                    <Button className="bg-[#009AD0] hover:bg-[#007baa] text-white" asChild>
+                    <Button className="bg-[#17457C] hover:bg-[#0f3460] text-white" asChild>
                         <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer">
                             <Truck className="w-4 h-4 mr-2" />
                             Kargo Takip
@@ -103,7 +103,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-800">
                             <h2 className="font-bold flex items-center gap-2">
-                                <Package className="w-5 h-5 text-[#009AD0]" />
+                                <Package className="w-5 h-5 text-[#17457C]" />
                                 Sipariş İçeriği
                             </h2>
                         </div>
@@ -140,7 +140,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                                             </p>
                                         </div>
                                         <div className="text-right shrink-0 flex flex-col items-end gap-2">
-                                            <span className="font-bold text-lg text-[#009AD0]">
+                                            <span className="font-bold text-lg text-[#17457C]">
                                                 {formatPrice(Number(item.lineTotal))}
                                             </span>
 
@@ -175,7 +175,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     {/* Payment Info */}
                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
                         <h3 className="font-bold flex items-center gap-2 mb-4">
-                            <CreditCard className="w-5 h-5 text-[#009AD0]" />
+                            <CreditCard className="w-5 h-5 text-[#17457C]" />
                             Ödeme Bilgileri
                         </h3>
                         <div className="space-y-3 text-sm">
@@ -200,7 +200,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                             <Separator className="my-2" />
                             <div className="flex justify-between text-lg font-bold">
                                 <span>Toplam</span>
-                                <span className="text-[#009AD0]">{formatPrice(Number(order.total))}</span>
+                                <span className="text-[#17457C]">{formatPrice(Number(order.total))}</span>
                             </div>
                             {order.payment && (
                                 <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
@@ -235,7 +235,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     {/* Shipping Address */}
                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
                         <h3 className="font-bold flex items-center gap-2 mb-4">
-                            <MapPin className="w-5 h-5 text-[#009AD0]" />
+                            <MapPin className="w-5 h-5 text-[#17457C]" />
                             Teslimat Adresi
                         </h3>
                         <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">

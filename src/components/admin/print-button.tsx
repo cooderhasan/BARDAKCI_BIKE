@@ -6,7 +6,7 @@ export function PrintButton() {
     return (
         <Button
             onClick={() => window.print()}
-            className="bg-blue-600 text-white hover:bg-blue-700 font-semibold"
+            className="bg-[#17457C] text-white hover:bg-[#0f3460] font-semibold"
         >
             🖨️ Yazdır
         </Button>
