@@ -132,7 +132,10 @@
   }
 }
 .product-description-content table {
-  width: 100%;
+  display: block !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
   border-collapse: collapse;
   margin: 1.5rem 0;
   border: 1px solid oklch(0.92 0.01 260);

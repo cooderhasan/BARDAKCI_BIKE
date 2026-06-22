@@ -121,13 +121,13 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
             {/* Top Row: Logo, Search, User Actions */}
             <div className="border-b dark:border-gray-800/50 py-2">
                 <div className="container mx-auto px-4 max-w-7xl">
-                    <div className="flex h-20 md:h-24 items-center justify-between gap-6">
+                    <div className="flex h-20 md:h-24 items-center justify-between gap-2 md:gap-6">
                         {/* Left: Logo + Phone */}
-                        <div className="flex items-center gap-4 shrink-0">
+                        <div className="flex items-center gap-2 md:gap-4 shrink-0">
                             {/* Logo */}
                             <Link href="/" className="flex items-center gap-2 group">
                                 {logoUrl ? (
-                                    <div className="relative h-14 md:h-20 w-auto aspect-[4/1] transition-transform duration-300 group-hover:scale-105">
+                                    <div className="relative h-10 md:h-20 w-auto aspect-[4/1] transition-transform duration-300 group-hover:scale-105">
                                         <Image
                                             src={logoUrl}
                                             alt={siteName || "Logo"}
@@ -177,7 +177,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                         </div>
 
                         {/* Right Actions */}
-                        <div className="flex items-center gap-4 md:gap-6 shrink-0">
+                        <div className="flex items-center gap-2 md:gap-6 shrink-0">
 
                             {/* User Panel */}
                             <div
@@ -186,7 +186,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 className="relative"
                             >
                                 {!mounted ? (
-                                    <button className="flex items-center gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100">
+                                    <button className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100">
                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                                             <User className="h-5 w-5" />
                                         </div>
@@ -198,7 +198,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 ) : (
                                     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen} modal={false}>
                                         <DropdownMenuTrigger asChild>
-                                            <button className="flex items-center gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 outline-none">
+                                            <button className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100 outline-none">
                                                 <div className={`w-10 h-10 ${user ? 'bg-[#17457C]/10' : 'bg-gray-100'} rounded-full flex items-center justify-center`}>
                                                     <User className={`h-5 w-5 ${user ? 'text-[#17457C]' : ''}`} />
                                                 </div>
@@ -285,8 +285,8 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
 
                             {/* Cart - Visible for everyone */}
                             <Link href="/cart" className={cn(
-                                "flex items-center gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 pl-4",
-                                user && "border-l"
+                                "flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100",
+                                user && "border-l border-gray-100 dark:border-gray-800 ml-1 pl-2 md:pl-4"
                             )}>
                                 <div className="relative">
                                     <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
