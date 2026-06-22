@@ -16,26 +16,41 @@ async function getHomeData() {
             prisma.slider.findMany({
                 where: { isActive: true },
                 orderBy: { order: "asc" },
+            }).catch((err) => {
+                console.error("Failed to fetch sliders:", err);
+                return [];
             }),
             prisma.product.findMany({
                 where: { isActive: true, isFeatured: true },
                 include: { category: true, brand: true },
                 take: 8,
+            }).catch((err) => {
+                console.error("Failed to fetch featured products:", err);
+                return [];
             }),
             prisma.product.findMany({
                 where: { isActive: true, isNew: true },
                 include: { category: true, brand: true },
                 take: 8,
+            }).catch((err) => {
+                console.error("Failed to fetch new products:", err);
+                return [];
             }),
             prisma.product.findMany({
                 where: { isActive: true, isBestSeller: true },
                 include: { category: true, brand: true },
                 take: 8,
+            }).catch((err) => {
+                console.error("Failed to fetch best sellers:", err);
+                return [];
             }),
             prisma.category.findMany({
                 where: { isActive: true, isFeatured: true },
                 orderBy: { order: "asc" },
                 take: 5,
+            }).catch((err) => {
+                console.error("Failed to fetch categories:", err);
+                return [];
             }),
             // Sidebar categories (all active top-level)
             prisma.category.findMany({
@@ -54,6 +69,9 @@ async function getHomeData() {
                         orderBy: { order: "asc" }
                     }
                 }
+            }).catch((err) => {
+                console.error("Failed to fetch sidebar categories:", err);
+                return [];
             }),
             prisma.banner.findMany({
                 where: { 
@@ -61,6 +79,9 @@ async function getHomeData() {
                     imageUrl: { not: "" }
                 },
                 orderBy: { order: "asc" },
+            }).catch((err) => {
+                console.error("Failed to fetch banners:", err);
+                return [];
             })
         ]);
 
@@ -90,6 +111,7 @@ async function getHomeData() {
 
     const transformSlider = (slider: any) => ({
         ...slider,
+        showOverlay: slider.showOverlay ?? true,
         createdAt: slider.createdAt.toISOString(),
     });
 
