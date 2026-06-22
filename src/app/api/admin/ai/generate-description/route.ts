@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
                 "Authorization": `Bearer ${config.openRouterApiKey}`,
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://bardakcibike.com.tr", 
-                "X-Title": "Bardakcı Bike B2C"
+                "X-Title": "Bardakci Bike B2C"
             },
             body: JSON.stringify({
                 model: modelId,
