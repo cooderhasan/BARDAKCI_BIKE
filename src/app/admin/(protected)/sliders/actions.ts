@@ -16,6 +16,7 @@ export async function createSlider(data: {
     linkUrl?: string;
     order: number;
     isActive: boolean;
+    showOverlay?: boolean;
 }) {
     try {
         await prisma.slider.create({
@@ -39,6 +40,7 @@ export async function updateSlider(
         linkUrl?: string;
         order?: number;
         isActive?: boolean;
+        showOverlay?: boolean;
     }
 ) {
     try {

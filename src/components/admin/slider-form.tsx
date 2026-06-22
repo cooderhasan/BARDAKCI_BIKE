@@ -19,6 +19,7 @@ interface SliderFormProps {
         linkUrl?: string | null;
         order: number;
         isActive: boolean;
+        showOverlay: boolean;
     };
     onSuccess?: () => void;
 }
@@ -30,6 +31,7 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
     const [linkUrl, setLinkUrl] = useState(initialData?.linkUrl || "");
     const [order, setOrder] = useState(initialData?.order || 0);
     const [isActive, setIsActive] = useState(initialData ? initialData.isActive : true);
+    const [showOverlay, setShowOverlay] = useState(initialData ? initialData.showOverlay : true);
     const [images, setImages] = useState<string[]>(initialData?.imageUrl ? [initialData.imageUrl] : []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -47,6 +49,7 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
             linkUrl,
             order: Number(order),
             isActive,
+            showOverlay,
             imageUrl: images[0],
         };
 
@@ -131,14 +134,29 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
                 </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-                <Switch
-                    checked={isActive}
-                    onCheckedChange={setIsActive}
-                    id="is-active"
-                    disabled={loading}
-                />
-                <Label htmlFor="is-active">Aktif</Label>
+            <div className="flex flex-col md:flex-row gap-6 border-t pt-4">
+                <div className="flex items-center space-x-2">
+                    <Switch
+                        checked={isActive}
+                        onCheckedChange={setIsActive}
+                        id="is-active"
+                        disabled={loading}
+                    />
+                    <Label htmlFor="is-active" className="text-sm font-medium">Slider Aktif</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                    <Switch
+                        checked={showOverlay}
+                        onCheckedChange={setShowOverlay}
+                        id="show-overlay"
+                        disabled={loading}
+                    />
+                    <div className="grid gap-0.5 leading-none">
+                        <Label htmlFor="show-overlay" className="text-sm font-medium">Yazı ve Buton Katmanını Göster</Label>
+                        <p className="text-[11px] text-muted-foreground">Görselin üzerindeki başlık, alt başlık ve "Keşfet" butonunu gizlemek için kapatın.</p>
+                    </div>
+                </div>
             </div>
 
             <Button type="submit" disabled={loading} className="w-full">

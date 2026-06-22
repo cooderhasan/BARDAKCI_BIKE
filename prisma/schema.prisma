@@ -401,14 +401,15 @@ model AdminLog {
 }
 
 model Slider {
-  id        String   @id @default(cuid())
-  title     String?
-  subtitle  String?
-  imageUrl  String
-  linkUrl   String?
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  title       String?
+  subtitle    String?
+  imageUrl    String
+  linkUrl     String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  showOverlay Boolean  @default(true) // Metin ve buton katmanını göster/gizle
+  createdAt   DateTime @default(now())
 
   @@map("sliders")
 }

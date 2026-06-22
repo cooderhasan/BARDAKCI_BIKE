@@ -13,6 +13,7 @@ interface Slider {
     subtitle: string | null;
     imageUrl: string;
     linkUrl: string | null;
+    showOverlay: boolean;
 }
 
 interface HeroSliderProps {
@@ -71,59 +72,112 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                     transition={{ duration: 0.7 }}
                     className="absolute inset-0"
                 >
-                    {/* Background */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
-                    <div className="absolute inset-0 bg-gray-900">
-                        {sliders[current].imageUrl && (
-                            <Image
-                                src={sliders[current].imageUrl}
-                                alt={sliders[current].title || ""}
-                                fill
-                                className="object-cover object-right"
-                                priority={true}
-                                sizes="100vw"
-                            />
-                        )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="relative z-20 h-full flex items-center">
-                        <div className="container mx-auto px-4 pl-16 md:pl-24">
-                            <div className="max-w-2xl">
-                                {sliders[current].title && (
-                                    <motion.h2
-                                        initial={{ y: 20, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 0.3, duration: 0.5 }}
-                                        className="text-3xl md:text-5xl font-bold text-white mb-4"
-                                    >
-                                        {sliders[current].title}
-                                    </motion.h2>
-                                )}
-                                {sliders[current].subtitle && (
-                                    <motion.p
-                                        initial={{ y: 20, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 0.5, duration: 0.5 }}
-                                        className="text-xl text-gray-200 mb-6"
-                                    >
-                                        {sliders[current].subtitle}
-                                    </motion.p>
-                                )}
-                                {sliders[current].linkUrl && (
-                                    <motion.div
-                                        initial={{ y: 20, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 0.7, duration: 0.5 }}
-                                    >
-                                        <Link href={sliders[current].linkUrl}>
-                                            <Button size="lg">Keşfet</Button>
-                                        </Link>
-                                    </motion.div>
+                    {sliders[current].linkUrl ? (
+                        <Link href={sliders[current].linkUrl} className="absolute inset-0 block">
+                            {/* Background */}
+                            {sliders[current].showOverlay && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
+                            )}
+                            <div className="absolute inset-0 bg-gray-900">
+                                {sliders[current].imageUrl && (
+                                    <Image
+                                        src={sliders[current].imageUrl}
+                                        alt={sliders[current].title || ""}
+                                        fill
+                                        className="object-cover object-right"
+                                        priority={true}
+                                        sizes="100vw"
+                                    />
                                 )}
                             </div>
+
+                            {/* Content */}
+                            {sliders[current].showOverlay && (
+                                <div className="relative z-20 h-full flex items-center">
+                                    <div className="container mx-auto px-4 pl-16 md:pl-24">
+                                        <div className="max-w-2xl">
+                                            {sliders[current].title && (
+                                                <motion.h2
+                                                    initial={{ y: 20, opacity: 0 }}
+                                                    animate={{ y: 0, opacity: 1 }}
+                                                    transition={{ delay: 0.3, duration: 0.5 }}
+                                                    className="text-3xl md:text-5xl font-bold text-white mb-4"
+                                                >
+                                                    {sliders[current].title}
+                                                </motion.h2>
+                                            )}
+                                            {sliders[current].subtitle && (
+                                                <motion.p
+                                                    initial={{ y: 20, opacity: 0 }}
+                                                    animate={{ y: 0, opacity: 1 }}
+                                                    transition={{ delay: 0.5, duration: 0.5 }}
+                                                    className="text-xl text-gray-200 mb-6"
+                                                >
+                                                    {sliders[current].subtitle}
+                                                </motion.p>
+                                            )}
+                                            <motion.div
+                                                initial={{ y: 20, opacity: 0 }}
+                                                animate={{ y: 0, opacity: 1 }}
+                                                transition={{ delay: 0.7, duration: 0.5 }}
+                                            >
+                                                <Button size="lg">Keşfet</Button>
+                                            </motion.div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </Link>
+                    ) : (
+                        <div className="absolute inset-0">
+                            {/* Background */}
+                            {sliders[current].showOverlay && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
+                            )}
+                            <div className="absolute inset-0 bg-gray-900">
+                                {sliders[current].imageUrl && (
+                                    <Image
+                                        src={sliders[current].imageUrl}
+                                        alt={sliders[current].title || ""}
+                                        fill
+                                        className="object-cover object-right"
+                                        priority={true}
+                                        sizes="100vw"
+                                    />
+                                )}
+                            </div>
+
+                            {/* Content */}
+                            {sliders[current].showOverlay && (
+                                <div className="relative z-20 h-full flex items-center">
+                                    <div className="container mx-auto px-4 pl-16 md:pl-24">
+                                        <div className="max-w-2xl">
+                                            {sliders[current].title && (
+                                                <motion.h2
+                                                    initial={{ y: 20, opacity: 0 }}
+                                                    animate={{ y: 0, opacity: 1 }}
+                                                    transition={{ delay: 0.3, duration: 0.5 }}
+                                                    className="text-3xl md:text-5xl font-bold text-white mb-4"
+                                                >
+                                                    {sliders[current].title}
+                                                </motion.h2>
+                                            )}
+                                            {sliders[current].subtitle && (
+                                                <motion.p
+                                                    initial={{ y: 20, opacity: 0 }}
+                                                    animate={{ y: 0, opacity: 1 }}
+                                                    transition={{ delay: 0.5, duration: 0.5 }}
+                                                    className="text-xl text-gray-200 mb-6"
+                                                >
+                                                    {sliders[current].subtitle}
+                                                </motion.p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
+                    )}
                 </motion.div>
             </AnimatePresence>
 
