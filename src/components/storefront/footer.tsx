@@ -6,12 +6,19 @@ interface Policy {
     title: string;
 }
 
+interface Category {
+    id: string;
+    name: string;
+    slug: string;
+}
+
 interface StorefrontFooterProps {
     settings?: Record<string, string>;
     policies?: Policy[];
+    categories?: Category[];
 }
 
-export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) {
+export function StorefrontFooter({ settings, policies, categories = [] }: StorefrontFooterProps) {
     // Separate policies into groups if needed, or just list them all
     // For now, let's put "payment-methods" apart if we want, or just filter it out from the general list if we handle it separately.
     // User requested "Combine", so let's just list them.
@@ -131,12 +138,14 @@ export function StorefrontFooter({ settings, policies }: StorefrontFooterProps) 
                     <div className="md:pl-8">
                         <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#17457C]/30 pb-2 inline-block">Hızlı Bağlantılar</h4>
                         <ul className="space-y-3 text-sm">
-                            <li>
-                                <Link href="/products" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
-                                    Ürünler
-                                </Link>
-                            </li>
+                            {categories.map((category) => (
+                                <li key={category.id}>
+                                    <Link href={`/category/${category.slug}`} className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 uppercase text-xs font-semibold tracking-wider">
+                                        <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                        {category.name}
+                                    </Link>
+                                </li>
+                            ))}
                             <li>
                                 <Link href="/about" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
                                     <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>

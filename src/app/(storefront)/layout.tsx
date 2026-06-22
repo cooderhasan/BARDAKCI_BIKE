@@ -188,7 +188,7 @@ export default async function StorefrontLayout({
                 linkedinUrl={settings.linkedinUrl}
             />
             <main className="flex-1">{children}</main>
-            <StorefrontFooter settings={settings} policies={policies} />
+            <StorefrontFooter settings={settings} policies={policies} categories={categories} />
             <WhatsAppButton phone={settings.whatsappNumber || settings.phone} />
         </div>
     );

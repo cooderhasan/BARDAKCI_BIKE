@@ -166,20 +166,9 @@ export default async function HomePage() {
                         </div>
                     </section>
 
-                    {/* Categories */}
+                    {/* Categories (Top Row - 2 Large Categories) */}
                     {data.categories.length > 0 && (
-                        <CategorySectionModern categories={data.categories} />
-                    )}
-
-                    {/* Featured Products */}
-                    {data.featuredProducts.length > 0 && (
-                        <FeaturedProducts
-                            title="Öne Çıkan Ürünler"
-                            products={data.featuredProducts}
-                            discountRate={discountRate}
-                            isDealer={isDealer}
-                            variant="featured"
-                        />
+                        <CategorySectionModern categories={data.categories} row="top" />
                     )}
 
                     {/* New Products */}
@@ -191,6 +180,22 @@ export default async function HomePage() {
                             isDealer={isDealer}
                             badge="Yeni"
                             variant="new"
+                        />
+                    )}
+
+                    {/* Categories (Bottom Row - 3 Smaller Categories) */}
+                    {data.categories.length > 0 && (
+                        <CategorySectionModern categories={data.categories} row="bottom" />
+                    )}
+
+                    {/* Featured Products */}
+                    {data.featuredProducts.length > 0 && (
+                        <FeaturedProducts
+                            title="Öne Çıkan Ürünler"
+                            products={data.featuredProducts}
+                            discountRate={discountRate}
+                            isDealer={isDealer}
+                            variant="featured"
                         />
                     )}
 
