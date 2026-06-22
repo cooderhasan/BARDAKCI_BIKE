@@ -132,14 +132,27 @@
   }
 }
 .product-description-content table {
-  display: block !important;
   width: 100% !important;
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
   border-collapse: collapse;
   margin: 1.5rem 0;
   border: 1px solid oklch(0.92 0.01 260);
   font-size: 0.875rem;
+}
+
+/* Mobil cihazlarda tablonun taşmaması ve kaydırılabilmesi için block yapıyoruz */
+@media (max-width: 768px) {
+  .product-description-content table {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Masaüstü ve büyük ekranlarda tablonun tam genişliğe yayılması için standard table yapısını koruyoruz */
+@media (min-width: 769px) {
+  .product-description-content table {
+    display: table !important;
+  }
 }
 
 .product-description-content th {
