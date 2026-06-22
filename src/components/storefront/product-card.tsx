@@ -112,7 +112,7 @@ export function ProductCard({
                     )}
 
                     {/* Badges */}
-                    <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                    <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10 items-start">
                         {badge && (
                             <Badge className="bg-[#009AD0]">{badge}</Badge>
                         )}
@@ -125,6 +125,9 @@ export function ProductCard({
                                 %{discountRate} İndirim
                             </Badge>
                         )}
+                        <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white animate-in fade-in duration-300">
+                            Ücretsiz Kargo
+                        </Badge>
                     </div>
 
                     {/* Wishlist Button */}

@@ -130,12 +130,17 @@ export function ProductCardV2({
 
                 {/* Image Section - Cleaner Aspect Ratio */}
                 <div className="relative aspect-square bg-white p-4 flex items-center justify-center">
-                    {/* Discount Badge (Dealer or Sale) */}
-                    {(isDealer && discountRate > 0 || hasSalePrice) && (
-                        <div className="absolute top-3 left-3 z-10 bg-[#E31E24] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
-                            %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
+                    {/* Badges Stack Left */}
+                    <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
+                        {(isDealer && discountRate > 0 || hasSalePrice) && (
+                            <div className="bg-[#E31E24] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm animate-in fade-in duration-300">
+                                %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
+                            </div>
+                        )}
+                        <div className="bg-emerald-600 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-in fade-in duration-300">
+                            ÜCRETSİZ KARGO
                         </div>
-                    )}
+                    </div>
                     {/* Badge */}
                     {badge && (
                         <div className="absolute top-3 right-3 z-10 bg-[#009AD0] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">

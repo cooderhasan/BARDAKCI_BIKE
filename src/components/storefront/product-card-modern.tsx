@@ -122,12 +122,17 @@ export function ProductCardModern({
 
                 {/* Image Section - Cleaner, Larger */}
                 <div className="relative aspect-square bg-white p-4 flex items-center justify-center overflow-hidden">
-                    {/* Discount Badge (Dealer or Sale) - Modern Pill Style */}
-                    {(isDealer && discountRate > 0 || hasSalePrice) && (
-                        <div className="absolute top-4 left-4 z-10 bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/30">
-                            %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
+                    {/* Badges Stack Left */}
+                    <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
+                        {(isDealer && discountRate > 0 || hasSalePrice) && (
+                            <div className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/30 animate-in fade-in duration-300">
+                                %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
+                            </div>
+                        )}
+                        <div className="bg-emerald-500 text-white text-[9px] md:text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap animate-in fade-in duration-300">
+                            ÜCRETSİZ KARGO
                         </div>
-                    )}
+                    </div>
                     {/* Custom Badge */}
                     {badge && (
                         <div className="absolute top-4 right-4 z-10 bg-blue-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-blue-500/30">
