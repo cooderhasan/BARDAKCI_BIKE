@@ -60,7 +60,7 @@ export const productSchema = z.object({
     height: z.coerce.number().min(0, "Yükseklik negatif olamaz").nullable().optional(),
     length: z.coerce.number().min(0, "Uzunluk negatif olamaz").nullable().optional(),
     desi: z.coerce.number().min(0, "Desi negatif olamaz").nullable().optional(),
-    referenceUrl: z.string().url("Geçerli bir URL giriniz").or(z.literal("")).nullable().optional(),
+    referenceUrl: z.string().nullable().optional(),
     n11CatalogId: z.string().nullable().optional(),
 });
 
