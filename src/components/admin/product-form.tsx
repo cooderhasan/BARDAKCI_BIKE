@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -444,33 +445,38 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 </div>
                             </div>
 
-                            <div className="space-y-4 p-4 bg-indigo-50/30 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 rounded-xl">
-                                <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-semibold mb-1">
-                                    <Brain className="w-5 h-5 text-indigo-600" />
+                            <div className="space-y-4 p-4 bg-[#17457C]/5 dark:bg-[#17457C]/10 border border-[#17457C]/20 dark:border-[#17457C]/30 rounded-xl">
+                                <div className="flex items-center gap-2 text-[#17457C] dark:text-blue-300 font-semibold mb-1">
+                                    <Brain className="w-5 h-5 text-[#17457C]" />
                                     <span>AI İçerik Asistanı (Opsiyonel)</span>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="referenceUrl" className="text-xs">Referans Ürün Linki (Toptancı / Rakip)</Label>
-                                    <div className="flex gap-2">
-                                        <Input
+                                    <Label htmlFor="referenceUrl" className="text-xs font-medium">Referans Ürün Bilgisi / Üretici Metni</Label>
+                                    <div className="flex flex-col gap-3">
+                                        <Textarea
                                             id="referenceUrl"
                                             value={formData.referenceUrl}
                                             onChange={(e) => handleChange("referenceUrl", e.target.value)}
-                                            placeholder="https://rakipsite.com/urun-detay"
-                                            className="bg-white dark:bg-gray-800"
+                                            placeholder="Üretici sitesinden kopyaladığınız karışık veya ham ürün bilgilerini (veya referans ürün linkini) buraya yapıştırın. Yapay zeka bu metni düzenleyip SEO uyumlu hale getirecek, önemli kısımları kalın yazacak ve en alta teknik özellikler tablosu ekleyecektir."
+                                            className="bg-white dark:bg-gray-800 min-h-[120px] resize-y"
                                         />
                                         <Button
                                             type="button"
                                             onClick={async () => {
                                                 if (!formData.referenceUrl) {
-                                                    toast.error("Lütfen bir referans linki girin.");
+                                                    toast.error("Lütfen düzeltilecek ham metni veya bir referans linki girin.");
                                                     return;
                                                 }
                                                 setLoading(true);
                                                 try {
+                                                    const isUrl = formData.referenceUrl.trim().startsWith("http://") || formData.referenceUrl.trim().startsWith("https://");
+                                                    const payload = isUrl 
+                                                        ? { url: formData.referenceUrl.trim() } 
+                                                        : { text: formData.referenceUrl, productName: formData.name };
+
                                                     const res = await fetch("/api/admin/ai/generate-description", {
                                                         method: "POST",
-                                                        body: JSON.stringify({ url: formData.referenceUrl }),
+                                                        body: JSON.stringify(payload),
                                                     });
                                                     const result = await res.json();
                                                     if (result.success && result.data) {
@@ -491,13 +497,23 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                 }
                                             }}
                                             disabled={loading}
-                                            className="bg-indigo-600 hover:bg-indigo-700 shrink-0"
+                                            className="bg-[#17457C] hover:bg-[#0f3460] text-white w-full md:w-auto self-end font-semibold transition-colors flex items-center justify-center gap-2"
                                         >
-                                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "AI ile Yaz"}
+                                            {loading ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <span>İçerik Oluşturuluyor...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Brain className="w-4 h-4" />
+                                                    <span>AI ile Açıklama ve Teknik Tablo Oluştur</span>
+                                                </>
+                                            )}
                                         </Button>
                                     </div>
                                     <p className="text-[10px] text-gray-500 italic">
-                                        * Linkten ürün ismi ve açıklaması çekilip AI ile özgünleştirilir.
+                                        * Yapıştırılan ham metin veya linkten çekilen bilgiler AI tarafından SEO'ya uygun şekilde düzenlenir, önemli kısımlar vurgulanır ve teknik özellik tablosu oluşturulur.
                                     </p>
                                 </div>
                             </div>

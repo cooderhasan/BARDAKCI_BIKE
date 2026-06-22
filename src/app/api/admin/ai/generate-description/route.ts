@@ -5,11 +5,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: NextRequest) {
   try {
-    const { url } = await req.json();
+    const { url, text, productName: reqProductName } = await req.json();
 
-    if (!url) {
-      return NextResponse.json({ error: "URL gerekli" }, { status: 400 });
-    }
+    let productName = reqProductName || "";
+    let productDescription = text || "";
 
     // 1. Get AI Configuration
     const config = await prisma.geminiConfig.findFirst({
@@ -20,70 +19,75 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Yapay Zeka (AI) yapılandırılmamış veya aktif değil." }, { status: 400 });
     }
 
-    // 2. Fetch Page Content
-    let response;
-    try {
-        response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Referer': 'https://www.google.com/',
-            },
-            next: { revalidate: 0 }
-        });
-    } catch (err: any) {
-        return NextResponse.json({ 
-            success: false, 
-            error: `Kaynak siteye erişilirken ağ hatası oluştu: ${err.message || "Bilinmeyen ağ hatası"}` 
-        }, { status: 500 });
+    // 2. Fetch Page Content if URL is provided and no text is present
+    if (!text && url) {
+        let response;
+        try {
+            response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+                    'Referer': 'https://www.google.com/',
+                },
+                next: { revalidate: 0 }
+            });
+        } catch (err: any) {
+            return NextResponse.json({ 
+                success: false, 
+                error: `Kaynak siteye erişilirken ağ hatası oluştu: ${err.message || "Bilinmeyen ağ hatası"}` 
+            }, { status: 500 });
+        }
+
+        if (!response.ok) {
+            return NextResponse.json({ 
+                success: false, 
+                error: `Kaynak siteye ulaşılamadı (Hata Kodu: ${response.status}). Site botu engellemiş olabilir.` 
+            }, { status: 400 });
+        }
+
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        // Extract Data
+        productName = $("h1").first().text().trim();
+
+        if (url.includes("ladaci.com")) {
+            productDescription = $("#tab-description").text().trim() || $(".product-description").text().trim();
+        } else if (url.includes("aslaneroto.com")) {
+            productDescription = $("#tabs-1").text().trim() || $(".product-description").text().trim();
+        } else {
+            productDescription = $(".product-description").text().trim() || 
+                                 $("#description").text().trim() || 
+                                 $("article").text().trim() || 
+                                 $("meta[name='description']").attr("content") || "";
+        }
     }
 
-    if (!response.ok) {
-        return NextResponse.json({ 
-            success: false, 
-            error: `Kaynak siteye ulaşılamadı (Hata Kodu: ${response.status}). Site botu engellemi olabilir.` 
-        }, { status: 400 });
+    if (!productDescription) {
+        return NextResponse.json({ error: "Lütfen düzeltilecek ham metni veya geçerli bir URL girin." }, { status: 400 });
     }
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // 3. Extract Data
-    let productName = $("h1").first().text().trim();
-    let productDescription = "";
-
-    if (url.includes("ladaci.com")) {
-        productDescription = $("#tab-description").text().trim() || $(".product-description").text().trim();
-    } else if (url.includes("aslaneroto.com")) {
-        productDescription = $("#tabs-1").text().trim() || $(".product-description").text().trim();
-    } else {
-        productDescription = $(".product-description").text().trim() || 
-                             $("#description").text().trim() || 
-                             $("article").text().trim() || 
-                             $("meta[name='description']").attr("content") || "";
-    }
-
-    if (!productName && !productDescription) {
-        return NextResponse.json({ error: "Sayfadan ürün bilgisi ayıklanamadı." }, { status: 400 });
-    }
-
-    const systemPrompt = `Sen profesyonel bir Bisiklet Aksesuar ve Yedek Parça Teknik Danışmanı ve Kurumsal İçerik Uzmanısın. 
-    İşin; teknik verileri saniyeler içinde hem okunaklı hem de ikna edici bir kurumsal döküman haline getirmektir.
+    const systemPrompt = `Sen profesyonel bir Bisiklet, Bisiklet Parçaları ve Aksesuarları Teknik Danışmanı ve E-ticaret SEO İçerik Uzmanısın. 
+    Görevin; üretici sitelerinden kopyalanmış ham, karışık veya düzensiz ürün bilgilerini düzenlemek, profesyonel bir üslupla e-ticaret siteleri için SEO uyumlu bir açıklama metnine dönüştürmek ve teknik özellikler tablosu oluşturmaktır.
 
     NİHAİ YAZIM VE FORMAT KURALLARI:
-    1. YAPI (STRUCTURE): Önce ürünün önemini anlatan profesyonel paragraflar, ardından "Avantajları:" başlığı altında madde madde özellikler, en son ise Teknik Tablo gelmelidir.
-    2. VURGULAMA (BOLD): Önemli teknik terimleri, uyumluluk bilgilerini ve kritik avantajları <b>...</b> etiketleri içinde mutlaka vurgula.
-    3. MADDELEME (LISTING): "Avantajları" veya "Özellikleri" bölümünde mutlaka <ul> ve <li> etiketlerini kullanarak maddeler halinde yaz.
-    4. ÜSLUP: Kesinlikle 'usta', 'tecrübem' gibi kişisel ifadeler kullanma. Tamamen kurumsal ve ciddi bir Türkçe kullan.
+    1. YAPI (STRUCTURE): 
+       - Önce ürünün ne işe yaradığını, kalitesini ve önemini anlatan profesyonel tanıtım paragrafları.
+       - Ardından "Öne Çıkan Özellikler" veya "Avantajları" başlığı altında madde madde özellikler.
+       - En sonda ise "Teknik Özellikler" başlığı altında bir Teknik Tablo gelmelidir.
+    2. VURGULAMA (BOLD): Önemli teknik özellikleri, uyumluluk detaylarını (jant ölçüsü, malzeme, parça tipi vb.) ve kritik avantajları <b>...</b> etiketleri içinde vurgula.
+    3. MADDELEME (LISTING): Özellikler bölümünü mutlaka <ul> ve <li> etiketlerini kullanarak liste halinde yaz.
+    4. ÜSLUP: Kesinlikle kişisel, samimi veya usta ağzı ifadeler kullanma. Tamamen kurumsal, ikna edici ve profesyonel bir e-ticaret dili kullan.
     5. GARANTİ YASAĞI: Metnin hiçbir yerinde KESİNLİKLE "garanti", "garantilidir", "garantisi vardır" veya benzeri bir garanti taahhüdü içeren ifade kullanma.
-    6. TEKNİK TABLO: Her dökümanın sonuna mutlaka STANDART HTML <table> yapısı ekle. Mutlaka <thead> (sütun başlıkları için <th> kullanarak) ve <tbody> (veriler için <td> kullanarak) bölümlerini ayır.
-    7. UZUNLUK: İçeriği kısa kesme; her bölümü (paragraf, maddeler, tablo) doyurucu ve teknik olarak zengin tut.`;
+    6. TEKNİK TABLO: Yapıştırılan metinden çıkarabildiğin tüm teknik detayları (Malzeme, Boyut, Jant Boyutu, Ağırlık, Renk, Uyumluluk vb.) içeren şık ve standart bir HTML <table> yapısı oluştur. Tabloda <thead> (<th> kullanarak) ve <tbody> (<td> kullanarak) bölümlerini mutlaka ayır. Eğer girdi metninde hiç teknik detay yoksa ürünün adından yola çıkarak mantıklı varsayılan teknik özelliklerle bir tablo oluştur.
+    7. HTML BİÇİMİ: Çıktıyı doğrudan HTML formatında ver. Ekstra markdown işaretlemeleri (\`\`\`html vb.) kullanma.`;
 
-    const userPrompt = `USTA, bu parçayı bizim için SIFIRDAN, bambaşka bir üslupla anlat. Rakip metnin gölgesi bile kalmasın. 
+    const userPrompt = `Aşağıdaki ham verileri e-ticaret sitemiz için profesyonelce düzenle:
       
-      ÜRÜN ADI: ${productName}
-      KAYNAK METİN: ${productDescription || "Rakip sitede açıklama metni bulunamadı. Lütfen sadece ürün adını ve tecrübeni kullanarak (30 yıllık Bisiklet ustası gibi) araca ne gibi bir fayda sağlayacağını anlatan özgün bir tanıtım yaz."}`;
+      ${productName ? `ÜRÜN ADI: ${productName}` : ""}
+      KAYNAK METİN (ÜRETİCİ BİLGİLERİ): 
+      ${productDescription}`;
 
     let generatedHtml = "";
 
