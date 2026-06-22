@@ -121,19 +121,19 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
             {/* Top Row: Logo, Search, User Actions */}
             <div className="border-b dark:border-gray-800/50 py-2">
                 <div className="container mx-auto px-4 max-w-7xl">
-                    <div className="flex h-20 items-center justify-between gap-6">
+                    <div className="flex h-20 md:h-24 items-center justify-between gap-6">
                         {/* Left: Logo + Phone */}
                         <div className="flex items-center gap-4 shrink-0">
                             {/* Logo */}
                             <Link href="/" className="flex items-center gap-2 group">
                                 {logoUrl ? (
-                                    <div className="relative h-12 md:h-16 w-auto aspect-[3/1] transition-transform duration-300 group-hover:scale-105">
+                                    <div className="relative h-14 md:h-20 w-auto aspect-[4/1] transition-transform duration-300 group-hover:scale-105">
                                         <Image
                                             src={logoUrl}
                                             alt={siteName || "Logo"}
                                             fill
                                             className="object-contain"
-                                            sizes="(max-width: 768px) 120px, 160px"
+                                            sizes="(max-width: 768px) 150px, 240px"
                                             priority
                                         />
                                     </div>
@@ -353,7 +353,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                         hoveredCategory === 'home' ? "text-[#009AD0]" : "text-white"
                                     }`}>
                                         <Home className="w-4 h-4" />
-                                        Anasayfa
+                                        ANASAYFA
                                     </span>
                                 </Link>
                             </div>
@@ -474,7 +474,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 <Home className="w-4 h-4" />
-                                Anasayfa
+                                ANASAYFA
                             </Link>
                             <Link
                                 href="/products"
