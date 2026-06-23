@@ -248,12 +248,14 @@ export default async function HomePage() {
                                     !banner.linkUrl && "cursor-default"
                                 )}
                             >
-                                <div className="relative h-48 md:h-64 bg-white rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500">
+                                {/* Mobilde resmin tüm içeriği görünsün diye contain, masaüstünde cover */}
+                                <div className="relative bg-black rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500
+                                    aspect-[16/9] md:h-64 md:aspect-auto">
                                     <Image
                                         src={banner.imageUrl}
                                         alt={banner.title || "Banner"}
                                         fill
-                                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                        className="object-contain md:object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
                                 </div>
                                 {banner.title && (
