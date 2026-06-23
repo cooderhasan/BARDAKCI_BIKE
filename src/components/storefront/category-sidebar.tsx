@@ -88,7 +88,7 @@ export function CategorySidebar({ categories }: CategorySidebarProps) {
             {/* Bottom - Subtle Branding */}
             <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
                 <p className="text-xs text-gray-500 dark:text-gray-500 font-semibold text-center uppercase tracking-wider">
-                    Bisiklet Aksesuar ve Yedek Parça Uzmanı
+                    Maceraya Hazır Bisiklet Modelleri
                 </p>
             </div>
         </div>

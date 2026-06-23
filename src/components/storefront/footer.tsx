@@ -62,7 +62,7 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
                             )}
                         </div>
                         <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto md:mx-0">
-                            {settings?.seoDescription || "Bisiklet yedek parça, aksesuar ve ekipmanlarında güvenilir adres. Orijinal ve kaliteli ürün seçenekleri."}
+                            {settings?.seoDescription || "Hayalinizdeki bisiklete giden en güvenilir yol. Her yaşa ve tarza uygun orijinal bisiklet modelleriyle sürüş keyfinizi zirveye taşıyın."}
                         </p>
                         <div className="flex justify-center md:justify-start gap-3 pt-2">
                             {/* Social Icons - Modern Glass Style */}

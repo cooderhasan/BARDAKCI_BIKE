@@ -26,7 +26,7 @@ interface ProductsPageProps {
 export async function generateMetadata({ searchParams }: ProductsPageProps): Promise<Metadata> {
     const params = await searchParams;
     let title = "Tüm Ürünler";
-    let description = "En kaliteli bisiklet yedek parça ve aksesuarları uygun fiyatlarla.";
+    let description = "En kaliteli bisiklet modelleri uygun fiyatlar ve taksit seçenekleriyle.";
 
     if (params.category) {
         const category = await prisma.category.findUnique({

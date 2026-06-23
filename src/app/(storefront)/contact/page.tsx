@@ -19,7 +19,7 @@ export default async function ContactPage() {
                         Bize Ulaşın
                     </h1>
                     <p className="text-blue-100 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-                        Bisiklet aksesuar ve yedek parça ihtiyaçlarınız için her zaman yanınızdayız. Sorularınız için bize ulaşın.
+                        Hayalinizdeki bisiklet modeline ulaşmanız için her zaman yanınızdayız. Sorularınız için bize ulaşın.
                     </p>
                 </div>
             </section>

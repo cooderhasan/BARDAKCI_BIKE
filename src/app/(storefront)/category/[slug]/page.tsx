@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
     return {
         title: `${category.name} | Bardakcı Bike`,
-        description: `${category.name} kategorisindeki en kaliteli yedek parça ve aksesuarları inceleyin.`,
+        description: `${category.name} kategorisindeki en kaliteli bisiklet modellerini inceleyin ve karşılaştırın.`,
         alternates: {
             canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/category/${slug}`
         }

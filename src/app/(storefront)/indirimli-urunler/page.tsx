@@ -6,7 +6,7 @@ interface PageProps {
 
 export const metadata = {
     title: "İndirimli Ürünler | Bardakcı Bike",
-    description: "En uygun fiyatlı bisiklet yedek parça ve fırsat ürünleri.",
+    description: "En uygun fiyatlı bisiklet modelleri ve fırsat ürünleri.",
     alternates: {
         canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/indirimli-urunler`
     }

@@ -118,8 +118,8 @@ export function CategorySidebarModern({ categories }: CategorySidebarProps) {
 
             {/* Banner / Promotion Area in Sidebar */}
             <div className="mt-4 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 p-4 text-center text-white shadow-lg shadow-blue-500/20">
-                <p className="text-xs font-medium opacity-80 mb-1">Bisiklet Yedek Parça</p>
-                <p className="font-bold text-lg mb-2">Güvenli Alışveriş</p>
+                <p className="text-xs font-medium opacity-80 mb-1">Maceraya Sür</p>
+                <p className="font-bold text-lg mb-2">Güvenli Bisiklet Satışı</p>
                 <div className="text-[10px] bg-white/20 rounded-full px-3 py-1 inline-block backdrop-blur-sm">
                     %100 Orijinal
                 </div>
