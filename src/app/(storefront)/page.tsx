@@ -56,7 +56,7 @@ async function getHomeData() {
             prisma.category.findMany({
                 where: {
                     isActive: true,
-                    parentId: "cml9exnw20009orv864or2ni2"
+                    parentId: null
                 },
                 orderBy: { order: "asc" },
                 select: {

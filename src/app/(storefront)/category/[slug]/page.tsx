@@ -154,9 +154,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         // Fallback to top level if root logic needed, but for now children or siblings is good.
         // If root category with no children, show nothing or maybe all roots?
         // Let's stick to simple logic: match what products page did.
-        const ROOT_CATEGORY_ID = "cml9exnw20009orv864or2ni2";
         sidebarCategories = await prisma.category.findMany({
-            where: { parentId: ROOT_CATEGORY_ID, isActive: true },
+            where: { parentId: null, isActive: true },
             orderBy: { order: "asc" },
         });
     }

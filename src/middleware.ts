@@ -49,7 +49,13 @@ export async function middleware(request: NextRequest) {
     // Sadece .html ile biten veya hiç uzantısı olmayan (nokta içermeyen) yolları işle
     const isOldFormat = fileName.endsWith(".html") || !fileName.includes(".");
     const isOldPrestashopUrl = isOldFormat && (/^\/[0-9]+-/.test(pathname) || /^\/[\w-]+\/[0-9]+-/.test(pathname));
-    const isExcludedPath = pathname.startsWith('/admin') || pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.startsWith('/images') || pathname.startsWith('/uploads');
+    const isExcludedPath = pathname.startsWith('/admin') || 
+                           pathname.startsWith('/api') || 
+                           pathname.startsWith('/_next') || 
+                           pathname.startsWith('/images') || 
+                           pathname.startsWith('/uploads') ||
+                           pathname.startsWith('/category') ||
+                           pathname.startsWith('/products');
 
     if (isOldPrestashopUrl && !isExcludedPath) {
         let searchPhrase = fileName.replace(/\.html$/, '');
