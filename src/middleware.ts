@@ -44,31 +44,6 @@ export async function middleware(request: NextRequest) {
 
     const { pathname } = request.nextUrl;
 
-    // 1.5. OLD URL SMART FALLBACK (Redirect to Search)
-    const fileName = pathname.split('/').pop() || "";
-    // Sadece .html ile biten veya hiç uzantısı olmayan (nokta içermeyen) yolları işle
-    const isOldFormat = fileName.endsWith(".html") || !fileName.includes(".");
-    const isOldPrestashopUrl = isOldFormat && (/^\/[0-9]+-/.test(pathname) || /^\/[\w-]+\/[0-9]+-/.test(pathname));
-    const isExcludedPath = pathname.startsWith('/admin') || 
-                           pathname.startsWith('/api') || 
-                           pathname.startsWith('/_next') || 
-                           pathname.startsWith('/images') || 
-                           pathname.startsWith('/uploads') ||
-                           pathname.startsWith('/category') ||
-                           pathname.startsWith('/products');
-
-    if (isOldPrestashopUrl && !isExcludedPath) {
-        let searchPhrase = fileName.replace(/\.html$/, '');
-        // Remove leading IDs (e.g. 472-motosiklet -> motosiklet)
-        searchPhrase = searchPhrase.replace(/^[0-9]+-/, '');
-        // Replace dashes with spaces
-        searchPhrase = searchPhrase.replace(/-/g, ' ');
-
-        const searchUrl = new URL(`/products`, request.url);
-        searchUrl.searchParams.set("search", searchPhrase);
-        return NextResponse.redirect(searchUrl, 302); // 302 temporary is better for search redirects
-    }
-
     // 2. AUTHENTICATION & SECURITY HEADERS
     const token = await getToken({
         req: request,
