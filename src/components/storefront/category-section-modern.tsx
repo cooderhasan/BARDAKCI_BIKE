@@ -32,13 +32,13 @@ export function CategorySectionModern({ categories, row = "all" }: CategorySecti
                                 href={`/category/${category.slug}`}
                                 className="group block"
                             >
-                                <div className="relative h-64 sm:h-72 md:h-96 rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-2xl transition-all duration-500">
+                                <div className="relative h-64 sm:h-72 md:h-96 rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-2xl transition-all duration-500 bg-black">
                                     {category.imageUrl ? (
                                         <Image
                                             src={category.imageUrl}
                                             alt={category.name}
                                             fill
-                                            className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                                            className="object-contain sm:object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                                             sizes="(max-width: 640px) 100vw, 50vw"
                                             priority
                                         />
@@ -69,13 +69,13 @@ export function CategorySectionModern({ categories, row = "all" }: CategorySecti
                                 href={`/category/${category.slug}`}
                                 className={`group block ${index === bottomRow.length - 1 ? 'hidden sm:block' : ''}`}
                             >
-                                <div className="relative h-56 sm:h-64 md:h-72 rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500">
+                                <div className="relative h-56 sm:h-64 md:h-72 rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500 bg-black">
                                     {category.imageUrl ? (
                                         <Image
                                             src={category.imageUrl}
                                             alt={category.name}
                                             fill
-                                            className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                                            className="object-contain sm:object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                                             sizes="(max-width: 640px) 100vw, 33vw"
                                         />
                                     ) : (
