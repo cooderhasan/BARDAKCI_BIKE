@@ -276,7 +276,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
             <div className="flex flex-col lg:flex-row gap-8 items-start">
                 {/* Sidebar Filters - Desktop Sticky */}
-                <aside className="hidden lg:block w-64 flex-shrink-0 sticky top-24 h-[calc(100vh-6rem)] overflow-y-auto pr-2 custom-scrollbar">
+                <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-24 pr-2">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800">
                         <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#17457C]"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>

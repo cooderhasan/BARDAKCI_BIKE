@@ -10,6 +10,19 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
+// Turkish title casing helper to fix ALL CAPS database entries
+function toTitleCaseTurkish(text: string): string {
+    return text
+        .split(" ")
+        .map((word) => {
+            if (!word) return "";
+            const first = word.charAt(0).toLocaleLowerCase("tr-TR") === "ı" ? "I" : word.charAt(0).toLocaleUpperCase("tr-TR");
+            const rest = word.slice(1).toLocaleLowerCase("tr-TR");
+            return first + rest;
+        })
+        .join(" ");
+}
+
 interface ProductFiltersProps {
     categories: { id: string; name: string; slug: string }[];
     brands: { id: string; name: string; slug: string }[];
@@ -75,69 +88,65 @@ export function ProductFilters({
 
                 {/* Categories */}
                 <AccordionItem value="categories" className="border-none">
-                    <AccordionTrigger className="text-sm font-bold text-gray-900 dark:text-gray-100 hover:no-underline py-4">
+                    <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
                         Kategoriler
                     </AccordionTrigger>
                     <AccordionContent>
-                        <ScrollArea className="h-[240px] w-full pr-3 relative">
-                            <div className="space-y-1">
+                        <div className="space-y-1 pr-1">
+                            <button
+                                onClick={() => router.push("/products")}
+                                className={cn(
+                                    "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200",
+                                    !activeCategorySlug && !searchParams.get("category")
+                                        ? "text-[#17457C] font-semibold bg-blue-50/60 dark:bg-blue-950/30"
+                                        : "text-gray-600 dark:text-gray-400 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/40"
+                                )}
+                            >
+                                Tüm Kategoriler
+                            </button>
+                            {categories.map((category) => (
                                 <button
-                                    onClick={() => router.push("/products")}
+                                    key={category.id}
+                                    onClick={() => router.push(`/category/${category.slug}`)}
                                     className={cn(
-                                        "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                                        !activeCategorySlug && !searchParams.get("category")
-                                            ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-[#17457C]"
-                                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                        "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200",
+                                        activeCategorySlug === category.slug || searchParams.get("category") === category.slug
+                                            ? "text-[#17457C] font-semibold bg-blue-50/60 dark:bg-blue-950/30"
+                                            : "text-gray-600 dark:text-gray-400 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/40"
                                     )}
                                 >
-                                    Tüm Kategoriler
+                                    {toTitleCaseTurkish(category.name)}
                                 </button>
-                                {categories.map((category) => (
-                                    <button
-                                        key={category.id}
-                                        onClick={() => router.push(`/category/${category.slug}`)}
-                                        className={cn(
-                                            "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                                            activeCategorySlug === category.slug || searchParams.get("category") === category.slug
-                                                ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-[#17457C]"
-                                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                        )}
-                                    >
-                                        {category.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </ScrollArea>
+                            ))}
+                        </div>
                     </AccordionContent>
                 </AccordionItem>
 
                 {/* Brands */}
                 {brands.length > 0 && (
                     <AccordionItem value="brands" className="border-t border-gray-100 dark:border-gray-800">
-                        <AccordionTrigger className="text-sm font-bold text-gray-900 dark:text-gray-100 hover:no-underline py-4">
+                        <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
                             Markalar
                         </AccordionTrigger>
                         <AccordionContent>
-                            <ScrollArea className="h-[200px] w-full pr-3">
-                                <div className="space-y-3 pt-1">
-                                    {brands.map((brand) => (
-                                        <div key={brand.id} className="flex items-center space-x-3 group">
-                                            <Checkbox
-                                                id={`brand-${brand.id}`}
-                                                checked={isSelected("brands", brand.slug)}
-                                                onCheckedChange={() => toggleFilter("brands", brand.slug)}
-                                                className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
-                                            />
-                                            <Label
-                                                htmlFor={`brand-${brand.id}`}
-                                                className="cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
-                                            >
-                                                {brand.name}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+                            <div className="space-y-2.5 pt-1 pr-1">
+                                {brands.map((brand) => (
+                                    <div key={brand.id} className="flex items-center space-x-3 group">
+                                        <Checkbox
+                                            id={`brand-${brand.id}`}
+                                            checked={isSelected("brands", brand.slug)}
+                                            onCheckedChange={() => toggleFilter("brands", brand.slug)}
+                                            className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
+                                        />
+                                        <Label
+                                            htmlFor={`brand-${brand.id}`}
+                                            className="cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
+                                        >
+                                            {brand.name}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 )}
@@ -188,38 +197,36 @@ export function ProductFilters({
                 {/* Colors */}
                 {colors.length > 0 && (
                     <AccordionItem value="colors" className="border-t border-gray-100 dark:border-gray-800">
-                        <AccordionTrigger className="text-sm font-bold text-gray-900 dark:text-gray-100 hover:no-underline py-4">
+                        <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
                             Renkler
                         </AccordionTrigger>
                         <AccordionContent>
-                            <ScrollArea className="h-[180px] w-full pr-1">
-                                <div className="grid grid-cols-5 gap-2 pt-1">
-                                    {colors.map((color) => (
-                                        <button
-                                            key={color}
-                                            onClick={() => toggleFilter("colors", color)}
-                                            className="group flex flex-col items-center gap-1.5 focus:outline-hidden"
-                                            title={color}
-                                        >
-                                            <div
-                                                className={cn(
-                                                    "w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 transition-all relative",
-                                                    isSelected("colors", color)
-                                                        ? "ring-2 ring-[#17457C] ring-offset-2 dark:ring-offset-gray-900 scale-110"
-                                                        : "hover:scale-110 hover:border-gray-400"
-                                                )}
-                                                style={{ backgroundColor: mapColorToCss(color) }}
-                                            />
-                                            <span className={cn(
-                                                "text-[10px] text-center w-full truncate px-0.5",
-                                                isSelected("colors", color) ? "text-[#17457C] font-medium" : "text-gray-500"
-                                            )}>
-                                                {color}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+                            <div className="grid grid-cols-6 gap-2 pt-1 pr-1">
+                                {colors.map((color) => (
+                                    <button
+                                        key={color}
+                                        onClick={() => toggleFilter("colors", color)}
+                                        className="group flex flex-col items-center gap-1.5 focus:outline-hidden"
+                                        title={color}
+                                    >
+                                        <div
+                                            className={cn(
+                                                "w-7 h-7 rounded-full border border-gray-200 dark:border-gray-700 transition-all relative",
+                                                isSelected("colors", color)
+                                                    ? "ring-2 ring-[#17457C] ring-offset-2 dark:ring-offset-gray-900 scale-110"
+                                                    : "hover:scale-110 hover:border-gray-400"
+                                            )}
+                                            style={{ backgroundColor: mapColorToCss(color) }}
+                                        />
+                                        <span className={cn(
+                                            "text-[10px] text-center w-full truncate px-0.5",
+                                            isSelected("colors", color) ? "text-[#17457C] font-medium" : "text-gray-500"
+                                        )}>
+                                            {color}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 )}
@@ -227,28 +234,26 @@ export function ProductFilters({
                 {/* Sizes */}
                 {sizes.length > 0 && (
                     <AccordionItem value="sizes" className="border-t border-gray-100 dark:border-gray-800">
-                        <AccordionTrigger className="text-sm font-bold text-gray-900 dark:text-gray-100 hover:no-underline py-4">
+                        <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
                             Bedenler
                         </AccordionTrigger>
                         <AccordionContent>
-                            <ScrollArea className="h-[160px] w-full pr-1">
-                                <div className="flex flex-wrap gap-2 pt-1">
-                                    {sizes.map((size) => (
-                                        <button
-                                            key={size}
-                                            onClick={() => toggleFilter("sizes", size)}
-                                            className={cn(
-                                                "px-3 py-1.5 rounded-lg text-sm font-medium border transition-all",
-                                                isSelected("sizes", size)
-                                                    ? "bg-[#17457C] text-white border-[#17457C] shadow-sm"
-                                                    : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[#17457C] hover:text-[#17457C]"
-                                            )}
-                                        >
-                                            {size}
-                                        </button>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+                            <div className="flex flex-wrap gap-2 pt-1 pr-1">
+                                {sizes.map((size) => (
+                                    <button
+                                        key={size}
+                                        onClick={() => toggleFilter("sizes", size)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-sm font-medium border transition-all",
+                                            isSelected("sizes", size)
+                                                ? "bg-[#17457C] text-white border-[#17457C] shadow-sm"
+                                                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-[#17457C] hover:text-[#17457C]"
+                                        )}
+                                    >
+                                        {size}
+                                    </button>
+                                ))}
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 )}
