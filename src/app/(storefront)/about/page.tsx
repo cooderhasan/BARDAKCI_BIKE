@@ -14,7 +14,7 @@ export default async function AboutPage() {
                     Hakkımızda
                 </h1>
                 <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-                    {settings.seoDescription || "20 yılı aşkın tecrübemizle B2B sektöründe güvenilir çözüm ortağınız olmaya devam ediyoruz."}
+                    {settings.seoDescription || "20 yılı aşkın tecrübemizle en kaliteli bisiklet modellerini sizlerle buluşturuyor, sürüş keyfinizi güvenle destekliyoruz."}
                 </p>
             </div>
 
