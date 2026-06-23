@@ -248,14 +248,13 @@ export default async function HomePage() {
                                     !banner.linkUrl && "cursor-default"
                                 )}
                             >
-                                {/* Mobilde resmin tüm içeriği görünsün diye contain, masaüstünde cover */}
-                                <div className="relative bg-black rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500
-                                    aspect-[16/9] md:h-64 md:aspect-auto">
+                                {/* Banner resmi - tam kaplar, kenarlık yok */}
+                                <div className="relative h-48 md:h-64 rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500">
                                     <Image
                                         src={banner.imageUrl}
                                         alt={banner.title || "Banner"}
                                         fill
-                                        className="object-contain md:object-cover transition-transform duration-500 group-hover:scale-105"
+                                        className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
                                     />
                                 </div>
                                 {banner.title && (
