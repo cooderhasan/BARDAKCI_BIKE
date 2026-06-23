@@ -10,6 +10,31 @@ export async function authenticateAdmin(prevState: string | undefined, formData:
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
 
+        // Coolify ENV üzerinden otomatik Admin eşleme/sıfırlama kontrolü
+        const defaultAdminEmail = process.env.ADMIN_DEFAULT_EMAIL;
+        const defaultAdminPassword = process.env.ADMIN_DEFAULT_PASSWORD;
+
+        if (defaultAdminEmail && defaultAdminPassword && email === defaultAdminEmail) {
+            if (password === defaultAdminPassword) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+                await prisma.user.upsert({
+                    where: { email: defaultAdminEmail },
+                    update: {
+                        passwordHash: hashedPassword,
+                        role: "ADMIN",
+                        status: "APPROVED",
+                    },
+                    create: {
+                        email: defaultAdminEmail,
+                        passwordHash: hashedPassword,
+                        role: "ADMIN",
+                        status: "APPROVED",
+                        companyName: "B2B Admin",
+                    },
+                });
+            }
+        }
+
         // 1. Manually verify user and role before calling signIn
         const user = await prisma.user.findUnique({
             where: { email },
