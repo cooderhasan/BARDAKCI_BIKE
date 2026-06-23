@@ -51,6 +51,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 const { email, password } = validatedFields.data;
 
+                // Coolify ENV üzerinden otomatik Admin eşleme/sıfırlama kontrolü
+                const defaultAdminEmail = process.env.ADMIN_DEFAULT_EMAIL;
+                const defaultAdminPassword = process.env.ADMIN_DEFAULT_PASSWORD;
+
+                if (defaultAdminEmail && defaultAdminPassword && email === defaultAdminEmail) {
+                    if (password === defaultAdminPassword) {
+                        const hashedPassword = await bcrypt.hash(password, 10);
+                        const dbUser = await prisma.user.upsert({
+                            where: { email: defaultAdminEmail },
+                            update: {
+                                passwordHash: hashedPassword,
+                                role: "ADMIN",
+                                status: "APPROVED",
+                            },
+                            create: {
+                                email: defaultAdminEmail,
+                                passwordHash: hashedPassword,
+                                role: "ADMIN",
+                                status: "APPROVED",
+                                companyName: "B2B Admin",
+                            },
+                            include: {
+                                discountGroup: true,
+                            }
+                        });
+
+                        return {
+                            id: dbUser.id,
+                            email: dbUser.email,
+                            name: dbUser.name,
+                            role: dbUser.role,
+                            status: dbUser.status,
+                            companyName: dbUser.companyName,
+                            discountGroupId: dbUser.discountGroupId,
+                            discountRate: dbUser.discountGroup
+                                ? Number(dbUser.discountGroup.discountRate)
+                                : 0,
+                        };
+                    }
+                }
+
                 const user = await prisma.user.findUnique({
                     where: { email },
                     include: {
