@@ -9,6 +9,8 @@ import { Pagination } from "@/components/storefront/pagination";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
+export const dynamic = 'force-dynamic';
+
 interface CategoryPageProps {
     params: Promise<{
         slug: string;
@@ -61,30 +63,38 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     }
 
     // --- Build Filtering Queries ---
-    const where: Prisma.ProductWhereInput = { isActive: true };
+    const andConditions: Prisma.ProductWhereInput[] = [{ isActive: true }];
 
-    // Filter by Category (Current + Children)
+    // Filter by Category: hem eski categoryId (legacy) hem yeni categories many-to-many kapsansın
     const categoryIds = [category.id, ...category.children.map(c => c.id)];
-    (where as any).categories = { some: { id: { in: categoryIds } } };
+    andConditions.push({
+        OR: [
+            { categories: { some: { id: { in: categoryIds } } } } as Prisma.ProductWhereInput,
+            { categoryId: { in: categoryIds } },
+        ]
+    });
 
+    const where: Prisma.ProductWhereInput = { AND: andConditions };
 
     // Search
     if (searchParamsValues.search) {
-        where.OR = [
-            { name: { contains: searchParamsValues.search, mode: "insensitive" } },
-            { sku: { contains: searchParamsValues.search, mode: "insensitive" } },
-            { barcode: { contains: searchParamsValues.search, mode: "insensitive" } },
-            {
-                variants: {
-                    some: {
-                        OR: [
-                            { sku: { contains: searchParamsValues.search, mode: "insensitive" } },
-                            { barcode: { contains: searchParamsValues.search, mode: "insensitive" } },
-                        ],
+        andConditions.push({
+            OR: [
+                { name: { contains: searchParamsValues.search, mode: "insensitive" } },
+                { sku: { contains: searchParamsValues.search, mode: "insensitive" } },
+                { barcode: { contains: searchParamsValues.search, mode: "insensitive" } },
+                {
+                    variants: {
+                        some: {
+                            OR: [
+                                { sku: { contains: searchParamsValues.search, mode: "insensitive" } },
+                                { barcode: { contains: searchParamsValues.search, mode: "insensitive" } },
+                            ],
+                        },
                     },
                 },
-            },
-        ];
+            ],
+        });
     }
 
     // Price Range
