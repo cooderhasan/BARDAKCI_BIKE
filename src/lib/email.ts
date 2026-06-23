@@ -8,7 +8,7 @@ import { PasswordResetEmail } from '@/emails/password-reset';
 import { generateOrderContracts } from './pdf-generator';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@bardakcibike.com.tr";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "vitrinmoto@gmail.com";
 
 interface SendOrderConfirmationProps {
     to: string;
