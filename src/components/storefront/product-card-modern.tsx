@@ -122,23 +122,24 @@ export function ProductCardModern({
 
                 {/* Image Section - Cleaner, Larger */}
                 <div className="relative aspect-square bg-white p-4 flex items-center justify-center overflow-hidden">
-                    {/* Badges Stack Left */}
-                    <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
-                        {(isDealer && discountRate > 0 || hasSalePrice) && (
-                            <div className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/30 animate-in fade-in duration-300">
+                    {/* Sol üst: Sadece İndirim etiketi */}
+                    {(isDealer && discountRate > 0 || hasSalePrice) && (
+                        <div className="absolute top-2.5 left-2.5 z-10">
+                            <div className="bg-red-500 text-white text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
                                 %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
                             </div>
-                        )}
-                        <div className="bg-emerald-500 text-white text-[9px] md:text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap animate-in fade-in duration-300">
-                            ÜCRETSİZ KARGO
-                        </div>
-                    </div>
-                    {/* Custom Badge */}
-                    {badge && (
-                        <div className="absolute top-4 right-4 z-10 bg-blue-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-blue-500/30">
-                            {badge}
                         </div>
                     )}
+
+                    {/* Sağ üst: Sadece Yeni / özel badge */}
+                    {badge && (
+                        <div className="absolute top-2.5 right-2.5 z-10">
+                            <div className="bg-blue-500 text-white text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
+                                {badge}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Stock Badge */}
                     {product.stock === 0 && (
                         <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex items-center justify-center">
@@ -172,12 +173,19 @@ export function ProductCardModern({
 
                 {/* Content Section */}
                 <div className="p-3 md:p-5 flex-1 flex flex-col bg-white dark:bg-gray-800/50">
-                    {/* Brand */}
-                    {product.brand && (
-                        <p className="text-[#17457C] dark:text-[#17457C] font-bold text-[10px] uppercase tracking-widest mb-1 md:mb-1.5 opacity-80">
-                            {product.brand.name}
-                        </p>
-                    )}
+                    {/* Brand + Ücretsiz Kargo satırı */}
+                    <div className="flex items-center justify-between gap-1 mb-1 md:mb-1.5">
+                        {product.brand ? (
+                            <p className="text-[#17457C] dark:text-[#17457C] font-bold text-[10px] uppercase tracking-widest opacity-80 truncate">
+                                {product.brand.name}
+                            </p>
+                        ) : (
+                            <span />
+                        )}
+                        <span className="shrink-0 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] md:text-[9px] font-bold px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                            🚚 ÜCRETSİZ
+                        </span>
+                    </div>
 
                     {/* Product Name */}
                     <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm leading-relaxed line-clamp-2 h-10 mb-2 md:mb-4 group-hover:text-[#17457C] transition-colors">
