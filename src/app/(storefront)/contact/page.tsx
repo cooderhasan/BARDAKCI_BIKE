@@ -129,7 +129,7 @@ export default async function ContactPage() {
                                                 <>
                                                     <p>Hafta içi ve Cumartesi: 08:00 - 20:00</p>
                                                     <p className="text-xs text-red-500 font-semibold mt-0.5">
-                                                        Pazar: Kapalı
+                                                        Pazar: 10:00 - 20:00
                                                     </p>
                                                 </>
                                             )}
