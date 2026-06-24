@@ -27,7 +27,6 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
     const callbackUrl = searchParams.get("callbackUrl");
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [isCorporate, setIsCorporate] = useState(false);
     const [selectedCity, setSelectedCity] = useState<string>("");
     const [selectedDistrict, setSelectedDistrict] = useState<string>("");
 
@@ -48,25 +47,20 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
             const result = await registerUser(formData);
 
             if (result.success) {
-                if (isCorporate) {
-                    // Kurumsal kayıtta otomatik giriş yapılmaz; onay beklenir
-                    setSuccess(true);
+                // Bireysel kayıtta otomatik giriş yap
+                toast.success("Kayıt başarılı! Giriş yapılıyor...");
+                const email = String(formData.get("email"));
+                const password = String(formData.get("password"));
+                const loginResult = await signIn("credentials", {
+                    email,
+                    password,
+                    redirect: false,
+                });
+                if (loginResult?.ok) {
+                    router.push(callbackUrl || "/account");
                 } else {
-                    // Bireysel kayıtta otomatik giriş yap
-                    toast.success("Kayıt başarılı! Giriş yapılıyor...");
-                    const email = String(formData.get("email"));
-                    const password = String(formData.get("password"));
-                    const loginResult = await signIn("credentials", {
-                        email,
-                        password,
-                        redirect: false,
-                    });
-                    if (loginResult?.ok) {
-                        router.push(callbackUrl || "/account");
-                    } else {
-                        // Otomatik giriş başarısız olursa login sayfasına yönlendir
-                        router.push(callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login");
-                    }
+                    // Otomatik giriş başarısız olursa login sayfasına yönlendir
+                    router.push(callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login");
                 }
             } else {
                 toast.error(result.error || "Kayıt sırasında bir hata oluştu.");
@@ -90,26 +84,12 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                 </CardHeader>
                 <CardContent className="text-center space-y-6 pt-4">
                     <div className="space-y-4 text-gray-600 dark:text-gray-300">
-                        {isCorporate ? (
-                            <>
-                                <p className="text-lg font-medium">
-                                    Bayilik başvurunuz alınmıştır.
-                                </p>
-                                <p>
-                                    Bayiliğiniz yönetici tarafından onaylandıktan sonra
-                                    sisteme giriş yapıp sipariş verebilirsiniz.
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <p className="text-lg font-medium">
-                                    Hesabınız başarıyla oluşturuldu.
-                                </p>
-                                <p>
-                                    Şimdi giriş yaparak alışverişe başlayabilirsiniz.
-                                </p>
-                            </>
-                        )}
+                        <p className="text-lg font-medium">
+                            Hesabınız başarıyla oluşturuldu.
+                        </p>
+                        <p>
+                            Şimdi giriş yaparak alışverişe başlayabilirsiniz.
+                        </p>
                     </div>
 
                     <div className="pt-4">
@@ -143,25 +123,11 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                 </div>
                 <CardTitle className="text-2xl">Üye Kaydı</CardTitle>
                 <CardDescription>
-                    {isCorporate
-                        ? "Bayi olmak için formu doldurun, onay sonrası giriş yapabilirsiniz."
-                        : "Alışverişe başlamak için hemen üye olun."}
+                    Alışverişe başlamak için hemen üye olun.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="flex items-center space-x-2 mb-4 p-3 bg-gray-50 rounded-lg">
-                        <input
-                            type="checkbox"
-                            id="isCorporate"
-                            checked={isCorporate}
-                            onChange={(e) => setIsCorporate(e.target.checked)}
-                            className="h-4 w-4 text-[#17457C] rounded"
-                        />
-                        <Label htmlFor="isCorporate" className="cursor-pointer font-medium">
-                            Kurumsal Üyelik Yapmak İstiyorum (Bayi)
-                        </Label>
-                    </div>
                     
                     <div className="space-y-2">
                         <Label htmlFor="name">Ad Soyad *</Label>
@@ -210,19 +176,6 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                         </div>
                     </div>
 
-                    {isCorporate && (
-                        <div className="space-y-4 pt-2 border-t mt-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="companyName">Firma Adı *</Label>
-                                <Input id="companyName" name="companyName" required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="taxNumber">Vergi Numarası *</Label>
-                                <Input id="taxNumber" name="taxNumber" minLength={10} maxLength={11} required />
-                            </div>
-                        </div>
-                    )}
-
                     <div className="grid gap-4 md:grid-cols-2 pt-2 border-t">
                         <div className="space-y-2">
                             <Label htmlFor="city">Şehir *</Label>
@@ -268,7 +221,7 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                     </div>
 
                     <Button type="submit" className="w-full h-12 text-lg" disabled={loading}>
-                        {loading ? (isCorporate ? "Başvuru gönderiliyor..." : "Kayıt yapılıyor...") : "Kayıt Ol"}
+                        {loading ? "Kayıt yapılıyor..." : "Kayıt Ol"}
                     </Button>
                 </form>
 
