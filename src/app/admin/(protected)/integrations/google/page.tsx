@@ -9,6 +9,7 @@ import {
   getGoogleFeedStats,
   bulkActivateGoogle,
   bulkDeactivateGoogle,
+  bulkMapCategoriesToGoogle,
 } from "./actions";
 import googleTaxonomy from "@/data/google-taxonomy.json";
 
@@ -85,6 +86,23 @@ export default function GoogleMerchantPage() {
     if (st.success) setStats(st.data as any);
   };
 
+  const handleBulkMapCategories = async () => {
+    if (
+      !confirm(
+        "Tüm kategoriler otomatik olarak Bisiklet/Yedek Parça/Aksesuar şeklinde eşleştirilecek. Devam etmek istiyor musunuz?"
+      )
+    )
+      return;
+    setBulkLoading(true);
+    setBulkMsg("");
+    const result = await bulkMapCategoriesToGoogle();
+    setBulkMsg(result.message || "");
+    setBulkLoading(false);
+    // Refresh categories
+    const cats = await getCategories();
+    setCategories(cats);
+  };
+
   const filteredCategories = categories.filter((c) =>
     c.name.toLowerCase().includes(catSearch.toLowerCase())
   );
@@ -153,6 +171,13 @@ export default function GoogleMerchantPage() {
             className="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
             {bulkLoading ? "İşleniyor..." : "❌ Tümünü Çıkar"}
+          </button>
+          <button
+            onClick={handleBulkMapCategories}
+            disabled={bulkLoading}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+          >
+            {bulkLoading ? "İşleniyor..." : "📁 Tüm Kategorileri Bisiklet Olarak Eşleştir"}
           </button>
         </div>
         {bulkMsg && (

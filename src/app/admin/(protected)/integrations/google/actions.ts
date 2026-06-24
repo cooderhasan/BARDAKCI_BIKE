@@ -104,3 +104,26 @@ export async function bulkDeactivateGoogle() {
     return { success: false, count: 0, message: "Hata: " + error.message };
   }
 }
+
+export async function bulkMapCategoriesToGoogle() {
+  try {
+    const categories = await prisma.category.findMany();
+    let updatedCount = 0;
+
+    for (const cat of categories) {
+      const targetGoogleCategory = "1026"; // Doğrudan Bisikletler (1026) kategorisi
+
+      await prisma.category.update({
+        where: { id: cat.id },
+        data: { googleProductCategory: targetGoogleCategory }
+      });
+      updatedCount++;
+    }
+
+    revalidatePath("/admin/integrations/google");
+    return { success: true, message: `Tüm kategoriler (${updatedCount} adet) başarıyla doğrudan Bisikletler (1026) olarak eşleştirildi.` };
+  } catch (error: any) {
+    return { success: false, message: "Hata: " + error.message };
+  }
+}
+

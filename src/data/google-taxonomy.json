@@ -61,5 +61,8 @@
   { "id": "412", "name": "Medya" },
   { "id": "5558", "name": "Ofis Malzemeleri" },
   { "id": "6724", "name": "Ofis Malzemeleri > Kırtasiye" },
-  { "id": "543", "name": "Ofis Malzemeleri > Masa ve Ofis Aksesuarları" }
+  { "id": "543", "name": "Ofis Malzemeleri > Masa ve Ofis Aksesuarları" },
+  { "id": "1026", "name": "Spor Malzemeleri > Açık Hava Eğlencesi > Bisiklet Sporu > Bisikletler" },
+  { "id": "3618", "name": "Spor Malzemeleri > Açık Hava Eğlencesi > Bisiklet Sporu > Bisiklet Parçaları" },
+  { "id": "3982", "name": "Spor Malzemeleri > Açık Hava Eğlencesi > Bisiklet Sporu > Bisiklet Giyim ve Aksesuarları" }
 ]
