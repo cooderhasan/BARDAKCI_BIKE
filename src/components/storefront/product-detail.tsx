@@ -103,6 +103,7 @@ interface ProductDetailProps {
         averageRating: number;
         totalReviews: number;
     };
+    bankTransferDiscount: number;
 }
 
 export function ProductDetail({
@@ -114,6 +115,7 @@ export function ProductDetail({
     whatsappNumber,
     reviews,
     reviewStats,
+    bankTransferDiscount,
 }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(product.minQuantity);
     const [inputValue, setInputValue] = useState(product.minQuantity.toString());
@@ -449,6 +451,17 @@ export function ProductDetail({
                                     )}
                                 </div>
                                 <p className="text-xs text-gray-400 mt-1">KDV Dahil</p>
+
+                                {bankTransferDiscount > 0 && (
+                                    <div className="flex items-center gap-2 mt-3 text-sm">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
+                                            Havale İndirimi %{bankTransferDiscount}
+                                        </span>
+                                        <span className="text-gray-600 dark:text-gray-400">
+                                            Havale ile: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{formatPrice(displayFinalPrice * (1 - bankTransferDiscount / 100))}</strong>
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Product Info Grid */}

@@ -250,6 +250,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     }
                 }))}
                 reviewStats={reviewStats}
+                bankTransferDiscount={Number(settings.bankTransferDiscount) || 0}
             />
         </>
     );
