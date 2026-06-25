@@ -113,7 +113,20 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
     let bankDiscountAmount = 0;
 
     if (paymentMethod === "BANK_TRANSFER" && bankTransferDiscount > 0) {
-        bankDiscountAmount = (baseTotal * bankTransferDiscount) / 100;
+        let eligibleTotal = 0;
+        items.forEach((item) => {
+            const hasCampaignDiscount = item.salePrice && Number(item.salePrice) < Number(item.listPrice);
+            if (!hasCampaignDiscount) {
+                const priceCalc = calculatePrice(
+                    item.listPrice,
+                    item.salePrice,
+                    item.discountRate !== undefined ? item.discountRate : discountRate,
+                    item.vatRate
+                );
+                eligibleTotal += priceCalc.finalPrice * item.quantity;
+            }
+        });
+        bankDiscountAmount = (eligibleTotal * bankTransferDiscount) / 100;
         baseTotal -= bankDiscountAmount;
     }
 

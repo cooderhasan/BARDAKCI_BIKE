@@ -452,7 +452,7 @@ export function ProductDetail({
                                 </div>
                                 <p className="text-xs text-gray-400 mt-1">KDV Dahil</p>
 
-                                {bankTransferDiscount > 0 && (
+                                {bankTransferDiscount > 0 && !hasSalePrice && (
                                     <div className="flex items-center gap-2 mt-3 text-sm">
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
                                             Havale İndirimi %{bankTransferDiscount}

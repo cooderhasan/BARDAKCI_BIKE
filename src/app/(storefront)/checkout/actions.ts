@@ -66,6 +66,7 @@ export async function createOrder(data: CreateOrderData) {
         let totalDiscountAmount = 0;
         let totalVatAmount = 0;
         let grandTotal = 0; // Final payable amount
+        let eligibleForBankDiscountTotal = 0;
 
         // Verify products and calculate amounts
         const orderItems = await Promise.all(
@@ -165,6 +166,11 @@ export async function createOrder(data: CreateOrderData) {
                 totalVatAmount += itemVat;
                 grandTotal += discountedLineTotal;
 
+                const hasCampaignDiscount = salePrice !== null && salePrice < Number(product.listPrice);
+                if (!hasCampaignDiscount) {
+                    eligibleForBankDiscountTotal += discountedLineTotal;
+                }
+
                 return {
                     productId: product.id,
                     productName: productName,
@@ -190,7 +196,7 @@ export async function createOrder(data: CreateOrderData) {
         let appliedBankDiscount = 0;
 
         if (data.paymentMethod === "BANK_TRANSFER" && bankTransferDiscountRate > 0) {
-            appliedBankDiscount = (grandTotal * bankTransferDiscountRate) / 100;
+            appliedBankDiscount = (eligibleForBankDiscountTotal * bankTransferDiscountRate) / 100;
             finalGrandTotal -= appliedBankDiscount;
         }
 
