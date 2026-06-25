@@ -254,7 +254,7 @@ export default async function HomePage() {
                                         src={banner.imageUrl}
                                         alt={banner.title || "Banner"}
                                         fill
-                                        className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                                        className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
                                     />
                                 </div>
                                 {banner.title && (
