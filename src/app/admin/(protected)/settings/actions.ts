@@ -12,7 +12,7 @@ export async function updateSiteSettings(key: string, value: Record<string, stri
             create: { key, value: value as unknown as Prisma.InputJsonValue },
         });
         revalidatePath("/admin/settings");
-        revalidatePath("/");
+        revalidatePath("/", "layout");
         return { success: true };
     } catch (error) {
         console.error("Settings update error:", error);
