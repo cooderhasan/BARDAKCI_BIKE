@@ -3,6 +3,9 @@ FROM node:22-slim AS builder
 
 WORKDIR /app
 
+# Optimize memory for Next.js builds on constrained servers
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+
 
 # Install dependencies for Prisma and native modules
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
