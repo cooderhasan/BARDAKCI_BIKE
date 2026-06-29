@@ -104,6 +104,8 @@ interface ProductDetailProps {
         totalReviews: number;
     };
     bankTransferDiscount: number;
+    paytrMerchantId?: string;
+    paytrToken?: string;
 }
 
 export function ProductDetail({
@@ -116,6 +118,8 @@ export function ProductDetail({
     reviews,
     reviewStats,
     bankTransferDiscount,
+    paytrMerchantId,
+    paytrToken,
 }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(product.minQuantity);
     const [inputValue, setInputValue] = useState(product.minQuantity.toString());
@@ -731,7 +735,11 @@ export function ProductDetail({
                                 </div>
                                 <div className="overflow-x-auto -mx-4 sm:mx-0">
                                     <div className="min-w-[500px] sm:min-w-0 px-4 sm:px-0">
-                                        <InstallmentTable price={displayFinalPrice} />
+                                        <InstallmentTable 
+                                            price={displayFinalPrice} 
+                                            paytrMerchantId={paytrMerchantId} 
+                                            paytrToken={paytrToken} 
+                                        />
                                     </div>
                                 </div>
                                 <p className="mt-6 text-[11px] text-gray-400 italic text-center">

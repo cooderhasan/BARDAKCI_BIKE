@@ -220,6 +220,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
             breadcrumbSchema
         ]
     };
+    const paytrMerchantId = process.env.PAYTR_MERCHANT_ID || process.env.NEXT_PUBLIC_PAYTR_MERCHANT_ID || "";
+    const paytrToken = process.env.NEXT_PUBLIC_PAYTR_TOKEN || "";
 
     return (
         <>
@@ -251,6 +253,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 }))}
                 reviewStats={reviewStats}
                 bankTransferDiscount={Number(settings.bankTransferDiscount) || 0}
+                paytrMerchantId={paytrMerchantId}
+                paytrToken={paytrToken}
             />
         </>
     );

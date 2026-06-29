@@ -4,14 +4,19 @@ import { useEffect, useRef } from "react";
 
 interface InstallmentTableProps {
     price: number;
+    paytrMerchantId?: string;
+    paytrToken?: string;
 }
 
-const PAYTR_TOKEN = "9b1ae477fc7a222ba4e52328780a106f96b0ecfeab47494afbd0e8c74107645c";
-const PAYTR_MERCHANT_ID = "278525";
+const DEFAULT_PAYTR_TOKEN = "9b1ae477fc7a222ba4e52328780a106f96b0ecfeab47494afbd0e8c74107645c";
+const DEFAULT_PAYTR_MERCHANT_ID = "278525";
 
-export function InstallmentTable({ price }: InstallmentTableProps) {
+export function InstallmentTable({ price, paytrMerchantId, paytrToken }: InstallmentTableProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const scriptRef = useRef<HTMLScriptElement | null>(null);
+
+    const PAYTR_TOKEN = paytrToken || process.env.NEXT_PUBLIC_PAYTR_TOKEN || DEFAULT_PAYTR_TOKEN;
+    const PAYTR_MERCHANT_ID = paytrMerchantId || process.env.NEXT_PUBLIC_PAYTR_MERCHANT_ID || DEFAULT_PAYTR_MERCHANT_ID;
 
     // Fiyatı PayTR'nin beklediği formata çevir (örn: 1881.38)
     const formattedPrice = price.toFixed(2);
