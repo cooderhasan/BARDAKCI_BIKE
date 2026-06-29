@@ -761,6 +761,11 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
+                                                {order.payment?.method && (
+                                                    <span className="text-[10px] text-gray-500 font-medium">
+                                                        {order.payment.method === "BANK_TRANSFER" ? "Havale / EFT" : "Kredi Kartı"}
+                                                    </span>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
