@@ -36,9 +36,9 @@ export function FrameSizeCalculator({ categories }: FrameSizeCalculatorProps) {
         return found ? found.slug : fallback;
     };
 
-    const dagSlug = getCategorySlug(["dağ", "mtb", "mountain"], "dag-bisikletleri");
-    const yolSlug = getCategorySlug(["yol", "yarış", "road", "race"], "yol-bisikletleri");
-    const sehirSlug = getCategorySlug(["şehir", "tur", "trekking", "city"], "sehir-tur-bisikletleri");
+    const dagSlug = getCategorySlug(["dağ", "mtb", "mountain"], "dag-bisikleti");
+    const yolSlug = getCategorySlug(["yol", "yarış", "road", "race"], "yol-yaris-bisikleti");
+    const sehirSlug = getCategorySlug(["şehir", "tur", "trekking", "city"], "sehir-bisikleti");
 
     // Sizing calculations
     const yolCm = Math.round(inseam * 0.66 * 10) / 10;
