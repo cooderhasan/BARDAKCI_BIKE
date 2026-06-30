@@ -7,6 +7,7 @@ import { CategorySectionModern } from "@/components/storefront/category-section-
 import Link from "next/link";
 import Image from "next/image";
 import { Truck, Shield, HeadphonesIcon, ArrowRight } from "lucide-react";
+import { FrameSizeCalculator } from "@/components/storefront/frame-size-calculator";
 
 export const dynamic = 'force-dynamic';
 
@@ -232,6 +233,9 @@ export default async function HomePage() {
                             variant="bestseller"
                         />
                     )}
+
+                    {/* Kadro Boyu Hesaplama Robotu */}
+                    <FrameSizeCalculator categories={data.sidebarCategories} />
                 </div>
             </div>
 
