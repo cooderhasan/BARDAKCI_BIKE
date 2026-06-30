@@ -49,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: general.faviconUrl || "/favicon.ico",
       shortcut: general.faviconUrl || "/favicon.ico",
-      apple: "/apple-touch-icon.png", // Recommended static name under /public
+      apple: general.appleTouchIconUrl || "/apple-touch-icon.png",
     },
     openGraph: {
       title: general.seoTitle || general.siteName || "B2B E-Ticaret Platformu",

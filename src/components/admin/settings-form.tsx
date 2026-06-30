@@ -241,6 +241,17 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                         maxFiles={1}
                                     />
                                 </div>
+
+                                <div className="space-y-2">
+                                    <Label>Apple Touch Icon (Mobil Cihaz Kısayol İkonu)</Label>
+                                    <div className="text-xs text-gray-500 mb-2">Önerilen boyut: <span className="font-bold">180x180px</span>. Format: <span className="font-bold">PNG</span> (Transparan arka plan önerilmez).</div>
+                                    <ImageUpload
+                                        value={settings.appleTouchIconUrl ? [settings.appleTouchIconUrl] : []}
+                                        onChange={(urls) => updateField("appleTouchIconUrl", urls[0] || "")}
+                                        onRemove={() => updateField("appleTouchIconUrl", "")}
+                                        maxFiles={1}
+                                    />
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>

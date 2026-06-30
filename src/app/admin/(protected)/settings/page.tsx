@@ -26,6 +26,7 @@ export default async function SettingsPage() {
         logoUrl: "",
         faviconUrl: "",
         ogImageUrl: "",
+        appleTouchIconUrl: "",
 
         // SEO
         seoTitle: "",
