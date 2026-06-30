@@ -77,7 +77,7 @@ export function FrameSizeCalculator({ categories }: FrameSizeCalculatorProps) {
                         <Info className="h-3 w-3" /> Akıllı Hesaplama Aracı
                     </span>
                     <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl tracking-tight">
-                        Bisiklet Kadro Boyu Robotu
+                        Bisiklet Kadro Boyu Hesaplama Aracı
                     </h2>
                     <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">
                         Vücut ölçülerinize en uygun bisiklet kadro boyunu saniyeler içinde hesaplayın ve doğru sürüş konforuna kavuşun.
