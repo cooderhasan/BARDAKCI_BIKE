@@ -1,5 +1,16 @@
 import { getPolicy } from "@/app/actions/policy";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
+export const metadata: Metadata = {
+    title: "Mesafeli Satış Sözleşmesi | Bardakcı Bike",
+    description: "Bardakcı Bike Mesafeli Satış Sözleşmesi. Alışveriş koşulları, teslimat, cayma hakkı ve hukuki sorumluluklar hakkında detaylar.",
+    alternates: {
+        canonical: `${BASE_URL}/policies/distance-sales`,
+    },
+};
 
 export default async function DistanceSalesPage() {
     const policy = await getPolicy("distance-sales");

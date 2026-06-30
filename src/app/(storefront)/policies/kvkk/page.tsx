@@ -1,5 +1,16 @@
 import { getPolicy } from "@/app/actions/policy";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
+export const metadata: Metadata = {
+    title: "KVKK Aydınlatma Metni | Bardakcı Bike",
+    description: "Bardakcı Bike KVKK (Kişisel Verilerin Korunması Kanunu) aydınlatma metni. Kişisel verilerinizin nasıl işlendiği hakkında bilgi edinin.",
+    alternates: {
+        canonical: `${BASE_URL}/policies/kvkk`,
+    },
+};
 
 export default async function KvkkPage() {
     const policy = await getPolicy("kvkk");

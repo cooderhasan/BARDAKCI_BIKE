@@ -49,7 +49,7 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
         title: `${title} | Bardakcı Bike`,
         description,
         alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/products`
+            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr"}/products`
         }
     };
 }

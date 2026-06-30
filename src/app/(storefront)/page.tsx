@@ -8,8 +8,40 @@ import Link from "next/link";
 import Image from "next/image";
 import { Truck, Shield, HeadphonesIcon, ArrowRight } from "lucide-react";
 import { FrameSizeCalculator } from "@/components/storefront/frame-size-calculator";
+import { JsonLd } from "@/components/seo/json-ld";
+import type { Metadata } from "next";
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(): Promise<Metadata> {
+    let general: any = {};
+    try {
+        const generalSettings = await prisma.siteSettings.findUnique({
+            where: { key: "general" },
+        });
+        general = (generalSettings?.value as any) || {};
+    } catch (e) {
+        console.warn("Could not fetch settings for homepage metadata", e);
+    }
+
+    const title = general.seoTitle || general.siteName || "Bardakcı Bike | Toptan Bisiklet ve Yedek Parça";
+    const description = general.seoDescription || "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu. Bardakcı Bike ile en kaliteli bisiklet modellerine uygun fiyatlarla ulaşın.";
+
+    return {
+        title,
+        description,
+        alternates: {
+            canonical: process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr",
+        },
+        openGraph: {
+            title,
+            description,
+            url: process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr",
+            type: "website",
+        }
+    };
+}
+
 
 async function getHomeData() {
     const [sliders, featuredProducts, newProducts, bestSellers, categories, sidebarCategories, banners] =
@@ -140,8 +172,47 @@ export default async function HomePage() {
     const isDealer =
         session?.user?.role === "DEALER" && session?.user?.status === "APPROVED";
 
+    const generalSettings = await prisma.siteSettings.findUnique({
+        where: { key: "general" },
+    }).catch(() => null);
+    const general = (generalSettings?.value as any) || {};
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
+    const organizationSchema = {
+        "@context": "https://schema.org",
+        "@type": "Store",
+        "name": general.siteName || "Bardakcı Bike",
+        "url": baseUrl,
+        "logo": general.logoUrl ? (general.logoUrl.startsWith("http") ? general.logoUrl : `${baseUrl}${general.logoUrl}`) : `${baseUrl}/img/og-default.jpg`,
+        "image": `${baseUrl}/img/og-default.jpg`,
+        "description": general.seoDescription || "Toptan Bisiklet ve Yedek Parça Satış Platformu",
+        "telephone": general.phone || "+905345194472",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": general.address || "Merkez",
+            "addressLocality": "Gaziantep",
+            "addressCountry": "TR"
+        },
+        "priceRange": "$$",
+        "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday"
+            ],
+            "opens": "09:00",
+            "closes": "18:00"
+        }
+    };
+
     return (
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <>
+            <JsonLd data={organizationSchema} />
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
             <div className="space-y-12">
                 {/* Main Content */}
                 <div className="space-y-12">
@@ -278,5 +349,6 @@ export default async function HomePage() {
                 </section>
             )}
         </div>
+        </>
     );
 }

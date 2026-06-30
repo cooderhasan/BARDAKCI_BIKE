@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             images: product.images || [],
         },
         alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/products/${slug}`
+            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr"}/products/${slug}`
         }
     };
 }

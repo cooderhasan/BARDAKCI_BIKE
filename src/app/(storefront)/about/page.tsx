@@ -2,6 +2,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Building2, Users, Target, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import { getSiteSettings } from "@/lib/settings";
+import type { Metadata } from "next";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
+export const metadata: Metadata = {
+    title: "Hakkımızda | Bardakcı Bike",
+    description:
+        "Bardakcı Bike hakkında bilgi edinin. Bisiklet ve yedek parça sektöründe yılların verdiği tecrübeyle en kaliteli ürünleri uygun fiyatlarla sunuyoruz.",
+    alternates: {
+        canonical: `${BASE_URL}/about`,
+    },
+    openGraph: {
+        title: "Hakkımızda | Bardakcı Bike",
+        description:
+            "Bisiklet ve yedek parça sektöründe güvenilir çözüm ortağınız Bardakcı Bike hakkında detaylı bilgi alın.",
+        url: `${BASE_URL}/about`,
+        siteName: "Bardakcı Bike",
+        locale: "tr_TR",
+        type: "website",
+    },
+};
+
 
 export default async function AboutPage() {
     const settings = await getSiteSettings();

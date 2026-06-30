@@ -1,5 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, CreditCard } from "lucide-react";
+import type { Metadata } from "next";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
+export const metadata: Metadata = {
+    title: "Ödeme Yöntemleri | Bardakcı Bike",
+    description: "Bardakcı Bike ödeme yöntemleri. Havale, EFT ve kredi kartı ödeme seçeneklerimiz hakkında bilgi alın.",
+    alternates: {
+        canonical: `${BASE_URL}/policies/payment-methods`,
+    },
+};
 
 export default function PaymentMethodsPage() {
     return (

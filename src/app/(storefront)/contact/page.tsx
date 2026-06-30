@@ -2,8 +2,30 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, MapPin, Phone, Clock, Building2, FileText, MessageCircle } from "lucide-react";
 import { getSiteSettings } from "@/lib/settings";
 import { ContactForm } from "@/components/storefront/contact-form";
+import type { Metadata } from "next";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
+export const metadata: Metadata = {
+    title: "İletişim | Bardakcı Bike",
+    description:
+        "Bardakcı Bike ile iletişime geçin. Bisiklet, yedek parça ve bayi başvurusu için bize ulaşın. Telefon, e-posta veya formumuzu kullanabilirsiniz.",
+    alternates: {
+        canonical: `${BASE_URL}/contact`,
+    },
+    openGraph: {
+        title: "İletişim | Bardakcı Bike",
+        description:
+            "Sorularınız ve talepleriniz için Bardakcı Bike ile iletişime geçin. 7/24 müşteri hizmetleri.",
+        url: `${BASE_URL}/contact`,
+        siteName: "Bardakcı Bike",
+        locale: "tr_TR",
+        type: "website",
+    },
+};
 
 export default async function ContactPage() {
+
     const settings = await getSiteSettings();
 
     return (

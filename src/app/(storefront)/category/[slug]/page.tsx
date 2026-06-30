@@ -8,6 +8,7 @@ import { ProductSort } from "@/components/storefront/product-sort";
 import { Pagination } from "@/components/storefront/pagination";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { JsonLd } from "@/components/seo/json-ld";
 
 export const dynamic = 'force-dynamic';
 
@@ -31,19 +32,31 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     const { slug } = await params;
     const category = await prisma.category.findUnique({
         where: { slug },
-        select: { name: true }
+        select: { name: true, imageUrl: true }
     });
 
     if (!category) return { title: "Kategori Bulunamadı" };
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const description = `${category.name} kategorisindeki en kaliteli bisiklet modellerini inceleyin ve karşılaştırın.`;
+    const imageUrl = category.imageUrl ? (category.imageUrl.startsWith("http") ? category.imageUrl : `${baseUrl}${category.imageUrl}`) : `${baseUrl}/img/og-default.jpg`;
+
     return {
         title: `${category.name} | Bardakcı Bike`,
-        description: `${category.name} kategorisindeki en kaliteli bisiklet modellerini inceleyin ve karşılaştırın.`,
+        description,
         alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr"}/category/${slug}`
+            canonical: `${baseUrl}/category/${slug}`
+        },
+        openGraph: {
+            title: `${category.name} | Bardakcı Bike`,
+            description,
+            url: `${baseUrl}/category/${slug}`,
+            images: [{ url: imageUrl }],
+            type: "website",
         }
     };
 }
+
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
     const { slug } = await params;
@@ -55,12 +68,53 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     // --- Fetch Category ---
     const category = await prisma.category.findUnique({
         where: { slug },
-        include: { children: { select: { id: true, name: true, slug: true, imageUrl: true } } }
+        include: { 
+            children: { select: { id: true, name: true, slug: true, imageUrl: true } },
+            parent: {
+                include: {
+                    parent: true
+                }
+            }
+        }
     });
 
     if (!category) {
         notFound();
     }
+
+    const getCategoryPath = (cat: any) => {
+        const path = [];
+        let current = cat;
+        while (current) {
+            path.unshift(current);
+            current = current.parent;
+        }
+        return path;
+    };
+    const categoryPath = getCategoryPath(category);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const breadcrumbListItems = [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Ana Sayfa",
+            "item": baseUrl,
+        }
+    ];
+    categoryPath.forEach((cat: any, index: number) => {
+        breadcrumbListItems.push({
+            "@type": "ListItem",
+            "position": index + 2,
+            "name": cat.name,
+            "item": `${baseUrl}/category/${cat.slug}`,
+        });
+    });
+    const breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": breadcrumbListItems,
+    };
+
 
     // --- Build Filtering Queries ---
     const andConditions: Prisma.ProductWhereInput[] = [{ isActive: true }];
@@ -191,7 +245,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     const uniqueSizes = Array.from(new Set(variants.map(v => v.size).filter(Boolean))) as string[];
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <>
+            <JsonLd data={breadcrumbSchema} />
+            <div className="container mx-auto px-4 py-8">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
                 <div>
@@ -291,5 +347,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 </div>
             </div>
         </div>
+        </>
     );
 }

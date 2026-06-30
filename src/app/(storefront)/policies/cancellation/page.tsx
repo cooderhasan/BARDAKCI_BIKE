@@ -1,5 +1,16 @@
 import { getPolicy } from "@/app/actions/policy";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
+export const metadata: Metadata = {
+    title: "İptal ve İade Koşulları | Bardakcı Bike",
+    description: "Bardakcı Bike iptal, iade ve garanti koşulları. Siparişinizi nasıl iptal edeceğiniz veya iade edeceğiniz hakkında detaylı bilgi edinin.",
+    alternates: {
+        canonical: `${BASE_URL}/policies/cancellation`,
+    },
+};
 
 export default async function CancellationPage() {
     const policy = await getPolicy("cancellation");

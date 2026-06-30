@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers/session-provider";
@@ -17,6 +17,12 @@ import Script from "next/script";
 
 import { prisma } from "@/lib/db";
 
+export const viewport: Viewport = {
+  themeColor: "#17457C",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   let general: any = {};
 
@@ -30,8 +36,10 @@ export async function generateMetadata(): Promise<Metadata> {
     console.warn("Could not fetch site settings, using defaults.", error);
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr"),
+    metadataBase: new URL(siteUrl),
     title: {
       default: general.seoTitle || general.siteName || "B2B E-Ticaret Platformu",
       template: `%s | ${general.siteName || "B2B"}`,
@@ -41,15 +49,29 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: general.faviconUrl || "/favicon.ico",
       shortcut: general.faviconUrl || "/favicon.ico",
-      apple: general.faviconUrl || "/favicon.ico", // Or a specific apple touch icon if available
+      apple: "/apple-touch-icon.png", // Recommended static name under /public
     },
     openGraph: {
       title: general.seoTitle || general.siteName || "B2B E-Ticaret Platformu",
       description: general.seoDescription || "B2B Toptan Satış Platformu",
       siteName: general.siteName || "B2B",
+      images: [
+        {
+          url: `${siteUrl}/img/og-default.jpg`, // Default OG image
+          width: 1200,
+          height: 630,
+          alt: general.siteName || "Bardakcı Bike",
+        }
+      ],
+      locale: "tr_TR",
+      type: "website",
     },
     alternates: {
       canonical: "./",
+      languages: {
+        "tr-TR": "./",
+        "x-default": "./",
+      },
     },
     verification: {
       google: process.env.GOOGLE_SITE_VERIFICATION || general.googleVerification || undefined,
