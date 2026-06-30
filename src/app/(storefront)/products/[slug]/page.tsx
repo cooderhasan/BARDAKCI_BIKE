@@ -75,13 +75,38 @@ export default async function ProductPage({ params }: ProductPageProps) {
     console.log("Product variants count:", product.variants.length);
 
     // Get related products
+    const categoryIds = product.categories.map((c) => c.id);
     const relatedProducts = await prisma.product.findMany({
         where: {
             isActive: true,
-            categoryId: product.categoryId,
             id: { not: product.id },
+            ...(categoryIds.length > 0
+                ? {
+                      categories: {
+                          some: {
+                              id: { in: categoryIds },
+                          },
+                      },
+                  }
+                : product.categoryId
+                ? {
+                      categoryId: product.categoryId,
+                  }
+                : {}),
         },
-        include: { category: true, brand: true },
+        include: {
+            category: true,
+            brand: true,
+            categories: {
+                include: {
+                    parent: {
+                        include: {
+                            parent: true
+                        }
+                    }
+                }
+            }
+        },
         take: 6,
     });
 
