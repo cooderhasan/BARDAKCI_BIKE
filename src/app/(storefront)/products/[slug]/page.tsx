@@ -163,7 +163,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
         "image": product.images,
         "description": product.description?.replace(/<[^>]*>?/gm, "") || product.name, // Strip HTML
         "sku": product.sku || undefined,
-        "mpn": product.sku || undefined,
+        "mpn": product.mpn || product.sku || undefined,
+        "gtin": product.gtin || product.barcode || undefined,
         "brand": {
             "@type": "Brand",
             "name": product.brand?.name || "Bardakcı Bike",
