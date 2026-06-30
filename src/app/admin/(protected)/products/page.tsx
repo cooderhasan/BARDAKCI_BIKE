@@ -11,6 +11,7 @@ interface ProductsPageProps {
         brand?: string;
         stockStatus?: string;
         priceStatus?: string;
+        feature?: string;
     }>;
 }
 
@@ -24,6 +25,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     const brandFilter = params.brand || "";
     const stockStatus = params.stockStatus || "ALL";
     const priceStatus = params.priceStatus || "ALL";
+    const feature = params.feature || "";
 
     // Construct Where Clause
     const where: any = {};
@@ -50,6 +52,16 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         where.listPrice = { equals: 0 };
     } else if (priceStatus === "HAS_PRICE") {
         where.listPrice = { gt: 0 };
+    }
+
+    if (feature === "featured") {
+        where.isFeatured = true;
+    } else if (feature === "new") {
+        where.isNew = true;
+    } else if (feature === "bestseller") {
+        where.isBestSeller = true;
+    } else if (feature === "discounted") {
+        where.salePrice = { gt: 0 };
     }
 
     // Parallel Fetch: Products + Total Count + Brands

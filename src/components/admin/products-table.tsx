@@ -88,6 +88,14 @@ const priceStatusOptions = [
     { value: "HAS_PRICE", label: "Fiyatlı" },
 ];
 
+const featureOptions = [
+    { value: "ALL", label: "Tümü" },
+    { value: "featured", label: "Öne Çıkanlar" },
+    { value: "new", label: "Yeni Ürünler" },
+    { value: "bestseller", label: "Çok Satanlar" },
+    { value: "discounted", label: "İndirimli Ürünler" },
+];
+
 export function ProductsTable({ products: initialProducts, brands, pagination }: ProductsTableProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -97,6 +105,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
     const [brandFilter, setBrandFilter] = useState(searchParams.get("brand") || "ALL");
     const [stockStatus, setStockStatus] = useState(searchParams.get("stockStatus") || "ALL");
     const [priceStatus, setPriceStatus] = useState(searchParams.get("priceStatus") || "ALL");
+    const [featureFilter, setFeatureFilter] = useState(searchParams.get("feature") || "ALL");
 
     const [products, setProducts] = useState(initialProducts);
     const [loading, setLoading] = useState<string | null>(null);
@@ -123,6 +132,9 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
         if (priceStatus && priceStatus !== "ALL") params.set("priceStatus", priceStatus);
         else params.delete("priceStatus");
 
+        if (featureFilter && featureFilter !== "ALL") params.set("feature", featureFilter);
+        else params.delete("feature");
+
         params.set("page", "1");
         router.push(`?${params.toString()}`);
     };
@@ -133,6 +145,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
         setBrandFilter("ALL");
         setStockStatus("ALL");
         setPriceStatus("ALL");
+        setFeatureFilter("ALL");
         router.push("/admin/products");
     };
 
@@ -307,6 +320,23 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                             </SelectTrigger>
                             <SelectContent>
                                 {priceStatusOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Ürün Özelliği */}
+                    <div className="w-full md:w-[180px] space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ürün Özelliği</label>
+                        <Select value={featureFilter} onValueChange={setFeatureFilter}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Tümü" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {featureOptions.map((option) => (
                                     <SelectItem key={option.value} value={option.value}>
                                         {option.label}
                                     </SelectItem>
