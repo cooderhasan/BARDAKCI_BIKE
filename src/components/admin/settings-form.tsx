@@ -269,6 +269,18 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                         placeholder="toptan, b2b, satış, e-ticaret (virgülle ayırın)"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="googleVerification">Google Search Console Doğrulama Kodu</Label>
+                                    <Input
+                                        id="googleVerification"
+                                        value={settings.googleVerification || ""}
+                                        onChange={(e) => updateField("googleVerification", e.target.value)}
+                                        placeholder="google-site-verification kodunu girin (Örn: google123456789)"
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                        Google Search Console doğrulama kodu. Sadece kodun kendisini girin (meta etiketinin tamamını değil).
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>

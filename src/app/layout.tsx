@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: "./",
     },
     verification: {
-      google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+      google: process.env.GOOGLE_SITE_VERIFICATION || general.googleVerification || undefined,
     },
   };
 }
