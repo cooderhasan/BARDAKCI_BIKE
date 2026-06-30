@@ -24,19 +24,24 @@ export async function generateMetadata(): Promise<Metadata> {
         console.warn("Could not fetch settings for homepage metadata", e);
     }
 
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
     const title = general.seoTitle || general.siteName || "Bardakcı Bike | Toptan Bisiklet ve Yedek Parça";
     const description = general.seoDescription || "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu. Bardakcı Bike ile en kaliteli bisiklet modellerine uygun fiyatlarla ulaşın.";
+    const ogImage = general.ogImageUrl 
+        ? (general.ogImageUrl.startsWith("http") ? general.ogImageUrl : `${siteUrl}${general.ogImageUrl}`)
+        : `${siteUrl}/img/og-default.jpg`;
 
     return {
         title,
         description,
         alternates: {
-            canonical: process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr",
+            canonical: siteUrl,
         },
         openGraph: {
             title,
             description,
-            url: process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr",
+            url: siteUrl,
+            images: [{ url: ogImage }],
             type: "website",
         }
     };

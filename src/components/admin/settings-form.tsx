@@ -230,6 +230,17 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                         maxFiles={1}
                                     />
                                 </div>
+
+                                <div className="space-y-2">
+                                    <Label>OpenGraph Görseli (Paylaşım Görseli)</Label>
+                                    <div className="text-xs text-gray-500 mb-2">Önerilen boyut: <span className="font-bold">1200x630px</span>. Format: <span className="font-bold">JPG</span> or <span className="font-bold">PNG</span>. Sosyal medyada siteniz paylaşıldığında görünecek görseldir.</div>
+                                    <ImageUpload
+                                        value={settings.ogImageUrl ? [settings.ogImageUrl] : []}
+                                        onChange={(urls) => updateField("ogImageUrl", urls[0] || "")}
+                                        onRemove={() => updateField("ogImageUrl", "")}
+                                        maxFiles={1}
+                                    />
+                                </div>
                             </CardContent>
                         </Card>
                     </TabsContent>

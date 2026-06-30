@@ -57,7 +57,9 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: general.siteName || "B2B",
       images: [
         {
-          url: `${siteUrl}/img/og-default.jpg`, // Default OG image
+          url: general.ogImageUrl 
+            ? (general.ogImageUrl.startsWith("http") ? general.ogImageUrl : `${siteUrl}${general.ogImageUrl}`)
+            : `${siteUrl}/img/og-default.jpg`,
           width: 1200,
           height: 630,
           alt: general.siteName || "Bardakcı Bike",
