@@ -15,7 +15,7 @@ sela# Project Tasks
   - [ ] Toplu Stok Güncelleme Modülü
   - [x] İçerik Yönetimi (Slider, Bannerlar) - *Admin Banner Yönetimi, Sidebar düzenlemeleri, Build fix ve Slider overlay temizliği tamamlandı.*
 - [ ] **Phase 4: Ödeme Sistemleri**
-  - [ ] PayTR Entegrasyonu
+  - [/] PayTR Entegrasyonu (Kanal Tanımlamaları ve Canlı Testler Yapılıyor)
   - [ ] Havale/EFT Bildirim Altyapısı
   - [ ] Kapıda Ödeme (Pasif)
   - [ ] E-Fatura Entegrasyonu (Manuel/Oto)

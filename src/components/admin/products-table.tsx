@@ -386,7 +386,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                             ) : (
                                 products.map((product) => (
                                     <TableRow key={product.id}>
-                                        <TableCell>
+                                        <TableCell className="whitespace-normal min-w-[200px] max-w-[450px]">
                                             <div className="flex items-center gap-2">
                                                 <div>
                                                     <div className="flex items-center gap-1.5">
