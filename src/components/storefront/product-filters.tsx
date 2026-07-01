@@ -96,7 +96,7 @@ export function ProductFilters({
                             <button
                                 onClick={() => router.push("/products")}
                                 className={cn(
-                                    "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200",
+                                    "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer",
                                     !activeCategorySlug && !searchParams.get("category")
                                         ? "text-[#17457C] font-semibold bg-blue-50/60 dark:bg-blue-950/30"
                                         : "text-gray-600 dark:text-gray-400 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/40"
@@ -109,7 +109,7 @@ export function ProductFilters({
                                     key={category.id}
                                     onClick={() => router.push(`/category/${category.slug}`)}
                                     className={cn(
-                                        "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200",
+                                        "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer",
                                         activeCategorySlug === category.slug || searchParams.get("category") === category.slug
                                             ? "text-[#17457C] font-semibold bg-blue-50/60 dark:bg-blue-950/30"
                                             : "text-gray-600 dark:text-gray-400 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/40"
