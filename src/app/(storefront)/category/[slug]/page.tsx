@@ -5,6 +5,7 @@ import { ProductFilters } from "@/components/storefront/product-filters";
 import { MobileProductFilters } from "@/components/storefront/mobile-product-filters";
 import { Prisma } from "@prisma/client";
 import { ProductSort } from "@/components/storefront/product-sort";
+import { ProductStockToggle } from "@/components/storefront/product-stock-toggle";
 import { Pagination } from "@/components/storefront/pagination";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
@@ -275,7 +276,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                         sizes={uniqueSizes}
                         activeCategorySlug={slug}
                     />
-                    <div className="flex items-center gap-2 ml-auto md:ml-0">
+                    <div className="flex items-center gap-3 ml-auto md:ml-0">
+                        <ProductStockToggle />
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline-block">Sıralama:</span>
                         <ProductSort initialSort={searchParamsValues.sort || "newest"} />
                     </div>
