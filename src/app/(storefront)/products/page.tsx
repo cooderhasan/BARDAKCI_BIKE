@@ -22,6 +22,8 @@ interface ProductsPageProps {
         page?: string;
         is_on_sale?: string;
         in_stock?: string;
+        genders?: string | string[];
+        brakes?: string | string[];
     }>;
 }
 
@@ -139,6 +141,24 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     const brandSlugs = typeof params.brands === 'string' ? [params.brands] : params.brands;
     if (brandSlugs && brandSlugs.length > 0) {
         where.brand = { slug: { in: brandSlugs } };
+    }
+
+    // Genders
+    const genderFilters = typeof params.genders === 'string' ? [params.genders] : params.genders;
+    if (genderFilters && genderFilters.length > 0) {
+        const queryGenders = [...genderFilters];
+        if (genderFilters.includes("Erkek") || genderFilters.includes("Kadın")) {
+            if (!queryGenders.includes("Unisex")) {
+                queryGenders.push("Unisex");
+            }
+        }
+        where.gender = { in: queryGenders };
+    }
+
+    // Brakes
+    const brakeFilters = typeof params.brakes === 'string' ? [params.brakes] : params.brakes;
+    if (brakeFilters && brakeFilters.length > 0) {
+        where.brakeType = { in: brakeFilters };
     }
 
     // Variants (Color & Size)

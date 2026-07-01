@@ -27,6 +27,8 @@ interface CategoryPageProps {
         sizes?: string | string[];
         page?: string;
         in_stock?: string;
+        genders?: string | string[];
+        brakes?: string | string[];
     }>;
 }
 
@@ -172,6 +174,24 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     const brandSlugs = typeof searchParamsValues.brands === 'string' ? [searchParamsValues.brands] : searchParamsValues.brands;
     if (brandSlugs && brandSlugs.length > 0) {
         where.brand = { slug: { in: brandSlugs } };
+    }
+
+    // Genders
+    const genderFilters = typeof searchParamsValues.genders === 'string' ? [searchParamsValues.genders] : searchParamsValues.genders;
+    if (genderFilters && genderFilters.length > 0) {
+        const queryGenders = [...genderFilters];
+        if (genderFilters.includes("Erkek") || genderFilters.includes("Kadın")) {
+            if (!queryGenders.includes("Unisex")) {
+                queryGenders.push("Unisex");
+            }
+        }
+        where.gender = { in: queryGenders };
+    }
+
+    // Brakes
+    const brakeFilters = typeof searchParamsValues.brakes === 'string' ? [searchParamsValues.brakes] : searchParamsValues.brakes;
+    if (brakeFilters && brakeFilters.length > 0) {
+        where.brakeType = { in: brakeFilters };
     }
 
     // Variants (Color & Size)

@@ -104,6 +104,8 @@ interface Product {
     referenceUrl?: string | null;
     n11CatalogId?: string | null;
     bundleItems?: BundleItemData[];
+    gender?: string | null;
+    brakeType?: string | null;
 }
 
 interface ProductFormProps {
@@ -157,6 +159,8 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         referenceUrl: product?.referenceUrl || "",
         n11CatalogId: product?.n11CatalogId || "",
         isBundle: product?.isBundle || false,
+        gender: product?.gender || "none",
+        brakeType: product?.brakeType || "none",
     });
 
     // Bundle state
@@ -440,6 +444,43 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                             {brands.map((b) => (
                                                 <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                                             ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="gender">Cinsiyet</Label>
+                                    <Select
+                                        value={formData.gender || "none"}
+                                        onValueChange={(val) => handleChange("gender", val)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Cinsiyet seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Belirtilmemiş</SelectItem>
+                                            <SelectItem value="Erkek">Erkek</SelectItem>
+                                            <SelectItem value="Kadın">Kadın</SelectItem>
+                                            <SelectItem value="Unisex">Unisex</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="brakeType">Fren Tipi</Label>
+                                    <Select
+                                        value={formData.brakeType || "none"}
+                                        onValueChange={(val) => handleChange("brakeType", val)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Fren tipi seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Belirtilmemiş</SelectItem>
+                                            <SelectItem value="V FREN">V FREN</SelectItem>
+                                            <SelectItem value="Mekanik Disk Fren">Mekanik Disk Fren</SelectItem>
+                                            <SelectItem value="Hidrolik Disk Fren">Hidrolik Disk Fren</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

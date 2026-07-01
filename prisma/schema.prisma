@@ -198,6 +198,8 @@ model Product {
   brandId     String?     // Marka ID
   brand       Brand?      @relation(fields: [brandId], references: [id])
   origin      String?     // Menşei
+  gender      String?     // Cinsiyet: Erkek, Kadın, Unisex
+  brakeType   String?     // Fren: V FREN, Mekanik Disk Fren, Hidrolik Disk Fren
   description String?     @db.Text // HTML içerik için Text tipi
   marketplaceDescription String? @db.Text // Pazar yerleri için özel açıklma (HTML/Text)
   listPrice   Decimal     @db.Decimal(12, 2)

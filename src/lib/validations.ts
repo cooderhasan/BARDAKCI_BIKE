@@ -49,6 +49,8 @@ export const productSchema = z.object({
     isBestSeller: z.boolean().default(false),
     isActive: z.boolean().default(true),
     isBundle: z.boolean().default(false),
+    gender: z.string().nullable().optional(),
+    brakeType: z.string().nullable().optional(),
     // Marketplace Visibility
     isTrendyolActive: z.boolean().default(false),
     isN11Active: z.boolean().default(false),
