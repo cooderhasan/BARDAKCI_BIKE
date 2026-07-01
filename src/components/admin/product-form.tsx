@@ -436,7 +436,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         value={formData.brandId}
                                         onValueChange={(val) => handleChange("brandId", val)}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Marka seçin" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -456,7 +456,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         value={formData.gender || "none"}
                                         onValueChange={(val) => handleChange("gender", val)}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Cinsiyet seçin" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -473,7 +473,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         value={formData.brakeType || "none"}
                                         onValueChange={(val) => handleChange("brakeType", val)}
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger className="w-full">
                                             <SelectValue placeholder="Fren tipi seçin" />
                                         </SelectTrigger>
                                         <SelectContent>
