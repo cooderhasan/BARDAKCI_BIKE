@@ -25,6 +25,7 @@ interface CategoryPageProps {
         colors?: string | string[];
         sizes?: string | string[];
         page?: string;
+        in_stock?: string;
     }>;
 }
 
@@ -127,6 +128,13 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             { categoryId: { in: categoryIds } },
         ]
     });
+
+    // In Stock
+    if (searchParamsValues.in_stock === "true") {
+        andConditions.push({
+            stock: { gt: 0 }
+        });
+    }
 
     const where: Prisma.ProductWhereInput = { AND: andConditions };
 

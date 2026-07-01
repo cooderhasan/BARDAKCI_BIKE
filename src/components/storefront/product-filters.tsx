@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 // Turkish title casing helper to fix ALL CAPS database entries
 function toTitleCaseTurkish(text: string): string {
@@ -82,8 +83,37 @@ export function ProductFilters({
         return searchParams.getAll(key).includes(value);
     };
 
+    const isInStockOnly = searchParams.get("in_stock") === "true";
+
     return (
-        <div className="space-y-1">
+        <div className="space-y-4">
+            {/* Stokta Olanlar Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-800/80 transition-all hover:bg-gray-50 dark:hover:bg-gray-800/60">
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        Stoktakileri Göster
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Sadece stokta olan ürünler
+                    </span>
+                </div>
+                <Switch
+                    id="in-stock-filter"
+                    checked={isInStockOnly}
+                    onCheckedChange={(checked) => {
+                        const params = new URLSearchParams(searchParams.toString());
+                        if (checked) {
+                            params.set("in_stock", "true");
+                        } else {
+                            params.delete("in_stock");
+                        }
+                        params.delete("page");
+                        router.push(`?${params.toString()}`);
+                    }}
+                    className="data-[state=checked]:bg-[#17457C]"
+                />
+            </div>
+
             <Accordion type="multiple" defaultValue={["categories", "brands", "price", "colors", "sizes"]} className="w-full">
 
                 {/* Categories */}

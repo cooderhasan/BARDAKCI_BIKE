@@ -20,6 +20,7 @@ interface ProductsPageProps {
         sizes?: string | string[];
         page?: string;
         is_on_sale?: string;
+        in_stock?: string;
     }>;
 }
 
@@ -166,6 +167,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             not: null,
             lt: prisma.product.fields.listPrice
         };
+    }
+
+    // In Stock
+    if (params.in_stock === "true") {
+        where.stock = { gt: 0 };
     }
 
     // --- Build Sorting ---
