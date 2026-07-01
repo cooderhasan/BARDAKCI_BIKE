@@ -10,6 +10,8 @@ import { Pagination } from "@/components/storefront/pagination";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -277,6 +279,30 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <>
             <JsonLd data={breadcrumbSchema} />
             <div className="container mx-auto px-4 py-8">
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6 overflow-x-auto whitespace-nowrap">
+                <Link href="/" className="hover:text-[#17457C] transition-colors">
+                    Ana Sayfa
+                </Link>
+                {categoryPath.map((cat: any, index: number) => (
+                    <div key={cat.id} className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-1 duration-300">
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        {index === categoryPath.length - 1 ? (
+                            <span className="text-gray-900 dark:text-white font-medium">
+                                {cat.name}
+                            </span>
+                        ) : (
+                            <Link
+                                href={`/category/${cat.slug}`}
+                                className="hover:text-[#17457C] transition-colors"
+                            >
+                                {cat.name}
+                            </Link>
+                        )}
+                    </div>
+                ))}
+            </nav>
+
             {/* Header Section */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
                 <div>
