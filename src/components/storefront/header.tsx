@@ -127,7 +127,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             {/* Logo */}
                             <Link href="/" className="flex items-center gap-2 group">
                                 {logoUrl ? (
-                                    <div className="relative h-10 lg:h-20 w-auto aspect-[4/1] transition-transform duration-300 group-hover:scale-105">
+                                    <div className="relative h-10 lg:h-16 w-auto aspect-[4/1] transition-transform duration-300 group-hover:scale-105">
                                         <Image
                                             src={logoUrl}
                                             alt={siteName || "Logo"}
@@ -158,21 +158,21 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             {phone && (
                                 <a
                                     href={`tel:${phone.replace(/\s/g, '')}`}
-                                    className="hidden lg:flex items-center gap-2 text-gray-600 hover:text-[#17457C] transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 border-l border-gray-200 ml-2 pl-4"
+                                    className="hidden lg:flex items-center gap-3 text-gray-600 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-all duration-200 px-4 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-800 ml-4 shadow-2xs"
                                 >
-                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                        <Phone className="h-4 w-4 text-green-600" />
+                                    <div className="w-9 h-9 bg-green-50 dark:bg-green-950/40 rounded-full flex items-center justify-center shrink-0">
+                                        <Phone className="h-4 w-4 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 font-medium">Çağrı Merkezi</span>
-                                        <span className="text-sm font-bold text-gray-900">{phone}</span>
+                                        <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider leading-none mb-1">Çağrı Merkezi</span>
+                                        <span className="text-sm font-extrabold text-gray-900 dark:text-white leading-none">{phone}</span>
                                     </div>
                                 </a>
                             )}
                         </div>
 
                         {/* Center: Search Bar */}
-                        <div className="flex-1 max-w-2xl mx-auto hidden sm:block px-2 lg:px-8">
+                        <div className="flex-1 max-w-3xl lg:max-w-4xl mx-auto hidden sm:block px-2 lg:px-8">
                             <SearchInput />
                         </div>
 
