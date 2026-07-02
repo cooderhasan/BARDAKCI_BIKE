@@ -584,3 +584,28 @@ export async function searchProductsForBundle(query: string, excludeProductId?: 
         image: p.images[0] || null,
     }));
 }
+
+export async function toggleProductFeature(
+    productId: string, 
+    feature: "isFeatured" | "isNew" | "isBestSeller", 
+    value: boolean
+) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        throw new Error("Unauthorized");
+    }
+
+    if (feature !== "isFeatured" && feature !== "isNew" && feature !== "isBestSeller") {
+        throw new Error("Invalid feature type");
+    }
+
+    await prisma.product.update({
+        where: { id: productId },
+        data: { [feature]: value },
+    });
+
+    revalidatePath("/admin/products");
+    revalidatePath("/products");
+    revalidatePath("/");
+    return { success: true };
+}

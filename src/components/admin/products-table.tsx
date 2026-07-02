@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
-import { deleteProduct, toggleProductStatus, toggleTrendyolStatus, toggleN11Status, toggleHepsiburadaStatus } from "@/app/admin/(protected)/products/actions";
+import { deleteProduct, toggleProductStatus, toggleTrendyolStatus, toggleN11Status, toggleHepsiburadaStatus, toggleProductFeature } from "@/app/admin/(protected)/products/actions";
 import { syncProductsToHepsiburada } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
 import { toast } from "sonner";
 
@@ -109,6 +109,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
 
     const [products, setProducts] = useState(initialProducts);
     const [loading, setLoading] = useState<string | null>(null);
+    const [loadingFeature, setLoadingFeature] = useState<string | null>(null);
     const [hbSyncing, setHbSyncing] = useState<string | null>(null);
 
     // Sync local product state when props change
@@ -216,6 +217,26 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
             ));
         } catch {
             toast.error("İşlem sırasında bir hata oluştu.");
+        }
+    };
+
+    const handleToggleFeature = async (productId: string, feature: "isFeatured" | "isNew" | "isBestSeller", currentValue: boolean) => {
+        const loadingKey = `${productId}-${feature}`;
+        setLoadingFeature(loadingKey);
+        try {
+            const result = await toggleProductFeature(productId, feature, !currentValue);
+            if (result.success) {
+                toast.success("Ürün özelliği güncellendi.");
+                setProducts(prev => prev.map(p =>
+                    p.id === productId ? { ...p, [feature]: !currentValue } : p
+                ));
+            } else {
+                toast.error("İşlem sırasında bir hata oluştu.");
+            }
+        } catch {
+            toast.error("İşlem sırasında bir hata oluştu.");
+        } finally {
+            setLoadingFeature(null);
         }
     };
 
@@ -405,17 +426,61 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="flex gap-1 mt-1">
-                                                        {product.isFeatured && (
-                                                            <Star className="h-3 w-3 text-yellow-500" />
-                                                        )}
-                                                        {product.isNew && (
-                                                            <Sparkles className="h-3 w-3 text-blue-500" />
-                                                        )}
-                                                        {product.isBestSeller && (
-                                                            <TrendingUp className="h-3 w-3 text-green-500" />
-                                                        )}
-                                                    </div>
+                                                    <div className="flex gap-2 mt-1.5 items-center">
+                                                         {/* Öne Çıkan (isFeatured) */}
+                                                         <button
+                                                             onClick={() => handleToggleFeature(product.id, "isFeatured", product.isFeatured)}
+                                                             disabled={loadingFeature === `${product.id}-isFeatured`}
+                                                             className={`p-1 rounded hover:bg-gray-100 transition-colors flex items-center justify-center ${
+                                                                 loadingFeature === `${product.id}-isFeatured` ? "opacity-50 pointer-events-none" : ""
+                                                             }`}
+                                                             title={product.isFeatured ? "Öne Çıkarılanlardan Kaldır" : "Öne Çıkanlara Ekle"}
+                                                         >
+                                                             <Star
+                                                                 className={`h-4 w-4 transition-colors ${
+                                                                     product.isFeatured
+                                                                         ? "text-yellow-500 fill-yellow-500"
+                                                                         : "text-gray-300 hover:text-yellow-500"
+                                                                 }`}
+                                                             />
+                                                         </button>
+
+                                                         {/* Yeni Ürün (isNew) */}
+                                                         <button
+                                                             onClick={() => handleToggleFeature(product.id, "isNew", product.isNew)}
+                                                             disabled={loadingFeature === `${product.id}-isNew`}
+                                                             className={`p-1 rounded hover:bg-gray-100 transition-colors flex items-center justify-center ${
+                                                                 loadingFeature === `${product.id}-isNew` ? "opacity-50 pointer-events-none" : ""
+                                                             }`}
+                                                             title={product.isNew ? "Yeni Ürün Etiketini Kaldır" : "Yeni Ürün Olarak İşaretle"}
+                                                         >
+                                                             <Sparkles
+                                                                 className={`h-4 w-4 transition-colors ${
+                                                                     product.isNew
+                                                                         ? "text-blue-500 fill-blue-500"
+                                                                         : "text-gray-300 hover:text-blue-500"
+                                                                 }`}
+                                                             />
+                                                         </button>
+
+                                                         {/* Çok Satan (isBestSeller) */}
+                                                         <button
+                                                             onClick={() => handleToggleFeature(product.id, "isBestSeller", product.isBestSeller)}
+                                                             disabled={loadingFeature === `${product.id}-isBestSeller`}
+                                                             className={`p-1 rounded hover:bg-gray-100 transition-colors flex items-center justify-center ${
+                                                                 loadingFeature === `${product.id}-isBestSeller` ? "opacity-50 pointer-events-none" : ""
+                                                             }`}
+                                                             title={product.isBestSeller ? "Çok Satanlardan Kaldır" : "Çok Satanlara Ekle"}
+                                                         >
+                                                             <TrendingUp
+                                                                 className={`h-4 w-4 transition-colors ${
+                                                                     product.isBestSeller
+                                                                         ? "text-green-500"
+                                                                         : "text-gray-300 hover:text-green-500"
+                                                                 }`}
+                                                             />
+                                                         </button>
+                                                     </div>
                                                 </div>
                                             </div>
                                         </TableCell>
