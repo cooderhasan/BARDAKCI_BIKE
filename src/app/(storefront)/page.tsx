@@ -365,83 +365,94 @@ export default async function HomePage() {
 
             {/* Homepage Blog Posts Showcase */}
             {data.blogPosts && data.blogPosts.length > 0 && (
-                <section className="mt-16 mb-8 border-t border-gray-100 dark:border-gray-800 pt-16 animate-in fade-in duration-500">
-                    <div className="flex items-center justify-between mb-8">
-                        <div>
-                            <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                                Blog <span className="text-[#17457C]">Rehberleri</span>
-                            </h2>
-                            <p className="text-gray-500 text-sm mt-1">Bisiklet dünyasına dair uzman ipuçları ve faydalı bilgiler</p>
-                        </div>
-                        <Link 
-                            href="/blog"
-                            className="inline-flex items-center gap-1 text-sm font-semibold text-[#17457C] hover:text-blue-800 hover:underline transition-all"
-                        >
-                            Tüm Yazıları Gör
-                            <ArrowRight className="w-4 h-4" />
-                        </Link>
-                    </div>
+                <section className="mt-16 mb-8 relative rounded-3xl border border-gray-100 dark:border-gray-800/60 bg-gradient-to-br from-[#17457C]/[0.03] via-white to-white dark:from-blue-950/10 dark:via-gray-900 dark:to-gray-900 p-6 md:p-10 shadow-xs overflow-hidden animate-in fade-in duration-500">
+                    {/* Subtle grid pattern for visual coherence with the calculator above */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#17457c03_1px,transparent_1px),linear-gradient(to_bottom,#17457c03_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+                    
+                    {/* Glowing highlight in background */}
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-                    <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-                        {data.blogPosts.map((post: any) => (
-                            <article 
-                                key={post.id} 
-                                className="group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 hover:border-blue-100 dark:hover:border-blue-900/40 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex flex-col h-full"
+                    <div className="relative z-10">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+                            <div>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-[#17457C]/10 text-[#17457C] dark:bg-blue-900/30 dark:text-blue-400 mb-2.5 uppercase tracking-wider">
+                                    🚲 Bisiklet Kültürü
+                                </span>
+                                <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                    Blog <span className="text-[#17457C]">Rehberleri</span>
+                                </h2>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Bisiklet dünyasına dair uzman ipuçları ve faydalı bilgiler</p>
+                            </div>
+                            <Link 
+                                href="/blog"
+                                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#17457C] text-white hover:bg-blue-800 rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 self-start sm:self-auto"
                             >
-                                {/* Image */}
-                                <Link href={`/blog/${post.slug}`} className="relative block aspect-[16/10] overflow-hidden bg-gray-50 dark:bg-gray-950">
-                                    {post.imageUrl ? (
-                                        <img 
-                                            src={post.imageUrl} 
-                                            alt={post.title}
-                                            className="object-cover w-full h-full group-hover:scale-103 transition-transform duration-500"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400 font-semibold text-xs">
-                                            Bardakcı Bike
+                                Tüm Yazıları Gör
+                                <ArrowRight className="w-3.5 h-3.5" />
+                            </Link>
+                        </div>
+
+                        <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+                            {data.blogPosts.map((post: any) => (
+                                <article 
+                                    key={post.id} 
+                                    className="group bg-white dark:bg-gray-850 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800/80 hover:border-blue-100 dark:hover:border-blue-900/40 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full"
+                                >
+                                    {/* Image */}
+                                    <Link href={`/blog/${post.slug}`} className="relative block aspect-[16/10] overflow-hidden bg-gray-50 dark:bg-gray-950">
+                                        {post.imageUrl ? (
+                                            <img 
+                                                src={post.imageUrl} 
+                                                alt={post.title}
+                                                className="object-cover w-full h-full group-hover:scale-103 transition-transform duration-500"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400 font-semibold text-xs">
+                                                Bardakcı Bike
+                                            </div>
+                                        )}
+                                        <div className="absolute top-3 left-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xs px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#17457C] shadow-xs">
+                                            {post.readTime} Dk Okuma
                                         </div>
-                                    )}
-                                    <div className="absolute top-3 left-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xs px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#17457C] shadow-xs">
-                                        {post.readTime} Dk Okuma
+                                    </Link>
+
+                                    {/* Body */}
+                                    <div className="p-5 flex flex-col flex-1">
+                                        {/* Date */}
+                                        <span className="text-[10px] text-gray-400 mb-2 block font-medium">
+                                            {new Date(post.createdAt).toLocaleDateString("tr-TR", {
+                                                day: "numeric",
+                                                month: "long",
+                                                year: "numeric",
+                                            })}
+                                        </span>
+
+                                        {/* Title */}
+                                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2 group-hover:text-[#17457C] transition-colors leading-snug line-clamp-2">
+                                            <Link href={`/blog/${post.slug}`}>
+                                                {post.title}
+                                            </Link>
+                                        </h3>
+
+                                        {/* Summary */}
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed mb-5 line-clamp-2">
+                                            {post.summary || "Detaylar için yazımızı inceleyin."}
+                                        </p>
+
+                                        {/* Link */}
+                                        <div className="mt-auto pt-3 border-t border-gray-50 dark:border-gray-800/60">
+                                            <Link 
+                                                href={`/blog/${post.slug}`}
+                                                className="inline-flex items-center text-xs font-bold text-[#17457C] hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group/link"
+                                            >
+                                                Devamını Gör
+                                                <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover/link:translate-x-0.5" />
+                                            </Link>
+                                        </div>
                                     </div>
-                                </Link>
-
-                                {/* Body */}
-                                <div className="p-5 flex flex-col flex-1">
-                                    {/* Date */}
-                                    <span className="text-[10px] text-gray-400 mb-2 block font-medium">
-                                        {new Date(post.createdAt).toLocaleDateString("tr-TR", {
-                                            day: "numeric",
-                                            month: "long",
-                                            year: "numeric",
-                                        })}
-                                    </span>
-
-                                    {/* Title */}
-                                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2 group-hover:text-[#17457C] transition-colors leading-snug line-clamp-2">
-                                        <Link href={`/blog/${post.slug}`}>
-                                            {post.title}
-                                        </Link>
-                                    </h3>
-
-                                    {/* Summary */}
-                                    <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed mb-5 line-clamp-2">
-                                        {post.summary || "Detaylar için yazımızı inceleyin."}
-                                    </p>
-
-                                    {/* Link */}
-                                    <div className="mt-auto pt-3 border-t border-gray-50 dark:border-gray-800/60">
-                                        <Link 
-                                            href={`/blog/${post.slug}`}
-                                            className="inline-flex items-center text-xs font-bold text-[#17457C] hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group/link"
-                                        >
-                                            Devamını Gör
-                                            <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover/link:translate-x-0.5" />
-                                        </Link>
-                                    </div>
-                                </div>
-                            </article>
-                        ))}
+                                </article>
+                            ))}
+                        </div>
                     </div>
                 </section>
             )}
