@@ -33,25 +33,91 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
         console.error("Failed to increment blog view count:", e);
     }
 
-    // Get 4 featured products to showcase alongside the blog post
-    const featuredProducts = await prisma.product.findMany({
-        where: { isActive: true, isFeatured: true },
-        take: 4,
-        include: {
-            _count: { select: { variants: true } }
-        }
-    });
+    // Let's analyze the blog post title/slug to find related products semantically
+    let displayProducts: any[] = [];
 
-    // Fallback if no featured products
-    const displayProducts = featuredProducts.length > 0 
-        ? featuredProducts 
-        : await prisma.product.findMany({
-            where: { isActive: true },
+    try {
+        const cleanSlug = slug.toLowerCase();
+        
+        // 1. Try to find a category that matches keywords in the slug
+        const categories = await prisma.category.findMany({
+            where: { isActive: true }
+        });
+
+        // Sort categories by length descending to match most specific category first (e.g. "Denge Bisikleti" instead of "Bisiklet")
+        const sortedCategories = [...categories].sort((a, b) => b.name.length - a.name.length);
+        let matchedCategory = null;
+
+        for (const cat of sortedCategories) {
+            const catNameLower = cat.name.toLowerCase();
+            // Check if slug contains category slug or name (English characters clean)
+            const cleanCatName = catNameLower.replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c');
+            if (cleanSlug.includes(cat.slug) || cleanSlug.includes(cleanCatName)) {
+                matchedCategory = cat;
+                break;
+            }
+        }
+
+        if (matchedCategory) {
+            displayProducts = await prisma.product.findMany({
+                where: { 
+                    isActive: true,
+                    categoryId: matchedCategory.id
+                },
+                take: 4,
+                include: {
+                    _count: { select: { variants: true } }
+                }
+            });
+        }
+
+        // 2. If no category matched or category has no products, try keyword search on product names
+        if (displayProducts.length === 0) {
+            const keywords = ["denge", "yol", "dag", "katlanir", "elektrikli", "cocuk", "sehir", "kask", "eldiven", "lastik", "aksesuar"];
+            const matchedKeywords = keywords.filter(kw => cleanSlug.includes(kw));
+
+            if (matchedKeywords.length > 0) {
+                displayProducts = await prisma.product.findMany({
+                    where: {
+                        isActive: true,
+                        OR: matchedKeywords.map(kw => ({
+                            name: {
+                                contains: kw,
+                                mode: 'insensitive'
+                            }
+                        }))
+                    },
+                    take: 4,
+                    include: {
+                        _count: { select: { variants: true } }
+                    }
+                });
+            }
+        }
+    } catch (err) {
+        console.error("Error finding semantic recommended products:", err);
+    }
+
+    // 3. Fallback to featured or latest products if no semantic products found
+    if (displayProducts.length === 0) {
+        const featuredProducts = await prisma.product.findMany({
+            where: { isActive: true, isFeatured: true },
             take: 4,
             include: {
                 _count: { select: { variants: true } }
             }
         });
+
+        displayProducts = featuredProducts.length > 0 
+            ? featuredProducts 
+            : await prisma.product.findMany({
+                where: { isActive: true },
+                take: 4,
+                include: {
+                    _count: { select: { variants: true } }
+                }
+            });
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 py-8">
