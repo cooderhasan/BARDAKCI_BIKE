@@ -59,6 +59,7 @@ const menuGroups: MenuGroup[] = [
             { title: "Markalar", href: "/admin/brands", icon: Award },
             { title: "Sliderlar", href: "/admin/sliders", icon: LucideImage },
             { title: "Bannerlar", href: "/admin/banners", icon: LucideImage },
+            { title: "Blog Yazıları", href: "/admin/blog", icon: FileText },
         ],
     },
     {

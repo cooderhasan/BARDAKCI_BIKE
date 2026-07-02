@@ -402,6 +402,13 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                     )}
                 </div>
             </div>
+
+            {/* Category SEO Description */}
+            {category.description && (
+                <div className="mt-16 bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-xs max-w-none text-gray-600 dark:text-gray-300 leading-relaxed prose prose-blue dark:prose-invert">
+                    <div dangerouslySetInnerHTML={{ __html: category.description }} />
+                </div>
+            )}
         </div>
         </>
     );

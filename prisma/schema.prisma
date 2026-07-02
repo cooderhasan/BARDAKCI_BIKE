@@ -163,7 +163,7 @@ model Category {
   headerOrder Int     @default(0)
   legacyProducts  Product[] @relation("LegacyCategory")
   products  Product[]
-
+  description String?   @db.Text // SEO açıklaması (HTML)
   createdAt DateTime  @default(now())
   
   // Hierarchical Categories
@@ -808,4 +808,22 @@ model PasswordResetToken {
   @@index([email])
   @@index([token])
   @@map("password_reset_tokens")
+}
+
+// ==================== BLOG SYSTEM ====================
+
+model BlogPost {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String    @db.Text    // HTML formatında zengin yazı içeriği
+  summary     String?   @db.Text    // Kısa özet
+  imageUrl    String?               // Yazı kapak resmi
+  isActive    Boolean   @default(true)
+  readTime    Int       @default(5) // Tahmini okuma süresi (dakika)
+  viewCount   Int       @default(0) // Okuma sayısı
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("blog_posts")
 }

@@ -36,6 +36,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder } from "@/app/admin/(protected)/categories/actions";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { searchHepsiburadaCategories } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
 import {
     DndContext,
@@ -73,6 +74,7 @@ interface Category {
     n11CategoryId?: number | null;
     hbCategoryId?: string | null;
     googleProductCategory?: string | null;
+    description?: string | null;
     parent?: {
         name: string;
     } | null;
@@ -616,6 +618,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [n11CategoryId, setN11CategoryId] = useState<number | undefined>(undefined);
     const [hbCategoryId, setHbCategoryId] = useState<string | undefined>(undefined);
     const [googleProductCategory, setGoogleProductCategory] = useState<string | undefined>(undefined);
+    const [description, setDescription] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [filterMissingMapping, setFilterMissingMapping] = useState<"all" | "trendyol" | "n11" | "hb" | "any">("all");
     const [currentPage, setCurrentPage] = useState(1);
@@ -792,7 +795,8 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     trendyolCategoryId,
                     n11CategoryId,
                     hbCategoryId,
-                    googleProductCategory
+                    googleProductCategory,
+                    description: description || null
                 });
             } else {
                 result = await createCategory({
@@ -808,7 +812,8 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     trendyolCategoryId,
                     n11CategoryId,
                     hbCategoryId,
-                    googleProductCategory
+                    googleProductCategory,
+                    description: description || undefined
                 });
             }
 
@@ -862,6 +867,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setN11CategoryId(undefined);
         setHbCategoryId(undefined);
         setGoogleProductCategory(undefined);
+        setDescription("");
         setEditCategory(null);
     };
 
@@ -880,6 +886,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setN11CategoryId(category.n11CategoryId ?? undefined);
         setHbCategoryId(category.hbCategoryId ?? undefined);
         setGoogleProductCategory(category.googleProductCategory ?? undefined);
+        setDescription(category.description || "");
         setIsOpen(true);
     };
 
@@ -1092,6 +1099,14 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                             disabled={uploading}
                                         />
                                     </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Kategori SEO Açıklaması (HTML)</Label>
+                                    <RichTextEditor
+                                        content={description}
+                                        onChange={setDescription}
+                                        placeholder="Kategori hakkında arama motoru dostu SEO metni yazın..."
+                                    />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="flex items-center space-x-2">
