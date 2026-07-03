@@ -83,6 +83,8 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
 
             // Smart Category Mapping via keywords in slug words (for standard categories)
             const categoryKeywordMap = [
+                { categorySlug: "denge-bisikleti", keywords: ["denge"] },
+                { categorySlug: "denge-bisikletleri", keywords: ["denge"] },
                 { categorySlug: "cocuk-bisikleti", keywords: ["cocuk", "cocug"] },
                 { categorySlug: "dag-bisikleti", keywords: ["dag", "rockrider"] },
                 { categorySlug: "yol-yaris-bisikleti", keywords: ["yol", "yaris", "gravel"] },
