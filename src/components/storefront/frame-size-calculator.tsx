@@ -94,7 +94,7 @@ export function FrameSizeCalculator({ categories }: FrameSizeCalculatorProps) {
                         {/* Height Input */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                <label htmlFor="height-range" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                                     Boyunuz (Cm)
                                 </label>
                                 <span className="text-lg font-extrabold text-[#17457C] dark:text-blue-400 bg-[#17457C]/5 dark:bg-blue-900/20 px-3 py-1 rounded-lg">
@@ -103,6 +103,7 @@ export function FrameSizeCalculator({ categories }: FrameSizeCalculatorProps) {
                             </div>
                             <input
                                 type="range"
+                                id="height-range"
                                 min="140"
                                 max="210"
                                 value={height}
@@ -132,7 +133,7 @@ export function FrameSizeCalculator({ categories }: FrameSizeCalculatorProps) {
                         {/* Inseam Input */}
                         <div className={`space-y-3 transition-opacity duration-300 ${autoCalculateInseam ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
                             <div className="flex items-center justify-between">
-                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                <label htmlFor="inseam-range" className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                                     İç Bacak Boyunuz (Cm)
                                 </label>
                                 <span className="text-lg font-extrabold text-[#17457C] dark:text-blue-400 bg-[#17457C]/5 dark:bg-blue-900/20 px-3 py-1 rounded-lg">
@@ -141,6 +142,7 @@ export function FrameSizeCalculator({ categories }: FrameSizeCalculatorProps) {
                             </div>
                             <input
                                 type="range"
+                                id="inseam-range"
                                 min="60"
                                 max="105"
                                 value={inseam}
