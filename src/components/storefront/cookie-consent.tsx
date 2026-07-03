@@ -40,7 +40,7 @@ export function CookieConsent() {
                     </button>
                     <button
                         onClick={() => setIsVisible(false)}
-                        className="md:hidden p-2 text-gray-400 hover:text-gray-600"
+                        className="md:hidden w-12 h-12 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 shrink-0"
                         aria-label="Kapat"
                     >
                         <X className="w-5 h-5" />

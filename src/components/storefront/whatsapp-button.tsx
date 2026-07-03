@@ -4,12 +4,29 @@ import { useEffect, useState } from "react";
 
 export function WhatsAppButton({ phone }: { phone?: string }) {
     const [isVisible, setIsVisible] = useState(false);
+    const [hasConsent, setHasConsent] = useState(true);
 
     useEffect(() => {
         // Sayfa yüklendikten kısa süre sonra animate ile görün
         const timer = setTimeout(() => setIsVisible(true), 500);
-        return () => clearTimeout(timer);
-    }, []);
+
+        // İlk yüklemede çerez tercihini kontrol et
+        const consent = typeof window !== "undefined" ? localStorage.getItem("cookie-consent") : "true";
+        setHasConsent(!!consent);
+
+        // Çerez tercihindeki değişiklikleri periyodik olarak dinle
+        const interval = setInterval(() => {
+            const currentConsent = typeof window !== "undefined" ? localStorage.getItem("cookie-consent") : "true";
+            if (!!currentConsent !== hasConsent) {
+                setHasConsent(!!currentConsent);
+            }
+        }, 1000);
+
+        return () => {
+            clearTimeout(timer);
+            clearInterval(interval);
+        };
+    }, [hasConsent]);
 
     if (!phone) return null;
 
@@ -31,13 +48,14 @@ export function WhatsAppButton({ phone }: { phone?: string }) {
             target="_blank"
             rel="noopener noreferrer"
             className={`
-                fixed bottom-6 right-6 z-[9999] 
+                fixed right-6 z-[9999] 
                 flex items-center justify-center 
                 w-14 h-14 rounded-full 
                 bg-[#25D366] text-white
                 shadow-[0_4px_14px_rgba(37,211,102,0.4)]
                 hover:scale-110 hover:shadow-[0_6px_20px_rgba(37,211,102,0.6)]
                 transition-all duration-300
+                ${hasConsent ? "bottom-6" : "bottom-28 sm:bottom-6"}
                 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
             `}
             aria-label="WhatsApp Destek Hattı"
