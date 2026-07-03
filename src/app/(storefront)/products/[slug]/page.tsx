@@ -155,6 +155,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const categoryPath = primaryCategory ? getCategoryPath(primaryCategory) : [];
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
+    const isFreeShipping = Number(product.listPrice) >= freeShippingLimit;
 
     // 1. Product Schema
     const productSchema: any = {
@@ -181,6 +183,41 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 "@type": "Organization",
                 "name": "Bardakcı Bike",
             },
+            "shippingDetails": {
+                "@type": "OfferShippingDetails",
+                "shippingRate": {
+                    "@type": "MonetaryAmount",
+                    "value": isFreeShipping ? 0 : 90,
+                    "currency": "TRY"
+                },
+                "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "TR"
+                },
+                "deliveryTime": {
+                    "@type": "ShippingDeliveryTime",
+                    "handlingTime": {
+                        "@type": "QuantitativeValue",
+                        "minValue": 0,
+                        "maxValue": 1,
+                        "unitCode": "DAY"
+                    },
+                    "transitTime": {
+                        "@type": "QuantitativeValue",
+                        "minValue": 1,
+                        "maxValue": 3,
+                        "unitCode": "DAY"
+                    }
+                }
+            },
+            "hasMerchantReturnPolicy": {
+                "@type": "MerchantReturnPolicy",
+                "applicableCountry": "TR",
+                "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+                "merchantReturnDays": 14,
+                "returnMethod": "https://schema.org/ReturnByMail",
+                "returnFees": "https://schema.org/FreeReturn"
+            }
         },
     };
 
