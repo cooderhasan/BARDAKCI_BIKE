@@ -186,12 +186,14 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                 <>
                     <button
                         onClick={prev}
+                        aria-label="Önceki Slayt"
                         className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
                     >
                         <ChevronLeft className="h-6 w-6" />
                     </button>
                     <button
                         onClick={next}
+                        aria-label="Sonraki Slayt"
                         className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
                     >
                         <ChevronRight className="h-6 w-6" />
@@ -203,6 +205,7 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                             <button
                                 key={index}
                                 onClick={() => setCurrent(index)}
+                                aria-label={`Slayt ${index + 1}`}
                                 className={`w-2 h-2 rounded-full transition-all ${index === current
                                     ? "bg-white w-6"
                                     : "bg-white/50 hover:bg-white/75"

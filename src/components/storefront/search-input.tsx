@@ -39,6 +39,7 @@ export function SearchInput() {
                 </div>
                 <Input
                     type="search"
+                    aria-label="Arama"
                     placeholder="Aradığınız ürün, kategori veya marka..."
                     className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm h-12 px-4 placeholder:text-gray-400"
                     value={value}

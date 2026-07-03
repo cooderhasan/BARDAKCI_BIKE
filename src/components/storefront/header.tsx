@@ -186,7 +186,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 className="relative"
                             >
                                 {!mounted ? (
-                                    <button className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100">
+                                    <button aria-label="Giriş Yap" className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100">
                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                                             <User className="h-5 w-5" />
                                         </div>
@@ -198,7 +198,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 ) : (
                                     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen} modal={false}>
                                         <DropdownMenuTrigger asChild>
-                                            <button className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100 outline-none">
+                                            <button aria-label={user ? "Hesabım" : "Giriş Yap"} className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100 outline-none">
                                                 <div className={`w-10 h-10 ${user ? 'bg-[#17457C]/10' : 'bg-gray-100'} rounded-full flex items-center justify-center`}>
                                                     <User className={`h-5 w-5 ${user ? 'text-[#17457C]' : ''}`} />
                                                 </div>
@@ -284,7 +284,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             </div>
 
                             {/* Cart - Visible for everyone */}
-                            <Link href="/cart" className={cn(
+                            <Link href="/cart" aria-label="Alışveriş Sepetim" className={cn(
                                 "flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100",
                                 user && "border-l border-gray-100 dark:border-gray-800 ml-1 pl-2 md:pl-4"
                             )}>
@@ -308,6 +308,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Mobil Menü Butonu"
                                 className="lg:hidden"
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             >
