@@ -40,66 +40,35 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
         const cleanSlug = slug.toLowerCase();
         const slugWords = cleanSlug.split("-");
         
-        // 1. Try to find a category that matches keywords in the slug
         const categories = await prisma.category.findMany({
             where: { isActive: true }
         });
 
-        let matchedCategory = null;
+        // 1. Highly specific keywords check first (e.g. denge, kask, eldiven)
+        const specificKeywordMap: { [key: string]: string[] } = {
+            "denge": ["denge"],
+            "kask": ["kask"],
+            "eldiven": ["eldiven"],
+            "lastik": ["lastik"],
+            "aksesuar": ["aksesuar"]
+        };
 
-        // Smart Category Mapping via keywords in slug words (for standard categories)
-        const categoryKeywordMap = [
-            { categorySlug: "cocuk-bisikleti", keywords: ["cocuk", "cocug"] },
-            { categorySlug: "dag-bisikleti", keywords: ["dag", "rockrider"] },
-            { categorySlug: "yol-yaris-bisikleti", keywords: ["yol", "yaris", "gravel"] },
-            { categorySlug: "katlanabilir-bisiklet", keywords: ["katlanir", "katlanabilir"] },
-            { categorySlug: "sehir-bisikleti", keywords: ["sehir", "tur"] },
-            { categorySlug: "elektrikli-bisiklet", keywords: ["elektrikli", "ebike"] }
-        ];
+        const matchedSpecificKeywords = Object.keys(specificKeywordMap).filter(kw => 
+            slugWords.some(word => word.startsWith(kw))
+        );
 
-        for (const mapping of categoryKeywordMap) {
-            const hasMatch = slugWords.some(word => 
-                mapping.keywords.some(kw => word.startsWith(kw))
-            );
-            if (hasMatch) {
-                matchedCategory = categories.find(cat => cat.slug === mapping.categorySlug);
-                if (matchedCategory) {
-                    break;
-                }
-            }
-        }
-
-        // Fallback to original category matching if no smart category match was found
-        if (!matchedCategory) {
-            const sortedCategories = [...categories].sort((a, b) => b.name.length - a.name.length);
-            for (const cat of sortedCategories) {
-                const catNameLower = cat.name.toLowerCase();
-                const cleanCatName = catNameLower.replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c');
-                if (cleanSlug.includes(cat.slug) || cleanSlug.includes(cleanCatName)) {
-                    matchedCategory = cat;
-                    break;
-                }
-            }
-        }
-
-        if (matchedCategory) {
-            // Find direct active subcategories of the matched category
-            const subcategories = await prisma.category.findMany({
+        if (matchedSpecificKeywords.length > 0) {
+            const searchTerms = matchedSpecificKeywords.flatMap(kw => specificKeywordMap[kw]);
+            
+            displayProducts = await prisma.product.findMany({
                 where: {
                     isActive: true,
-                    parentId: matchedCategory.id
-                },
-                select: { id: true }
-            });
-            const categoryIds = [matchedCategory.id, ...subcategories.map(c => c.id)];
-
-            displayProducts = await prisma.product.findMany({
-                where: { 
-                    isActive: true,
-                    OR: [
-                        { categories: { some: { id: { in: categoryIds } } } },
-                        { categoryId: { in: categoryIds } }
-                    ]
+                    OR: searchTerms.map(term => ({
+                        name: {
+                            contains: term,
+                            mode: 'insensitive'
+                        }
+                    }))
                 },
                 take: 4,
                 include: {
@@ -108,33 +77,93 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
             });
         }
 
-        // 2. If no category matched or category has no products, try keyword search on product names
+        // 2. If no specific products found, try Category matching
         if (displayProducts.length === 0) {
-            const keywordMap: { [key: string]: string[] } = {
+            let matchedCategory = null;
+
+            // Smart Category Mapping via keywords in slug words (for standard categories)
+            const categoryKeywordMap = [
+                { categorySlug: "cocuk-bisikleti", keywords: ["cocuk", "cocug"] },
+                { categorySlug: "dag-bisikleti", keywords: ["dag", "rockrider"] },
+                { categorySlug: "yol-yaris-bisikleti", keywords: ["yol", "yaris", "gravel"] },
+                { categorySlug: "katlanabilir-bisiklet", keywords: ["katlanir", "katlanabilir"] },
+                { categorySlug: "sehir-bisikleti", keywords: ["sehir", "tur"] },
+                { categorySlug: "elektrikli-bisiklet", keywords: ["elektrikli", "ebike"] }
+            ];
+
+            for (const mapping of categoryKeywordMap) {
+                const hasMatch = slugWords.some(word => 
+                    mapping.keywords.some(kw => word.startsWith(kw))
+                );
+                if (hasMatch) {
+                    matchedCategory = categories.find(cat => cat.slug === mapping.categorySlug);
+                    if (matchedCategory) {
+                        break;
+                    }
+                }
+            }
+
+            // Fallback to original category matching if no smart category match was found
+            if (!matchedCategory) {
+                const sortedCategories = [...categories].sort((a, b) => b.name.length - a.name.length);
+                for (const cat of sortedCategories) {
+                    const catNameLower = cat.name.toLowerCase();
+                    const cleanCatName = catNameLower.replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c');
+                    if (cleanSlug.includes(cat.slug) || cleanSlug.includes(cleanCatName)) {
+                        matchedCategory = cat;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedCategory) {
+                // Find direct active subcategories of the matched category
+                const subcategories = await prisma.category.findMany({
+                    where: {
+                        isActive: true,
+                        parentId: matchedCategory.id
+                    },
+                    select: { id: true }
+                });
+                const categoryIds = [matchedCategory.id, ...subcategories.map(c => c.id)];
+
+                displayProducts = await prisma.product.findMany({
+                    where: { 
+                        isActive: true,
+                        OR: [
+                            { categories: { some: { id: { in: categoryIds } } } },
+                            { categoryId: { in: categoryIds } }
+                        ]
+                    },
+                    take: 4,
+                    include: {
+                        _count: { select: { variants: true } }
+                    }
+                });
+            }
+        }
+
+        // 3. Fallback to general keyword search on product names if still empty
+        if (displayProducts.length === 0) {
+            const generalKeywordMap: { [key: string]: string[] } = {
                 "cocuk": ["cocuk", "çocuk"],
-                "denge": ["denge"],
                 "yol": ["yol"],
                 "dag": ["dag", "dağ"],
                 "katlanir": ["katlanir", "katlanır", "katlanabilir"],
                 "elektrikli": ["elektrikli"],
-                "sehir": ["sehir", "şehir"],
-                "kask": ["kask"],
-                "eldiven": ["eldiven"],
-                "lastik": ["lastik"],
-                "aksesuar": ["aksesuar"]
+                "sehir": ["sehir", "şehir"]
             };
 
-            const keywords = Object.keys(keywordMap);
+            const keywords = Object.keys(generalKeywordMap);
             const matchedKeywords = keywords.filter(kw => {
                 if (kw === "yol") {
-                    // Only match road bike keyword 'yol' if it exists as a standalone word in the slug (prevents 'yolu' false positive)
-                    return slugWords.includes("yol");
+                    return slugWords.includes("yol"); // Standalone only
                 }
                 return slugWords.some(word => word.startsWith(kw) || (kw === "cocuk" && word.startsWith("cocug")));
             });
 
             if (matchedKeywords.length > 0) {
-                const searchTerms = matchedKeywords.flatMap(kw => keywordMap[kw]);
+                const searchTerms = matchedKeywords.flatMap(kw => generalKeywordMap[kw]);
 
                 displayProducts = await prisma.product.findMany({
                     where: {
@@ -157,7 +186,7 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
         console.error("Error finding semantic recommended products:", err);
     }
 
-    // 3. Fallback to featured or latest products if no semantic products found
+    // 4. Fallback to featured or latest products if no semantic products found
     if (displayProducts.length === 0) {
         const featuredProducts = await prisma.product.findMany({
             where: { isActive: true, isFeatured: true },
