@@ -73,7 +73,11 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                     className="absolute inset-0"
                 >
                     {sliders[current].linkUrl ? (
-                        <Link href={sliders[current].linkUrl} className="absolute inset-0 block">
+                        <Link 
+                            href={sliders[current].linkUrl} 
+                            className="absolute inset-0 block"
+                            aria-label={sliders[current].title || "Slayt Kampanya Detayı"}
+                        >
                             {/* Background */}
                             {sliders[current].showOverlay && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
@@ -82,7 +86,7 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                                 {sliders[current].imageUrl && (
                                     <Image
                                         src={sliders[current].imageUrl}
-                                        alt={sliders[current].title || ""}
+                                        alt={sliders[current].title || "Slayt Kampanya Görseli"}
                                         fill
                                         className="object-cover object-right"
                                         priority={true}
@@ -138,7 +142,7 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                                 {sliders[current].imageUrl && (
                                     <Image
                                         src={sliders[current].imageUrl}
-                                        alt={sliders[current].title || ""}
+                                        alt={sliders[current].title || "Slayt Kampanya Görseli"}
                                         fill
                                         className="object-cover object-right"
                                         priority={true}
