@@ -173,18 +173,16 @@ export function ProductCardModern({
 
                 {/* Content Section */}
                 <div className="p-3 md:p-5 flex-1 flex flex-col bg-white dark:bg-gray-800/50">
-                    {/* Brand + Ücretsiz Kargo satırı */}
-                    <div className="flex items-center justify-between gap-1.5 mb-1.5 md:mb-2.5">
-                        {product.brand ? (
-                            <span className="inline-flex items-center bg-[#17457C]/8 dark:bg-[#17457C]/20 text-[#17457C] dark:text-blue-300 font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md whitespace-nowrap leading-tight" title={product.brand.name}>
+                    {/* Brand + Ücretsiz Kargo */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1.5 md:mb-2.5">
+                        {product.brand && (
+                            <span className="inline-flex items-center self-start bg-[#17457C]/8 dark:bg-[#17457C]/20 text-[#17457C] dark:text-blue-300 font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md whitespace-nowrap leading-tight" title={product.brand.name}>
                                 {product.brand.name}
                             </span>
-                        ) : (
-                            <span />
                         )}
-                        <span className="inline-flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 text-[10px] font-bold px-2 py-0.5 rounded-md leading-tight shadow-sm transition-all duration-300 group-hover/card:bg-emerald-500 group-hover/card:text-white group-hover/card:border-transparent whitespace-nowrap shrink-0">
+                        <span className="inline-flex items-center self-start gap-1 bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 text-[10px] font-bold px-2 py-0.5 rounded-md leading-tight shadow-sm transition-all duration-300 group-hover/card:bg-emerald-500 group-hover/card:text-white group-hover/card:border-transparent whitespace-nowrap shrink-0">
                             <Truck className="w-3 h-3 shrink-0" />
-                            <span className="hidden sm:inline">ÜCRETSİZ KARGO</span>
+                            <span>ÜCRETSİZ KARGO</span>
                         </span>
                     </div>
 
