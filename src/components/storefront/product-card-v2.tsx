@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, calculatePrice } from "@/lib/helpers";
-import { ShoppingCart, Heart, RefreshCw, Minus, Plus, Star, Eye } from "lucide-react";
+import { ShoppingCart, Heart, RefreshCw, Minus, Plus, Star, Eye, Truck } from "lucide-react";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -137,8 +137,9 @@ export function ProductCardV2({
                                 %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
                             </div>
                         )}
-                        <div className="bg-emerald-600 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-in fade-in duration-300">
-                            ÜCRETSİZ KARGO
+                        <div className="bg-emerald-600 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-in fade-in duration-300 flex items-center gap-1">
+                            <Truck className="w-3.5 h-3.5" />
+                            <span>ÜCRETSİZ KARGO</span>
                         </div>
                     </div>
                     {/* Badge */}
@@ -176,9 +177,11 @@ export function ProductCardV2({
                 <div className="p-4 flex-1 flex flex-col bg-white dark:bg-gray-800/50">
                     {/* Brand */}
                     {product.brand && (
-                        <p className="text-[#17457C] font-bold text-xs uppercase tracking-wider mb-1">
-                            {product.brand.name}
-                        </p>
+                        <div className="mb-2">
+                            <span className="inline-block bg-[#17457C]/5 dark:bg-[#17457C]/20 text-[#17457C] dark:text-blue-300 font-extrabold text-[9px] md:text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md truncate max-w-full" title={product.brand.name}>
+                                {product.brand.name}
+                            </span>
+                        </div>
                     )}
 
                     {/* Product Name */}
