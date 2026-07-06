@@ -261,23 +261,13 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
                             )}
                         </div>
 
-                        {/* ETBİS QR Kodu */}
-                        {settings?.etbisQrUrl && (
-                            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2 hover:bg-white/10 transition-all duration-300">
-                                <div className="flex flex-col items-start">
-                                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">ETBİS</span>
-                                    <span className="text-[9px] text-gray-500 leading-tight">Güvenli Alışveriş</span>
-                                </div>
-                                <div className="w-px h-8 bg-white/10" />
-                                <Image
-                                    src={settings.etbisQrUrl}
-                                    alt="ETBİS QR Kodu - Elektronik Ticaret Bilgi Sistemi"
-                                    width={48}
-                                    height={48}
-                                    className="rounded object-contain bg-white p-0.5"
-                                    title="ETBİS - T.C. Ticaret Bakanlığı Elektronik Ticaret Bilgi Sistemi"
-                                />
-                            </div>
+                        {/* ETBİS Embed Kodu */}
+                        {settings?.etbisEmbedCode && (
+                            <div
+                                className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 hover:bg-white/10 transition-all duration-300"
+                                title="ETBİS - T.C. Ticaret Bakanlığı Elektronik Ticaret Bilgi Sistemi"
+                                dangerouslySetInnerHTML={{ __html: settings.etbisEmbedCode }}
+                            />
                         )}
                     </div>
                 </div>

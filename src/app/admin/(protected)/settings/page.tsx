@@ -27,7 +27,7 @@ export default async function SettingsPage() {
         faviconUrl: "",
         ogImageUrl: "",
         appleTouchIconUrl: "",
-        etbisQrUrl: "",
+        etbisEmbedCode: "",
 
         // SEO
         seoTitle: "",

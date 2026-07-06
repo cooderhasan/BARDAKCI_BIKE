@@ -256,25 +256,26 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                 <div className="space-y-2 border border-dashed border-blue-400/40 rounded-xl p-4 bg-blue-500/5">
                                     <Label className="flex items-center gap-2 text-blue-400 font-semibold">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
                                         </svg>
-                                        ETBİS QR Kodu
+                                        ETBİS Embed Kodu
                                     </Label>
                                     <div className="text-xs text-gray-500 mb-2">
-                                        ETBİS&apos;e kayıt olduktan sonra size verilen QR kod görselini yükleyin. Footer&apos;da görüntülenecektir.
-                                        Önerilen boyut: <span className="font-bold">200x200px</span>. Format: <span className="font-bold">PNG</span>.
+                                        ETBİS sisteminden aldığınız <span className="font-bold">HTML embed kodunu</span> buraya yapıştırın.
+                                        Bu kod footer&apos;da görüntülenecektir. (genellikle <code className="bg-gray-800 px-1 rounded text-blue-300">&lt;a&gt;</code> veya <code className="bg-gray-800 px-1 rounded text-blue-300">&lt;iframe&gt;</code> içerir)
                                     </div>
-                                    <ImageUpload
-                                        value={settings.etbisQrUrl ? [settings.etbisQrUrl] : []}
-                                        onChange={(urls) => updateField("etbisQrUrl", urls[0] || "")}
-                                        onRemove={() => updateField("etbisQrUrl", "")}
-                                        maxFiles={1}
+                                    <Textarea
+                                        id="etbisEmbedCode"
+                                        value={settings.etbisEmbedCode || ""}
+                                        onChange={(e) => updateField("etbisEmbedCode", e.target.value)}
+                                        placeholder={'<a href="https://www.etbis.eticaret.gov.tr/..." target="_blank">\n  <img src="..." alt="ETBiS" />\n</a>'}
+                                        rows={5}
+                                        className="font-mono text-xs bg-gray-900 text-green-400 border-gray-700 resize-y"
                                     />
-                                    {settings.etbisQrUrl && (
+                                    {settings.etbisEmbedCode && (
                                         <div className="mt-2 text-xs text-green-500 flex items-center gap-1">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                                            ETBİS QR kodu footer&apos;da gösteriliyor
+                                            ETBİS embed kodu footer&apos;da gösteriliyor
                                         </div>
                                     )}
                                 </div>
