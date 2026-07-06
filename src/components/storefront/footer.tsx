@@ -236,26 +236,47 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
                         </p>
                     </div>
 
-                    {/* Payment Icons */}
-                    <div className="flex items-center gap-3 opacity-80 grayscale hover:grayscale-0 transition-all duration-300">
-                        <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center p-1 shadow-sm" title="Visa">
-                            <strong style={{ color: "#1A1F71", fontStyle: "italic", fontFamily: "Helvetica, Arial, sans-serif", fontSize: "1rem", lineHeight: 1, letterSpacing: "-0.5px", fontWeight: 900 }}>VISA</strong>
-                        </div>
-                        <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center shadow-sm" title="Mastercard">
-                            <svg viewBox="0 0 24 15" className="h-full w-auto max-w-full">
-                                <rect fill="none" width="24" height="15" />
-                                <circle cx="7" cy="7.5" r="7" fill="#EB001B" />
-                                <circle cx="17" cy="7.5" r="7" fill="#F79E1B" fillOpacity="0.8" />
-                            </svg>
-                        </div>
-                        <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center shadow-sm" title="Troy">
-                            <strong className="text-blue-900 text-xs font-black tracking-tighter">TROY</strong>
-                        </div>
-                        {(settings?.showBankTransfer === "true") && (
-                            <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center shadow-sm" title="Havale / EFT">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+                    {/* Payment Icons + ETBİS */}
+                    <div className="flex flex-col items-center md:items-end gap-3">
+                        <div className="flex items-center gap-3 opacity-80 grayscale hover:grayscale-0 transition-all duration-300">
+                            <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center p-1 shadow-sm" title="Visa">
+                                <strong style={{ color: "#1A1F71", fontStyle: "italic", fontFamily: "Helvetica, Arial, sans-serif", fontSize: "1rem", lineHeight: 1, letterSpacing: "-0.5px", fontWeight: 900 }}>VISA</strong>
+                            </div>
+                            <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center shadow-sm" title="Mastercard">
+                                <svg viewBox="0 0 24 15" className="h-full w-auto max-w-full">
+                                    <rect fill="none" width="24" height="15" />
+                                    <circle cx="7" cy="7.5" r="7" fill="#EB001B" />
+                                    <circle cx="17" cy="7.5" r="7" fill="#F79E1B" fillOpacity="0.8" />
                                 </svg>
+                            </div>
+                            <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center shadow-sm" title="Troy">
+                                <strong className="text-blue-900 text-xs font-black tracking-tighter">TROY</strong>
+                            </div>
+                            {(settings?.showBankTransfer === "true") && (
+                                <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center shadow-sm" title="Havale / EFT">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-700">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ETBİS QR Kodu */}
+                        {settings?.etbisQrUrl && (
+                            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2 hover:bg-white/10 transition-all duration-300">
+                                <div className="flex flex-col items-start">
+                                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">ETBİS</span>
+                                    <span className="text-[9px] text-gray-500 leading-tight">Güvenli Alışveriş</span>
+                                </div>
+                                <div className="w-px h-8 bg-white/10" />
+                                <Image
+                                    src={settings.etbisQrUrl}
+                                    alt="ETBİS QR Kodu - Elektronik Ticaret Bilgi Sistemi"
+                                    width={48}
+                                    height={48}
+                                    className="rounded object-contain bg-white p-0.5"
+                                    title="ETBİS - T.C. Ticaret Bakanlığı Elektronik Ticaret Bilgi Sistemi"
+                                />
                             </div>
                         )}
                     </div>
