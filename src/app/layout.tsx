@@ -47,9 +47,29 @@ export async function generateMetadata(): Promise<Metadata> {
     description: general.seoDescription || "B2B Toptan Satış Platformu",
     keywords: general.seoKeywords?.split(",") || [],
     icons: {
-      icon: general.faviconUrl || "/favicon.ico",
-      shortcut: general.faviconUrl || "/favicon.ico",
-      apple: general.appleTouchIconUrl || "/apple-touch-icon.png",
+      icon: [
+        {
+          url: general.faviconUrl || "/favicon.ico",
+          sizes: "32x32",
+          type: general.faviconUrl?.endsWith(".png") ? "image/png" : "image/x-icon",
+        },
+        {
+          url: general.faviconUrl || "/favicon.ico",
+          sizes: "16x16",
+          type: general.faviconUrl?.endsWith(".png") ? "image/png" : "image/x-icon",
+        },
+      ],
+      shortcut: {
+        url: general.faviconUrl || "/favicon.ico",
+        type: general.faviconUrl?.endsWith(".png") ? "image/png" : "image/x-icon",
+      },
+      apple: general.appleTouchIconUrl || general.faviconUrl || "/apple-touch-icon.png",
+      other: [
+        {
+          rel: "icon",
+          url: general.faviconUrl || "/favicon.ico",
+        },
+      ],
     },
     openGraph: {
       title: general.seoTitle || general.siteName || "B2B E-Ticaret Platformu",
