@@ -203,8 +203,9 @@ export default async function HomePage() {
         "telephone": general.phone || "+905345194472",
         "address": {
             "@type": "PostalAddress",
-            "streetAddress": general.address || "Merkez",
-            "addressLocality": "Gaziantep",
+            "streetAddress": general.address || "Yazır mah. Şafak Cd: No:32B",
+            "addressLocality": "Konya",
+            "addressRegion": "Selçuklu",
             "addressCountry": "TR"
         },
         "priceRange": "$$",
@@ -223,9 +224,25 @@ export default async function HomePage() {
         }
     };
 
+    const websiteSchema = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "url": baseUrl,
+        "name": general.siteName || "Bardakcı Bike",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": `${baseUrl}/products?q={search_term_string}`
+            },
+            "query-input": "required name=search_term_string"
+        }
+    };
+
     return (
         <>
             <JsonLd data={organizationSchema} />
+            <JsonLd data={websiteSchema} />
             <div className="container mx-auto px-4 py-8 max-w-7xl">
             <div className="space-y-12">
                 {/* Main Content */}
