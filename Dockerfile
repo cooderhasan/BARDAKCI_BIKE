@@ -4,7 +4,7 @@ FROM node:22-slim AS builder
 WORKDIR /app
 
 # Optimize memory for Next.js builds on constrained servers
-ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
 
 # Install dependencies for Prisma and native modules
