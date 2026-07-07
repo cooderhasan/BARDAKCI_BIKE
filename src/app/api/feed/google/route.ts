@@ -80,6 +80,57 @@ export async function GET(request: Request) {
       const weight = product.weight ? Number(product.weight) : null;
       const weightFormatted = weight ? `${weight.toFixed(2)} kg` : "";
 
+      // Dynamic Extraction of missing attributes for Google Merchant Center
+      const getColor = (name: string): string => {
+        const colors = [
+          "Mint Yeşili", "Mint Yeşil", "Siyah Kırmızı", "Antrasit Gri", "Gri Turuncu", "Siyah Turuncu", "Siyah Mavi",
+          "Beyaz Kırmızı", "Beyaz Mor", "Beyaz Pembe", "Metalik Gri", "Mor", "Sarı", "Pembe", "Gri", "Turuncu", 
+          "Kırmızı", "Beyaz", "Siyah", "Antrasit", "Fuşya", "Mavi", "Yeşil", "Turkuaz", "Krom", "Gold", "Gümüş", "Bordo"
+        ];
+        const lowerName = name.toLowerCase();
+        for (const color of colors) {
+          if (lowerName.includes(color.toLowerCase())) {
+            return color;
+          }
+        }
+        return "";
+      };
+
+      const getSize = (name: string): string => {
+        const sizeMatch = name.match(/(\d+(?:\.\d+)?\s*(?:Jant|J|″|"))/i) || name.match(/(\d+\s*cm)/i) || name.match(/(\d+\s*Kadro)/i);
+        return sizeMatch ? sizeMatch[0] : "";
+      };
+
+      const getGender = (name: string, dbGender?: string | null): string => {
+        if (dbGender) {
+          const lowerDb = dbGender.toLowerCase();
+          if (lowerDb.includes("kadın") || lowerDb.includes("kız") || lowerDb.includes("lady") || lowerDb.includes("female")) return "female";
+          if (lowerDb.includes("erkek") || lowerDb.includes("bay") || lowerDb.includes("male")) return "male";
+          return "unisex";
+        }
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes("kız") || lowerName.includes("bayan") || lowerName.includes("kadın") || lowerName.includes("lady") || lowerName.includes("queen") || lowerName.includes("sweera") || lowerName.includes("actress")) return "female";
+        if (lowerName.includes("erkek") || lowerName.includes("man") || lowerName.includes("boy") || lowerName.includes("tiger")) return "male";
+        return "unisex";
+      };
+
+      const getAgeGroup = (name: string): string => {
+        const lowerName = name.toLowerCase();
+        if (lowerName.includes("çocuk") || lowerName.includes("kız çocuk") || lowerName.includes("erkek çocuk") || lowerName.includes("bebek") || lowerName.includes("yaş") || lowerName.includes("bobo") || lowerName.includes("rose") || lowerName.includes("lily") || lowerName.includes("stitch") || lowerName.includes("lovely") || lowerName.includes("actress") || lowerName.includes("queen")) return "kids";
+        
+        const jantMatch = name.match(/(\d+)\s*(?:Jant|J|″|")/i);
+        if (jantMatch) {
+          const jantSize = parseInt(jantMatch[1]);
+          if (jantSize <= 20) return "kids";
+        }
+        return "adult";
+      };
+
+      const extractedColor = getColor(product.name);
+      const extractedSize = getSize(product.name);
+      const extractedGender = getGender(product.name, product.gender);
+      const extractedAgeGroup = getAgeGroup(product.name);
+
       items += `
     <item>
       <g:id>${escapeXml(product.id)}</g:id>
@@ -97,6 +148,10 @@ export async function GET(request: Request) {
       ${product.brand?.name ? `<g:brand>${escapeXml(product.brand.name)}</g:brand>` : ""}
       ${gtin ? `<g:gtin>${escapeXml(gtin)}</g:gtin>` : ""}
       ${mpn ? `<g:mpn>${escapeXml(mpn)}</g:mpn>` : ""}
+      ${extractedColor ? `<g:color>${escapeXml(extractedColor)}</g:color>` : ""}
+      ${extractedSize ? `<g:size>${escapeXml(extractedSize)}</g:size>` : ""}
+      <g:gender>${escapeXml(extractedGender)}</g:gender>
+      <g:age_group>${escapeXml(extractedAgeGroup)}</g:age_group>
       ${weightFormatted ? `<g:shipping_weight>${weightFormatted}</g:shipping_weight>` : ""}
       ${product.sku ? `<g:item_group_id>${escapeXml(product.sku)}</g:item_group_id>` : ""}
     </item>`;
