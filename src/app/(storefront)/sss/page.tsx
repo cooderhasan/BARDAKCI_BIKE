@@ -179,10 +179,10 @@ export default async function FAQPage() {
                                     <ArrowRight className="h-4 w-4" />
                                 </Link>
                                 <a 
-                                    href="tel:+905345194472"
+                                    href="tel:+905540144142"
                                     className="flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-800/40 text-white hover:bg-blue-800/60 font-bold rounded-xl border border-white/20 transition-all active:scale-95 text-sm"
                                 >
-                                    <Phone className="h-4 w-4" /> +90 534 519 4472
+                                    <Phone className="h-4 w-4" /> +90 554 014 4142
                                 </a>
                             </div>
                         </div>

@@ -178,7 +178,7 @@ const PreInformationFormDocument: React.FC<OrderPdfProps> = (props) => {
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>Telefon:</Text>
-                    <Text style={styles.value}>+905345194472</Text>
+                    <Text style={styles.value}>+905540144142</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>E-posta Adresi:</Text>
@@ -322,11 +322,11 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>Telefon:</Text>
-                    <Text style={styles.value}>+905345194472</Text>
+                    <Text style={styles.value}>+905540144142</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>GSM / WhatsApp:</Text>
-                    <Text style={styles.value}>+905345194472</Text>
+                    <Text style={styles.value}>+905540144142</Text>
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>E-Posta:</Text>
@@ -426,7 +426,7 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
                 <Text style={styles.paragraph}>
                     Bardakcı Bike - Mehmet Fatih Bardakcı
                     {'\n'}Adres: Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA
-                    {'\n'}Telefon: +905345194472 | E-Posta: info@bardakcibike.com.tr
+                    {'\n'}Telefon: +905540144142 | E-Posta: info@bardakcibike.com.tr
                 </Text>
             </Page>
         </Document>
@@ -480,7 +480,7 @@ const CancellationRefundPolicyDocument: React.FC<{ dateStr?: string }> = ({ date
                     {'\n'}ŞİRKET: Bardakcı Bike - Mehmet Fatih Bardakcı
                     {'\n'}ADI/UNVANI: Mehmet Fatih Bardakcı
                     {'\n'}ADRES: Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA
-                    {'\n'}TELEFON: +905345194472
+                    {'\n'}TELEFON: +905540144142
                     {'\n'}E-POSTA: info@bardakcibike.com.tr
                 </Text>
 

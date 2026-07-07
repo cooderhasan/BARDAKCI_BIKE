@@ -200,7 +200,7 @@ export default async function HomePage() {
         "logo": general.logoUrl ? (general.logoUrl.startsWith("http") ? general.logoUrl : `${baseUrl}${general.logoUrl}`) : `${baseUrl}/img/og-default.jpg`,
         "image": `${baseUrl}/img/og-default.jpg`,
         "description": general.seoDescription || "Toptan Bisiklet ve Yedek Parça Satış Platformu",
-        "telephone": general.phone || "+905345194472",
+        "telephone": general.phone || "+905540144142",
         "address": {
             "@type": "PostalAddress",
             "streetAddress": general.address || "Yazır mah. Şafak Cd: No:32B",

@@ -49,13 +49,13 @@ export default async function ContactPage() {
             {/* Quick Contact Badges */}
             <section className="container mx-auto px-4 -mt-8 relative z-20 mb-10">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05345194472'}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
+                    <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05540144142'}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
                         <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-500 transition-colors">
                             <Phone className="w-5 h-5 text-green-600 group-hover:text-white transition-colors" />
                         </div>
                         <div>
                             <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Telefon</p>
-                            <p className="font-bold text-gray-900 dark:text-white text-sm">{settings.phone || "0534 519 44 72"}</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm">{settings.phone || "0554 014 41 42"}</p>
                         </div>
                     </a>
 
@@ -70,7 +70,7 @@ export default async function ContactPage() {
                     </a>
 
                     {(() => {
-                        let cleanPhone = (settings.whatsappNumber || settings.phone || "05345194472").replace(/[^0-9]/g, "");
+                        let cleanPhone = (settings.whatsappNumber || settings.phone || "05540144142").replace(/[^0-9]/g, "");
                         if (cleanPhone.startsWith('0')) cleanPhone = '90' + cleanPhone.substring(1);
                         else if (!cleanPhone.startsWith('90') && cleanPhone.length === 10) cleanPhone = '90' + cleanPhone;
 
@@ -131,8 +131,8 @@ export default async function ContactPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Telefon</p>
-                                        <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05345194472'}`} className="block text-sm text-gray-700 dark:text-gray-300 hover:text-[#17457C] transition-colors font-medium">
-                                            {settings.phone || "0534 519 44 72"}
+                                        <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05540144142'}`} className="block text-sm text-gray-700 dark:text-gray-300 hover:text-[#17457C] transition-colors font-medium">
+                                            {settings.phone || "0554 014 41 42"}
                                         </a>
                                     </div>
                                 </div>

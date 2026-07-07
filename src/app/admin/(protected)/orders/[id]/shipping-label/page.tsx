@@ -75,7 +75,7 @@ export default async function ShippingLabelPage({ params }: { params: Promise<{ 
                             <div className="n11-header">Gönderici Bilgileri</div>
                             <div className="text-sm font-medium">
                                 <p>Şirket İsmi: <span className="ml-2">{settings.companyName || "BARDAKCI BIKE"}</span></p>
-                                <p>Şirket Tel: <span className="ml-3">{settings.phone || "05345194472"}</span></p>
+                                <p>Şirket Tel: <span className="ml-3">{settings.phone || "05540144142"}</span></p>
                             </div>
                         </div>
                     </div>

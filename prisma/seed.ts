@@ -78,7 +78,7 @@ async function main() {
             value: {
                 siteName: "Bardakcı Bike",
                 companyName: "Bardakcı Bike - Mehmet Fatih Bardakcı",
-                phone: "0534 519 44 72",
+                phone: "0554 014 41 42",
                 email: "info@bardakcibike.com.tr",
                 address: "Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA",
                 taxOffice: "Meram Vergi Dairesi",
