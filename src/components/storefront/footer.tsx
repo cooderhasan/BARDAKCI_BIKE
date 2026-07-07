@@ -163,6 +163,12 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
                                     İletişim
                                 </Link>
                             </li>
+                            <li>
+                                <Link href="/sss" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
+                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                    Sıkça Sorulan Sorular (S.S.S)
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
