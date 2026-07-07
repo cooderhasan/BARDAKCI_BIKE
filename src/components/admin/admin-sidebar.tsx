@@ -83,6 +83,7 @@ const menuGroups: MenuGroup[] = [
             { title: "Ayarlar", href: "/admin/settings", icon: Settings },
             { title: "İskonto Grupları", href: "/admin/discount-groups", icon: FileText },
             { title: "Politikalar", href: "/admin/policies", icon: Scale },
+            { title: "SSS Yönetimi", href: "/admin/faqs", icon: FileQuestion },
         ],
     },
 ];

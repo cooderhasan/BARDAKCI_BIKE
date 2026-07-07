@@ -145,6 +145,111 @@ async function main() {
 
     console.log("✅ Created policies");
 
+    // Create default FAQs
+    const faqs = [
+        {
+            id: "faq-1",
+            question: "Nasıl üye olabilirim ve fiyatları görebilirim?",
+            answer: "Sitemizin sağ üst köşesinde bulunan 'Giriş Yap/Kayıt Ol' bölümünden üyelik formunu doldurarak hızlıca üye olabilirsiniz. Bayi (B2B) fiyatlarını ve özel iskontoları görebilmek için üye olduktan sonra hesabınızın yönetici ekibimiz tarafından incelenip 'Bayi' statüsüne onaylanması gerekmektedir.",
+            category: "membership",
+            order: 1
+        },
+        {
+            id: "faq-2",
+            question: "Bayilik başvurusu için hangi evraklar gereklidir?",
+            answer: "Üyelik kaydınızı oluşturduktan sonra, bayi statüsünün onaylanması için firmanıza ait Vergi Levhası ve Faaliyet Belgesi gibi temel ticari belgeleri talep etmekteyiz. Bu belgeleri profilinizden yükleyebilir ya da doğrudan WhatsApp / E-posta destek hattımız üzerinden bizimle paylaşabilirsiniz.",
+            category: "membership",
+            order: 2
+        },
+        {
+            id: "faq-3",
+            question: "Bayilere özel iskonto oranları nasıl belirlenir?",
+            answer: "Bayi iskonto oranlarımız; bayimizin yıllık alım taahhüdü, sipariş sıklığı ve ödeme tipine (Nakit, Havale/EFT, Kredi Kartı) göre kademelendirilmektedir. Onaylanan bayilerimiz kendilerine tanımlanan özel indirimli fiyatları sisteme giriş yaptıktan sonra otomatik olarak görürler.",
+            category: "membership",
+            order: 3
+        },
+        {
+            id: "faq-4",
+            question: "Hangi ödeme yöntemlerini kullanabilirim?",
+            answer: "Siparişlerinizde Güvenli Kredi Kartı ile Ödeme (PayTR altyapısı ile tek çekim veya taksit seçenekleri) veya Banka Havalesi / EFT yöntemlerini kullanabilirsiniz. Onaylı ve limiti bulunan anlaşmalı bayilerimiz için cari hesap ile ödeme seçeneği de aktif edilmektedir.",
+            category: "orders",
+            order: 1
+        },
+        {
+            id: "faq-5",
+            question: "Minimum sipariş limiti (Sepet Limiti) var mı?",
+            answer: "Perakende alışverişleriniz için herhangi bir minimum sipariş limiti bulunmamaktadır. Ancak B2B toptan bayi fiyatlarından faydalanabilmek ve kargo avantajlarından yararlanabilmek için belirlenen asgari sipariş tutarlarına ulaşmanız gerekebilir. Güncel limitleri sepet sayfanızda görebilirsiniz.",
+            category: "orders",
+            order: 2
+        },
+        {
+            id: "faq-6",
+            question: "Kredi kartına taksit imkanı var mı?",
+            answer: "Evet, tüm anlaşmalı banka kredi kartlarına (Bonus, World, Axess, Maximum, CardFinans, Paraf) PayTR güvencesiyle 12 aya varan taksit seçenekleri sunmaktayız. Taksit oranları ve vade farkı detayları ödeme sayfasında kart bilgilerinizi girdiğinizde listelenir.",
+            category: "orders",
+            order: 3
+        },
+        {
+            id: "faq-7",
+            question: "Siparişler ne kadar sürede kargoya verilir?",
+            answer: "Hafta içi saat 14:00'e kadar verilen ve ödemesi onaylanan siparişleriniz genellikle aynı gün, bu saatten sonraki siparişler ise en geç bir sonraki iş günü içerisinde kargoya teslim edilmektedir. Toplu B2B siparişlerinizde kargo hazırlık süresi sipariş hacmine göre 1-2 iş günü sürebilir.",
+            category: "shipping",
+            order: 1
+        },
+        {
+            id: "faq-8",
+            question: "Kargo ücreti ne kadar? Ücretsiz kargo limiti var mı?",
+            answer: "Belirli bir tutarın üzerindeki alışverişlerinizde kargo ücretsizdir. Toptan siparişlerde ise hacim ve ağırlığa (Desi) bağlı olarak en uygun anlaşmalı ambar veya kargo firmaları tercih edilmektedir. Kargo detaylarını sipariş onay aşamasında görebilirsiniz.",
+            category: "shipping",
+            order: 2
+        },
+        {
+            id: "faq-9",
+            question: "Kargodan gelen koliyi teslim alırken nelere dikkat etmeliyim?",
+            answer: "Gelen kargonun dış kutusunda ezilme, yırtılma veya ıslanma gibi bir hasar varsa kesinlikle teslim almayınız ve kargo görevlisine 'Hasar Tespit Tutanağı' tutturunuz. Tutanak tutulmayan kargolarda, taşıma esnasında oluşabilecek hasarrlardan firmamız sorumlu tutulamamaktadır.",
+            category: "shipping",
+            order: 3
+        },
+        {
+            id: "faq-10",
+            question: "Satın aldığım bisikletin kurulumu nasıl yapılır? Ücretli midir?",
+            answer: "Satın aldığınız tüm orijinal bisikletler kutulu ve yarı demonte olarak gönderilir. Garanti kapsamının başlaması için bisikletinizi kesinlikle yetkili Bisan, Ümit veya ilgili markanın anlaşmalı yetkili servisinde kurdurmanız gerekmektedir. Anlaşmalı yetkili servislerde ilk kurulum tamamen ücretsizdir. Kurulumu kendiniz yapmanız durumunda ürün garanti kapsamı dışında kalır.",
+            category: "service",
+            order: 1
+        },
+        {
+            id: "faq-11",
+            question: "Ürünlerin garanti süresi ne kadardır?",
+            answer: "Sitemizde satışı yapılan tüm bisikletler ve elektrikli araçlar, üretici veya ithalatçı firma garantisi altında olup asgari 2 yıl (24 ay) resmi garantilidir. Kutu içerisinden çıkan garanti belgesini ve adınıza düzenlenen faturayı garanti süresi boyunca saklamanız gerekmektedir.",
+            category: "service",
+            order: 2
+        },
+        {
+            id: "faq-12",
+            question: "İade ve değişim prosedürünüz nedir?",
+            answer: "Tüketici Kanunu gereği, satın aldığınız kutusu açılmamış, kurulmamış ve kullanılmamış ürünleri 14 gün içerisinde herhangi bir gerekçe göstermeksizin iade edebilirsiniz. İade edilecek ürünün orijinal kutusu, faturası ve tüm aparatlarıyla birlikte eksiksiz gönderilmesi gerekmektedir. B2B toptan alımlarda iade süreçleri ticari sözleşme şartlarına tabidir.",
+            category: "service",
+            order: 3
+        }
+    ];
+
+    for (const faq of faqs) {
+        await prisma.fAQ.upsert({
+            where: { id: faq.id },
+            update: {},
+            create: {
+                id: faq.id,
+                question: faq.question,
+                answer: faq.answer,
+                category: faq.category,
+                order: faq.order,
+                isActive: true
+            }
+        });
+    }
+
+    console.log("✅ Created default FAQs");
+
     console.log("🎉 Seeding completed!");
 }
 
@@ -156,3 +261,4 @@ main()
     .finally(async () => {
         await prisma.$disconnect();
     });
+

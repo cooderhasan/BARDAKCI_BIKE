@@ -1,8 +1,11 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { JsonLd } from "@/components/seo/json-ld";
+import { getAllFAQs } from "@/app/actions/faq";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HelpCircle, Phone, Mail, ArrowRight, MessageSquare, ClipboardCheck, Truck, ShieldCheck, CreditCard, UserPlus } from "lucide-react";
+import { HelpCircle, Phone, Mail, ArrowRight, MessageSquare, Truck, ShieldCheck, CreditCard, UserPlus } from "lucide-react";
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
     title: "Sıkça Sorulan Sorular (S.S.S) | Bardakcı Bike",
@@ -15,117 +18,62 @@ export const metadata: Metadata = {
     }
 };
 
-interface FAQItem {
-    id: string;
-    question: string;
-    answer: string;
-}
-
 interface FAQGroup {
     category: string;
     title: string;
     icon: React.ReactNode;
-    items: FAQItem[];
+    items: any[];
 }
 
-export default function FAQPage() {
-    const faqGroups: FAQGroup[] = [
+export default async function FAQPage() {
+    const faqs = await getAllFAQs(true); // Fetch only active FAQs from database
+
+    const baseGroups: FAQGroup[] = [
         {
             category: "membership",
             title: "Üyelik & Bayilik",
             icon: <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
-            items: [
-                {
-                    id: "m-1",
-                    question: "Nasıl üye olabilirim ve fiyatları görebilirim?",
-                    answer: "Sitemizin sağ üst köşesinde bulunan 'Giriş Yap/Kayıt Ol' bölümünden üyelik formunu doldurarak hızlıca üye olabilirsiniz. Bayi (B2B) fiyatlarını ve özel iskontoları görebilmek için üye olduktan sonra hesabınızın yönetici ekibimiz tarafından incelenip 'Bayi' statüsüne onaylanması gerekmektedir."
-                },
-                {
-                    id: "m-2",
-                    question: "Bayilik başvurusu için hangi evraklar gereklidir?",
-                    answer: "Üyelik kaydınızı oluşturduktan sonra, bayi statüsünün onaylanması için firmanıza ait Vergi Levhası ve Faaliyet Belgesi gibi temel ticari belgeleri talep etmekteyiz. Bu belgeleri profilinizden yükleyebilir ya da doğrudan WhatsApp / E-posta destek hattımız üzerinden bizimle paylaşabilirsiniz."
-                },
-                {
-                    id: "m-3",
-                    question: "Bayilere özel iskonto oranları nasıl belirlenir?",
-                    answer: "Bayi iskonto oranlarımız; bayimizin yıllık alım taahhüdü, sipariş sıklığı ve ödeme tipine (Nakit, Havale/EFT, Kredi Kartı) göre kademelendirilmektedir. Onaylanan bayilerimiz kendilerine tanımlanan özel indirimli fiyatları sisteme giriş yaptıktan sonra otomatik olarak görürler."
-                }
-            ]
+            items: faqs.filter(f => f.category === "membership")
         },
         {
             category: "orders",
             title: "Sipariş & Ödeme",
             icon: <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
-            items: [
-                {
-                    id: "o-1",
-                    question: "Hangi ödeme yöntemlerini kullanabilirim?",
-                    answer: "Siparişlerinizde Güvenli Kredi Kartı ile Ödeme (PayTR altyapısı ile tek çekim veya taksit seçenekleri) veya Banka Havalesi / EFT yöntemlerini kullanabilirsiniz. Onaylı ve limiti bulunan anlaşmalı bayilerimiz için cari hesap ile ödeme seçeneği de aktif edilmektedir."
-                },
-                {
-                    id: "o-2",
-                    question: "Minimum sipariş limiti (Sepet Limiti) var mı?",
-                    answer: "Perakende alışverişleriniz için herhangi bir minimum sipariş limiti bulunmamaktadır. Ancak B2B toptan bayi fiyatlarından faydalanabilmek ve kargo avantajlarından yararlanabilmek için belirlenen asgari sipariş tutarlarına ulaşmanız gerekebilir. Güncel limitleri sepet sayfanızda görebilirsiniz."
-                },
-                {
-                    id: "o-3",
-                    question: "Kredi kartına taksit imkanı var mı?",
-                    answer: "Evet, tüm anlaşmalı banka kredi kartlarına (Bonus, World, Axess, Maximum, CardFinans, Paraf) PayTR güvencesiyle 12 aya varan taksit seçenekleri sunmaktayız. Taksit oranları ve vade farkı detayları ödeme sayfasında kart bilgilerinizi girdiğinizde listelenir."
-                }
-            ]
+            items: faqs.filter(f => f.category === "orders")
         },
         {
             category: "shipping",
             title: "Teslimat & Kargo",
             icon: <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
-            items: [
-                {
-                    id: "s-1",
-                    question: "Siparişler ne kadar sürede kargoya verilir?",
-                    answer: "Hafta içi saat 14:00'e kadar verilen ve ödemesi onaylanan siparişleriniz genellikle aynı gün, bu saatten sonraki siparişler ise en geç bir sonraki iş günü içerisinde kargoya teslim edilmektedir. Toplu B2B siparişlerinizde kargo hazırlık süresi sipariş hacmine göre 1-2 iş günü sürebilir."
-                },
-                {
-                    id: "s-2",
-                    question: "Kargo ücreti ne kadar? Ücretsiz kargo limiti var mı?",
-                    answer: "Belirli bir tutarın üzerindeki alışverişlerinizde kargo ücretsizdir. Toptan siparişlerde ise hacim ve ağırlığa (Desi) bağlı olarak en uygun anlaşmalı ambar veya kargo firmaları tercih edilmektedir. Kargo detaylarını sipariş onay aşamasında görebilirsiniz."
-                },
-                {
-                    id: "s-3",
-                    question: "Kargodan gelen koliyi teslim alırken nelere dikkat etmeliyim?",
-                    answer: "Gelen kargonun dış kutusunda ezilme, yırtılma veya ıslanma gibi bir hasar varsa kesinlikle teslim almayınız ve kargo görevlisine 'Hasar Tespit Tutanağı' tutturunuz. Tutanak tutulmayan kargolarda, taşıma esnasında oluşabilecek hasarlardan firmamız sorumlu tutulamamaktadır."
-                }
-            ]
+            items: faqs.filter(f => f.category === "shipping")
         },
         {
             category: "service",
             title: "Kurulum, Garanti & İade",
             icon: <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
-            items: [
-                {
-                    id: "w-1",
-                    question: "Satın aldığım bisikletin kurulumu nasıl yapılır? Ücretli midir?",
-                    answer: "Satın aldığınız tüm orijinal bisikletler kutulu ve yarı demonte olarak gönderilir. Garanti kapsamının başlaması için bisikletinizi kesinlikle yetkili Bisan, Ümit veya ilgili markanın anlaşmalı yetkili servisinde kurdurmanız gerekmektedir. Anlaşmalı yetkili servislerde ilk kurulum tamamen ücretsizdir. Kurulumu kendiniz yapmanız durumunda ürün garanti kapsamı dışında kalır."
-                },
-                {
-                    id: "w-2",
-                    question: "Ürünlerin garanti süresi ne kadardır?",
-                    answer: "Sitemizde satışı yapılan tüm bisikletler ve elektrikli araçlar, üretici veya ithalatçı firma garantisi altında olup asgari 2 yıl (24 ay) resmi garantilidir. Kutu içerisinden çıkan garanti belgesini ve adınıza düzenlenen faturayı garanti süresi boyunca saklamanız gerekmektedir."
-                },
-                {
-                    id: "w-3",
-                    question: "İade ve değişim prosedürünüz nedir?",
-                    answer: "Tüketici Kanunu gereği, satın aldığınız kutusu açılmamış, kurulmamış ve kullanılmamış ürünleri 14 gün içerisinde herhangi bir gerekçe göstermeksizin iade edebilirsiniz. İade edilecek ürünün orijinal kutusu, faturası ve tüm aparatlarıyla birlikte eksiksiz gönderilmesi gerekmektedir. B2B toptan alımlarda iade süreçleri ticari sözleşme şartlarına tabidir."
-                }
-            ]
+            items: faqs.filter(f => f.category === "service")
         }
     ];
 
+    // Filter out groups with no items
+    const faqGroups = baseGroups.filter(g => g.items.length > 0);
+
+    // Collect any other categories not covered by base categories
+    const otherItems = faqs.filter(f => !["membership", "orders", "shipping", "service"].includes(f.category));
+    if (otherItems.length > 0) {
+        faqGroups.push({
+            category: "other",
+            title: "Diğer Konular",
+            icon: <HelpCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
+            items: otherItems
+        });
+    }
+
     // Build the JSON-LD FAQ Schema
-    const allFaqs = faqGroups.flatMap(group => group.items);
     const faqSchema = {
         "@context": "https://schema.org",
         "@type": "FAQPage",
-        "mainEntity": allFaqs.map(faq => ({
+        "mainEntity": faqs.map(faq => ({
             "@type": "Question",
             "name": faq.question,
             "acceptedAnswer": {
@@ -159,40 +107,50 @@ export default function FAQPage() {
 
                 {/* Main Content Area */}
                 <div className="max-w-4xl mx-auto px-4 mt-12">
-                    <div className="grid gap-8">
-                        {faqGroups.map((group) => (
-                            <div 
-                                key={group.category} 
-                                className="bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-gray-700/60 hover:shadow-md transition-all duration-300"
-                            >
-                                <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100 dark:border-gray-700">
-                                    <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                                        {group.icon}
+                    {faqGroups.length === 0 ? (
+                        <div className="text-center bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm border border-gray-100 dark:border-gray-700">
+                            <HelpCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Soru Bulunamadı</h2>
+                            <p className="text-gray-500 text-sm">
+                                Şu anda sisteme eklenmiş sıkça sorulan soru bulunmamaktadır. Lütfen daha sonra tekrar deneyiniz.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-8">
+                            {faqGroups.map((group) => (
+                                <div 
+                                    key={group.category} 
+                                    className="bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-gray-700/60 hover:shadow-md transition-all duration-300"
+                                >
+                                    <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100 dark:border-gray-700">
+                                        <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                            {group.icon}
+                                        </div>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                            {group.title}
+                                        </h2>
                                     </div>
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                        {group.title}
-                                    </h2>
-                                </div>
 
-                                <Accordion type="single" collapsible className="w-full space-y-2">
-                                    {group.items.map((item) => (
-                                        <AccordionItem 
-                                            key={item.id} 
-                                            value={item.id}
-                                            className="border border-gray-100 dark:border-gray-700/50 rounded-xl px-4 md:px-5 hover:border-blue-100 dark:hover:border-blue-900/40 hover:bg-gray-50/30 dark:hover:bg-gray-800/30 transition-all"
-                                        >
-                                            <AccordionTrigger className="text-left text-sm md:text-base font-bold text-gray-800 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-400 hover:no-underline py-4">
-                                                {item.question}
-                                            </AccordionTrigger>
-                                            <AccordionContent className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed pb-4 pt-1 font-medium">
-                                                {item.answer}
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                </Accordion>
-                            </div>
-                        ))}
-                    </div>
+                                    <Accordion type="single" collapsible className="w-full space-y-2">
+                                        {group.items.map((item) => (
+                                            <AccordionItem 
+                                                key={item.id} 
+                                                value={item.id}
+                                                className="border border-gray-100 dark:border-gray-700/50 rounded-xl px-4 md:px-5 hover:border-blue-100 dark:hover:border-blue-900/40 hover:bg-gray-50/30 dark:hover:bg-gray-800/30 transition-all"
+                                            >
+                                                <AccordionTrigger className="text-left text-sm md:text-base font-bold text-gray-800 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-400 hover:no-underline py-4">
+                                                    {item.question}
+                                                </AccordionTrigger>
+                                                <AccordionContent className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed pb-4 pt-1 font-medium whitespace-pre-line">
+                                                    {item.answer}
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Support Call-to-Action Card */}
                     <div className="mt-12 bg-gradient-to-r from-blue-700 to-blue-600 dark:from-blue-800 dark:to-blue-700 text-white rounded-3xl p-8 md:p-10 shadow-xl relative overflow-hidden group">
