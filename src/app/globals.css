@@ -210,3 +210,13 @@
 .dark .product-description-content li {
   color: oklch(0.7 0.02 260);
 }
+
+/* Blog content image styling */
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5rem auto;
+  display: block;
+}
+

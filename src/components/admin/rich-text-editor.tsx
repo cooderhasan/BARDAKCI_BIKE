@@ -5,8 +5,10 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
-import { useState, useEffect, useCallback } from "react";
+import Image from "@tiptap/extension-image";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
     Bold,
     Italic,
@@ -23,6 +25,9 @@ import {
     Redo,
     Eraser,
     Code,
+    ImagePlus,
+    Tag,
+    Loader2,
 } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -35,6 +40,9 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
     const [isMounted, setIsMounted] = useState(false);
     const [showSource, setShowSource] = useState(false);
     const [sourceCode, setSourceCode] = useState("");
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const editor = useEditor({
         immediatelyRender: false,
@@ -54,6 +62,11 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
                 types: ["heading", "paragraph"],
             }),
             Underline,
+            Image.configure({
+                HTMLAttributes: {
+                    class: "rounded-lg max-w-full h-auto mx-auto block my-4",
+                },
+            }),
         ],
         content,
         editorProps: {
@@ -81,6 +94,84 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
             return;
         }
         editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    }, [editor]);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0 || !editor) return;
+
+        const file = e.target.files[0];
+
+        // Basic client-side validation
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error("Lütfen sadece JPEG, PNG, WebP veya GIF formatında bir görsel yükleyin.");
+            return;
+        }
+
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            toast.error("Görsel boyutu 5MB'ı aşamaz.");
+            return;
+        }
+
+        setUploadingImage(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Yükleme başarısız");
+            }
+
+            const data = await res.json();
+            const url = data.url;
+
+            // Prompt user for Alt Tag / Description (SEO)
+            const defaultAlt = file.name.split(".")[0];
+            const altText = window.prompt("Görsel için açıklama girin (SEO Alt Etiketi):", defaultAlt);
+
+            if (altText !== null) {
+                editor
+                    .chain()
+                    .focus()
+                    .setImage({ src: url, alt: altText, title: altText })
+                    .run();
+                toast.success("Görsel başarıyla yüklendi ve eklendi.");
+            } else {
+                editor
+                    .chain()
+                    .focus()
+                    .setImage({ src: url, alt: "", title: "" })
+                    .run();
+                toast.success("Görsel eklendi.");
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Görsel yüklenirken bir hata oluştu.");
+        } finally {
+            setUploadingImage(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""; // Reset file input
+            }
+        }
+    };
+
+    const handleEditAltText = useCallback(() => {
+        if (!editor) return;
+        const attrs = editor.getAttributes("image");
+        const currentAlt = attrs.alt || "";
+        const newAlt = window.prompt("Görsel Açıklamasını Düzenle (SEO Alt Etiketi):", currentAlt);
+
+        if (newAlt !== null) {
+            editor.chain().focus().updateAttributes("image", { alt: newAlt, title: newAlt }).run();
+            toast.success("Alt etiketi güncellendi.");
+        }
     }, [editor]);
 
     if (!isMounted) {
@@ -207,8 +298,47 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
                     size="sm"
                     onClick={setLink}
                     className={editor.isActive("link") ? "bg-gray-200" : ""}
+                    title="Bağlantı Ekle"
                 >
                     <LinkIcon className="h-4 w-4" />
+                </Button>
+
+                <div className="w-px bg-gray-300 mx-1" />
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                />
+
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    title="Görsel Yükle ve Ekle"
+                    className="hover:text-indigo-600"
+                >
+                    {uploadingImage ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <ImagePlus className="h-4 w-4" />
+                    )}
+                </Button>
+
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEditAltText}
+                    disabled={!editor.isActive("image")}
+                    className={editor.isActive("image") ? "text-indigo-600 hover:text-indigo-700 bg-indigo-50 animate-pulse" : "text-gray-400"}
+                    title="Görsel Alt Etiketini Düzenle"
+                >
+                    <Tag className="h-4 w-4" />
                 </Button>
 
                 <Button
