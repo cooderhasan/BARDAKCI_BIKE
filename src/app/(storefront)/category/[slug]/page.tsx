@@ -44,17 +44,28 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     if (!category) return { title: "Kategori Bulunamadı" };
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-    const description = `${category.name} kategorisindeki en kaliteli bisiklet modellerini inceleyin ve karşılaştırın.`;
+    
+    // Turkish Title Case Helper Function
+    const toTitleCase = (str: string) => {
+        return str.toLowerCase().replace(/(?:^|[\s-/])\S/g, (match) => {
+            return match.toLocaleUpperCase('tr-TR');
+        });
+    };
+    
+    const formattedName = toTitleCase(category.name);
+    const seoTitle = `${formattedName} Modelleri ve Fiyatları`;
+    
+    const description = `${formattedName} kategorisindeki en kaliteli bisiklet modellerini inceleyin ve karşılaştırın.`;
     const imageUrl = category.imageUrl ? (category.imageUrl.startsWith("http") ? category.imageUrl : `${baseUrl}${category.imageUrl}`) : `${baseUrl}/img/og-default.jpg`;
 
     return {
-        title: `${category.name} | Bardakcı Bike`,
+        title: seoTitle, // Root layout will automatically append " | Bardakcı Bike"
         description,
         alternates: {
             canonical: `${baseUrl}/category/${slug}`
         },
         openGraph: {
-            title: `${category.name} | Bardakcı Bike`,
+            title: seoTitle,
             description,
             url: `${baseUrl}/category/${slug}`,
             images: [{ url: imageUrl }],

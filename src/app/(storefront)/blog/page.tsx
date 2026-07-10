@@ -2,6 +2,12 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
 import { Clock, Calendar, ChevronRight } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: 'Bisiklet Rehberleri ve Blog Yazıları',
+    description: 'Bisiklet seçim rehberleri, bakım ipuçları, teknik incelemeler ve bisiklet kültürüne dair yazılarımızı keşfedin.',
+};
 
 export const dynamic = 'force-dynamic';
 

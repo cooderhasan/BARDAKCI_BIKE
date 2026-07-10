@@ -11,8 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         { route: "/indirimli-urunler", changeFrequency: "daily" as const, priority: 0.9 },
         { route: "/about", changeFrequency: "monthly" as const, priority: 0.5 },
         { route: "/contact", changeFrequency: "monthly" as const, priority: 0.5 },
-        { route: "/policies/commercial-communication", changeFrequency: "monthly" as const, priority: 0.3 },
-        { route: "/policies/payment-methods", changeFrequency: "monthly" as const, priority: 0.3 },
+        { route: "/sss", changeFrequency: "monthly" as const, priority: 0.5 },
+        { route: "/blog", changeFrequency: "daily" as const, priority: 0.8 },
     ].map((item) => ({
         url: `${baseUrl}${item.route}`,
         lastModified: new Date(),
@@ -80,5 +80,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
     }));
 
-    return [...routes, ...policyUrls, ...categoryUrls, ...productUrls];
+    // Blog Posts
+    let blogPosts: { slug: string; updatedAt: Date }[] = [];
+    try {
+        blogPosts = await prisma.blogPost.findMany({
+            where: { isActive: true },
+            select: { slug: true, updatedAt: true },
+        });
+    } catch (error) {
+        console.warn("Could not fetch blog posts for sitemap, skipping.", error);
+    }
+
+    const blogPostUrls = blogPosts.map((post) => ({
+        url: `${baseUrl}/blog/${post.slug}`,
+        lastModified: post.updatedAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+    }));
+
+    return [...routes, ...policyUrls, ...categoryUrls, ...productUrls, ...blogPostUrls];
 }

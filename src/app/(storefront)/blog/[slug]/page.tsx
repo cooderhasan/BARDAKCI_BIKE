@@ -3,11 +3,41 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Clock, Calendar, ChevronRight, Eye, ArrowLeft } from "lucide-react";
 import { ProductCardModern } from "@/components/storefront/product-card-modern";
+import { Metadata } from "next";
 
 interface PageProps {
     params: Promise<{
         slug: string;
     }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { slug } = await params;
+    const post = await prisma.blogPost.findUnique({
+        where: { slug, isActive: true },
+        select: { title: true, summary: true, imageUrl: true }
+    });
+
+    if (!post) return { title: "Yazı Bulunamadı" };
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const description = post.summary || "Bardakcı Bike blog sayfamızda bisiklet kültürü ve rehberleri hakkında yazılarımızı okuyun.";
+    const imageUrl = post.imageUrl ? (post.imageUrl.startsWith("http") ? post.imageUrl : `${baseUrl}${post.imageUrl}`) : `${baseUrl}/img/og-default.jpg`;
+
+    return {
+        title: post.title, // Root layout will automatically append " | Bardakcı Bike"
+        description,
+        alternates: {
+            canonical: `${baseUrl}/blog/${slug}`
+        },
+        openGraph: {
+            title: post.title,
+            description,
+            url: `${baseUrl}/blog/${slug}`,
+            images: [{ url: imageUrl }],
+            type: "article",
+        }
+    };
 }
 
 export const dynamic = 'force-dynamic';

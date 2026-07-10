@@ -20,10 +20,17 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
     if (!product) return { title: "Ürün Bulunamadı" };
 
-    const description = product.description?.replace(/<[^>]*>?/gm, "").slice(0, 160) || `${product.name} uygun fiyat ve taksit seçenekleriyle Bardakcı Bike'ta.`;
+    // Strip HTML tags and create a clean description
+    const cleanDesc = product.description?.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
+    
+    // Truncate cleanly up to ~155 chars, adding ellipsis if it's too long
+    const maxDescLength = 155;
+    const description = cleanDesc 
+        ? (cleanDesc.length > maxDescLength ? cleanDesc.slice(0, maxDescLength).trim() + "..." : cleanDesc)
+        : `${product.name} uygun fiyat ve taksit seçenekleriyle Bardakcı Bike'ta.`;
 
     return {
-        title: `${product.name} | Bardakcı Bike`,
+        title: product.name, // Site name is appended automatically by layout.tsx
         description,
         openGraph: {
             title: product.name,
