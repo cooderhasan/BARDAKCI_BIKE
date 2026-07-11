@@ -119,7 +119,7 @@ export class N11Client {
 
                 if (!response.ok) {
                     console.error(`N11 API Error Response [${endpoint}]:`, JSON.stringify(data));
-                    const errorDetail = data.errors?.[0]?.message || data.message || data.errorDescription || `HTTP ${response.status}`;
+                    const errorDetail = data.errors?.[0]?.message || data.message || data.errorDescription || data.errorMessage || `HTTP ${response.status}`;
                     throw new Error(`N11 API Hatası: ${errorDetail}`);
                 }
 
