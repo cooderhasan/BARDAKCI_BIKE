@@ -440,17 +440,22 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
         const mappedCat = product.categories.find((c: any) => c.n11CategoryId !== null);
         if (!mappedCat) return { success: false, message: "Ürünün kategorisi N11 ile eşleşmemiş." };
 
-        // Build attributes in REST API format: { id, valueId, customValue }
-        // UI sends attributes with id, valueId, customValue - pass through directly
-        // Omit null values to prevent N11 serialization issues (HTTP 500)
+        // Build attributes in REST API format: { id, valueId } OR { id, customValue }
+        // N11 REST API rejects TASK_ERR_001 if both valueId and customValue are sent together!
         const mappedAttributes = attributes
             .filter((attr: any) => attr.id != null && attr.id !== '')
             .map((attr: any) => {
                 const a: any = { id: attr.id };
-                if (attr.valueId != null && attr.valueId !== "") a.valueId = attr.valueId;
-                if (attr.customValue != null && attr.customValue !== "") a.customValue = attr.customValue;
+                // If valueId exists, use ONLY valueId (predefined list value)
+                // If no valueId, use ONLY customValue (free text)
+                if (attr.valueId != null && attr.valueId !== "" && attr.valueId !== 0) {
+                    a.valueId = attr.valueId;
+                } else if (attr.customValue != null && attr.customValue !== "") {
+                    a.customValue = attr.customValue;
+                }
                 return a;
-            });
+            })
+            .filter((attr: any) => attr.valueId != null || attr.customValue != null);
 
         // Determine if product has variants
         const hasVariants = (product as any).variants && (product as any).variants.length > 0;

@@ -267,6 +267,7 @@ export class N11Client {
                     id: attr.attributeId || attr.id,
                     name: attr.attributeName || attr.name,
                     mandatory: attr.isMandatory === true || attr.mandatory === true,
+                    isCustomValue: attr.isCustomValue === true,
                     values: rawValues.map((v: any) => {
                         if (typeof v === 'string') return { id: null, name: v };
                         const name = v.name ?? v.attributeValue ?? v.value ?? v.label ?? JSON.stringify(v);
@@ -289,7 +290,6 @@ export class N11Client {
             // Official Doc: POST https://api.n11.com/ms/product/tasks/price-stock-update
             const payload = {
                 payload: {
-                    integrator: "SRN_Entegrasyon",
                     skus: skus.map(s => ({
                         ...s,
                         salePrice: s.salePrice ? Math.round(Number(s.salePrice) * 100) / 100 : undefined,
@@ -328,16 +328,22 @@ export class N11Client {
                         url: url,
                         order: index + 1
                     })),
-                    // REST API attributes: id + valueId/customValue (NOT name/value)
-                    // Filter out attributes without id - N11 requires id for each attribute
+                    // REST API attributes: id + valueId OR customValue (NEVER both!)
+                    // N11 rejects with TASK_ERR_001 if both valueId and customValue are sent together
                     attributes: (skuData.attributes || [])
                         .filter((attr: any) => attr.id != null && attr.id !== '')
                         .map((attr: any) => {
                             const a: any = { id: attr.id };
-                            if (attr.valueId != null) a.valueId = attr.valueId;
-                            if (attr.customValue != null) a.customValue = attr.customValue;
+                            // If valueId exists, use ONLY valueId (predefined list value)
+                            // If no valueId, use ONLY customValue (free text)
+                            if (attr.valueId != null && attr.valueId !== '' && attr.valueId !== 0) {
+                                a.valueId = attr.valueId;
+                            } else if (attr.customValue != null && attr.customValue !== '') {
+                                a.customValue = attr.customValue;
+                            }
                             return a;
                         })
+                        .filter((attr: any) => attr.valueId != null || attr.customValue != null)
                 };
 
                 if (skuData.barcode) {
@@ -374,7 +380,6 @@ export class N11Client {
 
             const payload = {
                 payload: {
-                    integrator: product.integrator || "SRN_Entegrasyon",
                     skus: skus
                 }
             };
