@@ -554,12 +554,13 @@ model TrendyolProduct {
 }
 
 model N11Config {
-  id             String   @id @default(cuid())
-  apiKey         String
-  apiSecret      String
-  isActive       Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String   @id @default(cuid())
+  apiKey           String
+  apiSecret        String
+  isActive         Boolean  @default(false)
+  shipmentTemplate String   @default("Karaaslan")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("n11_configs")
 }

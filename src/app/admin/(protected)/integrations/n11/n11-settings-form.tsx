@@ -69,6 +69,20 @@ export function N11SettingsForm({ initialData }: Props) {
                         />
                     </div>
 
+                    <div className="space-y-2">
+                        <Label htmlFor="shipmentTemplate">Varsayılan Kargo Şablon Adı</Label>
+                        <Input
+                            id="shipmentTemplate"
+                            name="shipmentTemplate"
+                            defaultValue={initialData?.shipmentTemplate || "Karaaslan"}
+                            placeholder="N11 Kargo Şablon Adı (Örn: Standart)"
+                            required
+                        />
+                        <p className="text-xs text-gray-500">
+                            N11 panelinizdeki ("Hesabım &gt; Teslimat Bilgilerim") kargo şablon adı ile birebir aynı olmalıdır.
+                        </p>
+                    </div>
+
                     <div className="flex items-center space-x-2 pt-2">
                         <Switch
                             id="isActive"

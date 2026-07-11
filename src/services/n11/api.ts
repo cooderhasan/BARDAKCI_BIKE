@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 interface N11Creds {
     apiKey: string;
     apiSecret: string;
+    shipmentTemplate?: string;
 }
 
 export class N11Client {
@@ -17,10 +18,26 @@ export class N11Client {
     }
 
     async init() {
-        if (this.creds) return;
+        if (this.creds) {
+            if (!this.creds.shipmentTemplate) {
+                try {
+                    const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
+                    if (config) {
+                        this.creds.shipmentTemplate = config.shipmentTemplate || "Karaaslan";
+                    }
+                } catch (e) {
+                    this.creds.shipmentTemplate = "Karaaslan";
+                }
+            }
+            return;
+        }
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) throw new Error("Aktif N11 yapılandırması bulunamadı.");
-        this.creds = { apiKey: config.apiKey, apiSecret: config.apiSecret };
+        this.creds = { 
+            apiKey: config.apiKey, 
+            apiSecret: config.apiSecret, 
+            shipmentTemplate: config.shipmentTemplate || "Karaaslan" 
+        };
     }
 
     private getHeaders() {
@@ -56,7 +73,7 @@ export class N11Client {
     }
 
     private async callRest(endpoint: string, method = "GET", body?: any, retries = 2) {
-        if (!this.creds) await this.init();
+        await this.init();
 
         // Remove double slashes if any
         const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
@@ -300,7 +317,7 @@ export class N11Client {
                     currencyType: skuData.currencyType || "TL",
                     productMainId: skuData.productMainId || skuData.sellerCode || skuData.stockCode,
                     preparingDay: skuData.preparingDay ?? 3,
-                    shipmentTemplate: skuData.shipmentTemplate || "Karaaslan",
+                    shipmentTemplate: skuData.shipmentTemplate || this.creds?.shipmentTemplate || "Karaaslan",
                     stockCode: skuData.stockCode || skuData.sellerCode,
                     salePrice: skuData.salePrice != null ? Number(skuData.salePrice).toFixed(2) : null,
                     listPrice: skuData.listPrice != null ? Number(skuData.listPrice).toFixed(2) : null,

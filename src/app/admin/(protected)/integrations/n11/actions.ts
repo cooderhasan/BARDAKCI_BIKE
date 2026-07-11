@@ -19,25 +19,26 @@ export async function saveN11Config(prevState: any, formData: FormData) {
     try {
         const apiKey = formData.get("apiKey") as string;
         const apiSecret = formData.get("apiSecret") as string;
+        const shipmentTemplate = formData.get("shipmentTemplate") as string;
         const isActive = formData.get("isActive") === "on";
 
-        if (!apiKey || !apiSecret) {
-            return { success: false, message: "API Anahtarı ve Şifre zorunludur." };
+        if (!apiKey || !apiSecret || !shipmentTemplate) {
+            return { success: false, message: "API Anahtarı, Şifre ve Kargo Şablon Adı zorunludur." };
         }
 
-        console.log("💾 N11 Saving Config:", { apiKey, isActive });
+        console.log("💾 N11 Saving Config:", { apiKey, shipmentTemplate, isActive });
 
         const existing = await (prisma as any).n11Config.findFirst();
 
         if (existing) {
             await (prisma as any).n11Config.update({
                 where: { id: existing.id },
-                data: { apiKey, apiSecret, isActive }
+                data: { apiKey, apiSecret, shipmentTemplate, isActive }
             });
             console.log("✅ N11 Config Updated");
         } else {
             await (prisma as any).n11Config.create({
-                data: { apiKey, apiSecret, isActive }
+                data: { apiKey, apiSecret, shipmentTemplate, isActive }
             });
             console.log("✅ N11 Config Created");
         }
@@ -479,7 +480,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                     currencyType: "TL",
                     productMainId: productMainId,
                     preparingDay: 3,
-                    shipmentTemplate: (product as any).shipmentTemplate || "Karaaslan",
+                    shipmentTemplate: (product as any).shipmentTemplate || config.shipmentTemplate || "Karaaslan",
                     stockCode: variant.sku || variant.barcode || `${product.id}-${index}`,
                     barcode: variant.barcode || null,
                     salePrice: Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0),
@@ -502,7 +503,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 currencyType: "TL",
                 productMainId: productMainId,
                 preparingDay: 3,
-                shipmentTemplate: (product as any).shipmentTemplate || "Karaaslan",
+                shipmentTemplate: (product as any).shipmentTemplate || config.shipmentTemplate || "Karaaslan",
                 stockCode: product.sku || product.id,
                 barcode: product.barcode || null,
                 salePrice: Number(product.n11Price || product.listPrice),
@@ -523,7 +524,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 currencyType: "TL",
                 productMainId: productMainId,
                 preparingDay: 3,
-                shipmentTemplate: (product as any).shipmentTemplate || "Karaaslan",
+                shipmentTemplate: (product as any).shipmentTemplate || config.shipmentTemplate || "Karaaslan",
                 stockCode: product.sku || product.id,
                 barcode: product.barcode || null,
                 salePrice: Number(product.n11Price || product.listPrice),
