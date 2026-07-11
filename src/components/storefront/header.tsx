@@ -379,7 +379,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                                     isHovered ? "bg-white" : "hover:bg-white/10"
                                                 }`}
                                             >
-                                                <span className={`text-sm font-bold transition-colors text-center whitespace-nowrap ${
+                                                <span className={`text-sm font-bold transition-colors text-center whitespace-nowrap uppercase ${
                                                     isHovered ? "text-[#17457C]" : "text-white"
                                                 }`}>
                                                     {category.name}
