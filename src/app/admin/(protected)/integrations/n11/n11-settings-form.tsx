@@ -83,6 +83,20 @@ export function N11SettingsForm({ initialData }: Props) {
                         </p>
                     </div>
 
+                    <div className="space-y-2">
+                        <Label htmlFor="integratorName">Entegratör Adı</Label>
+                        <Input
+                            id="integratorName"
+                            name="integratorName"
+                            defaultValue={initialData?.integratorName || "Motovitrin"}
+                            placeholder="Entegratör adı (Örn: Motovitrin)"
+                            required
+                        />
+                        <p className="text-xs text-gray-500">
+                            N11 API&apos;sine gönderilen entegratör tanımlayıcı adı. Mağaza adınızı yazabilirsiniz.
+                        </p>
+                    </div>
+
                     <div className="flex items-center space-x-2 pt-2">
                         <Switch
                             id="isActive"

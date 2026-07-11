@@ -5,6 +5,7 @@ interface N11Creds {
     apiKey: string;
     apiSecret: string;
     shipmentTemplate?: string;
+    integratorName?: string;
 }
 
 export class N11Client {
@@ -19,14 +20,16 @@ export class N11Client {
 
     async init() {
         if (this.creds) {
-            if (!this.creds.shipmentTemplate) {
+            if (!this.creds.shipmentTemplate || !this.creds.integratorName) {
                 try {
                     const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
                     if (config) {
-                        this.creds.shipmentTemplate = config.shipmentTemplate || "Karaaslan";
+                        if (!this.creds.shipmentTemplate) this.creds.shipmentTemplate = config.shipmentTemplate || "Karaaslan";
+                        if (!this.creds.integratorName) this.creds.integratorName = config.integratorName || "Motovitrin";
                     }
                 } catch (e) {
-                    this.creds.shipmentTemplate = "Karaaslan";
+                    if (!this.creds.shipmentTemplate) this.creds.shipmentTemplate = "Karaaslan";
+                    if (!this.creds.integratorName) this.creds.integratorName = "Motovitrin";
                 }
             }
             return;
@@ -36,7 +39,8 @@ export class N11Client {
         this.creds = { 
             apiKey: config.apiKey, 
             apiSecret: config.apiSecret, 
-            shipmentTemplate: config.shipmentTemplate || "Karaaslan" 
+            shipmentTemplate: config.shipmentTemplate || "Karaaslan",
+            integratorName: config.integratorName || "Motovitrin"
         };
     }
 
@@ -290,6 +294,7 @@ export class N11Client {
             // Official Doc: POST https://api.n11.com/ms/product/tasks/price-stock-update
             const payload = {
                 payload: {
+                    integrator: this.creds?.integratorName || "Motovitrin",
                     skus: skus.map(s => ({
                         ...s,
                         salePrice: s.salePrice ? Math.round(Number(s.salePrice) * 100) / 100 : undefined,
@@ -380,6 +385,7 @@ export class N11Client {
 
             const payload = {
                 payload: {
+                    integrator: this.creds?.integratorName || "Motovitrin",
                     skus: skus
                 }
             };

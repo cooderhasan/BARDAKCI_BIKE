@@ -20,25 +20,26 @@ export async function saveN11Config(prevState: any, formData: FormData) {
         const apiKey = formData.get("apiKey") as string;
         const apiSecret = formData.get("apiSecret") as string;
         const shipmentTemplate = formData.get("shipmentTemplate") as string;
+        const integratorName = formData.get("integratorName") as string;
         const isActive = formData.get("isActive") === "on";
 
-        if (!apiKey || !apiSecret || !shipmentTemplate) {
-            return { success: false, message: "API Anahtarı, Şifre ve Kargo Şablon Adı zorunludur." };
+        if (!apiKey || !apiSecret || !shipmentTemplate || !integratorName) {
+            return { success: false, message: "API Anahtarı, Şifre, Kargo Şablon Adı ve Entegratör Adı zorunludur." };
         }
 
-        console.log("💾 N11 Saving Config:", { apiKey, shipmentTemplate, isActive });
+        console.log("💾 N11 Saving Config:", { apiKey, shipmentTemplate, integratorName, isActive });
 
         const existing = await (prisma as any).n11Config.findFirst();
 
         if (existing) {
             await (prisma as any).n11Config.update({
                 where: { id: existing.id },
-                data: { apiKey, apiSecret, shipmentTemplate, isActive }
+                data: { apiKey, apiSecret, shipmentTemplate, integratorName, isActive }
             });
             console.log("✅ N11 Config Updated");
         } else {
             await (prisma as any).n11Config.create({
-                data: { apiKey, apiSecret, shipmentTemplate, isActive }
+                data: { apiKey, apiSecret, shipmentTemplate, integratorName, isActive }
             });
             console.log("✅ N11 Config Created");
         }
