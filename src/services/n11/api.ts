@@ -291,8 +291,8 @@ export class N11Client {
                     integrator: "SRN_Entegrasyon",
                     skus: skus.map(s => ({
                         ...s,
-                        salePrice: s.salePrice ? Number(s.salePrice).toFixed(2) : undefined,
-                        listPrice: s.listPrice ? Number(s.listPrice).toFixed(2) : undefined
+                        salePrice: s.salePrice ? Math.round(Number(s.salePrice) * 100) / 100 : undefined,
+                        listPrice: s.listPrice ? Math.round(Number(s.listPrice) * 100) / 100 : undefined
                     }))
                 }
             };
@@ -319,8 +319,8 @@ export class N11Client {
                     preparingDay: skuData.preparingDay ?? 3,
                     shipmentTemplate: skuData.shipmentTemplate || this.creds?.shipmentTemplate || "Karaaslan",
                     stockCode: skuData.stockCode || skuData.sellerCode,
-                    salePrice: skuData.salePrice != null ? Number(skuData.salePrice).toFixed(2) : null,
-                    listPrice: skuData.listPrice != null ? Number(skuData.listPrice).toFixed(2) : null,
+                    salePrice: skuData.salePrice != null ? Math.round(Number(skuData.salePrice) * 100) / 100 : null,
+                    listPrice: skuData.listPrice != null ? Math.round(Number(skuData.listPrice) * 100) / 100 : null,
                     vatRate: skuData.vatRate ?? 20,
                     quantity: skuData.quantity || 0,
                     images: (skuData.images || []).slice(0, 8).map((url: string, index: number) => ({
@@ -331,12 +331,17 @@ export class N11Client {
                     // Filter out attributes without id - N11 requires id for each attribute
                     attributes: (skuData.attributes || [])
                         .filter((attr: any) => attr.id != null && attr.id !== '')
-                        .map((attr: any) => ({
-                            id: attr.id,
-                            valueId: attr.valueId ?? null,
-                            customValue: attr.customValue ?? null
-                        }))
+                        .map((attr: any) => {
+                            const a: any = { id: attr.id };
+                            if (attr.valueId != null) a.valueId = attr.valueId;
+                            if (attr.customValue != null) a.customValue = attr.customValue;
+                            return a;
+                        })
                 };
+
+                if (skuData.barcode) {
+                    sku.barcode = skuData.barcode;
+                }
 
                 // Optional fields - only add if provided
                 if (skuData.subtitle) {

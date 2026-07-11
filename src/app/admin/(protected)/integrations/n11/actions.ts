@@ -442,11 +442,15 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
 
         // Build attributes in REST API format: { id, valueId, customValue }
         // UI sends attributes with id, valueId, customValue - pass through directly
-        const mappedAttributes = attributes.map((attr: any) => ({
-            id: attr.id,
-            valueId: attr.valueId ?? null,
-            customValue: attr.customValue ?? null
-        }));
+        // Omit null values to prevent N11 serialization issues (HTTP 500)
+        const mappedAttributes = attributes
+            .filter((attr: any) => attr.id != null && attr.id !== '')
+            .map((attr: any) => {
+                const a: any = { id: attr.id };
+                if (attr.valueId != null && attr.valueId !== "") a.valueId = attr.valueId;
+                if (attr.customValue != null && attr.customValue !== "") a.customValue = attr.customValue;
+                return a;
+            });
 
         // Determine if product has variants
         const hasVariants = (product as any).variants && (product as any).variants.length > 0;
@@ -460,6 +464,10 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             const cleanUrl = url.startsWith("/") ? url : `/${url}`;
             return `${baseUrl}${cleanUrl}`;
         });
+
+        if (absoluteImages.length === 0) {
+            return { success: false, message: "N11'e ürün yüklemek için en az 1 ürün görseli bulunmalıdır." };
+        }
 
         // productMainId is required and must be same for all variants
         const productMainId = product.sku || product.id;
