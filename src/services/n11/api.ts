@@ -268,10 +268,11 @@ export class N11Client {
                     name: attr.attributeName || attr.name,
                     mandatory: attr.isMandatory === true || attr.mandatory === true,
                     values: rawValues.map((v: any) => {
-                        if (typeof v === 'string') return v;
-                        // Doc says 'name' inside 'value'
-                        return v.name ?? v.attributeValue ?? v.value ?? v.label ?? JSON.stringify(v);
-                    }).filter(Boolean)
+                        if (typeof v === 'string') return { id: null, name: v };
+                        const name = v.name ?? v.attributeValue ?? v.value ?? v.label ?? JSON.stringify(v);
+                        const id = v.id ?? v.attributeValueId ?? null;
+                        return { id, name };
+                    }).filter((v: any) => v && v.name)
                 };
             });
             
