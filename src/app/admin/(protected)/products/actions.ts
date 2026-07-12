@@ -301,18 +301,19 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     // --- ANLIK PAZARYERİ SENKRONİZASYONU ---
     // Ürün güncellendiğinde (stok/fiyat değişmiş olabilir), anlık olarak pazaryerlerini güncelle
+    // type: "prices" kullanarak hızlı fiyat+stok güncelleme API'sini çağırıyoruz
+    // (type: "products" yeni ürün oluşturma modudur, fiyat güncellemesi için YANLIŞ!)
     try {
-        // Doğrudan import edilen senkronizasyon fonksiyonlarını kullanıyoruz
-        // Not: Bu işlemler arka planda (await edilmeden) tetikleniyor ki kullanıcıyı bekletmesin
-        if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId]).catch(console.error);
+        // Doğrudan senkronizasyon fonksiyonlarını çağır (arka planda, kullanıcıyı bekletmeden)
+        if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId], "prices").catch(console.error);
         if (validatedData.isN11Active) syncProductsToN11([productId]).catch(console.error);
         if (validatedData.isHepsiburadaActive) syncProductsToHepsiburada([productId]).catch(console.error);
         
-        // Yedek olarak kuyruğa da ekleyebiliriz (opsiyonel)
+        // Yedek olarak kuyruğa da ekle (Redis/worker çalışıyorsa ikinci güvence)
         const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-        await addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: [productId] }).catch(console.error);
-        await addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: [productId] }).catch(console.error);
-        await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: [productId] }).catch(console.error);
+        await addMarketplaceSyncJob({ marketplace: "trendyol", type: "prices", productIds: [productId] }).catch(console.error);
+        await addMarketplaceSyncJob({ marketplace: "n11", type: "prices", productIds: [productId] }).catch(console.error);
+        await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "prices", productIds: [productId] }).catch(console.error);
     } catch (e) {
         console.error("Marketplace instant sync error:", e);
     }
