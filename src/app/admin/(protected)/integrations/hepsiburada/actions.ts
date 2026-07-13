@@ -397,7 +397,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                     const quantity = item.quantity || 1;
                     let price = 0;
                     if (item.unitPrice != null) {
-                        price = Number(item.unitPrice);
+                        price = Number(item.unitPrice?.amount ?? item.unitPrice);
                     } else if (item.price?.amount != null) {
                         price = Number(item.price.amount);
                     } else if (item.totalPrice?.amount != null) {
