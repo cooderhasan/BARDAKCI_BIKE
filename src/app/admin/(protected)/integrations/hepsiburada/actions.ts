@@ -394,15 +394,26 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                         continue;
                     }
 
-                    const unitPrice = item.unitPrice?.amount || item.unitPrice || item.totalPrice?.amount || 0;
                     const quantity = item.quantity || 1;
-                    const lineTotal = unitPrice * quantity;
+                    let price = 0;
+                    if (item.unitPrice != null) {
+                        price = Number(item.unitPrice);
+                    } else if (item.price?.amount != null) {
+                        price = Number(item.price.amount);
+                    } else if (item.totalPrice?.amount != null) {
+                        price = Number(item.totalPrice.amount) / quantity;
+                    } else {
+                        if (product) {
+                            price = Number((product as any).hepsiburadaPrice) || Number(product.listPrice) || 0;
+                        }
+                    }
+                    const lineTotal = price * quantity;
                     const vatRate = item.vatRate || item.vat || 20;
 
                     orderItemsToCreate.push({
                         productId: product.id,
                         quantity: quantity,
-                        unitPrice: unitPrice,
+                        unitPrice: price,
                         productName: item.name || item.productName || "HB Ürün",
                         lineTotal: lineTotal,
                         vatRate: vatRate,
