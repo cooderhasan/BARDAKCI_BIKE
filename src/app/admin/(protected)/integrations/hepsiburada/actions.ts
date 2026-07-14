@@ -982,6 +982,33 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
             }
         }
 
+        // Ayrıca envanter güncellemesini de gönder (Stok ve fiyatın açılması için)
+        const hepsiburadaSku = product.hepsiburadaProduct?.hbSku;
+        if (hepsiburadaSku) {
+            try {
+                const generalSettings = await getSiteSettings("general");
+                const defaultCritical = Number(generalSettings?.defaultCriticalStock || 10);
+                const criticalStock = product.criticalStock ?? defaultCritical;
+                const availableStock = Math.max(0, product.stock - criticalStock);
+
+                const hbItem = {
+                    hepsiburadaSku,
+                    merchantSku: product.hepsiburadaProduct?.merchantSku || product.sku || product.barcode || '',
+                    availableStock: Math.round(availableStock),
+                    price: Number(hbPrice.toFixed(2)),
+                    dispatchTime: 1,
+                    cargoCompany1: "Yurtiçi Kargo",
+                    maximumPurchasableQuantity: 100
+                };
+                
+                console.log("📡 HB Eşleşen Ürün İçin Envanter Güncelleniyor:", JSON.stringify(hbItem));
+                const uploadResult = await client.uploadInventory([hbItem]);
+                console.log("📡 Envanter Güncelleme Sonucu:", JSON.stringify(uploadResult));
+            } catch (e: any) {
+                console.error("⚠️ Envanter güncellenirken hata oluştu:", e.message);
+            }
+        }
+
         await (prisma as any).hepsiburadaProduct.upsert({
             where: { productId: product.id },
             update: { 
