@@ -1248,7 +1248,11 @@ export async function sendHepsiburadaInvoiceLink(packageNumber: string, orderNum
             isTestMode: true,
         });
 
-        const fakeInvoiceUrl = invoiceUrl || `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`;
+        let baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr";
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.slice(0, -1);
+        }
+        const fakeInvoiceUrl = invoiceUrl || `${baseUrl}/mock-invoice.pdf`;
         
         console.log(`🧾 Fatura Linki: Package ${packageNumber}, Order ${orderNumber}, URL: ${fakeInvoiceUrl}`);
         
