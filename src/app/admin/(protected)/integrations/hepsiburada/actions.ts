@@ -1043,8 +1043,10 @@ export async function createHepsiburadaTestOrder() {
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif bir SIT (Test) bağlantısı bulunamadı." };
+        
+        const merchantId = config.merchantId || config.username;
         // SIT Test Sipariş Oluşturma - stub endpoint (sadece bu POST kabul eder)
-        const sitUrl = `https://oms-stub-external-sit.hepsiburada.com/orders/merchantid/${config.merchantId}`;
+        const sitUrl = `https://oms-stub-external-sit.hepsiburada.com/orders/merchantid/${merchantId}`;
 
         // Aktif listing'den gerçek SKU bilgilerini çek
         const client = new HepsiburadaClient({
@@ -1079,7 +1081,6 @@ export async function createHepsiburadaTestOrder() {
         }
 
         const orderId = `HB${Date.now()}`;
-        const merchantId = config.merchantId || config.username;
 
         // HB SIT sipariş - resmi dokümantasyona tam uygun payload
         // https://developers.hepsiburada.com/hepsiburada/reference/post_orders-merchantid-merchantid
