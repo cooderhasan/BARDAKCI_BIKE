@@ -32,7 +32,12 @@ export class HepsiburadaClient {
 
     constructor(creds?: HepsiburadaCreds) {
         if (creds) {
-            this.creds = creds;
+            this.creds = {
+                username: creds.username,
+                password: creds.password,
+                merchantId: creds.merchantId || creds.username,
+                isTestMode: creds.isTestMode
+            };
             this.isTestMode = creds.isTestMode ?? false;
         }
         
