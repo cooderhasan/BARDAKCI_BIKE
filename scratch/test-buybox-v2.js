@@ -1,11 +1,11 @@
 async function main() {
-    const u = '2c8b04a9-3898-4925-99a5-98875224b436';
-    const p = 'xraAz49GJu29';
+    const u = '159117dc-31cb-4989-a2a2-4b11388a91a5';
+    const p = 'RDZrPzn5B3UH';
     const auth = `Basic ${Buffer.from(u + ':' + p).toString('base64')}`;
     
     const payload = [{
         categoryId: 80405008,
-        merchant: "2c8b04a9-3898-4925-99a5-98875224b436",
+        merchant: "159117dc-31cb-4989-a2a2-4b11388a91a5",
         attributes: {
             merchantSku: "test-buybox-v2",
             VaryantGroupID: "test-buybox-v2",
@@ -30,7 +30,7 @@ async function main() {
         method: 'POST',
         headers: {
             'Authorization': auth,
-            'User-Agent': 'serinmotor_dev',
+            'User-Agent': 'motovitrin_dev',
             'Accept': 'application/json'
         },
         body: formData

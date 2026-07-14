@@ -971,7 +971,7 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
                 const statusRes = await fetch(statusUrl, {
                     headers: {
                         "Authorization": `Basic ${Buffer.from(`${config.merchantId || config.username}:${config.password}`).toString("base64")}`,
-                        "User-Agent": "bardakcibike_dev",
+                        "User-Agent": "motovitrin_dev",
                         "Accept": "application/json"
                     }
                 });
@@ -1101,7 +1101,7 @@ export async function createHepsiburadaTestOrder() {
                 "Authorization": `Basic ${Buffer.from(`${merchantId}:${config.password}`).toString("base64")}`,
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "User-Agent": "bardakcibike_dev"
+                "User-Agent": "motovitrin_dev"
             },
             body: JSON.stringify(payload)
         });

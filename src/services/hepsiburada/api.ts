@@ -25,7 +25,7 @@ export class HepsiburadaClient {
     private orderBaseUrl: string;
     private productUploadBaseUrl: string;
     private metadataBaseUrl: string;
-    private userAgent = "bardakcibike_dev"; // Developer Username - HB header zorunlu
+    private userAgent = "motovitrin_dev"; // Developer Username - HB header zorunlu
 
     private creds: HepsiburadaCreds | null = null;
     private isTestMode: boolean = false;
@@ -74,7 +74,7 @@ export class HepsiburadaClient {
             "Authorization": this.getAuthHeader(),
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "bardakcibike_dev",
+            "User-Agent": this.userAgent,
             ...extraHeaders,
         };
     }

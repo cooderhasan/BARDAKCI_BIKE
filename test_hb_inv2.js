@@ -10,11 +10,12 @@ async function pushInventoryDirect() {
 
     const payload = [
       {
-        "merchantSku": "BRD-8349909",
-        "price": 650.00,
-        "availableStock": 98,
+        "hepsiburadaSku": "HBV0000116MZS",
+        "merchantSku": "DENEME22",
+        "price": 790.00,
+        "availableStock": 99,
         "dispatchTime": 3,
-        "cargoCompany1": "Yurtici Kargo",
+        "cargoCompany1": "Yurtiçi Kargo",
         "maximumPurchasableQuantity": 10
       }
     ];
@@ -29,7 +30,7 @@ async function pushInventoryDirect() {
       headers: {
         'Authorization': auth,
         'Content-Type': 'application/json',
-        'User-Agent': 'bardakcibike_dev'
+        'User-Agent': 'motovitrin_dev'
       }
     };
 
