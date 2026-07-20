@@ -816,22 +816,11 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                   vatAmount: subtotal * 0.2,
                   guestEmail: customerEmail,
                   shippingAddress: {
-                    create: {
-                      fullName: customerName,
-                      addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
-                      city: shippingAddr.city || "Türkiye",
-                      district: shippingAddr.county || "",
-                      phone: customerPhone,
-                    },
-                  },
-                  billingAddress: {
-                    create: {
-                      fullName: customerName,
-                      addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
-                      city: shippingAddr.city || "Türkiye",
-                      district: shippingAddr.county || "",
-                      phone: customerPhone,
-                    },
+                    fullName: customerName,
+                    addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
+                    city: shippingAddr.city || "Türkiye",
+                    district: shippingAddr.county || "",
+                    phone: customerPhone,
                   },
                   items: {
                     create: orderItemsPayload,
@@ -848,8 +837,10 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
       savedCount++;
     }
 
-    revalidatePath("/admin/orders");
-    revalidatePath("/admin/integrations/idefix");
+    try {
+      revalidatePath("/admin/orders");
+      revalidatePath("/admin/integrations/idefix");
+    } catch {}
 
     return {
       success: true,
