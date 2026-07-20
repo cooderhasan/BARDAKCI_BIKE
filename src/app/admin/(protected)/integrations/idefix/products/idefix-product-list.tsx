@@ -39,6 +39,7 @@ import {
   toggleIdefixProductActive,
   createProductOnIdefix,
   getIdefixAddressesAndCargo,
+  checkIdefixBatchStatus,
 } from "../actions";
 
 interface IdefixProductListProps {
@@ -49,8 +50,25 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState(initialProducts);
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
+  const [checkingBatchId, setCheckingBatchId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
+
+  const handleCheckBatchStatus = async (productId: string) => {
+    setCheckingBatchId(productId);
+    try {
+      const res = await checkIdefixBatchStatus(productId);
+      if (res.success) {
+        toast.success(res.message, { duration: 6000 });
+      } else {
+        toast.error(res.message, { duration: 6000 });
+      }
+    } catch {
+      toast.error("Batch sorgulanırken hata oluştu.");
+    } finally {
+      setCheckingBatchId(null);
+    }
+  };
 
   // Send Modal States
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -347,9 +365,19 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
                     <TableCell className="text-center">
                       {getSyncStatusBadge(product.idefixProduct)}
                       {product.idefixProduct?.lastSyncError && (
-                        <p className="text-xs text-red-500 mt-1 max-w-[150px] truncate">
+                        <p className="text-xs text-red-500 mt-1 max-w-[150px] truncate" title={product.idefixProduct.lastSyncError}>
                           {product.idefixProduct.lastSyncError}
                         </p>
+                      )}
+                      {product.idefixProduct?.batchId && (
+                        <button
+                          type="button"
+                          onClick={() => handleCheckBatchStatus(product.id)}
+                          disabled={checkingBatchId === product.id}
+                          className="block mx-auto text-[10px] text-purple-600 underline hover:text-purple-800 mt-1 font-medium"
+                        >
+                          {checkingBatchId === product.id ? "Sorgulanıyor..." : "🔍 Durum Sorgula"}
+                        </button>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

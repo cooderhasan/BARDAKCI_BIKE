@@ -108,6 +108,69 @@ export async function getIdefixCategories(): Promise<{ success: boolean; data?: 
   }
 }
 
+/**
+ * Batch sonucunu Idefix'ten sorgular ve veritabanını günceller.
+ */
+export async function checkIdefixBatchStatus(productId: string): Promise<{ success: boolean; data?: any; message: string }> {
+  try {
+    const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
+
+    const idefixProd = await (prisma as any).idefixProduct.findUnique({
+      where: { productId },
+    });
+
+    if (!idefixProd || !idefixProd.batchId) {
+      return { success: false, message: "Bu ürün için henüz gönderilmiş bir Batch ID bulunmuyor." };
+    }
+
+    const client = new IdefixClient({
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
+      vendorId: config.vendorId,
+      isTestMode: config.isTestMode ?? true,
+    });
+
+    let result = await client.getBatchResult(idefixProd.batchId, "fast-listing").catch(() => null);
+    if (!result || result.code === 404 || result.status === "NOT_FOUND") {
+      result = await client.getBatchResult(idefixProd.batchId, "create").catch(() => null);
+    }
+
+    if (!result) {
+      return { success: false, message: "Idefix batch sonucu henüz hazır değil veya bulunamadı." };
+    }
+
+    const items = result.items || result.products || [];
+    const firstItem = items[0] || {};
+    const failureReason = firstItem.failureReason || firstItem.errorReason || firstItem.rejectionReason || result.errorMessage || null;
+    const itemStatus = firstItem.status || result.batchStatus || result.status;
+
+    const isSuccess = itemStatus === "SUCCESS" || itemStatus === "COMPLETED" || itemStatus === "APPROVED";
+
+    await (prisma as any).idefixProduct.update({
+      where: { productId },
+      data: {
+        batchStatus: String(itemStatus || "PROCESSED"),
+        isSynced: isSuccess,
+        lastSyncError: failureReason ? String(failureReason) : (isSuccess ? null : (result.message || "Idefix'te beklemede/işleniyor")),
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    if (failureReason) {
+      return { success: false, data: result, message: `Idefix Yanıtı: ${failureReason}` };
+    }
+
+    return {
+      success: true,
+      data: result,
+      message: isSuccess ? "Ürün Idefix'te başarıyla oluşturuldu/güncellendi!" : `İşlem Durumu: ${itemStatus || "İşleniyor"}`,
+    };
+  } catch (error: any) {
+    return { success: false, message: "Hata: " + error.message };
+  }
+}
+
 // ==================== SYNC ====================
 
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
