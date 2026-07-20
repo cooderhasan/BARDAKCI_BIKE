@@ -73,6 +73,7 @@ const menuGroups: MenuGroup[] = [
             { title: "Trendyol", href: "/admin/integrations/trendyol", icon: Zap },
             { title: "N11", href: "/admin/integrations/n11", icon: Zap },
             { title: "Hepsiburada", href: "/admin/integrations/hepsiburada", icon: Zap },
+            { title: "Idefix", href: "/admin/integrations/idefix", icon: Zap },
             { title: "Google Merchant", href: "/admin/integrations/google", icon: Zap },
             { title: "Toplu İşlemler", href: "/admin/bulk-updates", icon: Zap },
         ],

@@ -38,6 +38,15 @@ export async function setupRepeatableJobs() {
         jobId: 'n11-order-sync-cron'
     });
     console.log("⏰ N11 Order Sync Cron (15m) registered.");
+
+    // Her 15 dakikada bir Idefix siparişlerini çek
+    await queue.add("idefix-order-sync", {}, {
+        repeat: {
+            pattern: '*/15 * * * *' // Every 15 minutes
+        },
+        jobId: 'idefix-order-sync-cron'
+    });
+    console.log("⏰ Idefix Order Sync Cron (15m) registered.");
 }
 
 export function initializeWorker() {
@@ -76,6 +85,14 @@ export function initializeWorker() {
                     return;
                 }
 
+                if (job.name === "idefix-order-sync") {
+                    console.log("🔄 Otomatik Idefix Sipariş Senkronizasyonu başlatıldı...");
+                    const { syncOrdersFromIdefix } = await import("@/app/admin/(protected)/integrations/idefix/actions");
+                    const result = await syncOrdersFromIdefix();
+                    console.log(`✅ Cron Sonucu: ${result.message}`);
+                    return;
+                }
+
                 // Manual Product Sync Jobs
                 if (job.data.marketplace === "trendyol") {
                     const { syncProductsToTrendyol } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
@@ -96,6 +113,14 @@ export function initializeWorker() {
                         const result = await syncProductsToHepsiburada(job.data.productIds);
                         if (!result.success) throw new Error(result.message);
                         console.log(`✅ Tamamlandı: Hepsiburada Sync - ${result.message}`);
+                    }
+                } else if (job.data.marketplace === "idefix") {
+                    const idefixConfig = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+                    if (idefixConfig) {
+                        const { syncProductsToIdefix } = await import("@/app/admin/(protected)/integrations/idefix/actions");
+                        const result = await syncProductsToIdefix(job.data.productIds);
+                        if (!result.success) throw new Error(result.message);
+                        console.log(`✅ Tamamlandı: Idefix Sync - ${result.message}`);
                     }
                 }
                 
