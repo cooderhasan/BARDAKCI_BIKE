@@ -44,7 +44,9 @@ export async function saveIdefixConfig(prevState: any, formData: FormData) {
       });
     }
 
-    revalidatePath("/admin/integrations/idefix");
+    try {
+      revalidatePath("/admin/integrations/idefix");
+    } catch {}
     return { success: true, message: "Ayarlar basariyla kaydedildi." };
   } catch (error) {
     console.error("Idefix Save Error:", error);
@@ -578,7 +580,9 @@ export async function createProductOnIdefix(productId: string, payload: {
       create: { productId, batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
     });
 
-    revalidatePath("/admin/integrations/idefix/products");
+    try {
+      revalidatePath("/admin/integrations/idefix/products");
+    } catch {}
     return { success: true, message: `Urun Idefix'e gonderildi ve otomatik onaylandi. Batch ID: ${batchId}` };
   } catch (error: any) {
     return { success: false, message: "Hata: " + error.message };
@@ -625,7 +629,9 @@ export async function approveIdefixProductMatch(productId: string): Promise<{ su
       create: { productId, isSynced: true, batchStatus: "COMPLETED" },
     });
 
-    revalidatePath("/admin/integrations/idefix/products");
+    try {
+      revalidatePath("/admin/integrations/idefix/products");
+    } catch {}
     return { success: true, message: "Ürün Idefix satıcı kataloğunuzda başarıyla onaylandı ve açıldı!" };
   } catch (error: any) {
     return { success: false, message: "Onaylama hatasi: " + error.message };
@@ -660,7 +666,9 @@ export async function submitIdefixTrackingCode(shipmentId: string, payload: {
       data: { state: "SHIPPED", updatedAt: new Date() },
     });
 
-    revalidatePath("/admin/integrations/idefix");
+    try {
+      revalidatePath("/admin/integrations/idefix");
+    } catch {}
     return { success: true, message: `Kargo kodu '${payload.trackingNumber}' Idefix'e bildirildi.` };
   } catch (error: any) {
     return { success: false, message: "Kargo bildirimi hatasi: " + error.message };
@@ -885,7 +893,9 @@ export async function toggleIdefixProductActive(productId: string, isActive: boo
       where: { id: productId },
       data: { isIdefixActive: isActive },
     });
-    revalidatePath("/admin/integrations/idefix/products");
+    try {
+      revalidatePath("/admin/integrations/idefix/products");
+    } catch {}
     return { success: true };
   } catch (error) {
     return { success: false, error: "Guncelleme basarisiz" };
