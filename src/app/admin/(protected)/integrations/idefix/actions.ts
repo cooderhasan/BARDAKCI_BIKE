@@ -149,6 +149,7 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
     const itemStatus = String(firstItem.status || result.batchStatus || result.status || "").toUpperCase();
 
     const errorTranslations: Record<string, string> = {
+      CATEGORY_IS_NOT_LEAF: "Seçtiğiniz Idefix Kategori ID'si bir üst/ana kategoridir. Lütfen Idefix Kategori sayfasından en alt (dal) kategoriyi (Örn: Pedal Grubu) seçin.",
       PRODUCT_BARCODE_NOT_EXIST: "Ürün barkodu Idefix kataloğunda bulunamadı. Lütfen 'Sıfırdan Ürün Oluştur' sekmesini kullanarak Idefix Kategori ve Marka ID ile gönderin.",
       PRODUCT_POOL_ALREADY_EXIST: "Bu ürün Idefix satıcı havuzunuzda zaten tanımlı.",
       VENDOR_CATEGORY_ACCESS_DENIED: "Idefix satıcı hesabınızın bu kategoriye ürün ekleme yetkisi bulunmuyor.",
