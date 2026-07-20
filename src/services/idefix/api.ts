@@ -127,6 +127,7 @@ export class IdefixClient {
       "X-API-KEY": this.getVendorToken(),
       "Content-Type": "application/json",
       Accept: "application/json",
+      "User-Agent": "BardakciBike-Integration/1.0",
       ...extraHeaders,
     };
   }
