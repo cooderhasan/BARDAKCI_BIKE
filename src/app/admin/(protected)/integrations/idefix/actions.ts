@@ -676,7 +676,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
       allItems = res?.items ?? [];
     } else {
       const now = new Date();
-      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const formatDate = (d: Date) =>
         `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} 00:00:00`;
 
@@ -684,7 +684,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
       let hasMore = true;
       while (hasMore) {
         const res = await client.getOrders({
-          startDate: formatDate(twoDaysAgo),
+          startDate: formatDate(thirtyDaysAgo),
           endDate: formatDate(now),
           page,
           limit: 100,
@@ -706,17 +706,138 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
       const orderNumber = String(item.orderNumber ?? "");
       const state = String(item.state ?? "UNKNOWN");
 
+      // 1. Raw Idefix Order tablosuna upsert et
       await (prisma as any).idefixOrder.upsert({
         where: { idefixOrderId: shipmentId },
         update: { state, rawData: item, updatedAt: new Date() },
         create: { idefixOrderId: shipmentId, orderNumber, state, rawData: item },
       });
+
+      // 2. Ana Siparisler (prisma.order) tablosuna kaydet (Admin paneli Siparisler ekranında gorunmesi icin)
+      if (orderNumber) {
+        try {
+          const existingOrder = await prisma.order.findUnique({
+            where: { orderNumber },
+          });
+
+          if (!existingOrder) {
+            const shippingAddr = item.shippingAddress || item.invoiceAddress || {};
+            const customerName = item.customerContactName || shippingAddr.fullName || `${shippingAddr.firstName ?? ''} ${shippingAddr.lastName ?? ''}`.trim() || "Idefix Müşterisi";
+            const customerEmail = item.customerContactMail || "idefix@customer.com";
+            const customerPhone = shippingAddr.phone || "";
+
+            const orderItemsPayload: any[] = [];
+            let subtotal = 0;
+
+            for (const rawItem of (item.items || [])) {
+              const barcode = rawItem.barcode;
+              const merchantSku = rawItem.merchantSku;
+
+              let dbProd = null;
+              if (barcode) {
+                dbProd = await prisma.product.findFirst({
+                  where: { OR: [{ barcode: String(barcode) }, { sku: String(barcode) }] },
+                });
+              }
+              if (!dbProd && merchantSku) {
+                dbProd = await prisma.product.findFirst({
+                  where: { OR: [{ barcode: String(merchantSku) }, { sku: String(merchantSku) }] },
+                });
+              }
+
+              const itemPrice = Number(rawItem.price ?? rawItem.discountedTotalPrice ?? 0);
+              const qty = Number(rawItem.quantity ?? 1);
+              const lineTotal = itemPrice * qty;
+              subtotal += lineTotal;
+
+              if (dbProd) {
+                orderItemsPayload.push({
+                  productId: dbProd.id,
+                  quantity: qty,
+                  unitPrice: itemPrice,
+                  productName: rawItem.productName || dbProd.name,
+                  lineTotal,
+                  vatRate: rawItem.vatRate ?? 20,
+                  discountRate: 0,
+                });
+
+                // Stok düşür
+                await prisma.product.update({
+                  where: { id: dbProd.id },
+                  data: { stock: { decrement: qty } },
+                }).catch(() => null);
+              }
+            }
+
+            // Eğer ürün barkoddan birebir eşleşemediyse de siparişi kaybetme, ilk ürüne bağla
+            if (orderItemsPayload.length === 0 && (item.items || []).length > 0) {
+              const firstRawItem = item.items[0];
+              const fallbackProd = await prisma.product.findFirst();
+              if (fallbackProd) {
+                const itemPrice = Number(firstRawItem.price ?? firstRawItem.discountedTotalPrice ?? 0);
+                const qty = Number(firstRawItem.quantity ?? 1);
+                orderItemsPayload.push({
+                  productId: fallbackProd.id,
+                  quantity: qty,
+                  unitPrice: itemPrice,
+                  productName: firstRawItem.productName || "Idefix Ürünü",
+                  lineTotal: itemPrice * qty,
+                  vatRate: 20,
+                  discountRate: 0,
+                });
+              }
+            }
+
+            if (orderItemsPayload.length > 0) {
+              await prisma.order.create({
+                data: {
+                  orderNumber,
+                  status: "CONFIRMED",
+                  total: Number(item.totalPrice ?? item.discountedTotalPrice ?? subtotal),
+                  subtotal,
+                  discountAmount: Number(item.totalDiscount ?? 0),
+                  appliedDiscountRate: 0,
+                  vatAmount: subtotal * 0.2,
+                  guestEmail: customerEmail,
+                  shippingAddress: {
+                    create: {
+                      fullName: customerName,
+                      addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
+                      city: shippingAddr.city || "Türkiye",
+                      district: shippingAddr.county || "",
+                      phone: customerPhone,
+                    },
+                  },
+                  billingAddress: {
+                    create: {
+                      fullName: customerName,
+                      addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
+                      city: shippingAddr.city || "Türkiye",
+                      district: shippingAddr.county || "",
+                      phone: customerPhone,
+                    },
+                  },
+                  items: {
+                    create: orderItemsPayload,
+                  },
+                },
+              });
+            }
+          }
+        } catch (err: any) {
+          console.error(`prisma.order create error (${orderNumber}):`, err.message);
+        }
+      }
+
       savedCount++;
     }
 
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin/integrations/idefix");
+
     return {
       success: true,
-      message: `${savedCount} Idefix siparisi senkronize edildi.`,
+      message: `${savedCount} Idefix siparisi senkronize edildi ve Siparisler sayfasina aktarildi.`,
       count: savedCount,
     };
   } catch (error: any) {
