@@ -24,9 +24,21 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
   syncProductsToIdefix,
   enqueueIdefixSync,
   toggleIdefixProductActive,
+  createProductOnIdefix,
+  getIdefixAddressesAndCargo,
 } from "../actions";
 
 interface IdefixProductListProps {
@@ -39,6 +51,73 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
+
+  // Send Modal States
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [sendType, setSendType] = useState<"quick" | "create">("quick");
+  const [idefixCategoryId, setIdefixCategoryId] = useState("");
+  const [idefixBrandId, setIdefixBrandId] = useState("");
+  const [manufacturer, setManufacturer] = useState("Bardakçı Bike");
+  const [importer, setImporter] = useState("Bardakçı Bike");
+  const [sendingModal, setSendingModal] = useState(false);
+
+  const openSendModal = (product: any) => {
+    const count = getBarcodeCount(product);
+    if (count === 0) {
+      toast.error("Ürünün veya varyantlarının barkodu bulunamadı. Lütfen ürün düzenleme sayfasından barkod ekleyin.");
+      return;
+    }
+
+    setSelectedProduct(product);
+    const mappedCat = product.categories?.find((c: any) => c.idefixCategoryId);
+    setIdefixCategoryId(mappedCat?.idefixCategoryId || "");
+    setIdefixBrandId(product.brand?.idefixBrandId || "");
+    setManufacturer(product.brand?.name || "Bardakçı Bike");
+    setImporter("Bardakçı Bike");
+    setModalOpen(true);
+  };
+
+  const handleModalSubmit = async () => {
+    if (!selectedProduct) return;
+    setSendingModal(true);
+
+    try {
+      if (sendType === "quick") {
+        const res = await syncProductsToIdefix([selectedProduct.id]);
+        if (res.success) {
+          toast.success(res.message);
+          setModalOpen(false);
+        } else {
+          toast.error(res.message);
+        }
+      } else {
+        if (!idefixCategoryId || !idefixBrandId) {
+          toast.error("Yeni ürün oluşturmak için Idefix Kategori ID ve Marka ID zorunludur.");
+          setSendingModal(false);
+          return;
+        }
+
+        const res = await createProductOnIdefix(selectedProduct.id, {
+          idefixCategoryId,
+          idefixBrandId,
+          manufacturer,
+          importer,
+        });
+
+        if (res.success) {
+          toast.success(res.message);
+          setModalOpen(false);
+        } else {
+          toast.error(res.message);
+        }
+      }
+    } catch {
+      toast.error("Gönderim sırasında hata oluştu.");
+    } finally {
+      setSendingModal(false);
+    }
+  };
 
   const handleBulkSync = async () => {
     setSyncing(true);
@@ -288,7 +367,7 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
                         size="sm"
                         variant="outline"
                         disabled={isSending}
-                        onClick={() => handleSingleSyncWithCheck(product)}
+                        onClick={() => openSendModal(product)}
                         className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-1.5"
                       >
                         {isSending ? (
@@ -306,6 +385,135 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* --- IDEFIX GÖNDERİM MODALI --- */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-purple-800 dark:text-purple-300">
+              <Send className="w-5 h-5 text-purple-600" />
+              Idefix'e Ürün Gönder
+            </DialogTitle>
+            <DialogDescription>
+              {selectedProduct?.name} ({selectedProduct?.sku || selectedProduct?.barcode})
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={sendType} onValueChange={(val) => setSendType(val as any)} className="w-full">
+            <TabsList className="grid grid-cols-2 w-full mb-4">
+              <TabsTrigger value="quick">⚡ Hızlı Yükleme (Fast Listing)</TabsTrigger>
+              <TabsTrigger value="create">📝 Sıfırdan Ürün Oluştur (Create)</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="quick" className="space-y-3">
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 rounded-lg text-xs text-purple-800 dark:text-purple-300 space-y-1">
+                <p className="font-semibold">⚡ Hızlı Ürün Yükleme Yöntemi:</p>
+                <p>Ürününüzün barkodu Idefix kataloğunda zaten varsa, Kategori ve Marka eşleştirmesine gerek kalmadan saniyeler içinde satışa açılır ve stok/fiyat güncellenir.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border">
+                <div>
+                  <span className="text-gray-500 block">Gönderilecek Fiyat:</span>
+                  <span className="font-bold text-sm text-purple-700">
+                    ₺{Number(selectedProduct?.idefixPrice ?? selectedProduct?.salePrice ?? selectedProduct?.listPrice).toFixed(2)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500 block">Mevcut Stok:</span>
+                  <span className="font-bold text-sm">{selectedProduct?.stock ?? 0} adet</span>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="create" className="space-y-4">
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                <p className="font-semibold">📝 Yeni Ürün Oluşturma Yöntemi:</p>
+                <p>Ürününüz Idefix kataloğunda henüz yoksa, Idefix Kategori ID, Marka ID ve İmalatçı bilgilerinizle Idefix ürün havuzuna eklenir.</p>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="modalCatId" className="text-xs">Idefix Kategori ID *</Label>
+                  <Input
+                    id="modalCatId"
+                    value={idefixCategoryId}
+                    onChange={(e) => setIdefixCategoryId(e.target.value)}
+                    placeholder="Örn: 15031706 (Kategoriler sayfasından eşleştirebilirsiniz)"
+                    className="h-9 text-xs"
+                  />
+                  {idefixCategoryId ? (
+                    <p className="text-[10px] text-green-600 font-medium">✓ Kategori ID tanımlı</p>
+                  ) : (
+                    <p className="text-[10px] text-amber-600">Kategori ID boş. Lütfen Kategoriler sayfasından eşleştirin veya manuel girin.</p>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="modalBrandId" className="text-xs">Idefix Marka ID *</Label>
+                  <Input
+                    id="modalBrandId"
+                    value={idefixBrandId}
+                    onChange={(e) => setIdefixBrandId(e.target.value)}
+                    placeholder="Örn: 3573 (Markalar sayfasından eşleştirebilirsiniz)"
+                    className="h-9 text-xs"
+                  />
+                  {idefixBrandId ? (
+                    <p className="text-[10px] text-green-600 font-medium">✓ Marka ID tanımlı</p>
+                  ) : (
+                    <p className="text-[10px] text-amber-600">Marka ID boş. Lütfen Markalar sayfasından eşleştirin veya manuel girin.</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="modalMfg" className="text-xs">Üretici / İmalatçı Bilgisi</Label>
+                    <Input
+                      id="modalMfg"
+                      value={manufacturer}
+                      onChange={(e) => setManufacturer(e.target.value)}
+                      placeholder="Bardakçı Bike"
+                      className="h-9 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="modalImp" className="text-xs">İthalatçı / Temsilci Bilgisi</Label>
+                    <Input
+                      id="modalImp"
+                      value={importer}
+                      onChange={(e) => setImporter(e.target.value)}
+                      placeholder="Bardakçı Bike"
+                      className="h-9 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>
+              İptal
+            </Button>
+            <Button
+              onClick={handleModalSubmit}
+              disabled={sendingModal}
+              className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
+            >
+              {sendingModal ? (
+                <>
+                  <RefreshCcw className="w-4 h-4 animate-spin" />
+                  Gönderiliyor...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Idefix'e Gönder
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

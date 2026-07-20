@@ -311,6 +311,38 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
   }
 }
 
+export async function getIdefixAddressesAndCargo(): Promise<{
+  success: boolean;
+  shipmentAddresses?: any[];
+  cargoCompanies?: any[];
+  message?: string;
+}> {
+  try {
+    const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
+
+    const client = new IdefixClient({
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
+      vendorId: config.vendorId,
+      isTestMode: config.isTestMode ?? false,
+    });
+
+    const [addresses, cargo] = await Promise.all([
+      client.getShipmentAddresses().catch(() => []),
+      client.getCargoCompanies().catch(() => []),
+    ]);
+
+    return {
+      success: true,
+      shipmentAddresses: Array.isArray(addresses) ? addresses : [],
+      cargoCompanies: Array.isArray(cargo) ? cargo : [],
+    };
+  } catch (error: any) {
+    return { success: false, message: "Hata: " + error.message };
+  }
+}
+
 /**
  * Yeni urun olusturma (create) — Idefix katalogunda bulunmayan urunler icin.
  * Kategori ID ve Marka ID zorunludur.
@@ -318,6 +350,8 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
 export async function createProductOnIdefix(productId: string, payload: {
   idefixCategoryId: number | string;
   idefixBrandId: number | string;
+  manufacturer?: string;
+  importer?: string;
   shipmentAddressId?: number;
   returnAddressId?: number;
   cargoCompanyId?: number;
@@ -343,28 +377,55 @@ export async function createProductOnIdefix(productId: string, payload: {
     const catId = Number(payload.idefixCategoryId);
     const brandId = Number(payload.idefixBrandId);
 
-    const productsPayload = product.variants
-      .filter((v: any) => v.barcode)
-      .map((v: any) => ({
-        barcode: v.barcode,
-        title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
-        productMainId: (product as any).sku || v.barcode,
-        brandId: brandId,
-        categoryId: catId,
-        inventoryQuantity: v.stock ?? 0,
-        vendorStockCode: v.sku || v.barcode,
-        desi: Number((product as any).desi ?? 0),
-        weight: Number((product as any).weight ?? 0),
-        description: (product as any).marketplaceDescription || (product as any).description || product.name,
-        price,
-        comparePrice: Number(product.listPrice),
-        vatRate: (product as any).vatRate ?? 20,
-        deliveryType: "regular",
-        cargoCompanyId: payload.cargoCompanyId ?? 0,
-        shipmentAddressId: payload.shipmentAddressId ?? 0,
-        returnAddressId: payload.returnAddressId ?? 0,
-        images: ((product as any).images ?? []).slice(0, 8).map((url: string) => ({ url })),
-      }));
+    const validVariants = product.variants?.filter((v: any) => v.barcode) || [];
+
+    const productsPayload = validVariants.length > 0
+      ? validVariants.map((v: any) => ({
+          barcode: v.barcode,
+          title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
+          productMainId: (product as any).sku || v.barcode,
+          brandId: brandId,
+          categoryId: catId,
+          inventoryQuantity: v.stock ?? 0,
+          vendorStockCode: v.sku || v.barcode,
+          desi: Number((product as any).desi ?? 0),
+          weight: Number((product as any).weight ?? 0),
+          description: (product as any).marketplaceDescription || (product as any).description || product.name,
+          price,
+          comparePrice: Number(product.listPrice),
+          vatRate: (product as any).vatRate ?? 20,
+          deliveryType: "regular",
+          cargoCompanyId: payload.cargoCompanyId ?? 0,
+          shipmentAddressId: payload.shipmentAddressId ?? 0,
+          returnAddressId: payload.returnAddressId ?? 0,
+          manufacturer: payload.manufacturer || product.brand?.name || "Bardakçı Bike",
+          importer: payload.importer || "Bardakçı Bike",
+          images: ((product as any).images ?? []).slice(0, 8).map((url: string) => ({ url })),
+        }))
+      : product.barcode
+      ? [{
+          barcode: product.barcode,
+          title: product.name,
+          productMainId: (product as any).sku || product.barcode,
+          brandId: brandId,
+          categoryId: catId,
+          inventoryQuantity: product.stock ?? 0,
+          vendorStockCode: (product as any).sku || product.barcode,
+          desi: Number((product as any).desi ?? 0),
+          weight: Number((product as any).weight ?? 0),
+          description: (product as any).marketplaceDescription || (product as any).description || product.name,
+          price,
+          comparePrice: Number(product.listPrice),
+          vatRate: (product as any).vatRate ?? 20,
+          deliveryType: "regular",
+          cargoCompanyId: payload.cargoCompanyId ?? 0,
+          shipmentAddressId: payload.shipmentAddressId ?? 0,
+          returnAddressId: payload.returnAddressId ?? 0,
+          manufacturer: payload.manufacturer || product.brand?.name || "Bardakçı Bike",
+          importer: payload.importer || "Bardakçı Bike",
+          images: ((product as any).images ?? []).slice(0, 8).map((url: string) => ({ url })),
+        }]
+      : [];
 
     if (productsPayload.length === 0) {
       return { success: false, message: "Barkodlu varyant bulunamadi." };
