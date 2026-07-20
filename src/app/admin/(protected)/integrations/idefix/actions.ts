@@ -478,6 +478,21 @@ export async function createProductOnIdefix(productId: string, payload: {
     const catId = Number(payload.idefixCategoryId);
     const brandId = Number(payload.idefixBrandId);
 
+    // Kategori ve Marka Idefix ID'lerini veritabanında kalıcı olarak kaydet
+    if (product.categories && product.categories.length > 0) {
+      const firstCatId = product.categories[0].id;
+      await prisma.category.update({
+        where: { id: firstCatId },
+        data: { idefixCategoryId: String(payload.idefixCategoryId) },
+      }).catch(() => null);
+    }
+    if (product.brandId) {
+      await prisma.brand.update({
+        where: { id: product.brandId },
+        data: { idefixBrandId: String(payload.idefixBrandId) },
+      }).catch(() => null);
+    }
+
     let shipmentAddressId = payload.shipmentAddressId && Number(payload.shipmentAddressId) > 0 ? Number(payload.shipmentAddressId) : null;
     let returnAddressId = payload.returnAddressId && Number(payload.returnAddressId) > 0 ? Number(payload.returnAddressId) : null;
     let cargoCompanyId = payload.cargoCompanyId && Number(payload.cargoCompanyId) > 0 ? Number(payload.cargoCompanyId) : null;

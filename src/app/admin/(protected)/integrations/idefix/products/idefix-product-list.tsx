@@ -125,6 +125,25 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
 
         if (res.success) {
           toast.success(res.message);
+          setProducts((prev) =>
+            prev.map((p) => {
+              if (p.id === selectedProduct.id) {
+                const updatedCats = (p.categories || []).map((c: any, idx: number) =>
+                  idx === 0 ? { ...c, idefixCategoryId: String(idefixCategoryId) } : c
+                );
+                if (updatedCats.length === 0) {
+                  updatedCats.push({ id: 'temp', name: 'Kategori', idefixCategoryId: String(idefixCategoryId) });
+                }
+                const updatedBrand = p.brand ? { ...p.brand, idefixBrandId: String(idefixBrandId) } : { id: 'temp', name: 'Marka', idefixBrandId: String(idefixBrandId) };
+                return {
+                  ...p,
+                  categories: updatedCats,
+                  brand: updatedBrand,
+                };
+              }
+              return p;
+            })
+          );
           setModalOpen(false);
         } else {
           toast.error(res.message);
