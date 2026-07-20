@@ -26,6 +26,7 @@ import { X, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { getTrendyolCategories } from "@/app/admin/(protected)/integrations/trendyol/actions";
 import { getFlatN11Categories } from "@/app/admin/(protected)/integrations/n11/actions";
 import { getHepsiburadaCategories } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
+import { getIdefixCategories } from "@/app/admin/(protected)/integrations/idefix/actions";
 import {
     Select,
     SelectContent,
@@ -605,6 +606,133 @@ function HepsiburadaCategorySearch({
     );
 }
 
+// --- Idefix Category Search Component ---
+interface IdefixCategory {
+    id: number;
+    name: string;
+}
+
+function IdefixCategorySearch({
+    value,
+    onChange,
+}: {
+    value?: number;
+    onChange: (id: number | undefined) => void;
+}) {
+    const [search, setSearch] = useState("");
+    const [allCategories, setAllCategories] = useState<IdefixCategory[]>([]);
+    const [results, setResults] = useState<IdefixCategory[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [selectedName, setSelectedName] = useState<string>("");
+    const [error, setError] = useState<string>("");
+
+    const fetchCategories = async () => {
+        if (allCategories.length > 0) return allCategories;
+        setLoading(true);
+        setError("");
+        try {
+            const res = await getIdefixCategories();
+            if (res.success && res.data) {
+                setAllCategories(res.data);
+                return res.data;
+            } else {
+                setError(res.message || "Idefix kategorileri alınamadı.");
+                return [];
+            }
+        } catch {
+            setError("Bağlantı hatası.");
+            return [];
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = async (q: string) => {
+        setSearch(q);
+        if (q.length < 2) { setResults([]); return; }
+        const cats = await fetchCategories();
+        const filtered = cats.filter(c => c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 100);
+        setResults(filtered);
+        setOpen(true);
+    };
+
+    const handleSelect = (cat: IdefixCategory) => {
+        onChange(cat.id);
+        setSelectedName(cat.name);
+        setSearch("");
+        setResults([]);
+        setOpen(false);
+    };
+
+    const handleClear = () => {
+        onChange(undefined);
+        setSelectedName("");
+        setSearch("");
+        setResults([]);
+    };
+
+    return (
+        <div className="space-y-2">
+            {value && selectedName ? (
+                <div className="flex items-center gap-2 p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-sm">
+                    <span className="font-medium text-purple-800 dark:text-purple-300 flex-1 truncate">✓ {selectedName}</span>
+                    <span className="text-xs text-purple-600 font-mono">#{value}</span>
+                    <button type="button" onClick={handleClear} className="text-purple-500 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : value ? (
+                <div className="flex items-center gap-2 p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-sm">
+                    <span className="font-medium text-purple-800 dark:text-purple-300 flex-1">Mevcut ID: <span className="font-mono">#{value}</span></span>
+                    <button type="button" onClick={handleClear} className="text-purple-500 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : null}
+
+            <div className="relative">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                        className="pl-8 border-purple-200 focus-visible:ring-purple-500"
+                        placeholder="Idefix kategorisi ara (örn: Bisiklet)..."
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                    />
+                    {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-purple-500" />}
+                </div>
+
+                {error && (
+                    <p className="text-xs text-red-500 mt-1">{error}</p>
+                )}
+
+                {open && results.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-purple-200 rounded-lg shadow-xl">
+                        {results.map((cat) => (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => handleSelect(cat)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                            >
+                                <span className="whitespace-normal leading-relaxed text-xs">{cat.name}</span>
+                                <span className="text-xs text-gray-400 font-mono shrink-0 pt-0.5">#{cat.id}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {open && results.length === 0 && search.length >= 2 && !loading && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-purple-200 rounded-lg shadow-xl p-3 text-sm text-gray-500 text-center">
+                        Idefix'te eşleşen kategori bulunamadı.
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [editCategory, setEditCategory] = useState<Category | null>(null);
@@ -1021,16 +1149,12 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     <p className="text-[10px] text-orange-600">HB kategorisini adıyla arayıp seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <Label htmlFor="idefixCategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Kategori Eşleştirme (Kategori ID)</Label>
-                                    <Input
-                                        id="idefixCategoryId"
-                                        type="number"
-                                        value={idefixCategoryId || ""}
-                                        onChange={(e) => setIdefixCategoryId(e.target.value ? parseInt(e.target.value) : undefined)}
-                                        placeholder="Örn: 15031706"
-                                        className="border-purple-200"
+                                    <Label htmlFor="idefixCategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Kategori Eşleştirme</Label>
+                                    <IdefixCategorySearch
+                                        value={idefixCategoryId}
+                                        onChange={setIdefixCategoryId}
                                     />
-                                    <p className="text-[10px] text-purple-600">Idefix panelindeki veya dökümandaki Kategori ID bilgisini girin.</p>
+                                    <p className="text-[10px] text-purple-600">Idefix kategorisini adıyla arayıp (örn: Bisiklet) seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="googleProductCategory" className="text-[#17457C]">Google Ürün Kategorisi (Taxonomy)</Label>

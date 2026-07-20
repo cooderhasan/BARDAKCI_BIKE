@@ -71,6 +71,43 @@ export async function testIdefixConnection() {
   }
 }
 
+/** Flatten nested Idefix categories */
+function flattenIdefixCategories(nodes: any[], parentPath = ""): Array<{ id: number; name: string }> {
+  const result: Array<{ id: number; name: string }> = [];
+  for (const node of nodes) {
+    const fullPath = parentPath ? `${parentPath} > ${node.name}` : node.name;
+    result.push({ id: node.id, name: fullPath });
+    if (node.subs && Array.isArray(node.subs) && node.subs.length > 0) {
+      result.push(...flattenIdefixCategories(node.subs, fullPath));
+    }
+  }
+  return result;
+}
+
+export async function getIdefixCategories(): Promise<{ success: boolean; data?: Array<{ id: number; name: string }>; message?: string }> {
+  try {
+    const config = await (prisma as any).idefixConfig.findFirst();
+    if (!config) return { success: false, message: "Idefix entegrasyonu bulunamadi." };
+
+    const client = new IdefixClient({
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
+      vendorId: config.vendorId,
+      isTestMode: config.isTestMode ?? false,
+    });
+
+    const rawCategories = await client.getCategories();
+    if (!Array.isArray(rawCategories)) {
+      return { success: false, message: "Kategoriler alinamadi." };
+    }
+
+    const flat = flattenIdefixCategories(rawCategories);
+    return { success: true, data: flat };
+  } catch (error: any) {
+    return { success: false, message: "Hata: " + error.message };
+  }
+}
+
 // ==================== SYNC ====================
 
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
