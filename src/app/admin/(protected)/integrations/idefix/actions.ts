@@ -145,7 +145,7 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
 
     const items = result.items || result.products || [];
     const firstItem = items[0] || {};
-    const rawErrorCode = firstItem.errorCode || firstItem.failureReason || firstItem.errorReason || firstItem.rejectionReason || result.errorMessage || null;
+    const rawErrorCode = firstItem.errorCode || firstItem.failureReason || firstItem.errorReason || firstItem.rejectionReason || firstItem.reason || result.errorMessage || result.message || null;
     const itemStatus = String(firstItem.status || result.batchStatus || result.status || "").toUpperCase();
 
     const errorTranslations: Record<string, string> = {
@@ -156,13 +156,22 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       BRAND_EXCLUSIVE_NOT_AUTHORIZED: "Bu markaya ait ürünleri satmak için Idefix yetkiniz bulunmuyor.",
     };
 
-    let failureReason = rawErrorCode;
-    if (rawErrorCode && errorTranslations[rawErrorCode]) {
-      failureReason = errorTranslations[rawErrorCode];
+    const resultStr = JSON.stringify(result);
+    let matchedReason: string | null = null;
+    for (const [code, translation] of Object.entries(errorTranslations)) {
+      if (resultStr.includes(code)) {
+        matchedReason = translation;
+        break;
+      }
     }
 
     const isSuccess = itemStatus === "SUCCESS" || itemStatus === "COMPLETED" || itemStatus === "APPROVED";
     const isDecline = itemStatus === "DECLINE" || itemStatus === "DECLINED" || itemStatus === "FAILED";
+
+    let failureReason = matchedReason || rawErrorCode;
+    if (!failureReason && isDecline) {
+      failureReason = `Idefix Yanıtı: ${resultStr.slice(0, 250)}`;
+    }
 
     await (prisma as any).idefixProduct.update({
       where: { productId },
@@ -178,7 +187,7 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       return {
         success: false,
         data: result,
-        message: failureReason ? failureReason : "Idefix ürün gönderimini reddetti (DECLINE). Ürün kataloğunda yok veya yetki kısıtlı olabilir.",
+        message: failureReason ? failureReason : `Idefix Reddi (DECLINE): ${resultStr.slice(0, 200)}`,
       };
     }
 
