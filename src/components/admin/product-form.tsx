@@ -654,6 +654,18 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         className="border-orange-200 focus:border-orange-500"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="idefixPrice" className="text-purple-600">Idefix Fiyatı (₺)</Label>
+                                    <Input
+                                        id="idefixPrice"
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.idefixPrice}
+                                        onChange={(e) => handleChange("idefixPrice", e.target.value)}
+                                        placeholder="Varsayılan: Liste Fiyatı"
+                                        className="border-purple-200 focus:border-purple-500"
+                                    />
+                                </div>
                             </div>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
