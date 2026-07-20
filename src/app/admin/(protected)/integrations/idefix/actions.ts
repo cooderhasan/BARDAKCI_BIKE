@@ -477,6 +477,22 @@ export async function createProductOnIdefix(productId: string, payload: {
     const catId = Number(payload.idefixCategoryId);
     const brandId = Number(payload.idefixBrandId);
 
+    let shipmentAddressId = payload.shipmentAddressId && Number(payload.shipmentAddressId) > 0 ? Number(payload.shipmentAddressId) : null;
+    let returnAddressId = payload.returnAddressId && Number(payload.returnAddressId) > 0 ? Number(payload.returnAddressId) : null;
+    let cargoCompanyId = payload.cargoCompanyId && Number(payload.cargoCompanyId) > 0 ? Number(payload.cargoCompanyId) : null;
+
+    if (!shipmentAddressId || !returnAddressId) {
+      const addresses = await client.getShipmentAddresses().catch(() => []);
+      if (Array.isArray(addresses) && addresses.length > 0) {
+        const defaultAddrId = addresses[0]?.id ? Number(addresses[0].id) : null;
+        if (!shipmentAddressId) shipmentAddressId = defaultAddrId;
+        if (!returnAddressId) returnAddressId = defaultAddrId;
+      }
+    }
+
+    const manufacturer = payload.manufacturer?.trim() || product.brand?.name || "Bardakçı Bike";
+    const importer = payload.importer?.trim() || "Bardakçı Bike";
+
     const validVariants = product.variants?.filter((v: any) => v.barcode) || [];
 
     const productsPayload = validVariants.length > 0
@@ -495,11 +511,11 @@ export async function createProductOnIdefix(productId: string, payload: {
           comparePrice,
           vatRate: (product as any).vatRate ?? 20,
           deliveryType: "regular",
-          cargoCompanyId: payload.cargoCompanyId ?? 0,
-          shipmentAddressId: payload.shipmentAddressId ?? 0,
-          returnAddressId: payload.returnAddressId ?? 0,
-          manufacturer: payload.manufacturer || product.brand?.name || "Bardakçı Bike",
-          importer: payload.importer || "Bardakçı Bike",
+          cargoCompanyId,
+          shipmentAddressId,
+          returnAddressId,
+          manufacturer,
+          importer,
           images: ((product as any).images ?? []).slice(0, 8).map((url: string) => ({ url })),
         }))
       : product.barcode
@@ -518,11 +534,11 @@ export async function createProductOnIdefix(productId: string, payload: {
           comparePrice,
           vatRate: (product as any).vatRate ?? 20,
           deliveryType: "regular",
-          cargoCompanyId: payload.cargoCompanyId ?? 0,
-          shipmentAddressId: payload.shipmentAddressId ?? 0,
-          returnAddressId: payload.returnAddressId ?? 0,
-          manufacturer: payload.manufacturer || product.brand?.name || "Bardakçı Bike",
-          importer: payload.importer || "Bardakçı Bike",
+          cargoCompanyId,
+          shipmentAddressId,
+          returnAddressId,
+          manufacturer,
+          importer,
           images: ((product as any).images ?? []).slice(0, 8).map((url: string) => ({ url })),
         }]
       : [];
