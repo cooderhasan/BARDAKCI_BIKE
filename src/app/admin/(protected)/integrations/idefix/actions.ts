@@ -61,7 +61,7 @@ export async function testIdefixConnection() {
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
       vendorId: config.vendorId,
-      isTestMode: config.isTestMode ?? true,
+      isTestMode: Boolean(config.isTestMode),
     });
 
     const result = await client.checkConnection();
@@ -131,7 +131,7 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
       vendorId: config.vendorId,
-      isTestMode: config.isTestMode ?? true,
+      isTestMode: Boolean(config.isTestMode),
     });
 
     let result = await client.getBatchResult(idefixProd.batchId, "fast-listing").catch(() => null);
@@ -244,7 +244,7 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
       vendorId: config.vendorId,
-      isTestMode: config.isTestMode ?? true,
+      isTestMode: Boolean(config.isTestMode),
     });
 
     const isSingleSync = productIds && productIds.length > 0;
@@ -468,7 +468,7 @@ export async function createProductOnIdefix(productId: string, payload: {
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
       vendorId: config.vendorId,
-      isTestMode: config.isTestMode ?? true,
+      isTestMode: Boolean(config.isTestMode),
     });
 
     const price = Number((product as any).idefixPrice ?? (product as any).salePrice ?? product.listPrice);
@@ -633,7 +633,7 @@ export async function submitIdefixTrackingCode(shipmentId: string, payload: {
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
       vendorId: config.vendorId,
-      isTestMode: config.isTestMode ?? true,
+      isTestMode: Boolean(config.isTestMode),
     });
 
     await client.submitTrackingCode(shipmentId, payload);
@@ -666,7 +666,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
       vendorId: config.vendorId,
-      isTestMode: config.isTestMode ?? true,
+      isTestMode: Boolean(config.isTestMode),
     });
 
     let allItems: any[] = [];
