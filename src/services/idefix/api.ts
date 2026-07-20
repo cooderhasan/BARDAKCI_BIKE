@@ -255,9 +255,16 @@ export class IdefixClient {
    */
   async getBatchResult(batchRequestId: string, type: "fast-listing" | "create" = "fast-listing"): Promise<any> {
     const vendorId = this.creds?.vendorId;
-    const pool = type === "create" ? "pool" : "catalog";
-    const url = `${this.pimBaseUrl}/${pool}/${vendorId}/batch-result/${batchRequestId}`;
-    return this.request<any>("GET", url);
+    if (type === "fast-listing") {
+      const url = `${this.pimBaseUrl}/catalog/${vendorId}/fast-listing-result/${batchRequestId}`;
+      return this.request<any>("POST", url).catch(() =>
+        this.request<any>("GET", url)
+      );
+    }
+    const url = `${this.pimBaseUrl}/pool/${vendorId}/batch-result/${batchRequestId}`;
+    return this.request<any>("GET", url).catch(() =>
+      this.request<any>("POST", url)
+    );
   }
 
   /**

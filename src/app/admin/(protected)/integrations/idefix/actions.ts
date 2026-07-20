@@ -173,28 +173,31 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       failureReason = `Idefix Yanıtı: ${resultStr.slice(0, 250)}`;
     }
 
+    const actualError = isDecline ? (failureReason || "Idefix reddetti") : null;
+    const finalBatchStatus = isSuccess ? "COMPLETED" : (isDecline ? "FAILED" : "PENDING");
+
     await (prisma as any).idefixProduct.update({
       where: { productId },
       data: {
-        batchStatus: itemStatus || "PROCESSED",
+        batchStatus: finalBatchStatus,
         isSynced: isSuccess,
-        lastSyncError: failureReason ? String(failureReason) : (isSuccess ? null : (result.message || "Idefix'te işleniyor")),
+        lastSyncError: actualError,
         lastSyncedAt: new Date(),
       },
     });
 
-    if (isDecline || failureReason) {
+    if (actualError) {
       return {
         success: false,
         data: result,
-        message: failureReason ? failureReason : `Idefix Reddi (DECLINE): ${resultStr.slice(0, 200)}`,
+        message: actualError,
       };
     }
 
     return {
       success: true,
       data: result,
-      message: isSuccess ? "Ürün Idefix'te başarıyla onaylandı!" : `İşlem Durumu: ${itemStatus || "İşleniyor"}`,
+      message: isSuccess ? "Ürün Idefix'te başarıyla onaylandı!" : "Ürün Idefix'e ulaştı, inceleme/onay sürecinde bekleniyor.",
     };
   } catch (error: any) {
     return { success: false, message: "Hata: " + error.message };
