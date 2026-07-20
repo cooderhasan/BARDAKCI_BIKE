@@ -92,6 +92,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         trendyolPrice: product.trendyolPrice ? product.trendyolPrice.toNumber() : null,
         n11Price: product.n11Price ? product.n11Price.toNumber() : null,
         hepsiburadaPrice: product.hepsiburadaPrice ? product.hepsiburadaPrice.toNumber() : null,
+        idefixPrice: product.idefixPrice ? product.idefixPrice.toNumber() : null,
         isTrendyolActive: product.isTrendyolActive,
         isN11Active: product.isN11Active,
         googlePrice: (product as any).googlePrice ? Number((product as any).googlePrice) : null,

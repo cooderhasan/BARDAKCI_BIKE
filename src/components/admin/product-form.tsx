@@ -77,6 +77,7 @@ interface Product {
     trendyolPrice?: number | null;
     n11Price?: number | null;
     hepsiburadaPrice?: number | null;
+    idefixPrice?: number | null;
     salePrice?: number | null;
     vatRate: number | null;
     minQuantity: number;
@@ -135,6 +136,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         trendyolPrice: product?.trendyolPrice || "",
         n11Price: product?.n11Price || "",
         hepsiburadaPrice: product?.hepsiburadaPrice || "",
+        idefixPrice: product?.idefixPrice || "",
         salePrice: product?.salePrice || "",
         vatRate: product?.vatRate?.toString() || "20",
         minQuantity: product?.minQuantity || 1,

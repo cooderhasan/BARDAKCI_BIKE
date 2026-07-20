@@ -625,7 +625,7 @@ export async function executeBulkHepsiburadaPriceUpdate(
 
 // ==================== CROSS PLATFORM PRICE TRANSFER ====================
 
-export type PriceField = "listPrice" | "salePrice" | "trendyolPrice" | "n11Price" | "hepsiburadaPrice";
+export type PriceField = "listPrice" | "salePrice" | "trendyolPrice" | "n11Price" | "hepsiburadaPrice" | "idefixPrice";
 
 export interface PriceTransferCriteria extends BulkUpdateCriteria {
     sourceField: PriceField;
@@ -671,6 +671,7 @@ export async function previewBulkPriceTransfer(
             trendyolPrice: true,
             n11Price: true,
             hepsiburadaPrice: true,
+            idefixPrice: true
         },
     });
 
@@ -679,7 +680,7 @@ export async function previewBulkPriceTransfer(
     for (const p of products) {
         let sourceVal = p[criteria.sourceField] ? Number(p[criteria.sourceField]) : 0;
         
-        if (!sourceVal && (criteria.sourceField === 'trendyolPrice' || criteria.sourceField === 'n11Price' || criteria.sourceField === 'hepsiburadaPrice')) {
+        if (!sourceVal && (criteria.sourceField === 'trendyolPrice' || criteria.sourceField === 'n11Price' || criteria.sourceField === 'hepsiburadaPrice' || criteria.sourceField === 'idefixPrice')) {
             sourceVal = Number(p.listPrice);
         }
 
@@ -776,6 +777,8 @@ export async function executeBulkPriceTransfer(
                     await addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds }).catch(() => {});
                 } else if (criteria.targetField === 'hepsiburadaPrice') {
                     await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds }).catch(() => {});
+                } else if (criteria.targetField === 'idefixPrice') {
+                    await addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds }).catch(() => {});
                 }
             }
         } catch (e) {

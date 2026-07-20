@@ -65,6 +65,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         trendyolPrice: product.trendyolPrice ? product.trendyolPrice.toNumber() : null,
         n11Price: product.n11Price ? product.n11Price.toNumber() : null,
         hepsiburadaPrice: product.hepsiburadaPrice ? product.hepsiburadaPrice.toNumber() : null,
+        idefixPrice: product.idefixPrice ? product.idefixPrice.toNumber() : null,
         weight: anyProduct.weight ? Number(anyProduct.weight) : null,
         width: anyProduct.width ? Number(anyProduct.width) : null,
         height: anyProduct.height ? Number(anyProduct.height) : null,
