@@ -83,7 +83,7 @@ export class IdefixClient {
     if (creds) {
       this.creds = creds;
     }
-    const isTest = creds?.isTestMode ?? true;
+    const isTest = creds?.isTestMode ?? false;
     this.pimBaseUrl = isTest
       ? "https://ide-pimapi.idefiks.net/api"
       : "https://merchantapi.idefix.com/pim";
