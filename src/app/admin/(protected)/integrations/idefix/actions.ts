@@ -76,8 +76,11 @@ function flattenIdefixCategories(nodes: any[], parentPath = ""): Array<{ id: num
   const result: Array<{ id: number; name: string }> = [];
   for (const node of nodes) {
     const fullPath = parentPath ? `${parentPath} > ${node.name}` : node.name;
-    result.push({ id: node.id, name: fullPath });
-    if (node.subs && Array.isArray(node.subs) && node.subs.length > 0) {
+    const hasSubs = node.subs && Array.isArray(node.subs) && node.subs.length > 0;
+    if (!hasSubs) {
+      // Sadece urun eklenebilir en alt (leaf) kategorileri dahil et
+      result.push({ id: node.id, name: fullPath });
+    } else {
       result.push(...flattenIdefixCategories(node.subs, fullPath));
     }
   }
