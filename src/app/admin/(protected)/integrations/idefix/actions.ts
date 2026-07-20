@@ -289,7 +289,8 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
     if (alreadySyncedProducts.length > 0) {
       const inventoryItems = alreadySyncedProducts.flatMap((p: any) => {
         const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
-        const comparePrice = Number(p.listPrice);
+        const rawListPrice = Number(p.listPrice);
+        const comparePrice = rawListPrice >= price ? rawListPrice : price;
         const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
         if (validVariants.length > 0) {
           return validVariants.map((v: any) => ({
@@ -333,7 +334,8 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
     if (newProducts.length > 0) {
       const fastListingItems = newProducts.flatMap((p: any) => {
         const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
-        const comparePrice = Number(p.listPrice);
+        const rawListPrice = Number(p.listPrice);
+        const comparePrice = rawListPrice >= price ? rawListPrice : price;
         const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
         if (validVariants.length > 0) {
           return validVariants.map((v: any) => ({
@@ -467,6 +469,8 @@ export async function createProductOnIdefix(productId: string, payload: {
     });
 
     const price = Number((product as any).idefixPrice ?? (product as any).salePrice ?? product.listPrice);
+    const rawListPrice = Number(product.listPrice);
+    const comparePrice = rawListPrice >= price ? rawListPrice : price;
     const catId = Number(payload.idefixCategoryId);
     const brandId = Number(payload.idefixBrandId);
 
@@ -485,7 +489,7 @@ export async function createProductOnIdefix(productId: string, payload: {
           weight: Number((product as any).weight ?? 0),
           description: (product as any).marketplaceDescription || (product as any).description || product.name,
           price,
-          comparePrice: Number(product.listPrice),
+          comparePrice,
           vatRate: (product as any).vatRate ?? 20,
           deliveryType: "regular",
           cargoCompanyId: payload.cargoCompanyId ?? 0,
@@ -508,7 +512,7 @@ export async function createProductOnIdefix(productId: string, payload: {
           weight: Number((product as any).weight ?? 0),
           description: (product as any).marketplaceDescription || (product as any).description || product.name,
           price,
-          comparePrice: Number(product.listPrice),
+          comparePrice,
           vatRate: (product as any).vatRate ?? 20,
           deliveryType: "regular",
           cargoCompanyId: payload.cargoCompanyId ?? 0,
