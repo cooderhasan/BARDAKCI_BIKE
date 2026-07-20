@@ -74,7 +74,7 @@ interface Category {
     trendyolCategoryId?: number | null;
     n11CategoryId?: number | null;
     hbCategoryId?: string | null;
-    idefixCategoryId?: number | null;
+    idefixCategoryId?: string | number | null;
     googleProductCategory?: string | null;
     description?: string | null;
     parent?: {

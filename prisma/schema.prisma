@@ -157,7 +157,7 @@ model Category {
   trendyolCategoryId Int? // Trendyol Kategori ID
   n11CategoryId      Int? // N11 Kategori ID
   hbCategoryId       String? // Hepsiburada Kategori ID (HB uses strings often like "telefon")
-  idefixCategoryId   Int? // Idefix Kategori ID
+  idefixCategoryId   String? // Idefix Kategori ID (Büyük id'ler için String)
   googleProductCategory String? // Google Product Taxonomy (örn. "Ev ve Bahçe > Mobilya > Sandalyeler")
   isFeatured Boolean  @default(false)
   isInHeader Boolean  @default(false)
@@ -184,7 +184,7 @@ model Brand {
   trendyolBrandId Int?
   n11BrandId      Int?
   hbBrandId       String?
-  idefixBrandId   Int?
+  idefixBrandId   String?
   products  Product[]
   createdAt DateTime  @default(now())
 

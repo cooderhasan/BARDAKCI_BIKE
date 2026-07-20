@@ -286,8 +286,8 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
  * Kategori ID ve Marka ID zorunludur.
  */
 export async function createProductOnIdefix(productId: string, payload: {
-  idefixCategoryId: number;
-  idefixBrandId: number;
+  idefixCategoryId: number | string;
+  idefixBrandId: number | string;
   shipmentAddressId?: number;
   returnAddressId?: number;
   cargoCompanyId?: number;
@@ -298,7 +298,7 @@ export async function createProductOnIdefix(productId: string, payload: {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { brand: true, variants: true },
+      include: { brand: true, variants: true, categories: true },
     });
     if (!product) return { success: false, message: "Urun bulunamadi." };
 
@@ -310,6 +310,8 @@ export async function createProductOnIdefix(productId: string, payload: {
     });
 
     const price = Number((product as any).idefixPrice ?? (product as any).salePrice ?? product.listPrice);
+    const catId = Number(payload.idefixCategoryId);
+    const brandId = Number(payload.idefixBrandId);
 
     const productsPayload = product.variants
       .filter((v: any) => v.barcode)
@@ -317,8 +319,8 @@ export async function createProductOnIdefix(productId: string, payload: {
         barcode: v.barcode,
         title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
         productMainId: (product as any).sku || v.barcode,
-        brandId: payload.idefixBrandId,
-        categoryId: payload.idefixCategoryId,
+        brandId: brandId,
+        categoryId: catId,
         inventoryQuantity: v.stock ?? 0,
         vendorStockCode: v.sku || v.barcode,
         desi: Number((product as any).desi ?? 0),

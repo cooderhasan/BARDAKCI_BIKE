@@ -139,7 +139,7 @@ interface Brand {
     trendyolBrandId?: number | null;
     n11BrandId?: number | null;
     hbBrandId?: string | null;
-    idefixBrandId?: number | null;
+    idefixBrandId?: string | number | null;
     createdAt: Date;
     _count: {
         products: number;
