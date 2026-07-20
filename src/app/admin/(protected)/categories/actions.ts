@@ -14,7 +14,7 @@ export async function getCategories() {
     });
 }
 
-export async function createCategory(data: { name: string; slug: string; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; googleProductCategory?: string | null; description?: string }) {
+export async function createCategory(data: { name: string; slug: string; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: number | null; googleProductCategory?: string | null; description?: string }) {
     try {
         await prisma.category.create({
             data: {
@@ -30,6 +30,7 @@ export async function createCategory(data: { name: string; slug: string; order?:
                 trendyolCategoryId: data.trendyolCategoryId ?? null,
                 n11CategoryId: data.n11CategoryId ?? null,
                 hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : null,
+                idefixCategoryId: data.idefixCategoryId ?? null,
                 googleProductCategory: data.googleProductCategory ?? null,
                 description: data.description ?? null,
             },
@@ -43,7 +44,7 @@ export async function createCategory(data: { name: string; slug: string; order?:
     }
 }
 
-export async function updateCategory(id: string, data: { name?: string; slug?: string; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; googleProductCategory?: string | null; description?: string | null }) {
+export async function updateCategory(id: string, data: { name?: string; slug?: string; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: number | null; googleProductCategory?: string | null; description?: string | null }) {
     try {
         await prisma.category.update({
             where: { id },

@@ -139,6 +139,7 @@ interface Brand {
     trendyolBrandId?: number | null;
     n11BrandId?: number | null;
     hbBrandId?: string | null;
+    idefixBrandId?: number | null;
     createdAt: Date;
     _count: {
         products: number;
@@ -158,6 +159,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
     const [trendyolBrandId, setTrendyolBrandId] = useState<number | undefined>(undefined);
     const [n11BrandId, setN11BrandId] = useState<number | undefined>(undefined);
     const [hbBrandId, setHbBrandId] = useState<string | undefined>(undefined);
+    const [idefixBrandId, setIdefixBrandId] = useState<number | undefined>(undefined);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -165,10 +167,10 @@ export function BrandsTable({ brands }: BrandsTableProps) {
 
         try {
             if (editBrand) {
-                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, trendyolBrandId, n11BrandId, hbBrandId });
+                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
                 toast.success("Marka güncellendi.");
             } else {
-                await createBrand({ name, logoUrl: logoUrl || undefined, trendyolBrandId, n11BrandId, hbBrandId });
+                await createBrand({ name, logoUrl: logoUrl || undefined, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
                 toast.success("Marka oluşturuldu.");
             }
             setIsOpen(false);
@@ -188,6 +190,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         setTrendyolBrandId(undefined);
         setN11BrandId(undefined);
         setHbBrandId(undefined);
+        setIdefixBrandId(undefined);
         setEditBrand(null);
     };
 
@@ -198,6 +201,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         setTrendyolBrandId(brand.trendyolBrandId ?? undefined);
         setN11BrandId(brand.n11BrandId ?? undefined);
         setHbBrandId(brand.hbBrandId ?? undefined);
+        setIdefixBrandId(brand.idefixBrandId ?? undefined);
         setIsOpen(true);
     };
 
@@ -283,7 +287,19 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                                         placeholder="N11 marka ID’si giriniz"
                                         className="border-purple-200 dark:border-purple-700"
                                     />
-                                    <p className="text-[10px] text-purple-600">N11 entegrasyonu sayfasından bulabilirsiniz.</p>
+                                    <p className="text-[10px] text-purple-600">N11 marka ID’si giriniz.</p>
+                                </div>
+                                <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                    <Label htmlFor="idefixBrandId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Marka ID</Label>
+                                    <Input
+                                        id="idefixBrandId"
+                                        type="number"
+                                        value={idefixBrandId || ""}
+                                        onChange={(e) => setIdefixBrandId(e.target.value ? Number(e.target.value) : undefined)}
+                                        placeholder="Idefix marka ID'si giriniz"
+                                        className="border-purple-200 dark:border-purple-700"
+                                    />
+                                    <p className="text-[10px] text-purple-600">Idefix panelindeki Marka ID bilgisini girin.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                                     <Label htmlFor="hbBrandId" className="text-amber-700 dark:text-amber-400 font-semibold text-xs uppercase tracking-wide">🟡 Hepsiburada Marka</Label>

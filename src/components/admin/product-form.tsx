@@ -93,6 +93,7 @@ interface Product {
     isTrendyolActive?: boolean;
     isN11Active?: boolean;
     isHepsiburadaActive?: boolean;
+    isIdefixActive?: boolean;
     isGoogleActive?: boolean;
     googlePrice?: number | null;
     weight?: number | null;
@@ -148,6 +149,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         isTrendyolActive: product?.isTrendyolActive ?? false,
         isN11Active: product?.isN11Active ?? false,
         isHepsiburadaActive: product?.isHepsiburadaActive ?? false,
+        isIdefixActive: (product as any)?.isIdefixActive ?? false,
         isGoogleActive: product?.isGoogleActive ?? false,
         googlePrice: product?.googlePrice || "",
         isFeatured: product?.isFeatured || false,
@@ -1304,6 +1306,17 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 <Checkbox
                                     checked={formData.isHepsiburadaActive}
                                     onCheckedChange={(c) => handleChange("isHepsiburadaActive", c)}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/10">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base text-purple-700 dark:text-purple-300">Idefix Satış</Label>
+                                    <p className="text-sm text-muted-foreground">Bu ürünü Idefix'e gönder?</p>
+                                </div>
+                                <Checkbox
+                                    checked={formData.isIdefixActive}
+                                    onCheckedChange={(c) => handleChange("isIdefixActive", c)}
                                 />
                             </div>
 

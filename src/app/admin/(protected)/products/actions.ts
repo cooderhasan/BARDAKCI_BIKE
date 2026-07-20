@@ -57,6 +57,7 @@ export async function createProduct(formData: FormData) {
         isTrendyolActive: formData.get("isTrendyolActive") === "true",
         isN11Active: formData.get("isN11Active") === "true",
         isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
+        isIdefixActive: formData.get("isIdefixActive") === "true",
         isGoogleActive: formData.get("isGoogleActive") === "true",
         googlePrice: formData.get("googlePrice") ? Number(formData.get("googlePrice")) : undefined,
         // Kargo & Desi
@@ -194,6 +195,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         isTrendyolActive: formData.get("isTrendyolActive") === "true",
         isN11Active: formData.get("isN11Active") === "true",
         isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
+        isIdefixActive: formData.get("isIdefixActive") === "true",
         isGoogleActive: formData.get("isGoogleActive") === "true",
         googlePrice: formData.get("googlePrice") ? Number(formData.get("googlePrice")) : undefined,
         // Kargo & Desi

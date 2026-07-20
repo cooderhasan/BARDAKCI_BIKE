@@ -73,6 +73,7 @@ interface Category {
     trendyolCategoryId?: number | null;
     n11CategoryId?: number | null;
     hbCategoryId?: string | null;
+    idefixCategoryId?: number | null;
     googleProductCategory?: string | null;
     description?: string | null;
     parent?: {
@@ -152,6 +153,9 @@ function SortableRow({ category, onEdit, onDelete, onToggleStatus, reorderMode }
                     </div>
                     <div title={category.hbCategoryId ? "Hepsiburada Bağlı" : "Hepsiburada Bağlı Değil"}>
                         <div className={`w-2 h-2 rounded-full ${category.hbCategoryId ? "bg-orange-600" : "bg-gray-200"}`} />
+                    </div>
+                    <div title={category.idefixCategoryId ? "Idefix Bağlı" : "Idefix Bağlı Değil"}>
+                        <div className={`w-2 h-2 rounded-full ${category.idefixCategoryId ? "bg-purple-600" : "bg-gray-200"}`} />
                     </div>
                 </div>
             </TableCell>
@@ -617,6 +621,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [trendyolCategoryId, setTrendyolCategoryId] = useState<number | undefined>(undefined);
     const [n11CategoryId, setN11CategoryId] = useState<number | undefined>(undefined);
     const [hbCategoryId, setHbCategoryId] = useState<string | undefined>(undefined);
+    const [idefixCategoryId, setIdefixCategoryId] = useState<number | undefined>(undefined);
     const [googleProductCategory, setGoogleProductCategory] = useState<string | undefined>(undefined);
     const [description, setDescription] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -795,6 +800,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     trendyolCategoryId,
                     n11CategoryId,
                     hbCategoryId,
+                    idefixCategoryId,
                     googleProductCategory,
                     description: description || null
                 });
@@ -812,6 +818,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     trendyolCategoryId,
                     n11CategoryId,
                     hbCategoryId,
+                    idefixCategoryId,
                     googleProductCategory,
                     description: description || undefined
                 });
@@ -866,6 +873,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setTrendyolCategoryId(undefined);
         setN11CategoryId(undefined);
         setHbCategoryId(undefined);
+        setIdefixCategoryId(undefined);
         setGoogleProductCategory(undefined);
         setDescription("");
         setEditCategory(null);
@@ -885,6 +893,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setTrendyolCategoryId(category.trendyolCategoryId ?? undefined);
         setN11CategoryId(category.n11CategoryId ?? undefined);
         setHbCategoryId(category.hbCategoryId ?? undefined);
+        setIdefixCategoryId(category.idefixCategoryId ?? undefined);
         setGoogleProductCategory(category.googleProductCategory ?? undefined);
         setDescription(category.description || "");
         setIsOpen(true);
@@ -1010,6 +1019,18 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                         onChange={setHbCategoryId}
                                     />
                                     <p className="text-[10px] text-orange-600">HB kategorisini adıyla arayıp seçebilirsiniz.</p>
+                                </div>
+                                <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                    <Label htmlFor="idefixCategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Kategori Eşleştirme (Kategori ID)</Label>
+                                    <Input
+                                        id="idefixCategoryId"
+                                        type="number"
+                                        value={idefixCategoryId || ""}
+                                        onChange={(e) => setIdefixCategoryId(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        placeholder="Örn: 15031706"
+                                        className="border-purple-200"
+                                    />
+                                    <p className="text-[10px] text-purple-600">Idefix panelindeki veya dökümandaki Kategori ID bilgisini girin.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="googleProductCategory" className="text-[#17457C]">Google Ürün Kategorisi (Taxonomy)</Label>
