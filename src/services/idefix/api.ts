@@ -165,29 +165,32 @@ export class IdefixClient {
 
   /** Kategori listesini alir */
   async getCategories(): Promise<IdefixCategory[]> {
-    const url = `${this.pimBaseUrl}/connector/product-category`;
+    const url = `${this.pimBaseUrl}/product-category`;
     return this.request<IdefixCategory[]>("GET", url);
   }
 
   /** Belirli kategori icin ozellik listesini alir */
   async getCategoryAttributes(categoryId: number): Promise<any[]> {
-    const url = `${this.pimBaseUrl}/connector/product-category/${categoryId}/attributes`;
+    const url = `${this.pimBaseUrl}/product-category/${categoryId}/attribute`;
     return this.request<any[]>("GET", url);
   }
 
-  /** Marka listesini alir (sayfalı) */
+  /** Marka listesini alir */
   async getBrands(page = 1, searchText?: string): Promise<{ items: IdefixBrand[]; totalCount: number }> {
-    let url = `${this.pimBaseUrl}/connector/brands?page=${page}&limit=100`;
+    let url = `${this.pimBaseUrl}/brand?page=${page}&size=100`;
     if (searchText) url += `&name=${encodeURIComponent(searchText)}`;
-    return this.request<{ items: IdefixBrand[]; totalCount: number }>("GET", url);
+    const res = await this.request<any>("GET", url);
+    if (Array.isArray(res)) return { items: res, totalCount: res.length };
+    return { items: res?.items ?? [], totalCount: res?.totalCount ?? 0 };
   }
 
   /** Isimle marka arar */
   async searchBrandByName(name: string): Promise<IdefixBrand | null> {
     try {
-      const url = `${this.pimBaseUrl}/connector/brands?name=${encodeURIComponent(name)}&limit=10`;
-      const result = await this.request<{ items: IdefixBrand[] }>("GET", url);
-      return result?.items?.[0] ?? null;
+      const url = `${this.pimBaseUrl}/brand`;
+      const result = await this.request<any>("GET", url);
+      const items = Array.isArray(result) ? result : result?.items ?? [];
+      return items.find((b: any) => b.title?.toLowerCase() === name.toLowerCase()) ?? null;
     } catch {
       return null;
     }
@@ -195,19 +198,20 @@ export class IdefixClient {
 
   /** Saticiya ait urunleri listeler */
   async getMyProducts(page = 1, limit = 50): Promise<any> {
-    const url = `${this.pimBaseUrl}/connector/products?page=${page}&limit=${limit}`;
+    const vendorId = this.creds?.vendorId;
+    const url = `${this.pimBaseUrl}/catalog/${vendorId}/products?page=${page}&limit=${limit}`;
     return this.request<any>("GET", url);
   }
 
   /** Sevkiyat adresi listesi (shipmentAddressId icin) */
   async getShipmentAddresses(): Promise<any[]> {
-    const url = `${this.pimBaseUrl}/connector/shipment-address`;
+    const url = `${this.pimBaseUrl}/shipment-address`;
     return this.request<any[]>("GET", url);
   }
 
   /** Kargo firma listesi */
   async getCargoCompanies(): Promise<any[]> {
-    const url = `${this.pimBaseUrl}/connector/cargo-companies`;
+    const url = `${this.pimBaseUrl}/cargo-companies`;
     return this.request<any[]>("GET", url);
   }
 
