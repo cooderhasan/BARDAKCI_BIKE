@@ -142,29 +142,47 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
 
     const items = result.items || result.products || [];
     const firstItem = items[0] || {};
-    const failureReason = firstItem.failureReason || firstItem.errorReason || firstItem.rejectionReason || result.errorMessage || null;
-    const itemStatus = firstItem.status || result.batchStatus || result.status;
+    const rawErrorCode = firstItem.errorCode || firstItem.failureReason || firstItem.errorReason || firstItem.rejectionReason || result.errorMessage || null;
+    const itemStatus = String(firstItem.status || result.batchStatus || result.status || "").toUpperCase();
+
+    const errorTranslations: Record<string, string> = {
+      PRODUCT_BARCODE_NOT_EXIST: "Ürün barkodu Idefix kataloğunda bulunamadı. Lütfen 'Sıfırdan Ürün Oluştur' sekmesini kullanarak Idefix Kategori ve Marka ID ile gönderin.",
+      PRODUCT_POOL_ALREADY_EXIST: "Bu ürün Idefix satıcı havuzunuzda zaten tanımlı.",
+      VENDOR_CATEGORY_ACCESS_DENIED: "Idefix satıcı hesabınızın bu kategoriye ürün ekleme yetkisi bulunmuyor.",
+      VENDOR_ACCESS_DENIED: "Idefix satıcı hesabınız henüz onaylı değil veya yetkiniz kısıtlı.",
+      BRAND_EXCLUSIVE_NOT_AUTHORIZED: "Bu markaya ait ürünleri satmak için Idefix yetkiniz bulunmuyor.",
+    };
+
+    let failureReason = rawErrorCode;
+    if (rawErrorCode && errorTranslations[rawErrorCode]) {
+      failureReason = errorTranslations[rawErrorCode];
+    }
 
     const isSuccess = itemStatus === "SUCCESS" || itemStatus === "COMPLETED" || itemStatus === "APPROVED";
+    const isDecline = itemStatus === "DECLINE" || itemStatus === "DECLINED" || itemStatus === "FAILED";
 
     await (prisma as any).idefixProduct.update({
       where: { productId },
       data: {
-        batchStatus: String(itemStatus || "PROCESSED"),
+        batchStatus: itemStatus || "PROCESSED",
         isSynced: isSuccess,
-        lastSyncError: failureReason ? String(failureReason) : (isSuccess ? null : (result.message || "Idefix'te beklemede/işleniyor")),
+        lastSyncError: failureReason ? String(failureReason) : (isSuccess ? null : (result.message || "Idefix'te işleniyor")),
         lastSyncedAt: new Date(),
       },
     });
 
-    if (failureReason) {
-      return { success: false, data: result, message: `Idefix Yanıtı: ${failureReason}` };
+    if (isDecline || failureReason) {
+      return {
+        success: false,
+        data: result,
+        message: failureReason ? failureReason : "Idefix ürün gönderimini reddetti (DECLINE). Ürün kataloğunda yok veya yetki kısıtlı olabilir.",
+      };
     }
 
     return {
       success: true,
       data: result,
-      message: isSuccess ? "Ürün Idefix'te başarıyla oluşturuldu/güncellendi!" : `İşlem Durumu: ${itemStatus || "İşleniyor"}`,
+      message: isSuccess ? "Ürün Idefix'te başarıyla onaylandı!" : `İşlem Durumu: ${itemStatus || "İşleniyor"}`,
     };
   } catch (error: any) {
     return { success: false, message: "Hata: " + error.message };
