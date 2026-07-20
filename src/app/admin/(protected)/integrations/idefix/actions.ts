@@ -259,22 +259,22 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
     if (alreadySyncedProducts.length > 0) {
       const inventoryItems = alreadySyncedProducts.flatMap((p: any) => {
         const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
-        const listPrice = Number(p.listPrice);
+        const comparePrice = Number(p.listPrice);
         const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
         if (validVariants.length > 0) {
           return validVariants.map((v: any) => ({
             barcode: v.barcode,
-            salePrice: price,
-            listPrice,
-            quantity: v.stock ?? 0,
+            price,
+            comparePrice,
+            inventoryQuantity: v.stock ?? 0,
           }));
         }
         if (p.barcode) {
           return [{
             barcode: p.barcode,
-            salePrice: price,
-            listPrice,
-            quantity: p.stock ?? 0,
+            price,
+            comparePrice,
+            inventoryQuantity: p.stock ?? 0,
           }];
         }
         return [];
@@ -516,7 +516,7 @@ export async function createProductOnIdefix(productId: string, payload: {
  * Kargo kodu bildirme — Idefix siparisi kargolandiginda trackingNumber gonderir.
  */
 export async function submitIdefixTrackingCode(shipmentId: string, payload: {
-  cargoCompany: string;
+  trackingUrl: string;
   trackingNumber: string;
 }): Promise<{ success: boolean; message: string }> {
   try {

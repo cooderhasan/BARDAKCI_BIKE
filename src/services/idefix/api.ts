@@ -42,9 +42,13 @@ export interface IdefixProductPayload {
 
 export interface IdefixInventoryItem {
   barcode: string;
-  salePrice: number;
-  listPrice: number;
-  quantity: number;
+  price: number;
+  comparePrice: number;
+  inventoryQuantity: number;
+  maximumPurchasableQuantity?: number;
+  deliveryDuration?: number;
+  deliveryType?: string;
+  isZoneSale?: boolean | null;
 }
 
 export interface IdefixOrderParams {
@@ -85,7 +89,7 @@ export class IdefixClient {
       : "https://merchantapi.idefix.com/pim";
     this.omsBaseUrl = isTest
       ? `https://ide-omsapi.idefiks.net/api/shipment/connect/${creds?.vendorId}`
-      : `https://merchantapi.idefix.com/oms`;
+      : `https://merchantapi.idefix.com/oms/${creds?.vendorId}`;
   }
 
   async init() {
@@ -108,7 +112,7 @@ export class IdefixClient {
       : "https://merchantapi.idefix.com/pim";
     this.omsBaseUrl = isTest
       ? `https://ide-omsapi.idefiks.net/api/shipment/connect/${config.vendorId}`
-      : `https://merchantapi.idefix.com/oms`;
+      : `https://merchantapi.idefix.com/oms/${config.vendorId}`;
   }
 
   private getVendorToken(): string {
@@ -278,7 +282,7 @@ export class IdefixClient {
    */
   async updateInventory(items: IdefixInventoryItem[]): Promise<{ batchRequestId: string }> {
     const vendorId = this.creds?.vendorId;
-    const url = `${this.pimBaseUrl}/catalog/${vendorId}/inventory`;
+    const url = `${this.pimBaseUrl}/catalog/${vendorId}/inventory-upload`;
     return this.request<{ batchRequestId: string }>("POST", url, { items });
   }
 
@@ -317,21 +321,26 @@ export class IdefixClient {
 
   /**
    * Kargo kodu bildirme.
+   * POST /oms/{vendorId}/{shipmentId}/update-tracking-number
    */
   async submitTrackingCode(
     shipmentId: string,
-    payload: { cargoCompany: string; trackingNumber: string }
+    payload: { trackingUrl: string; trackingNumber: string }
   ): Promise<any> {
-    const url = `${this.omsBaseUrl}/${shipmentId}/tracking`;
-    return this.request<any>("PUT", url, payload);
+    const url = `${this.omsBaseUrl}/${shipmentId}/update-tracking-number`;
+    return this.request<any>("POST", url, payload);
   }
 
   /**
    * Shipment statu guncelleme.
+   * POST /oms/{vendorId}/{shipmentId}/update-shipment-status
+   * status: "picking" | "invoiced"
    */
-  async updateShipmentStatus(shipmentId: string, status: string): Promise<any> {
-    const url = `${this.omsBaseUrl}/${shipmentId}/status`;
-    return this.request<any>("PUT", url, { status });
+  async updateShipmentStatus(shipmentId: string, status: string, invoiceNumber?: string): Promise<any> {
+    const url = `${this.omsBaseUrl}/${shipmentId}/update-shipment-status`;
+    const body: any = { status };
+    if (invoiceNumber) body.invoiceNumber = invoiceNumber;
+    return this.request<any>("POST", url, body);
   }
 
   /**

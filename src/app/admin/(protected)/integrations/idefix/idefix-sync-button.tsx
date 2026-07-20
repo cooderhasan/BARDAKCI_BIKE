@@ -118,21 +118,21 @@ function IdefixOrderSyncButton() {
 export function IdefixTrackingPanel() {
   const [loading, setLoading] = useState(false);
   const [shipmentId, setShipmentId] = useState("");
-  const [cargoCompany, setCargoCompany] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
 
   const handleSubmit = async () => {
-    if (!shipmentId || !cargoCompany || !trackingNumber) {
+    if (!shipmentId || !trackingUrl || !trackingNumber) {
       toast.error("Tum alanlari doldurunuz.");
       return;
     }
     setLoading(true);
     try {
-      const res = await submitIdefixTrackingCode(shipmentId, { cargoCompany, trackingNumber });
+      const res = await submitIdefixTrackingCode(shipmentId, { trackingUrl, trackingNumber });
       if (res.success) {
         toast.success(res.message);
         setShipmentId("");
-        setCargoCompany("");
+        setTrackingUrl("");
         setTrackingNumber("");
       } else {
         toast.error(res.message);
@@ -168,12 +168,12 @@ export function IdefixTrackingPanel() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-purple-700">Kargo Firmasi</label>
+          <label className="text-xs font-medium text-purple-700">Kargo Takip URL</label>
           <input
             type="text"
-            placeholder="Yurtici, Aras, MNG..."
-            value={cargoCompany}
-            onChange={(e) => setCargoCompany(e.target.value)}
+            placeholder="https://www.yurticikargo.com/tr/online-servisler/gonderi-sorgula?code=..."
+            value={trackingUrl}
+            onChange={(e) => setTrackingUrl(e.target.value)}
             disabled={loading}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50 border-purple-200"
           />
