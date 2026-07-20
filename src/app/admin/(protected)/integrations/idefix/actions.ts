@@ -151,9 +151,17 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
       isTestMode: config.isTestMode ?? true,
     });
 
-    const where: any = { isIdefixActive: true, isActive: true };
-    if (productIds && productIds.length > 0) {
+    const isSingleSync = productIds && productIds.length > 0;
+    const where: any = { isActive: true };
+    if (isSingleSync) {
       where.id = { in: productIds };
+      // Otomatik isIdefixActive aktiflestir
+      await prisma.product.updateMany({
+        where: { id: { in: productIds } },
+        data: { isIdefixActive: true },
+      });
+    } else {
+      where.isIdefixActive = true;
     }
 
     const products = await prisma.product.findMany({
@@ -189,14 +197,24 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
       const inventoryItems = alreadySyncedProducts.flatMap((p: any) => {
         const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
         const listPrice = Number(p.listPrice);
-        return p.variants
-          .filter((v: any) => v.barcode)
-          .map((v: any) => ({
+        const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+        if (validVariants.length > 0) {
+          return validVariants.map((v: any) => ({
             barcode: v.barcode,
             salePrice: price,
             listPrice,
             quantity: v.stock ?? 0,
           }));
+        }
+        if (p.barcode) {
+          return [{
+            barcode: p.barcode,
+            salePrice: price,
+            listPrice,
+            quantity: p.stock ?? 0,
+          }];
+        }
+        return [];
       });
 
       if (inventoryItems.length > 0) {
@@ -223,9 +241,9 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
       const fastListingItems = newProducts.flatMap((p: any) => {
         const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
         const comparePrice = Number(p.listPrice);
-        return p.variants
-          .filter((v: any) => v.barcode)
-          .map((v: any) => ({
+        const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+        if (validVariants.length > 0) {
+          return validVariants.map((v: any) => ({
             barcode: v.barcode,
             title: p.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
             vendorStockCode: v.sku || v.barcode,
@@ -233,6 +251,18 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
             comparePrice,
             inventoryQuantity: v.stock ?? 0,
           }));
+        }
+        if (p.barcode) {
+          return [{
+            barcode: p.barcode,
+            title: p.name,
+            vendorStockCode: p.sku || p.barcode,
+            price,
+            comparePrice,
+            inventoryQuantity: p.stock ?? 0,
+          }];
+        }
+        return [];
       });
 
       if (fastListingItems.length > 0) {

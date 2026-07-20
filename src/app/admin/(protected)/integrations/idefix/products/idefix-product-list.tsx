@@ -143,8 +143,18 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
   };
 
   const getBarcodeCount = (product: any) => {
-    if (!product.variants || product.variants.length === 0) return 0;
-    return product.variants.filter((v: any) => v.barcode).length;
+    const variantCount = (product.variants || []).filter((v: any) => v.barcode).length;
+    if (variantCount > 0) return variantCount;
+    return product.barcode ? 1 : 0;
+  };
+
+  const handleSingleSyncWithCheck = async (product: any) => {
+    const count = getBarcodeCount(product);
+    if (count === 0) {
+      toast.error("Ürünün veya varyantlarının barkodu bulunamadı. Lütfen ürün düzenleme sayfasından barkod ekleyin.");
+      return;
+    }
+    await handleSingleSync(product.id);
   };
 
   return (
@@ -248,7 +258,7 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
                     <TableCell className="text-center">
                       <Switch
                         checked={product.isIdefixActive}
-                        disabled={isToggling || !hasBarcode}
+                        disabled={isToggling}
                         onCheckedChange={() =>
                           handleToggleActive(product.id, product.isIdefixActive)
                         }
@@ -277,8 +287,8 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={isSending || !product.isIdefixActive || !hasBarcode}
-                        onClick={() => handleSingleSync(product.id)}
+                        disabled={isSending}
+                        onClick={() => handleSingleSyncWithCheck(product)}
                         className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-1.5"
                       >
                         {isSending ? (
