@@ -268,6 +268,17 @@ export class IdefixClient {
   }
 
   /**
+   * Urun Merchant Onaylama — waiting_vendor_approve durumundaki urunleri onaylayip satici kataloguna alir.
+   * POST /pim/pool/{vendorId}/approve-item
+   */
+  async approveItem(barcodes: string[]): Promise<any> {
+    const vendorId = this.creds?.vendorId;
+    const url = `${this.pimBaseUrl}/pool/${vendorId}/approve-item`;
+    const items = barcodes.map((barcode) => ({ barcode }));
+    return this.request<any>("POST", url, { items });
+  }
+
+  /**
    * Urun eslesmesi onaylama — matchedProduct'i onaylar.
    */
   async approveMatch(payload: { barcode: string; productContentId: number }): Promise<any> {

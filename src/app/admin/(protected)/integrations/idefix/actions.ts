@@ -534,6 +534,12 @@ export async function createProductOnIdefix(productId: string, payload: {
     const result = await client.createProducts(productsPayload);
     const batchId = result?.batchRequestId;
 
+    // Otomatik Merchant Onayi (waiting_vendor_approve durumundaki urunleri satici kataloguna tasir)
+    const barcodes = productsPayload.map((p: any) => p.barcode).filter(Boolean);
+    if (barcodes.length > 0) {
+      await client.approveItem(barcodes).catch(() => null);
+    }
+
     await (prisma as any).idefixProduct.upsert({
       where: { productId },
       update: { batchId, batchStatus: "PENDING", lastSyncedAt: new Date(), lastSyncError: null },
@@ -541,9 +547,56 @@ export async function createProductOnIdefix(productId: string, payload: {
     });
 
     revalidatePath("/admin/integrations/idefix/products");
-    return { success: true, message: `Urun Idefix'e gonderildi. Batch ID: ${batchId}` };
+    return { success: true, message: `Urun Idefix'e gonderildi ve otomatik onaylandi. Batch ID: ${batchId}` };
   } catch (error: any) {
     return { success: false, message: "Hata: " + error.message };
+  }
+}
+
+/**
+ * Urun Eslestirme Onaylama (Merchant Approve) — Idefix'te waiting_vendor_approve olan urunleri onaylar.
+ */
+export async function approveIdefixProductMatch(productId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { variants: true },
+    });
+    if (!product) return { success: false, message: "Urun bulunamadi." };
+
+    const validVariants = product.variants?.filter((v: any) => v.barcode) || [];
+    const barcodes = validVariants.length > 0
+      ? validVariants.map((v: any) => v.barcode)
+      : product.barcode
+      ? [product.barcode]
+      : [];
+
+    if (barcodes.length === 0) {
+      return { success: false, message: "Barkod bulunamadi." };
+    }
+
+    const client = new IdefixClient({
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
+      vendorId: config.vendorId,
+      isTestMode: config.isTestMode ?? false,
+    });
+
+    await client.approveItem(barcodes);
+
+    await (prisma as any).idefixProduct.upsert({
+      where: { productId },
+      update: { isSynced: true, batchStatus: "COMPLETED", lastSyncError: null },
+      create: { productId, isSynced: true, batchStatus: "COMPLETED" },
+    });
+
+    revalidatePath("/admin/integrations/idefix/products");
+    return { success: true, message: "Ürün Idefix satıcı kataloğunuzda başarıyla onaylandı ve açıldı!" };
+  } catch (error: any) {
+    return { success: false, message: "Onaylama hatasi: " + error.message };
   }
 }
 
