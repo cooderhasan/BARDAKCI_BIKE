@@ -449,6 +449,7 @@ model StoreSettings {
   id                String    @id @default(cuid())
   store             StoreType @unique
   siteTitle         String?
+  seoDescription    String?
   logoUrl           String?
   darkLogoUrl       String?
   faviconUrl        String?

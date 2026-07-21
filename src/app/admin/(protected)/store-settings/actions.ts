@@ -20,6 +20,7 @@ export async function saveStoreSettingsData(
   store: "BIKE" | "MOTOR",
   data: {
     siteTitle?: string;
+    seoDescription?: string;
     logoUrl?: string;
     darkLogoUrl?: string;
     faviconUrl?: string;
@@ -42,6 +43,7 @@ export async function saveStoreSettingsData(
       where: { store },
       update: {
         siteTitle: data.siteTitle || undefined,
+        seoDescription: data.seoDescription || undefined,
         logoUrl: data.logoUrl || undefined,
         darkLogoUrl: data.darkLogoUrl || undefined,
         faviconUrl: data.faviconUrl || undefined,
@@ -56,6 +58,7 @@ export async function saveStoreSettingsData(
       create: {
         store: store as StoreType,
         siteTitle: data.siteTitle || (store === "MOTOR" ? "Motovitrin" : "Bardakçı Bisiklet"),
+        seoDescription: data.seoDescription || undefined,
         logoUrl: data.logoUrl || undefined,
         darkLogoUrl: data.darkLogoUrl || undefined,
         faviconUrl: data.faviconUrl || undefined,

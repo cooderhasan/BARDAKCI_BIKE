@@ -81,12 +81,21 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
               <form onSubmit={handleSaveBike} className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="bikeTitle">Site Başlığı</Label>
+                    <Label htmlFor="bikeTitle">Site Başlığı (Sekme İsimlendirmesi)</Label>
                     <Input
                       id="bikeTitle"
                       value={bikeForm.siteTitle}
                       onChange={(e) => setBikeForm({ ...bikeForm, siteTitle: e.target.value })}
                       placeholder="Bardakçı Bisiklet"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bikeSeo">SEO Site Açıklaması (Meta Description)</Label>
+                    <Input
+                      id="bikeSeo"
+                      value={bikeForm.seoDescription || ""}
+                      onChange={(e) => setBikeForm({ ...bikeForm, seoDescription: e.target.value })}
+                      placeholder="Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu."
                     />
                   </div>
                   <div className="space-y-2">
@@ -222,12 +231,21 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
               <form onSubmit={handleSaveMotor} className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="motorTitle">Site Başlığı</Label>
+                    <Label htmlFor="motorTitle">Site Başlığı (Sekme İsimlendirmesi)</Label>
                     <Input
                       id="motorTitle"
                       value={motorForm.siteTitle}
                       onChange={(e) => setMotorForm({ ...motorForm, siteTitle: e.target.value })}
                       placeholder="Motovitrin - Motosiklet Yedek Parça"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="motorSeo">SEO Site Açıklaması (Meta Description)</Label>
+                    <Input
+                      id="motorSeo"
+                      value={motorForm.seoDescription || ""}
+                      onChange={(e) => setMotorForm({ ...motorForm, seoDescription: e.target.value })}
+                      placeholder="Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın."
                     />
                   </div>
                   <div className="space-y-2">

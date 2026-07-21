@@ -43,7 +43,9 @@ export async function generateMetadata(): Promise<Metadata> {
     isMotor = activeStore === "MOTOR";
     storeTitle = storeSettings.siteTitle;
 
-    if (isMotor) {
+    if (storeSettings.seoDescription) {
+      storeDescription = storeSettings.seoDescription;
+    } else if (isMotor) {
       storeDescription = "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın.";
     } else {
       storeDescription = general.seoDescription || "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu.";

@@ -38,8 +38,10 @@ export function getStoreFilter(storeType: ActiveStore) {
 export interface StoreThemeSettings {
   store: ActiveStore;
   siteTitle: string;
+  seoDescription?: string;
   logoUrl: string;
   darkLogoUrl: string;
+  faviconUrl?: string;
   phone: string;
   email: string;
   address: string;
@@ -53,6 +55,7 @@ export interface StoreThemeSettings {
 const DEFAULT_BIKE_SETTINGS: StoreThemeSettings = {
   store: "BIKE",
   siteTitle: "Bardakçı Bisiklet",
+  seoDescription: "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu.",
   logoUrl: "/logo.png",
   darkLogoUrl: "/logo-dark.png",
   phone: "+90 554 014 41 42",
@@ -66,6 +69,7 @@ const DEFAULT_BIKE_SETTINGS: StoreThemeSettings = {
 const DEFAULT_MOTOR_SETTINGS: StoreThemeSettings = {
   store: "MOTOR",
   siteTitle: "Motovitrin - Motosiklet Yedek Parça & Aksesuar",
+  seoDescription: "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın.",
   logoUrl: "/logo-motor.png",
   darkLogoUrl: "/logo-motor-dark.png",
   phone: "+90 554 014 41 42",
@@ -85,6 +89,7 @@ export async function getStoreSettings(storeType: ActiveStore): Promise<StoreThe
   let generalLogo = "";
   let generalFavicon = "";
   let generalSiteName = "";
+  let generalSeoDescription = "";
   let generalPhone = "";
   let generalEmail = "";
   let generalAddress = "";
@@ -94,6 +99,7 @@ export async function getStoreSettings(storeType: ActiveStore): Promise<StoreThe
     generalLogo = general.logoUrl || general.darkLogoUrl || "";
     generalFavicon = general.faviconUrl || "";
     generalSiteName = general.siteName || "";
+    generalSeoDescription = general.seoDescription || "";
     generalPhone = general.phone || "";
     generalEmail = general.email || "";
     generalAddress = general.address || "";
@@ -102,6 +108,7 @@ export async function getStoreSettings(storeType: ActiveStore): Promise<StoreThe
   const defaults: StoreThemeSettings = storeType === "MOTOR" ? DEFAULT_MOTOR_SETTINGS : {
     ...DEFAULT_BIKE_SETTINGS,
     siteTitle: generalSiteName || DEFAULT_BIKE_SETTINGS.siteTitle,
+    seoDescription: generalSeoDescription || DEFAULT_BIKE_SETTINGS.seoDescription,
     logoUrl: generalLogo || DEFAULT_BIKE_SETTINGS.logoUrl,
     phone: generalPhone || DEFAULT_BIKE_SETTINGS.phone,
     email: generalEmail || DEFAULT_BIKE_SETTINGS.email,
@@ -118,6 +125,7 @@ export async function getStoreSettings(storeType: ActiveStore): Promise<StoreThe
     return {
       store: storeType,
       siteTitle: dbSettings.siteTitle || defaults.siteTitle,
+      seoDescription: dbSettings.seoDescription || defaults.seoDescription,
       logoUrl: dbSettings.logoUrl || generalLogo || defaults.logoUrl,
       darkLogoUrl: dbSettings.darkLogoUrl || defaults.darkLogoUrl,
       faviconUrl: dbSettings.faviconUrl || generalFavicon || "",
