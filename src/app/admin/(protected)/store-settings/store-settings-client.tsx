@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { saveStoreSettingsData } from "./actions";
 import { StoreThemeSettings } from "@/lib/store-helper";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface StoreSettingsClientProps {
   bikeSettings: StoreThemeSettings;
@@ -77,7 +78,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <form onSubmit={handleSaveBike} className="space-y-4">
+              <form onSubmit={handleSaveBike} className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="bikeTitle">Site Başlığı</Label>
@@ -167,6 +168,37 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
                   </div>
                 </div>
 
+                {/* LOGO & VISUALS */}
+                <div className="grid gap-6 md:grid-cols-3 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label>Site Logosu (Açık Tema)</Label>
+                    <ImageUpload
+                      value={bikeForm.logoUrl ? [bikeForm.logoUrl] : []}
+                      onChange={(urls) => setBikeForm({ ...bikeForm, logoUrl: urls[0] || "" })}
+                      onRemove={() => setBikeForm({ ...bikeForm, logoUrl: "" })}
+                      maxFiles={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Site Logosu (Koyu Tema)</Label>
+                    <ImageUpload
+                      value={bikeForm.darkLogoUrl ? [bikeForm.darkLogoUrl] : []}
+                      onChange={(urls) => setBikeForm({ ...bikeForm, darkLogoUrl: urls[0] || "" })}
+                      onRemove={() => setBikeForm({ ...bikeForm, darkLogoUrl: "" })}
+                      maxFiles={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Favicon (Tarayıcı İkonu)</Label>
+                    <ImageUpload
+                      value={bikeForm.faviconUrl ? [bikeForm.faviconUrl] : []}
+                      onChange={(urls) => setBikeForm({ ...bikeForm, faviconUrl: urls[0] || "" })}
+                      onRemove={() => setBikeForm({ ...bikeForm, faviconUrl: "" })}
+                      maxFiles={1}
+                    />
+                  </div>
+                </div>
+
                 <div className="pt-4 flex justify-end">
                   <Button type="submit" disabled={loadingBike} className="bg-[#17457C] hover:bg-[#0f3460] text-white">
                     {loadingBike ? "Kaydediliyor..." : "Bardakçı Bisiklet Ayarlarını Kaydet"}
@@ -187,7 +219,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <form onSubmit={handleSaveMotor} className="space-y-4">
+              <form onSubmit={handleSaveMotor} className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="motorTitle">Site Başlığı</Label>
@@ -273,6 +305,37 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
                       value={motorForm.metaPixelId || ""}
                       onChange={(e) => setMotorForm({ ...motorForm, metaPixelId: e.target.value })}
                       placeholder="1234567890"
+                    />
+                  </div>
+                </div>
+
+                {/* LOGO & VISUALS */}
+                <div className="grid gap-6 md:grid-cols-3 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label>Motovitrin Logosu (Açık Tema)</Label>
+                    <ImageUpload
+                      value={motorForm.logoUrl ? [motorForm.logoUrl] : []}
+                      onChange={(urls) => setMotorForm({ ...motorForm, logoUrl: urls[0] || "" })}
+                      onRemove={() => setMotorForm({ ...motorForm, logoUrl: "" })}
+                      maxFiles={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Motovitrin Logosu (Koyu Tema)</Label>
+                    <ImageUpload
+                      value={motorForm.darkLogoUrl ? [motorForm.darkLogoUrl] : []}
+                      onChange={(urls) => setMotorForm({ ...motorForm, darkLogoUrl: urls[0] || "" })}
+                      onRemove={() => setMotorForm({ ...motorForm, darkLogoUrl: "" })}
+                      maxFiles={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Favicon (Tarayıcı İkonu)</Label>
+                    <ImageUpload
+                      value={motorForm.faviconUrl ? [motorForm.faviconUrl] : []}
+                      onChange={(urls) => setMotorForm({ ...motorForm, faviconUrl: urls[0] || "" })}
+                      onRemove={() => setMotorForm({ ...motorForm, faviconUrl: "" })}
+                      maxFiles={1}
                     />
                   </div>
                 </div>

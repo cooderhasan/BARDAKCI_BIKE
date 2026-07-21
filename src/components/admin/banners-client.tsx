@@ -146,9 +146,18 @@ export function BannersClient({ initialBanners }: BannersClientProps) {
                                             />
                                         </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <div className="font-medium">{banner.title || "-"}</div>
-                                    </TableCell>
+                                     <TableCell>
+                                         <div className="flex items-center gap-1.5">
+                                             <span className="font-medium">{banner.title || "-"}</span>
+                                             {(banner as any).store === "MOTOR" ? (
+                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">🏍️ Motor</span>
+                                             ) : (banner as any).store === "BOTH" ? (
+                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">🌐 Ortak</span>
+                                             ) : (
+                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">🚲 Bisiklet</span>
+                                             )}
+                                         </div>
+                                     </TableCell>
                                     <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
                                         {banner.linkUrl ? (
                                             <a href={banner.linkUrl} target="_blank" rel="noreferrer" className="flex items-center hover:underline">

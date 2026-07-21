@@ -34,6 +34,7 @@ interface Slider {
     subtitle: string | null;
     imageUrl: string;
     linkUrl: string | null;
+    store?: "BIKE" | "MOTOR" | "BOTH";
     order: number;
     isActive: boolean;
     createdAt: Date;
@@ -312,12 +313,21 @@ export function SlidersTable({ sliders }: SlidersTableProps) {
                                             <span className="text-gray-400">-</span>
                                         )}
                                     </TableCell>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{slider.title || "-"}</p>
-                                            <p className="text-sm text-gray-500">{slider.subtitle || ""}</p>
-                                        </div>
-                                    </TableCell>
+                                     <TableCell>
+                                         <div>
+                                             <div className="flex items-center gap-1.5">
+                                                 <p className="font-medium">{slider.title || "-"}</p>
+                                                 {slider.store === "MOTOR" ? (
+                                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">🏍️ Motor</span>
+                                                 ) : slider.store === "BOTH" ? (
+                                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">🌐 Ortak</span>
+                                                 ) : (
+                                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">🚲 Bisiklet</span>
+                                                 )}
+                                             </div>
+                                             <p className="text-sm text-gray-500">{slider.subtitle || ""}</p>
+                                         </div>
+                                     </TableCell>
                                     <TableCell className="text-gray-500">
                                         {slider.linkUrl || "-"}
                                     </TableCell>

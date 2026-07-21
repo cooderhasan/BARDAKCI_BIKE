@@ -34,6 +34,7 @@ const formSchema = z.object({
     title: z.string().optional().or(z.literal("")),
     linkUrl: z.string().optional().or(z.literal("")),
     imageUrl: z.string().min(1, "Görsel zorunludur."),
+    store: z.enum(["BIKE", "MOTOR", "BOTH"]).default("BIKE"),
     isActive: z.boolean().default(true),
     order: z.coerce.number().default(0),
 });
@@ -48,12 +49,13 @@ interface BannerFormProps {
 export function BannerForm({ initialData, onSuccess }: BannerFormProps) {
     const [loading, setLoading] = useState(false);
 
-    const form = useForm({
+    const form = useForm<BannerFormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             title: initialData?.title || "",
             linkUrl: initialData?.linkUrl || "",
             imageUrl: initialData?.imageUrl || "",
+            store: initialData?.store || "BIKE",
             isActive: initialData?.isActive ?? true,
             order: initialData?.order ?? 0,
         },
@@ -107,6 +109,29 @@ export function BannerForm({ initialData, onSuccess }: BannerFormProps) {
                             <FormDescription>
                                 Önerilen boyut: <span className="font-bold">800x500px</span>. Format: <span className="font-bold">JPG</span> veya <span className="font-bold">WebP</span>.
                             </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="store"
+                    render={({ field }) => (
+                        <FormItem className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                            <FormLabel className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</FormLabel>
+                            <FormControl>
+                                <select
+                                    className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                    disabled={loading}
+                                >
+                                    <option value="BIKE">🚲 Sadece Bardakçı Bisiklet</option>
+                                    <option value="MOTOR">🏍️ Sadece Motovitrin</option>
+                                    <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
+                                </select>
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}

@@ -17,6 +17,7 @@ interface SliderFormProps {
         subtitle?: string | null;
         imageUrl: string;
         linkUrl?: string | null;
+        store?: "BIKE" | "MOTOR" | "BOTH";
         order: number;
         isActive: boolean;
         showOverlay: boolean;
@@ -29,6 +30,7 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
     const [title, setTitle] = useState(initialData?.title || "");
     const [subtitle, setSubtitle] = useState(initialData?.subtitle || "");
     const [linkUrl, setLinkUrl] = useState(initialData?.linkUrl || "");
+    const [store, setStore] = useState<"BIKE" | "MOTOR" | "BOTH">(initialData?.store || "BIKE");
     const [order, setOrder] = useState(initialData?.order || 0);
     const [isActive, setIsActive] = useState(initialData ? initialData.isActive : true);
     const [showOverlay, setShowOverlay] = useState(initialData ? initialData.showOverlay : true);
@@ -47,6 +49,7 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
             title,
             subtitle,
             linkUrl,
+            store,
             order: Number(order),
             isActive,
             showOverlay,
@@ -90,6 +93,21 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
                     maxFiles={1}
                     disabled={loading}
                 />
+            </div>
+
+            <div className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <Label htmlFor="sliderStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</Label>
+                <select
+                    id="sliderStore"
+                    className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={store}
+                    onChange={(e) => setStore(e.target.value as any)}
+                    disabled={loading}
+                >
+                    <option value="BIKE">🚲 Sadece Bardakçı Bisiklet</option>
+                    <option value="MOTOR">🏍️ Sadece Motovitrin</option>
+                    <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
+                </select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
