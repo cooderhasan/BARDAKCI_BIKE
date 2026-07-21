@@ -26,6 +26,7 @@ import {
     Image as LucideImage,
     Search,
     RefreshCcw,
+    Star,
     Brain,
     Store,
 } from "lucide-react";
