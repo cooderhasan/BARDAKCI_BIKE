@@ -29,6 +29,8 @@ export async function generateMetadata(): Promise<Metadata> {
   let general: any = {};
   let storeTitle = "Bardakcı Bike";
   let faviconUrl = "/favicon.ico";
+  let storeDescription = "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu.";
+  let isMotor = false;
 
   try {
     const generalSettings = await prisma.siteSettings.findUnique({
@@ -38,7 +40,15 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const activeStore = await getStoreType();
     const storeSettings = await getStoreSettings(activeStore);
+    isMotor = activeStore === "MOTOR";
     storeTitle = storeSettings.siteTitle;
+
+    if (isMotor) {
+      storeDescription = "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın.";
+    } else {
+      storeDescription = general.seoDescription || "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu.";
+    }
+
     if (storeSettings.faviconUrl) {
       faviconUrl = storeSettings.faviconUrl;
     } else if (general.faviconUrl) {
@@ -48,7 +58,7 @@ export async function generateMetadata(): Promise<Metadata> {
     console.warn("Could not fetch site settings for metadata, using defaults.", error);
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+  const siteUrl = isMotor ? "https://motor.bardakcibike.com.tr" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
 
   return {
     metadataBase: new URL(siteUrl),
@@ -56,8 +66,8 @@ export async function generateMetadata(): Promise<Metadata> {
       default: storeTitle,
       template: `%s | ${storeTitle}`,
     },
-    description: general.seoDescription || "Toptan ve Perakende Satış Platformu",
-    keywords: general.seoKeywords?.split(",") || [],
+    description: storeDescription,
+    keywords: isMotor ? ["Motosiklet", "Yedek Parça", "Motovitrin", "Motosiklet Aksesuar"] : (general.seoKeywords?.split(",") || ["Bisiklet", "Bisiklet Yedek Parça"]),
     icons: {
       icon: [
         {
@@ -84,8 +94,8 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
     },
     openGraph: {
-      title: general.seoTitle || storeTitle,
-      description: general.seoDescription || "Toptan ve Perakende Satış Platformu",
+      title: storeTitle,
+      description: storeDescription,
       siteName: storeTitle,
       images: [
         {
