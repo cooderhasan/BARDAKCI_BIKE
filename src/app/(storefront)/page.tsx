@@ -14,22 +14,17 @@ import type { Metadata } from "next";
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
-    let general: any = {};
-    try {
-        const generalSettings = await prisma.siteSettings.findUnique({
-            where: { key: "general" },
-        });
-        general = (generalSettings?.value as any) || {};
-    } catch (e) {
-        console.warn("Could not fetch settings for homepage metadata", e);
-    }
+    const activeStore = await getStoreType();
+    const storeSettings = await getStoreSettings(activeStore);
 
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-    const title = general.seoTitle || general.siteName || "Bardakcı Bike | Toptan Bisiklet ve Yedek Parça";
-    const description = general.seoDescription || "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu. Bardakcı Bike ile en kaliteli bisiklet modellerine uygun fiyatlarla ulaşın.";
-    const ogImage = general.ogImageUrl 
-        ? (general.ogImageUrl.startsWith("http") ? general.ogImageUrl : `${siteUrl}${general.ogImageUrl}`)
-        : `${siteUrl}/img/og-default.jpg`;
+    const isMotor = activeStore === "MOTOR";
+    const siteUrl = isMotor ? "https://motor.bardakcibike.com.tr" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
+    const title = isMotor 
+        ? `${storeSettings.siteTitle} | Motosiklet Yedek Parça & Aksesuar`
+        : `${storeSettings.siteTitle} | Toptan Bisiklet ve Yedek Parça`;
+    const description = isMotor
+        ? "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın."
+        : "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu. Bardakcı Bike ile en kaliteli bisiklet modellerine uygun fiyatlarla ulaşın.";
 
     return {
         title,
@@ -41,7 +36,6 @@ export async function generateMetadata(): Promise<Metadata> {
             title,
             description,
             url: siteUrl,
-            images: [{ url: ogImage }],
             type: "website",
         }
     };

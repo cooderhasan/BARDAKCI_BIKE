@@ -23,17 +23,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export async function generateMetadata(): Promise<Metadata> {
-  let general: any = {};
+import { getStoreType, getStoreSettings } from "@/lib/store-helper";
 
+export async function generateMetadata(): Promise<Metadata> {
+  let storeTitle = "Bardakcı Bike";
   try {
-    const generalSettings = await prisma.siteSettings.findUnique({
-      where: { key: "general" },
-    });
-    general = (generalSettings?.value as any) || {};
+    const activeStore = await getStoreType();
+    const storeSettings = await getStoreSettings(activeStore);
+    storeTitle = storeSettings.siteTitle;
   } catch (error) {
-    // Fallback to default metadata if DB is not ready (e.g. during build)
-    console.warn("Could not fetch site settings, using defaults.", error);
+    console.warn("Could not fetch site settings for metadata, using defaults.", error);
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
@@ -41,10 +40,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(siteUrl),
     title: {
-      default: general.seoTitle || general.siteName || "B2B E-Ticaret Platformu",
-      template: `%s | ${general.siteName || "B2B"}`,
+      default: storeTitle,
+      template: `%s | ${storeTitle}`,
     },
-    description: general.seoDescription || "B2B Toptan Satış Platformu",
+    description: "Toptan ve Perakende Satış Platformu",
     keywords: general.seoKeywords?.split(",") || [],
     icons: {
       icon: [
