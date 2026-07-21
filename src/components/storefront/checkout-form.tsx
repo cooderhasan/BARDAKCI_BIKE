@@ -87,10 +87,11 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
 
     const summary = getSummary();
 
-    // Calculate shipping cost
+    // Calculate shipping cost: Bisiklet mağazasında her zaman Ücretsiz Kargo, Motor mağazasında Desi Bazlı Kargo
     const selectedCargo = cargoCompanies.find(c => c.id === selectedCargoId);
     let shippingCost = 0;
-    const isFreeShipping = summary.total >= freeShippingLimit;
+    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
+    const isFreeShipping = !isMotorStore; // Bisiklet mağazasında ücretsiz kargo
 
     if (!isFreeShipping && selectedCargo && selectedCargo.isDesiActive && selectedCargo.desiPrices.length > 0) {
         // Desi 0 ise en az 1 desi üzerinden hesapla (minimum kargo ücreti için)

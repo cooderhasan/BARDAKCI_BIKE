@@ -23,6 +23,7 @@ import {
     Zap,
     Truck,
     LogOut,
+    Store,
     Image as LucideImage,
 } from "lucide-react";
 import { useState } from "react";
@@ -81,6 +82,7 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Yapılandırma",
         items: [
+            { title: "Mağaza Ayarları", href: "/admin/store-settings", icon: Store },
             { title: "Ayarlar", href: "/admin/settings", icon: Settings },
             { title: "İskonto Grupları", href: "/admin/discount-groups", icon: FileText },
             { title: "Politikalar", href: "/admin/policies", icon: Scale },

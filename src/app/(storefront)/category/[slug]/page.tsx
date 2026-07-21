@@ -75,10 +75,14 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 
+import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
     const { slug } = await params;
     const searchParamsValues = await searchParams;
     const session = await auth();
+    const activeStore = await getStoreType();
+    const storeFilter = getStoreFilter(activeStore);
     const discountRate = session?.user?.discountRate || 0;
     const isDealer = session?.user?.role === "DEALER" && session?.user?.status === "APPROVED";
 
@@ -134,7 +138,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
 
     // --- Build Filtering Queries ---
-    const andConditions: Prisma.ProductWhereInput[] = [{ isActive: true }];
+    const andConditions: Prisma.ProductWhereInput[] = [{ isActive: true }, { store: storeFilter as any }];
 
     // Filter by Category: hem eski categoryId (legacy) hem yeni categories many-to-many kapsansın
     const categoryIds = [category.id, ...category.children.map(c => c.id)];

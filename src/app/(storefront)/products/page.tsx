@@ -66,15 +66,19 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
     };
 }
 
+import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
     const params = await searchParams;
     const session = await auth();
+    const activeStore = await getStoreType();
+    const storeFilter = getStoreFilter(activeStore);
     const discountRate = session?.user?.discountRate || 0;
     const isDealer =
         session?.user?.role === "DEALER" && session?.user?.status === "APPROVED";
 
     // --- Build Filtering Queries ---
-    const where: Prisma.ProductWhereInput = { isActive: true };
+    const where: Prisma.ProductWhereInput = { isActive: true, store: storeFilter as any };
 
     // Category
     if (params.category) {

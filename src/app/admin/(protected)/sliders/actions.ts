@@ -14,6 +14,7 @@ export async function createSlider(data: {
     subtitle?: string;
     imageUrl: string;
     linkUrl?: string;
+    store?: "BIKE" | "MOTOR" | "BOTH";
     order: number;
     isActive: boolean;
     showOverlay?: boolean;
@@ -38,6 +39,7 @@ export async function updateSlider(
         subtitle?: string;
         imageUrl?: string;
         linkUrl?: string;
+        store?: "BIKE" | "MOTOR" | "BOTH";
         order?: number;
         isActive?: boolean;
         showOverlay?: boolean;

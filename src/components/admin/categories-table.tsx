@@ -62,6 +62,7 @@ interface Category {
     id: string;
     name: string;
     slug: string;
+    store?: "BIKE" | "MOTOR" | "BOTH";
     order: number;
     isActive: boolean;
     createdAt: Date;
@@ -124,7 +125,16 @@ function SortableRow({ category, onEdit, onDelete, onToggleStatus, reorderMode }
             </TableCell>
             <TableCell>
                 <div className="flex flex-col">
-                    <span className="font-medium">{category.name}</span>
+                    <div className="flex items-center gap-1.5">
+                        <span className="font-medium">{category.name}</span>
+                        {category.store === "MOTOR" ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">🏍️ Motor</span>
+                        ) : category.store === "BOTH" ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">🌐 Ortak</span>
+                        ) : (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">🚲 Bisiklet</span>
+                        )}
+                    </div>
                     {category.parent && (
                         <span className="text-xs text-gray-400">
                             ↳ {category.parent.name}
@@ -739,6 +749,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState("");
     const [slug, setSlug] = useState("");
+    const [store, setStore] = useState<"BIKE" | "MOTOR" | "BOTH">("BIKE");
     const [order, setOrder] = useState(0);
     const [isInHeader, setIsInHeader] = useState(false);
     const [headerOrder, setHeaderOrder] = useState(0);
@@ -918,6 +929,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                 result = await updateCategory(editCategory.id, {
                     name,
                     slug,
+                    store,
                     order,
                     parentId: parentId || null,
                     imageUrl,
@@ -936,6 +948,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                 result = await createCategory({
                     name,
                     slug,
+                    store,
                     order,
                     parentId: parentId || null,
                     imageUrl,
@@ -991,6 +1004,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const resetForm = () => {
         setName("");
         setSlug("");
+        setStore("BIKE");
         setOrder(0);
         setIsInHeader(false);
         setHeaderOrder(0);
@@ -1011,6 +1025,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setEditCategory(category);
         setName(category.name);
         setSlug(category.slug);
+        setStore(category.store || "BIKE");
         setOrder(category.order);
         setIsInHeader(category.isInHeader);
         setHeaderOrder(category.headerOrder);
@@ -1124,6 +1139,19 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                         placeholder="temizlik-urunleri"
                                         required
                                     />
+                                </div>
+                                <div className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                    <Label htmlFor="categoryStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</Label>
+                                    <select
+                                        id="categoryStore"
+                                        className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        value={store}
+                                        onChange={(e) => setStore(e.target.value as any)}
+                                    >
+                                        <option value="BIKE">🚲 Sadece Bardakçı Bisiklet</option>
+                                        <option value="MOTOR">🏍️ Sadece Motovitrin</option>
+                                        <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
+                                    </select>
                                 </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                                     <Label htmlFor="trendyolCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Kategori Eşleştirme</Label>

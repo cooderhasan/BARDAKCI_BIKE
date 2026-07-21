@@ -103,6 +103,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
     // Filter States
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
     const [brandFilter, setBrandFilter] = useState(searchParams.get("brand") || "ALL");
+    const [storeFilter, setStoreFilter] = useState(searchParams.get("store") || "ALL");
     const [stockStatus, setStockStatus] = useState(searchParams.get("stockStatus") || "ALL");
     const [priceStatus, setPriceStatus] = useState(searchParams.get("priceStatus") || "ALL");
     const [featureFilter, setFeatureFilter] = useState(searchParams.get("feature") || "ALL");
@@ -126,6 +127,9 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
 
         if (brandFilter && brandFilter !== "ALL") params.set("brand", brandFilter);
         else params.delete("brand");
+
+        if (storeFilter && storeFilter !== "ALL") params.set("store", storeFilter);
+        else params.delete("store");
 
         if (stockStatus && stockStatus !== "ALL") params.set("stockStatus", stockStatus);
         else params.delete("stockStatus");
@@ -315,6 +319,22 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                         </Select>
                     </div>
 
+                    {/* Mağaza Filtresi */}
+                    <div className="w-full md:w-[180px] space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mağaza</label>
+                        <Select value={storeFilter} onValueChange={setStoreFilter}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Tümü" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Tümü</SelectItem>
+                                <SelectItem value="BIKE">🚲 Bardakçı Bisiklet</SelectItem>
+                                <SelectItem value="MOTOR">🏍️ Motovitrin</SelectItem>
+                                <SelectItem value="BOTH">🌐 Ortak Ürünler</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* Stock Status */}
                     <div className="w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Stok Durumu</label>
@@ -423,6 +443,19 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                             <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                                                                 <Package className="h-3 w-3" />
                                                                 Paket
+                                                            </span>
+                                                        )}
+                                                        {(product as any).store === "MOTOR" ? (
+                                                            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                                                🏍️ Motor
+                                                            </span>
+                                                        ) : (product as any).store === "BOTH" ? (
+                                                            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                                                🌐 Ortak
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                                                🚲 Bisiklet
                                                             </span>
                                                         )}
                                                     </div>

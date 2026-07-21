@@ -10,8 +10,8 @@ import { getDBCart } from "@/app/(storefront)/cart/actions";
 import { AddedToCartModal } from "@/components/storefront/added-to-cart-modal";
 
 import { CookieConsent } from "@/components/storefront/cookie-consent";
-
 import { WhatsAppButton } from "@/components/storefront/whatsapp-button";
+import { getStoreType, getStoreSettings, getStoreFilter } from "@/lib/store-helper";
 
 export default async function StorefrontLayout({
     children,
@@ -19,15 +19,28 @@ export default async function StorefrontLayout({
     children: React.ReactNode;
 }) {
     const session = await auth();
-    const settings = await getSiteSettings();
+    const activeStore = await getStoreType();
+    const storeSettings = await getStoreSettings(activeStore);
+    const storeFilter = getStoreFilter(activeStore);
+
+    const settings = {
+        ...(await getSiteSettings()),
+        logoUrl: storeSettings.logoUrl,
+        siteName: storeSettings.siteTitle,
+        phone: storeSettings.phone,
+        email: storeSettings.email,
+        address: storeSettings.address,
+    };
+
     let categories: any[] = [];
 
     try {
-        // 1. Try to fetch categories explicitly marked for header
+        // 1. Try to fetch categories explicitly marked for header for current store
         categories = await prisma.category.findMany({
             where: {
                 isActive: true,
                 isInHeader: true,
+                store: storeFilter,
             },
             orderBy: [
                 { headerOrder: "asc" },
@@ -89,7 +102,8 @@ export default async function StorefrontLayout({
                 categories = await prisma.category.findMany({
                     where: {
                         isActive: true,
-                        parentId: null
+                        parentId: null,
+                        store: storeFilter,
                     },
                     orderBy: { order: "asc" },
                     take: 10,
@@ -126,7 +140,8 @@ export default async function StorefrontLayout({
         sidebarCategories = await prisma.category.findMany({
             where: {
                 isActive: true,
-                parentId: null
+                parentId: null,
+                store: storeFilter,
             },
             orderBy: { order: "asc" },
             select: {

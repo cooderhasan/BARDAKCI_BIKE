@@ -1,8 +1,14 @@
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/db";
+import { headers } from "next/headers";
+import { getStoreType, getStoreFilter } from "@/lib/store-helper";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const headersList = await headers();
+    const host = headersList.get("host") || "www.bardakcibike.com.tr";
+    const baseUrl = `https://${host}`;
+    const activeStore = (host.includes("motovitrin") || host.startsWith("motor.")) ? "MOTOR" : "BIKE";
+    const storeFilter = getStoreFilter(activeStore);
 
     // Core static routes
     const routes = [
@@ -48,7 +54,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let categories: { slug: string }[] = [];
     try {
         categories = await prisma.category.findMany({
-            where: { isActive: true },
+            where: { isActive: true, store: storeFilter as any },
             select: { slug: true },
         });
     } catch (error) {
@@ -66,7 +72,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let products: { slug: string; updatedAt: Date }[] = [];
     try {
         products = await prisma.product.findMany({
-            where: { isActive: true },
+            where: { isActive: true, store: storeFilter as any },
             select: { slug: true, updatedAt: true },
         });
     } catch (error) {

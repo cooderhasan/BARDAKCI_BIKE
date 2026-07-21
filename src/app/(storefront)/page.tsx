@@ -48,18 +48,23 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 
+import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+
 async function getHomeData() {
+    const activeStore = await getStoreType();
+    const storeFilter = getStoreFilter(activeStore);
+
     const [sliders, featuredProducts, newProducts, bestSellers, categories, sidebarCategories, banners, blogPosts] =
         await Promise.all([
             prisma.slider.findMany({
-                where: { isActive: true },
+                where: { isActive: true, store: storeFilter },
                 orderBy: { order: "asc" },
             }).catch((err) => {
                 console.error("Failed to fetch sliders:", err);
                 return [];
             }),
             prisma.product.findMany({
-                where: { isActive: true, isFeatured: true },
+                where: { isActive: true, isFeatured: true, store: storeFilter },
                 include: { category: true, brand: true },
                 take: 8,
             }).catch((err) => {
@@ -67,7 +72,7 @@ async function getHomeData() {
                 return [];
             }),
             prisma.product.findMany({
-                where: { isActive: true, isNew: true },
+                where: { isActive: true, isNew: true, store: storeFilter },
                 include: { category: true, brand: true },
                 take: 8,
             }).catch((err) => {
@@ -75,7 +80,7 @@ async function getHomeData() {
                 return [];
             }),
             prisma.product.findMany({
-                where: { isActive: true, isBestSeller: true },
+                where: { isActive: true, isBestSeller: true, store: storeFilter },
                 include: { category: true, brand: true },
                 take: 8,
             }).catch((err) => {
@@ -83,7 +88,7 @@ async function getHomeData() {
                 return [];
             }),
             prisma.category.findMany({
-                where: { isActive: true, isFeatured: true },
+                where: { isActive: true, isFeatured: true, store: storeFilter },
                 orderBy: { order: "asc" },
                 take: 5,
             }).catch((err) => {
@@ -94,7 +99,8 @@ async function getHomeData() {
             prisma.category.findMany({
                 where: {
                     isActive: true,
-                    parentId: null
+                    parentId: null,
+                    store: storeFilter,
                 },
                 orderBy: { order: "asc" },
                 select: {
@@ -114,7 +120,8 @@ async function getHomeData() {
             prisma.banner.findMany({
                 where: { 
                     isActive: true,
-                    imageUrl: { not: "" }
+                    imageUrl: { not: "" },
+                    store: storeFilter,
                 },
                 orderBy: { order: "asc" },
             }).catch((err) => {

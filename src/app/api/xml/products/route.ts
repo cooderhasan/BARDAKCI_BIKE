@@ -43,13 +43,15 @@ export async function GET(req: NextRequest) {
     }
 
     const useSalePrice = settings.xmlUseSalePrice === "true";
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const host = req.headers.get("host") || "www.bardakcibike.com.tr";
+    const activeStore = (host.includes("motovitrin") || host.startsWith("motor.")) ? "MOTOR" : "BIKE";
+    const baseUrl = `https://${host}`;
 
-    // 2. Fetch Active Products
+    // 2. Fetch Active Products for the specific store
     const products = await prisma.product.findMany({
         where: { 
             isActive: true,
-            // isGoogleActive: true // Re-enable this if you want to filter specifically for Google
+            store: { in: [activeStore, "BOTH"] } as any
         },
         include: {
             categories: {

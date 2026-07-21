@@ -14,12 +14,13 @@ export async function getCategories() {
     });
 }
 
-export async function createCategory(data: { name: string; slug: string; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string }) {
+export async function createCategory(data: { name: string; slug: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string }) {
     try {
         await prisma.category.create({
             data: {
                 name: data.name,
                 slug: data.slug,
+                store: data.store || "BIKE",
                 order: data.order ?? 0,
                 parentId: data.parentId || null,
                 imageUrl: data.imageUrl,
@@ -44,12 +45,13 @@ export async function createCategory(data: { name: string; slug: string; order?:
     }
 }
 
-export async function updateCategory(id: string, data: { name?: string; slug?: string; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
+export async function updateCategory(id: string, data: { name?: string; slug?: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
     try {
         await prisma.category.update({
             where: { id },
             data: {
                 ...data,
+                store: data.store || undefined,
                 hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : (data.hbCategoryId === null ? null : undefined),
                 idefixCategoryId: data.idefixCategoryId ? String(data.idefixCategoryId) : (data.idefixCategoryId === null ? null : undefined),
                 parentId: data.parentId === undefined ? undefined : (data.parentId || null),

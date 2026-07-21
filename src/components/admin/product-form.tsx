@@ -146,6 +146,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         images: product?.images || [] as string[],
         variants: product?.variants || [] as ProductVariant[],
         isActive: product?.isActive ?? true,
+        store: ((product as any)?.store as "BIKE" | "MOTOR" | "BOTH") || "BIKE",
         isTrendyolActive: product?.isTrendyolActive ?? false,
         isN11Active: product?.isN11Active ?? false,
         isHepsiburadaActive: product?.isHepsiburadaActive ?? false,
@@ -1244,6 +1245,23 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     checked={formData.isActive}
                                     onCheckedChange={(c) => handleChange("isActive", c)}
                                 />
+                            </div>
+
+                            {/* Mağaza Seçimi (Çoklu Mağaza Yapısı) */}
+                            <div className="p-4 border rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 space-y-2">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base font-bold text-emerald-800 dark:text-emerald-300">🏪 Mağaza Yayın Alanı</Label>
+                                    <p className="text-sm text-muted-foreground">Bu ürünün hangi web sitesinde / mağazada listeleneceğini seçin.</p>
+                                </div>
+                                <select
+                                    className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={formData.store}
+                                    onChange={(e) => handleChange("store", e.target.value)}
+                                >
+                                    <option value="BIKE">🚲 Sadece Bardakçı Bisiklet (bardakcibike.com.tr)</option>
+                                    <option value="MOTOR">🏍️ Sadece Motovitrin (motovitrin.com / motor subdomain)</option>
+                                    <option value="BOTH">🌐 Her İki Mağazada da Yayınla (Ortak Ürün)</option>
+                                </select>
                             </div>
 
                             <hr />

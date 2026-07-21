@@ -13,6 +13,7 @@ export async function createBanner(data: {
     title?: string;
     linkUrl?: string;
     imageUrl: string;
+    store?: "BIKE" | "MOTOR" | "BOTH";
     isActive: boolean;
     order: number;
 }) {
@@ -33,6 +34,7 @@ export async function updateBanner(id: string, data: {
     title?: string;
     linkUrl?: string;
     imageUrl?: string;
+    store?: "BIKE" | "MOTOR" | "BOTH";
     isActive?: boolean;
     order?: number;
 }) {

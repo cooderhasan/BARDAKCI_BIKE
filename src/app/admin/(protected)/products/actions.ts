@@ -53,6 +53,7 @@ export async function createProduct(formData: FormData) {
         isNew: formData.get("isNew") === "true",
         isBestSeller: formData.get("isBestSeller") === "true",
         isActive: formData.get("isActive") !== "false",
+        store: (formData.get("store") as any) || "BIKE",
         // Marketplace Visibility
         isTrendyolActive: formData.get("isTrendyolActive") === "true",
         isN11Active: formData.get("isN11Active") === "true",
@@ -191,6 +192,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         isNew: formData.get("isNew") === "true",
         isBestSeller: formData.get("isBestSeller") === "true",
         isActive: formData.get("isActive") !== "false",
+        store: (formData.get("store") as any) || "BIKE",
         // Marketplace Visibility
         isTrendyolActive: formData.get("isTrendyolActive") === "true",
         isN11Active: formData.get("isN11Active") === "true",

@@ -62,6 +62,12 @@ enum QuoteStatus {
   CONVERTED   // Siparişe dönüştürüldü
 }
 
+enum StoreType {
+  BIKE    // Bardakçı Bisiklet (bardakcibike.com.tr)
+  MOTOR   // Motovitrin (motovitrin.com veya motor.* subdomain)
+  BOTH    // Her iki mağazada ortak yayınlanan içerik/ürün
+}
+
 // ==================== MODELS ====================
 
 model User {
@@ -150,6 +156,7 @@ model Category {
   id        String    @id @default(cuid())
   name      String
   slug      String    @unique
+  store     StoreType @default(BIKE)
   order     Int       @default(0)
   isActive  Boolean   @default(true)
   imageUrl  String?
@@ -228,6 +235,7 @@ model Product {
   isNew       Boolean     @default(false)
   isBestSeller Boolean    @default(false)
   isActive    Boolean     @default(true)
+  store       StoreType   @default(BIKE)
   
   // Marketplace Visibility
   isTrendyolActive    Boolean @default(false)
@@ -321,6 +329,7 @@ model Order {
   trackingUrl          String?       // Kargo Takip Linki
   cargoLabelUrl        String?       // Trendyol vb. için Kargo Barkod/Etiket Linki
   source               String        @default("WEB") // WEB, TRENDYOL, N11, HEPSIBURADA
+  store                StoreType     @default(BIKE)
   // Yurtiçi Kargo Entegrasyonu
   ykCargoKey          String?       // YK'ya gönderilen tekil kargo anahtarı
   ykJobId             Int?          // YK Talep Numarası (createShipment'tan döner)
@@ -408,30 +417,52 @@ model AdminLog {
 }
 
 model Slider {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String?
   subtitle    String?
   imageUrl    String
   linkUrl     String?
-  order       Int      @default(0)
-  isActive    Boolean  @default(true)
-  showOverlay Boolean  @default(true) // Metin ve buton katmanını göster/gizle
-  createdAt   DateTime @default(now())
+  store       StoreType @default(BIKE)
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  showOverlay Boolean   @default(true) // Metin ve buton katmanını göster/gizle
+  createdAt   DateTime  @default(now())
 
   @@map("sliders")
 }
 
 model Banner {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String?
   imageUrl  String
   linkUrl   String?
-  order     Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  store     StoreType @default(BIKE)
+  order     Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("banners")
+}
+
+model StoreSettings {
+  id                String    @id @default(cuid())
+  store             StoreType @unique
+  siteTitle         String?
+  logoUrl           String?
+  darkLogoUrl       String?
+  faviconUrl        String?
+  phone             String?
+  email             String?
+  address           String?
+  primaryColor      String?   @default("#17457C")
+  accentColor       String?   @default("#F27A1A")
+  googleAnalyticsId String?
+  metaPixelId       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("store_settings")
 }
 
 model CargoCompany {

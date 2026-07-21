@@ -49,6 +49,7 @@ export const productSchema = z.object({
     isNew: z.boolean().default(false),
     isBestSeller: z.boolean().default(false),
     isActive: z.boolean().default(true),
+    store: z.enum(["BIKE", "MOTOR", "BOTH"]).default("BIKE"),
     isBundle: z.boolean().default(false),
     gender: z.string().nullable().optional(),
     brakeType: z.string().nullable().optional(),
