@@ -20,21 +20,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
         const isMotor = activeStore === "MOTOR";
         const siteUrl = isMotor ? "https://motor.bardakcibike.com.tr" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
-        const title = isMotor 
-            ? `${storeSettings.siteTitle} | Motosiklet Yedek Parça & Aksesuar`
-            : `${storeSettings.siteTitle} | Toptan Bisiklet ve Yedek Parça`;
+        const rawTitle = storeSettings.siteTitle || (isMotor ? "Motovitrin - Motosiklet Yedek Parça & Aksesuar" : "Bardakçı Bisiklet | Toptan Bisiklet ve Yedek Parça");
         const description = isMotor
             ? "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın."
             : "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu. Bardakcı Bike ile en kaliteli bisiklet modellerine uygun fiyatlarla ulaşın.";
 
         return {
-            title,
+            title: {
+                absolute: rawTitle,
+            },
             description,
             alternates: {
                 canonical: siteUrl,
             },
             openGraph: {
-                title,
+                title: rawTitle,
                 description,
                 url: siteUrl,
                 type: "website",
