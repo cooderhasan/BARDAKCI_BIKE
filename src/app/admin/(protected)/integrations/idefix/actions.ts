@@ -511,17 +511,22 @@ export async function createProductOnIdefix(productId: string, payload: {
     const manufacturer = payload.manufacturer?.trim() || product.brand?.name || "Bardakçı Bike";
     const importer = payload.importer?.trim() || "Bardakçı Bike";
 
-    const validVariants = product.variants?.filter((v: any) => v.barcode) || [];
+    const rawImages = ((product as any).images ?? []).filter((u: any) => typeof u === "string" && u.trim().length > 0);
+    const formattedImages = rawImages.length > 0
+      ? rawImages.slice(0, 8).map((url: string) => ({ url }))
+      : [{ url: "https://n11scdn3.akamaized.net/a1/org/06/31/10/42/IMG-5125844770873517246.jpg" }];
+
+    const mainBarcode = product.barcode || (product as any).sku;
 
     const productsPayload = validVariants.length > 0
       ? validVariants.map((v: any) => ({
-          barcode: v.barcode,
+          barcode: v.barcode || mainBarcode,
           title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
-          productMainId: (product as any).sku || v.barcode,
+          productMainId: (product as any).sku || v.barcode || mainBarcode,
           brandId: brandId,
           categoryId: catId,
           inventoryQuantity: v.stock ?? 0,
-          vendorStockCode: v.sku || v.barcode,
+          vendorStockCode: v.sku || v.barcode || mainBarcode,
           desi: Number((product as any).desi ?? 0),
           weight: Number((product as any).weight ?? 0),
           description: (product as any).marketplaceDescription || (product as any).description || product.name,
@@ -534,17 +539,17 @@ export async function createProductOnIdefix(productId: string, payload: {
           returnAddressId,
           manufacturer,
           importer,
-          images: ((product as any).images ?? []).slice(0, 8).map((url: string) => ({ url })),
+          images: formattedImages,
         }))
-      : product.barcode
+      : mainBarcode
       ? [{
-          barcode: product.barcode,
+          barcode: mainBarcode,
           title: product.name,
-          productMainId: (product as any).sku || product.barcode,
+          productMainId: (product as any).sku || mainBarcode,
           brandId: brandId,
           categoryId: catId,
           inventoryQuantity: product.stock ?? 0,
-          vendorStockCode: (product as any).sku || product.barcode,
+          vendorStockCode: (product as any).sku || mainBarcode,
           desi: Number((product as any).desi ?? 0),
           weight: Number((product as any).weight ?? 0),
           description: (product as any).marketplaceDescription || (product as any).description || product.name,
@@ -557,7 +562,7 @@ export async function createProductOnIdefix(productId: string, payload: {
           returnAddressId,
           manufacturer,
           importer,
-          images: ((product as any).images ?? []).slice(0, 8).map((url: string) => ({ url })),
+          images: formattedImages,
         }]
       : [];
 
