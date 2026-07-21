@@ -14,35 +14,49 @@ import type { Metadata } from "next";
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
-    const activeStore = await getStoreType();
-    const storeSettings = await getStoreSettings(activeStore);
+    try {
+        const activeStore = await getStoreType();
+        const storeSettings = await getStoreSettings(activeStore);
 
-    const isMotor = activeStore === "MOTOR";
-    const siteUrl = isMotor ? "https://motor.bardakcibike.com.tr" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
-    const title = isMotor 
-        ? `${storeSettings.siteTitle} | Motosiklet Yedek Parça & Aksesuar`
-        : `${storeSettings.siteTitle} | Toptan Bisiklet ve Yedek Parça`;
-    const description = isMotor
-        ? "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın."
-        : "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu. Bardakcı Bike ile en kaliteli bisiklet modellerine uygun fiyatlarla ulaşın.";
+        const isMotor = activeStore === "MOTOR";
+        const siteUrl = isMotor ? "https://motor.bardakcibike.com.tr" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
+        const title = isMotor 
+            ? `${storeSettings.siteTitle} | Motosiklet Yedek Parça & Aksesuar`
+            : `${storeSettings.siteTitle} | Toptan Bisiklet ve Yedek Parça`;
+        const description = isMotor
+            ? "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın."
+            : "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu. Bardakcı Bike ile en kaliteli bisiklet modellerine uygun fiyatlarla ulaşın.";
 
-    return {
-        title,
-        description,
-        alternates: {
-            canonical: siteUrl,
-        },
-        openGraph: {
+        return {
             title,
             description,
-            url: siteUrl,
-            type: "website",
-        }
-    };
+            alternates: {
+                canonical: siteUrl,
+            },
+            openGraph: {
+                title,
+                description,
+                url: siteUrl,
+                type: "website",
+            }
+        };
+    } catch (e) {
+        return { title: "Bardakcı Bike | Toptan Bisiklet ve Yedek Parça" };
+    }
 }
 
 
 import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+
+const safeToISO = (d: any) => {
+    if (!d) return new Date().toISOString();
+    if (typeof d === "string") return d;
+    try {
+        return new Date(d).toISOString();
+    } catch {
+        return new Date().toISOString();
+    }
+};
 
 async function getHomeData() {
     const activeStore = await getStoreType();
@@ -132,11 +146,11 @@ async function getHomeData() {
             })
         ]);
 
-    const validBanners = banners.filter((b: any) => b.imageUrl && b.imageUrl.trim() !== "");
+    const validBanners = (banners || []).filter((b: any) => b && b.imageUrl && b.imageUrl.trim() !== "");
 
     const transformProduct = (product: any) => ({
         ...product,
-        listPrice: Number(product.listPrice),
+        listPrice: Number(product.listPrice || 0),
         salePrice: product.salePrice ? Number(product.salePrice) : null,
         trendyolPrice: product.trendyolPrice ? Number(product.trendyolPrice) : null,
         n11Price: product.n11Price ? Number(product.n11Price) : null,
@@ -147,36 +161,36 @@ async function getHomeData() {
         height: product.height ? Number(product.height) : null,
         length: product.length ? Number(product.length) : null,
         desi: product.desi ? Number(product.desi) : null,
-        createdAt: product.createdAt.toISOString(),
-        updatedAt: product.updatedAt.toISOString(),
+        createdAt: safeToISO(product.createdAt),
+        updatedAt: safeToISO(product.updatedAt),
     });
 
     const transformCategory = (category: any) => ({
         ...category,
-        createdAt: category.createdAt.toISOString(),
+        createdAt: safeToISO(category.createdAt),
     });
 
     const transformSlider = (slider: any) => ({
         ...slider,
         showOverlay: slider.showOverlay ?? true,
-        createdAt: slider.createdAt.toISOString(),
+        createdAt: safeToISO(slider.createdAt),
     });
 
     const transformBanner = (banner: any) => ({
         ...banner,
-        createdAt: banner.createdAt.toISOString(),
-        updatedAt: banner.updatedAt.toISOString(),
+        createdAt: safeToISO(banner.createdAt),
+        updatedAt: safeToISO(banner.updatedAt),
     });
 
     return {
-        sliders: sliders.map(transformSlider),
-        featuredProducts: featuredProducts.map(transformProduct),
-        newProducts: newProducts.map(transformProduct),
-        bestSellers: bestSellers.map(transformProduct),
-        categories: categories.map(transformCategory),
-        sidebarCategories: sidebarCategories,
+        sliders: (sliders || []).map(transformSlider),
+        featuredProducts: (featuredProducts || []).map(transformProduct),
+        newProducts: (newProducts || []).map(transformProduct),
+        bestSellers: (bestSellers || []).map(transformProduct),
+        categories: (categories || []).map(transformCategory),
+        sidebarCategories: sidebarCategories || [],
         banners: validBanners.map(transformBanner),
-        blogPosts: blogPosts,
+        blogPosts: blogPosts || [],
     };
 }
 
