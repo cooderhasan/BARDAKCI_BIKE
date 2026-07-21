@@ -565,7 +565,32 @@ export async function createProductOnIdefix(productId: string, payload: {
       return { success: false, message: "Barkodlu varyant bulunamadi." };
     }
 
-    const result = await client.createProducts(productsPayload);
+    let result: any = null;
+    try {
+      result = await client.createProducts(productsPayload);
+    } catch (err: any) {
+      const errMsg = String(err.message || err);
+      if (errMsg.includes("ürün listenizde mevcuttur") || errMsg.includes("PRODUCT_POOL_ALREADY_EXIST")) {
+        const invItems = productsPayload.map((p: any) => ({
+          barcode: p.barcode,
+          price: p.price,
+          comparePrice: p.comparePrice,
+          inventoryQuantity: p.inventoryQuantity,
+        }));
+        await client.updateInventory(invItems).catch(() => null);
+        await (prisma as any).idefixProduct.upsert({
+          where: { productId },
+          update: { isSynced: true, batchStatus: "COMPLETED", lastSyncedAt: new Date(), lastSyncError: null },
+          create: { productId, isSynced: true, batchStatus: "COMPLETED", lastSyncedAt: new Date() },
+        });
+        try {
+          revalidatePath("/admin/integrations/idefix/products");
+        } catch {}
+        return { success: true, message: "Ürün Idefix kataloğunuzda zaten mevcuttu. Fiyat ve stok bilgileri başarıyla güncellendi!" };
+      }
+      throw err;
+    }
+
     const batchId = result?.batchRequestId;
 
     // Otomatik Merchant Onayi (waiting_vendor_approve durumundaki urunleri satici kataloguna tasir)

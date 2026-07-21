@@ -263,9 +263,7 @@ export class IdefixClient {
       );
     }
     const url = `${this.pimBaseUrl}/pool/${vendorId}/batch-result/${batchRequestId}`;
-    return this.request<any>("GET", url).catch(() =>
-      this.request<any>("POST", url)
-    );
+    return this.request<any>("GET", url);
   }
 
   /**
