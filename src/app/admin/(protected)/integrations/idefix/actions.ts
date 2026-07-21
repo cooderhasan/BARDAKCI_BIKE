@@ -458,14 +458,31 @@ export async function createProductOnIdefix(productId: string, payload: {
   cargoCompanyId?: number;
 }): Promise<{ success: boolean; message: string }> {
   try {
+    console.log("[IDEFIX-CREATE] ===== BASLIYOR =====");
+    console.log("[IDEFIX-CREATE] productId:", productId);
+    console.log("[IDEFIX-CREATE] payload:", JSON.stringify(payload));
+
     const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
-    if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
+    if (!config) {
+      console.log("[IDEFIX-CREATE] HATA: Aktif config bulunamadi");
+      return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
+    }
+    console.log("[IDEFIX-CREATE] Config bulundu. vendorId:", config.vendorId, "isTestMode:", config.isTestMode);
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: { brand: true, variants: true, categories: true },
     });
-    if (!product) return { success: false, message: "Urun bulunamadi." };
+    if (!product) {
+      console.log("[IDEFIX-CREATE] HATA: Urun bulunamadi, productId:", productId);
+      return { success: false, message: "Urun bulunamadi." };
+    }
+    console.log("[IDEFIX-CREATE] Urun bulundu:", product.name);
+    console.log("[IDEFIX-CREATE] Urun barcode:", product.barcode);
+    console.log("[IDEFIX-CREATE] Urun sku:", (product as any).sku);
+    console.log("[IDEFIX-CREATE] Urun images:", JSON.stringify((product as any).images));
+    console.log("[IDEFIX-CREATE] Urun variants sayisi:", product.variants?.length);
+    console.log("[IDEFIX-CREATE] Urun variants:", JSON.stringify(product.variants?.map((v: any) => ({ id: v.id, barcode: v.barcode, sku: v.sku, stock: v.stock }))));
 
     const client = new IdefixClient({
       apiKey: config.apiKey,
@@ -479,6 +496,8 @@ export async function createProductOnIdefix(productId: string, payload: {
     const comparePrice = rawListPrice >= price ? rawListPrice : price;
     const catId = Number(payload.idefixCategoryId);
     const brandId = Number(payload.idefixBrandId);
+
+    console.log("[IDEFIX-CREATE] price:", price, "comparePrice:", comparePrice, "catId:", catId, "brandId:", brandId);
 
     // Kategori ve Marka Idefix ID'lerini veritabanında kalıcı olarak kaydet
     if (product.categories && product.categories.length > 0) {
@@ -507,6 +526,7 @@ export async function createProductOnIdefix(productId: string, payload: {
         if (!returnAddressId) returnAddressId = defaultAddrId;
       }
     }
+    console.log("[IDEFIX-CREATE] shipmentAddressId:", shipmentAddressId, "returnAddressId:", returnAddressId, "cargoCompanyId:", cargoCompanyId);
 
     const manufacturer = payload.manufacturer?.trim() || product.brand?.name || "Bardakçı Bike";
     const importer = payload.importer?.trim() || "Bardakçı Bike";
@@ -516,8 +536,12 @@ export async function createProductOnIdefix(productId: string, payload: {
       ? rawImages.slice(0, 8).map((url: string) => ({ url }))
       : [{ url: "https://n11scdn3.akamaized.net/a1/org/06/31/10/42/IMG-5125844770873517246.jpg" }];
 
+    console.log("[IDEFIX-CREATE] rawImages count:", rawImages.length, "formattedImages:", JSON.stringify(formattedImages));
+
     const mainBarcode = product.barcode || (product as any).sku;
     const validVariants = (product.variants ?? []).filter((v: any) => v.barcode || mainBarcode);
+
+    console.log("[IDEFIX-CREATE] mainBarcode:", mainBarcode, "validVariants count:", validVariants.length);
 
     const productsPayload = validVariants.length > 0
       ? validVariants.map((v: any) => ({
@@ -567,15 +591,25 @@ export async function createProductOnIdefix(productId: string, payload: {
         }]
       : [];
 
+    console.log("[IDEFIX-CREATE] productsPayload count:", productsPayload.length);
+    if (productsPayload.length > 0) {
+      console.log("[IDEFIX-CREATE] İLK URUN PAYLOAD:", JSON.stringify(productsPayload[0]));
+    }
+
     if (productsPayload.length === 0) {
+      console.log("[IDEFIX-CREATE] HATA: productsPayload bos! mainBarcode:", mainBarcode, "validVariants:", validVariants.length);
       return { success: false, message: "Barkodlu varyant bulunamadi." };
     }
+
+    console.log("[IDEFIX-CREATE] Idefix API'ye gonderiliyor...");
 
     let result: any = null;
     try {
       result = await client.createProducts(productsPayload);
+      console.log("[IDEFIX-CREATE] API YANITI:", JSON.stringify(result));
     } catch (err: any) {
       const errMsg = String(err.message || err);
+      console.log("[IDEFIX-CREATE] API HATASI:", errMsg);
       if (errMsg.includes("ürün listenizde mevcuttur") || errMsg.includes("PRODUCT_POOL_ALREADY_EXIST")) {
         const invItems = productsPayload.map((p: any) => ({
           barcode: p.barcode,
@@ -598,6 +632,7 @@ export async function createProductOnIdefix(productId: string, payload: {
     }
 
     const batchId = result?.batchRequestId;
+    console.log("[IDEFIX-CREATE] batchId:", batchId);
 
     // Otomatik Merchant Onayi (waiting_vendor_approve durumundaki urunleri satici kataloguna tasir)
     const barcodes = productsPayload.map((p: any) => p.barcode).filter(Boolean);
@@ -614,8 +649,10 @@ export async function createProductOnIdefix(productId: string, payload: {
     try {
       revalidatePath("/admin/integrations/idefix/products");
     } catch {}
+    console.log("[IDEFIX-CREATE] ===== BASARILI =====");
     return { success: true, message: `Urun Idefix'e gonderildi ve otomatik onaylandi. Batch ID: ${batchId}` };
   } catch (error: any) {
+    console.error("[IDEFIX-CREATE] ===== GENEL HATA =====", error.message, error.stack);
     return { success: false, message: "Hata: " + error.message };
   }
 }
