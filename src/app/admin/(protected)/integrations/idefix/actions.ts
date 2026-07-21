@@ -517,6 +517,7 @@ export async function createProductOnIdefix(productId: string, payload: {
       : [{ url: "https://n11scdn3.akamaized.net/a1/org/06/31/10/42/IMG-5125844770873517246.jpg" }];
 
     const mainBarcode = product.barcode || (product as any).sku;
+    const validVariants = (product.variants ?? []).filter((v: any) => v.barcode || mainBarcode);
 
     const productsPayload = validVariants.length > 0
       ? validVariants.map((v: any) => ({
