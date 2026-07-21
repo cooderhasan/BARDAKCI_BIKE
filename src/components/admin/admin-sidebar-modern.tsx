@@ -26,8 +26,8 @@ import {
     Image as LucideImage,
     Search,
     RefreshCcw,
-    Star,
     Brain,
+    Store,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,7 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Yapılandırma",
         items: [
+            { title: "Mağaza Ayarları", href: "/admin/store-settings", icon: Store },
             { title: "Ayarlar", href: "/admin/settings", icon: Settings },
             { title: "İskonto Grupları", href: "/admin/discount-groups", icon: FileText },
             { title: "Politikalar", href: "/admin/policies", icon: Scale },
