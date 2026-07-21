@@ -531,9 +531,14 @@ export async function createProductOnIdefix(productId: string, payload: {
     const manufacturer = payload.manufacturer?.trim() || product.brand?.name || "Bardakçı Bike";
     const importer = payload.importer?.trim() || "Bardakçı Bike";
 
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
     const rawImages = ((product as any).images ?? []).filter((u: any) => typeof u === "string" && u.trim().length > 0);
     const formattedImages = rawImages.length > 0
-      ? rawImages.slice(0, 8).map((url: string) => ({ url }))
+      ? rawImages.slice(0, 8).map((url: string) => {
+          // Göreceli URL'leri (/uploads/...) tam HTTPS URL'ye çevir
+          const fullUrl = url.startsWith("http") ? url : `${siteUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+          return { url: fullUrl };
+        })
       : [{ url: "https://n11scdn3.akamaized.net/a1/org/06/31/10/42/IMG-5125844770873517246.jpg" }];
 
     console.log("[IDEFIX-CREATE] rawImages count:", rawImages.length, "formattedImages:", JSON.stringify(formattedImages));
