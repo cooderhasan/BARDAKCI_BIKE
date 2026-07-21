@@ -76,24 +76,51 @@ const DEFAULT_MOTOR_SETTINGS: StoreThemeSettings = {
   isFreeShipping: false, // Motor için desi bazlı kargo
 };
 
+import { getSiteSettings } from "@/lib/settings";
+
 /**
- * Veritabanından mağazaya özel ayarları çeker, yoksa varsayılan ayarları döner.
+ * Veritabanından mağazaya özel ayarları çeker, yoksa varsayılan veya genel ayarları döner.
  */
 export async function getStoreSettings(storeType: ActiveStore): Promise<StoreThemeSettings> {
+  let generalLogo = "";
+  let generalFavicon = "";
+  let generalSiteName = "";
+  let generalPhone = "";
+  let generalEmail = "";
+  let generalAddress = "";
+
+  try {
+    const general = await getSiteSettings();
+    generalLogo = general.logoUrl || general.darkLogoUrl || "";
+    generalFavicon = general.faviconUrl || "";
+    generalSiteName = general.siteName || "";
+    generalPhone = general.phone || "";
+    generalEmail = general.email || "";
+    generalAddress = general.address || "";
+  } catch {}
+
+  const defaults: StoreThemeSettings = storeType === "MOTOR" ? DEFAULT_MOTOR_SETTINGS : {
+    ...DEFAULT_BIKE_SETTINGS,
+    siteTitle: generalSiteName || DEFAULT_BIKE_SETTINGS.siteTitle,
+    logoUrl: generalLogo || DEFAULT_BIKE_SETTINGS.logoUrl,
+    phone: generalPhone || DEFAULT_BIKE_SETTINGS.phone,
+    email: generalEmail || DEFAULT_BIKE_SETTINGS.email,
+    address: generalAddress || DEFAULT_BIKE_SETTINGS.address,
+  };
+
   try {
     const dbSettings = await (prisma as any).storeSettings.findUnique({
       where: { store: storeType },
     });
-
-    const defaults = storeType === "MOTOR" ? DEFAULT_MOTOR_SETTINGS : DEFAULT_BIKE_SETTINGS;
 
     if (!dbSettings) return defaults;
 
     return {
       store: storeType,
       siteTitle: dbSettings.siteTitle || defaults.siteTitle,
-      logoUrl: dbSettings.logoUrl || defaults.logoUrl,
+      logoUrl: dbSettings.logoUrl || generalLogo || defaults.logoUrl,
       darkLogoUrl: dbSettings.darkLogoUrl || defaults.darkLogoUrl,
+      faviconUrl: dbSettings.faviconUrl || generalFavicon || "",
       phone: dbSettings.phone || defaults.phone,
       email: dbSettings.email || defaults.email,
       address: dbSettings.address || defaults.address,
@@ -104,6 +131,6 @@ export async function getStoreSettings(storeType: ActiveStore): Promise<StoreThe
       metaPixelId: dbSettings.metaPixelId,
     };
   } catch {
-    return storeType === "MOTOR" ? DEFAULT_MOTOR_SETTINGS : DEFAULT_BIKE_SETTINGS;
+    return defaults;
   }
 }
