@@ -26,11 +26,24 @@ export const viewport: Viewport = {
 import { getStoreType, getStoreSettings } from "@/lib/store-helper";
 
 export async function generateMetadata(): Promise<Metadata> {
+  let general: any = {};
   let storeTitle = "Bardakcı Bike";
+  let faviconUrl = "/favicon.ico";
+
   try {
+    const generalSettings = await prisma.siteSettings.findUnique({
+      where: { key: "general" },
+    });
+    general = (generalSettings?.value as any) || {};
+
     const activeStore = await getStoreType();
     const storeSettings = await getStoreSettings(activeStore);
     storeTitle = storeSettings.siteTitle;
+    if (storeSettings.faviconUrl) {
+      faviconUrl = storeSettings.faviconUrl;
+    } else if (general.faviconUrl) {
+      faviconUrl = general.faviconUrl;
+    }
   } catch (error) {
     console.warn("Could not fetch site settings for metadata, using defaults.", error);
   }
@@ -43,37 +56,37 @@ export async function generateMetadata(): Promise<Metadata> {
       default: storeTitle,
       template: `%s | ${storeTitle}`,
     },
-    description: "Toptan ve Perakende Satış Platformu",
+    description: general.seoDescription || "Toptan ve Perakende Satış Platformu",
     keywords: general.seoKeywords?.split(",") || [],
     icons: {
       icon: [
         {
-          url: general.faviconUrl || "/favicon.ico",
+          url: faviconUrl,
           sizes: "32x32",
-          type: general.faviconUrl?.endsWith(".png") ? "image/png" : "image/x-icon",
+          type: faviconUrl.endsWith(".png") ? "image/png" : "image/x-icon",
         },
         {
-          url: general.faviconUrl || "/favicon.ico",
+          url: faviconUrl,
           sizes: "16x16",
-          type: general.faviconUrl?.endsWith(".png") ? "image/png" : "image/x-icon",
+          type: faviconUrl.endsWith(".png") ? "image/png" : "image/x-icon",
         },
       ],
       shortcut: {
-        url: general.faviconUrl || "/favicon.ico",
-        type: general.faviconUrl?.endsWith(".png") ? "image/png" : "image/x-icon",
+        url: faviconUrl,
+        type: faviconUrl.endsWith(".png") ? "image/png" : "image/x-icon",
       },
-      apple: general.appleTouchIconUrl || general.faviconUrl || "/apple-touch-icon.png",
+      apple: general.appleTouchIconUrl || faviconUrl || "/apple-touch-icon.png",
       other: [
         {
           rel: "icon",
-          url: general.faviconUrl || "/favicon.ico",
+          url: faviconUrl,
         },
       ],
     },
     openGraph: {
-      title: general.seoTitle || general.siteName || "B2B E-Ticaret Platformu",
-      description: general.seoDescription || "B2B Toptan Satış Platformu",
-      siteName: general.siteName || "B2B",
+      title: general.seoTitle || storeTitle,
+      description: general.seoDescription || "Toptan ve Perakende Satış Platformu",
+      siteName: storeTitle,
       images: [
         {
           url: general.ogImageUrl 
@@ -81,7 +94,7 @@ export async function generateMetadata(): Promise<Metadata> {
             : `${siteUrl}/img/og-default.jpg`,
           width: 1200,
           height: 630,
-          alt: general.siteName || "Bardakcı Bike",
+          alt: storeTitle,
         }
       ],
       locale: "tr_TR",
