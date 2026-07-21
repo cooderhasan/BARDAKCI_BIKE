@@ -61,7 +61,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
       <Tabs defaultValue="bike" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="bike" className="font-bold flex items-center gap-2">
-            🚲 Bardakçı Bisiklet Ayarları
+            🚲 Bardakcı Bisiklet Ayarları
           </TabsTrigger>
           <TabsTrigger value="motor" className="font-bold flex items-center gap-2">
             🏍️ Motovitrin Ayarları
@@ -72,7 +72,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
         <TabsContent value="bike">
           <Card className="border-blue-200 dark:border-blue-900">
             <CardHeader className="bg-blue-50/50 dark:bg-blue-950/20">
-              <CardTitle className="text-blue-900 dark:text-blue-300">🚲 Bardakçı Bisiklet (bardakcibike.com.tr)</CardTitle>
+              <CardTitle className="text-blue-900 dark:text-blue-300">🚲 Bardakcı Bisiklet (bardakcibike.com.tr)</CardTitle>
               <CardDescription>
                 Bisiklet mağazasına özel tema rengi, logo, iletişim ve SEO/Analitik ayarlarını buradan yönetin.
               </CardDescription>
@@ -86,7 +86,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
                       id="bikeTitle"
                       value={bikeForm.siteTitle}
                       onChange={(e) => setBikeForm({ ...bikeForm, siteTitle: e.target.value })}
-                      placeholder="Bardakçı Bisiklet"
+                      placeholder="Bardakcı Bisiklet"
                     />
                   </div>
                   <div className="space-y-2">
@@ -210,7 +210,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
 
                 <div className="pt-4 flex justify-end">
                   <Button type="submit" disabled={loadingBike} className="bg-[#17457C] hover:bg-[#0f3460] text-white">
-                    {loadingBike ? "Kaydediliyor..." : "Bardakçı Bisiklet Ayarlarını Kaydet"}
+                    {loadingBike ? "Kaydediliyor..." : "Bardakcı Bisiklet Ayarlarını Kaydet"}
                   </Button>
                 </div>
               </form>

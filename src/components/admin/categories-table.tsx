@@ -1148,7 +1148,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                         value={store}
                                         onChange={(e) => setStore(e.target.value as any)}
                                     >
-                                        <option value="BIKE">🚲 Sadece Bardakçı Bisiklet</option>
+                                        <option value="BIKE">🚲 Sadece Bardakcı Bisiklet</option>
                                         <option value="MOTOR">🏍️ Sadece Motovitrin</option>
                                         <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
                                     </select>

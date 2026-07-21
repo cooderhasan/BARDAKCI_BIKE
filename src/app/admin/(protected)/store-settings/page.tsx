@@ -18,7 +18,7 @@ export default async function StoreSettingsPage() {
           Mağaza Genel Ayarları
         </h1>
         <p className="text-muted-foreground mt-2">
-          Bardakçı Bisiklet ve Motovitrin e-ticaret sitelerinizin logo, iletişim, renk ve analitik ayarlarını bağımsız olarak yapılandırın.
+          Bardakcı Bisiklet ve Motovitrin e-ticaret sitelerinizin logo, iletişim, renk ve analitik ayarlarını bağımsız olarak yapılandırın.
         </p>
       </div>
 

@@ -57,7 +57,7 @@ export async function saveStoreSettingsData(
       },
       create: {
         store: store as StoreType,
-        siteTitle: data.siteTitle || (store === "MOTOR" ? "Motovitrin" : "Bardakçı Bisiklet"),
+        siteTitle: data.siteTitle || (store === "MOTOR" ? "Motovitrin" : "Bardakcı Bisiklet"),
         seoDescription: data.seoDescription || undefined,
         logoUrl: data.logoUrl || undefined,
         darkLogoUrl: data.darkLogoUrl || undefined,
@@ -75,7 +75,7 @@ export async function saveStoreSettingsData(
     revalidatePath("/");
     revalidatePath("/admin/store-settings");
 
-    return { success: true, message: `${store === "MOTOR" ? "Motovitrin" : "Bardakçı Bisiklet"} ayarları başarıyla kaydedildi.` };
+    return { success: true, message: `${store === "MOTOR" ? "Motovitrin" : "Bardakcı Bisiklet"} ayarları başarıyla kaydedildi.` };
   } catch (error: any) {
     console.error("saveStoreSettingsData error:", error);
     return { success: false, message: "Ayarlar kaydedilirken hata oluştu: " + error.message };

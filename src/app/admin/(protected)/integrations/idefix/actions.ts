@@ -528,8 +528,8 @@ export async function createProductOnIdefix(productId: string, payload: {
     }
     console.log("[IDEFIX-CREATE] shipmentAddressId:", shipmentAddressId, "returnAddressId:", returnAddressId, "cargoCompanyId:", cargoCompanyId);
 
-    const manufacturer = payload.manufacturer?.trim() || product.brand?.name || "Bardakçı Bike";
-    const importer = payload.importer?.trim() || "Bardakçı Bike";
+    const manufacturer = payload.manufacturer?.trim() || product.brand?.name || "Bardakcı Bike";
+    const importer = payload.importer?.trim() || "Bardakcı Bike";
 
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
     const rawImages = ((product as any).images ?? []).filter((u: any) => typeof u === "string" && u.trim().length > 0);

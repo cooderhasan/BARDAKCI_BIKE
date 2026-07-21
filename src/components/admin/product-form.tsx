@@ -1258,7 +1258,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     value={formData.store}
                                     onChange={(e) => handleChange("store", e.target.value)}
                                 >
-                                    <option value="BIKE">🚲 Sadece Bardakçı Bisiklet (bardakcibike.com.tr)</option>
+                                    <option value="BIKE">🚲 Sadece Bardakcı Bisiklet (bardakcibike.com.tr)</option>
                                     <option value="MOTOR">🏍️ Sadece Motovitrin (motovitrin.com / motor subdomain)</option>
                                     <option value="BOTH">🌐 Her İki Mağazada da Yayınla (Ortak Ürün)</option>
                                 </select>

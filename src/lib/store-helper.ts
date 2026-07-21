@@ -54,7 +54,7 @@ export interface StoreThemeSettings {
 
 const DEFAULT_BIKE_SETTINGS: StoreThemeSettings = {
   store: "BIKE",
-  siteTitle: "Bardakçı Bisiklet",
+  siteTitle: "Bardakcı Bisiklet",
   seoDescription: "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu.",
   logoUrl: "/logo.png",
   darkLogoUrl: "/logo-dark.png",

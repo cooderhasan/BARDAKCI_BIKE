@@ -76,8 +76,8 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
   const [sendType, setSendType] = useState<"quick" | "create">("quick");
   const [idefixCategoryId, setIdefixCategoryId] = useState("");
   const [idefixBrandId, setIdefixBrandId] = useState("");
-  const [manufacturer, setManufacturer] = useState("Bardakçı Bike");
-  const [importer, setImporter] = useState("Bardakçı Bike");
+  const [manufacturer, setManufacturer] = useState("Bardakcı Bike");
+  const [importer, setImporter] = useState("Bardakcı Bike");
   const [sendingModal, setSendingModal] = useState(false);
 
   const openSendModal = (product: any) => {
@@ -91,8 +91,8 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
     const mappedCat = product.categories?.find((c: any) => c.idefixCategoryId);
     setIdefixCategoryId(mappedCat?.idefixCategoryId || "");
     setIdefixBrandId(product.brand?.idefixBrandId || "");
-    setManufacturer(product.brand?.name || "Bardakçı Bike");
-    setImporter("Bardakçı Bike");
+    setManufacturer(product.brand?.name || "Bardakcı Bike");
+    setImporter("Bardakcı Bike");
     setModalOpen(true);
   };
 
@@ -518,7 +518,7 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
                       id="modalMfg"
                       value={manufacturer}
                       onChange={(e) => setManufacturer(e.target.value)}
-                      placeholder="Bardakçı Bike"
+                      placeholder="Bardakcı Bike"
                       className="h-9 text-xs"
                     />
                   </div>
@@ -528,7 +528,7 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
                       id="modalImp"
                       value={importer}
                       onChange={(e) => setImporter(e.target.value)}
-                      placeholder="Bardakçı Bike"
+                      placeholder="Bardakcı Bike"
                       className="h-9 text-xs"
                     />
                   </div>

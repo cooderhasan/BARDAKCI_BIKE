@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
         const isMotor = activeStore === "MOTOR";
         const siteUrl = isMotor ? "https://motor.bardakcibike.com.tr" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
-        const rawTitle = storeSettings.siteTitle || (isMotor ? "Motovitrin - Motosiklet Yedek Parça & Aksesuar" : "Bardakçı Bisiklet");
+        const rawTitle = storeSettings.siteTitle || (isMotor ? "Motovitrin - Motosiklet Yedek Parça & Aksesuar" : "Bardakcı Bisiklet");
         const description = storeSettings.seoDescription || (isMotor
             ? "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın."
             : "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu.");
@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
             }
         };
     } catch (e) {
-        return { title: "Bardakçı Bisiklet" };
+        return { title: "Bardakcı Bisiklet" };
     }
 }
 

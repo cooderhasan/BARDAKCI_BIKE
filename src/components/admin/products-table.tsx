@@ -328,7 +328,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="ALL">Tümü</SelectItem>
-                                <SelectItem value="BIKE">🚲 Bardakçı Bisiklet</SelectItem>
+                                <SelectItem value="BIKE">🚲 Bardakcı Bisiklet</SelectItem>
                                 <SelectItem value="MOTOR">🏍️ Motovitrin</SelectItem>
                                 <SelectItem value="BOTH">🌐 Ortak Ürünler</SelectItem>
                             </SelectContent>
