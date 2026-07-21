@@ -524,6 +524,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                 <SelectItem value="TRENDYOL">Trendyol</SelectItem>
                                 <SelectItem value="N11">N11</SelectItem>
                                 <SelectItem value="HEPSIBURADA">Hepsiburada</SelectItem>
+                                <SelectItem value="IDEFIX">Idefix</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -665,6 +666,11 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         HEPSİBURADA
                                                     </Badge>
                                                 )}
+                                                {order.source === "IDEFIX" && (
+                                                    <Badge className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white border-none px-1.5 py-0 text-[10px] font-bold">
+                                                        IDEFIX
+                                                    </Badge>
+                                                )}
                                                 {(order.source === "WEB" || !order.source) && (
                                                     <Badge variant="outline" className="text-gray-500 border-gray-200 px-1.5 py-0.5 text-[10px] font-bold uppercase">
                                                         WEB
@@ -771,7 +777,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                             <div className="flex justify-end gap-2">
                                                 <div className="flex gap-1">
-                                                    {(order.source === "TRENDYOL" || order.source === "N11" || order.source === "HEPSIBURADA") && (
+                                                    {(order.source === "TRENDYOL" || order.source === "N11" || order.source === "HEPSIBURADA" || order.source === "IDEFIX") && (
                                                         <Button
                                                             variant="outline"
                                                             size="icon"
@@ -793,7 +799,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         >
                                                             <ReceiptText className="h-5 w-5" />
                                                         </Button>
-                                                    ) : (order.source === "HEPSIBURADA" || order.source === "N11") && (
+                                                    ) : (order.source === "HEPSIBURADA" || order.source === "N11" || order.source === "IDEFIX") && (
                                                          <Button
                                                              variant="outline"
                                                              size="icon"

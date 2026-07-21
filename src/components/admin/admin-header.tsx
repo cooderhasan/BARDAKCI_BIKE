@@ -143,6 +143,12 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                             Hepsiburada
                         </Button>
                     </Link>
+                    <Link href="/admin/integrations/idefix">
+                        <Button variant="outline" size="sm" className="h-8 gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 bg-white">
+                            <Zap className="h-3.5 w-3.5" />
+                            Idefix
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
