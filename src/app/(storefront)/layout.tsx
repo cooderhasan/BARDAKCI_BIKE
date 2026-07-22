@@ -27,6 +27,7 @@ export default async function StorefrontLayout({
         ...(await getSiteSettings()),
         logoUrl: storeSettings.logoUrl,
         siteName: storeSettings.siteTitle,
+        seoDescription: storeSettings.seoDescription,
         phone: storeSettings.phone,
         email: storeSettings.email,
         address: storeSettings.address,
