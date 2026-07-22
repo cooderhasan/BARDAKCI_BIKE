@@ -135,6 +135,7 @@ interface Brand {
     name: string;
     slug: string;
     logoUrl: string | null;
+    store?: "BIKE" | "MOTOR" | "BOTH";
     isActive: boolean;
     trendyolBrandId?: number | null;
     n11BrandId?: number | null;
@@ -156,6 +157,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState("");
     const [logoUrl, setLogoUrl] = useState("");
+    const [store, setStore] = useState<"BIKE" | "MOTOR" | "BOTH">("BIKE");
     const [trendyolBrandId, setTrendyolBrandId] = useState<number | undefined>(undefined);
     const [n11BrandId, setN11BrandId] = useState<number | undefined>(undefined);
     const [hbBrandId, setHbBrandId] = useState<string | undefined>(undefined);
@@ -167,10 +169,10 @@ export function BrandsTable({ brands }: BrandsTableProps) {
 
         try {
             if (editBrand) {
-                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
+                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
                 toast.success("Marka güncellendi.");
             } else {
-                await createBrand({ name, logoUrl: logoUrl || undefined, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
+                await createBrand({ name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
                 toast.success("Marka oluşturuldu.");
             }
             setIsOpen(false);
@@ -187,6 +189,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
     const resetForm = () => {
         setName("");
         setLogoUrl("");
+        setStore("BIKE");
         setTrendyolBrandId(undefined);
         setN11BrandId(undefined);
         setHbBrandId(undefined);
@@ -198,6 +201,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         setEditBrand(brand);
         setName(brand.name);
         setLogoUrl(brand.logoUrl || "");
+        setStore(brand.store || "BIKE");
         setTrendyolBrandId(brand.trendyolBrandId ?? undefined);
         setN11BrandId(brand.n11BrandId ?? undefined);
         setHbBrandId(brand.hbBrandId ?? undefined);
@@ -270,6 +274,19 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                                         placeholder="https://..."
                                     />
                                 </div>
+                                <div className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                    <Label htmlFor="brandStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</Label>
+                                    <select
+                                        id="brandStore"
+                                        className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        value={store}
+                                        onChange={(e) => setStore(e.target.value as any)}
+                                    >
+                                        <option value="BIKE">🚲 Sadece Bardakcı Bisiklet</option>
+                                        <option value="MOTOR">🏍️ Sadece Motovitrin</option>
+                                        <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
+                                    </select>
+                                </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                                     <Label className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Marka ID</Label>
                                     <TrendyolBrandSearch
@@ -331,6 +348,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                         <TableRow>
                             <TableHead>Logo</TableHead>
                             <TableHead>Marka Adı</TableHead>
+                            <TableHead>Mağaza</TableHead>
                             <TableHead>Ürün Sayısı</TableHead>
                             <TableHead>Durum</TableHead>
                             <TableHead className="text-right">İşlemler</TableHead>
@@ -360,6 +378,17 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                                         )}
                                     </TableCell>
                                     <TableCell className="font-medium">{brand.name}</TableCell>
+                                    <TableCell>
+                                        {brand.store === "BIKE" && (
+                                            <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 font-semibold">🚲 Bisiklet</Badge>
+                                        )}
+                                        {brand.store === "MOTOR" && (
+                                            <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 hover:bg-red-100 font-semibold">🏍️ Motor</Badge>
+                                        )}
+                                        {brand.store === "BOTH" && (
+                                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 hover:bg-emerald-100 font-semibold">🌐 Ortak</Badge>
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant="secondary">
                                             {brand._count.products} ürün

@@ -13,6 +13,7 @@ interface MobileProductFiltersProps {
     colors: string[];
     sizes: string[];
     activeCategorySlug?: string;
+    isMotor?: boolean;
 }
 
 export function MobileProductFilters({
@@ -21,6 +22,7 @@ export function MobileProductFilters({
     colors,
     sizes,
     activeCategorySlug,
+    isMotor,
 }: MobileProductFiltersProps) {
     const [open, setOpen] = useState(false);
 
@@ -43,6 +45,7 @@ export function MobileProductFilters({
                         colors={colors}
                         sizes={sizes}
                         activeCategorySlug={activeCategorySlug}
+                        isMotor={isMotor}
                     />
                 </ScrollArea>
             </SheetContent>

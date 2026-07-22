@@ -30,6 +30,7 @@ import { calculateBundleStock } from "@/lib/bundle-utils";
 interface Brand {
     id: string;
     name: string;
+    store?: string;
 }
 
 interface Category {
@@ -446,9 +447,15 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Markasız</SelectItem>
-                                            {brands.map((b) => (
-                                                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                                            ))}
+                                            {brands
+                                                .filter((b) => {
+                                                    if (!b.store || b.store === "BOTH") return true;
+                                                    if (formData.store === "BOTH") return true;
+                                                    return b.store === formData.store;
+                                                })
+                                                .map((b) => (
+                                                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
                                 </div>

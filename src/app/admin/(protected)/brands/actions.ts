@@ -27,12 +27,15 @@ export async function getBrands() {
     });
 }
 
-export async function createBrand(data: { name: string; logoUrl?: string; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null }) {
+import { StoreType } from "@prisma/client";
+
+export async function createBrand(data: { name: string; logoUrl?: string; store?: StoreType; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null }) {
     await prisma.brand.create({
         data: {
             name: data.name,
             slug: slugify(data.name),
             logoUrl: data.logoUrl,
+            store: data.store || "BIKE",
             trendyolBrandId: data.trendyolBrandId ?? null,
             n11BrandId: data.n11BrandId ?? null,
             hbBrandId: data.hbBrandId ?? null,
@@ -42,7 +45,7 @@ export async function createBrand(data: { name: string; logoUrl?: string; trendy
     revalidatePath("/admin/brands");
 }
 
-export async function updateBrand(id: string, data: { name?: string; logoUrl?: string; isActive?: boolean; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null }) {
+export async function updateBrand(id: string, data: { name?: string; logoUrl?: string; store?: StoreType; isActive?: boolean; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null }) {
     const updateData: any = { ...data };
     if (data.name) {
         updateData.slug = slugify(data.name);

@@ -29,6 +29,7 @@ interface ProductFiltersProps {
     colors: string[];
     sizes: string[];
     activeCategorySlug?: string;
+    isMotor?: boolean;
 }
 
 export function ProductFilters({
@@ -37,6 +38,7 @@ export function ProductFilters({
     colors,
     sizes,
     activeCategorySlug,
+    isMotor = false,
 }: ProductFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -151,67 +153,71 @@ export function ProductFilters({
                     </AccordionItem>
                 )}
 
-                {/* Cinsiyet */}
-                <AccordionItem value="genders" className="border-t border-gray-100 dark:border-gray-800">
-                    <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
-                        Cinsiyet
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        <div className="space-y-2.5 pt-1 pr-1">
-                            {[
-                                { label: "Erkek", value: "Erkek" },
-                                { label: "Kadın", value: "Kadın" },
-                                { label: "Unisex", value: "Unisex" }
-                            ].map((gender) => (
-                                <div key={gender.value} className="flex items-center space-x-3 group">
-                                    <Checkbox
-                                        id={`gender-${gender.value}`}
-                                        checked={isSelected("genders", gender.value)}
-                                        onCheckedChange={() => toggleFilter("genders", gender.value)}
-                                        className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
-                                    />
-                                    <Label
-                                        htmlFor={`gender-${gender.value}`}
-                                        className="cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
-                                    >
-                                        {gender.label}
-                                    </Label>
+                {!isMotor && (
+                    <>
+                        {/* Cinsiyet */}
+                        <AccordionItem value="genders" className="border-t border-gray-100 dark:border-gray-800">
+                            <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
+                                Cinsiyet
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-2.5 pt-1 pr-1">
+                                    {[
+                                        { label: "Erkek", value: "Erkek" },
+                                        { label: "Kadın", value: "Kadın" },
+                                        { label: "Unisex", value: "Unisex" }
+                                    ].map((gender) => (
+                                        <div key={gender.value} className="flex items-center space-x-3 group">
+                                            <Checkbox
+                                                id={`gender-${gender.value}`}
+                                                checked={isSelected("genders", gender.value)}
+                                                onCheckedChange={() => toggleFilter("genders", gender.value)}
+                                                className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
+                                            />
+                                            <Label
+                                                htmlFor={`gender-${gender.value}`}
+                                                className="cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
+                                            >
+                                                {gender.label}
+                                            </Label>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
+                            </AccordionContent>
+                        </AccordionItem>
 
-                {/* Fren */}
-                <AccordionItem value="brakes" className="border-t border-gray-100 dark:border-gray-800">
-                    <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
-                        Fren
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        <div className="space-y-2.5 pt-1 pr-1">
-                            {[
-                                { label: "V FREN", value: "V FREN" },
-                                { label: "Mekanik Disk Fren", value: "Mekanik Disk Fren" },
-                                { label: "Hidrolik Disk Fren", value: "Hidrolik Disk Fren" }
-                            ].map((brake) => (
-                                <div key={brake.value} className="flex items-center space-x-3 group">
-                                    <Checkbox
-                                        id={`brake-${brake.value}`}
-                                        checked={isSelected("brakes", brake.value)}
-                                        onCheckedChange={() => toggleFilter("brakes", brake.value)}
-                                        className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
-                                    />
-                                    <Label
-                                        htmlFor={`brake-${brake.value}`}
-                                        className="cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
-                                    >
-                                        {brake.label}
-                                    </Label>
+                        {/* Fren */}
+                        <AccordionItem value="brakes" className="border-t border-gray-100 dark:border-gray-800">
+                            <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
+                                Fren
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-2.5 pt-1 pr-1">
+                                    {[
+                                        { label: "V FREN", value: "V FREN" },
+                                        { label: "Mekanik Disk Fren", value: "Mekanik Disk Fren" },
+                                        { label: "Hidrolik Disk Fren", value: "Hidrolik Disk Fren" }
+                                    ].map((brake) => (
+                                        <div key={brake.value} className="flex items-center space-x-3 group">
+                                            <Checkbox
+                                                id={`brake-${brake.value}`}
+                                                checked={isSelected("brakes", brake.value)}
+                                                onCheckedChange={() => toggleFilter("brakes", brake.value)}
+                                                className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
+                                            />
+                                            <Label
+                                                htmlFor={`brake-${brake.value}`}
+                                                className="cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
+                                            >
+                                                {brake.label}
+                                            </Label>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </>
+                )}
 
                 {/* Price Range */}
                 <AccordionItem value="price" className="border-t border-gray-100 dark:border-gray-800">

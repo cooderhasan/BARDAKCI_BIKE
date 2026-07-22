@@ -187,6 +187,7 @@ model Brand {
   name      String    @unique
   slug      String    @unique
   logoUrl   String?
+  store     StoreType @default(BIKE)
   isActive  Boolean   @default(true)
   trendyolBrandId Int?
   n11BrandId      Int?

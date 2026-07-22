@@ -70,6 +70,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     const params = await searchParams;
     const session = await auth();
     const activeStore = await getStoreType();
+    const isMotor = activeStore === "MOTOR";
     const storeFilter = getStoreFilter(activeStore);
     const discountRate = session?.user?.discountRate || 0;
     const isDealer =
@@ -260,7 +261,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         }),
         prisma.product.count({ where }),
         prisma.brand.findMany({
-            where: { isActive: true },
+            where: { 
+                isActive: true,
+                store: getStoreFilter(activeStore)
+            },
             orderBy: { name: "asc" },
             select: { id: true, name: true, slug: true }
         }),
@@ -303,6 +307,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                         colors={uniqueColors}
                         sizes={uniqueSizes}
                         activeCategorySlug={params.category}
+                        isMotor={isMotor}
                     />
                     <div className="flex items-center gap-3 ml-auto md:ml-0">
                         <ProductStockToggle />
@@ -326,6 +331,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                             colors={uniqueColors}
                             sizes={uniqueSizes}
                             activeCategorySlug={params.category}
+                            isMotor={isMotor}
                         />
                     </div>
                 </aside>
