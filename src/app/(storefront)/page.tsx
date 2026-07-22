@@ -196,6 +196,8 @@ async function getHomeData() {
 
 export default async function HomePage() {
     const session = await auth();
+    const activeStore = await getStoreType();
+    const isMotor = activeStore === "MOTOR";
     const data = await getHomeData();
     const discountRate = session?.user?.discountRate || 0;
     const isDealer =
@@ -352,7 +354,9 @@ export default async function HomePage() {
                     )}
 
                     {/* Kadro Boyu Hesaplama Robotu */}
-                    <FrameSizeCalculator categories={data.sidebarCategories} />
+                    {!isMotor && (
+                        <FrameSizeCalculator categories={data.sidebarCategories} />
+                    )}
                 </div>
             </div>
 
@@ -396,7 +400,7 @@ export default async function HomePage() {
             )}
 
             {/* Homepage Blog Posts Showcase */}
-            {data.blogPosts && data.blogPosts.length > 0 && (
+            {!isMotor && data.blogPosts && data.blogPosts.length > 0 && (
                 <section className="mt-16 mb-8 relative rounded-3xl border border-gray-100 dark:border-gray-800/60 bg-gradient-to-br from-[#17457C]/[0.03] via-white to-white dark:from-blue-950/10 dark:via-gray-900 dark:to-gray-900 p-6 md:p-10 shadow-xs overflow-hidden animate-in fade-in duration-500">
                     {/* Subtle grid pattern for visual coherence with the calculator above */}
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,#17457c03_1px,transparent_1px),linear-gradient(to_bottom,#17457c03_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
