@@ -22,7 +22,9 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { X, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
+import { X, Plus, Pencil, Trash2, Search, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { getTrendyolCategories } from "@/app/admin/(protected)/integrations/trendyol/actions";
 import { getFlatN11Categories } from "@/app/admin/(protected)/integrations/n11/actions";
 import { getHepsiburadaCategories } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
@@ -745,6 +747,8 @@ function IdefixCategorySearch({
 
 export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [parentSearch, setParentSearch] = useState("");
+    const [parentSelectOpen, setParentSelectOpen] = useState(false);
     const [editCategory, setEditCategory] = useState<Category | null>(null);
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState("");
@@ -1009,6 +1013,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setIsInHeader(false);
         setHeaderOrder(0);
         setParentId(null);
+        setParentSearch("");
         setImageUrl("");
         setMenuImageUrl("");
         setIsFeatured(false);
@@ -1206,27 +1211,85 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                         onChange={(e) => setOrder(parseInt(e.target.value) || 0)}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Üst Kategori</Label>
-                                    <Select
-                                        value={parentId || "root"}
-                                        onValueChange={(value) => setParentId(value === "root" ? null : value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Üst Kategori Seçin" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="root">Ana Kategori</SelectItem>
-                                            {categories
-                                                .filter(c => c.id !== editCategory?.id) // Prevent self-parenting
-                                                .map((c) => (
-                                                    <SelectItem key={c.id} value={c.id}>
-                                                        {c.name}
-                                                    </SelectItem>
-                                                ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                 <div className="space-y-2">
+                                     <Label>Üst Kategori</Label>
+                                     <Popover open={parentSelectOpen} onOpenChange={setParentSelectOpen}>
+                                         <PopoverTrigger asChild>
+                                             <Button
+                                                 variant="outline"
+                                                 role="combobox"
+                                                 aria-expanded={parentSelectOpen}
+                                                 className="w-full justify-between font-normal bg-white dark:bg-gray-950 h-10 px-3"
+                                             >
+                                                 <span className="truncate">
+                                                     {parentId
+                                                         ? categories.find((c) => c.id === parentId)?.name
+                                                         : "Ana Kategori"}
+                                                 </span>
+                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                             </Button>
+                                         </PopoverTrigger>
+                                         <PopoverContent align="start" className="p-0 w-80 overflow-hidden shadow-xl bg-white dark:bg-gray-950 border">
+                                             <div className="flex flex-col h-full max-h-[inherit]">
+                                                 <div className="p-3 border-b shrink-0 bg-white dark:bg-gray-950 sticky top-0 z-10 flex items-center gap-2">
+                                                     <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+                                                     <Input
+                                                         placeholder="Üst kategori ara..."
+                                                         value={parentSearch}
+                                                         onChange={(e) => setParentSearch(e.target.value)}
+                                                         className="h-9 text-sm"
+                                                         autoFocus
+                                                     />
+                                                 </div>
+                                                 <div className="flex-1 overflow-y-auto min-h-[150px] max-h-[300px]">
+                                                     <div className="p-1">
+                                                         <button
+                                                             type="button"
+                                                             onClick={() => {
+                                                                 setParentId(null);
+                                                                 setParentSelectOpen(false);
+                                                                 setParentSearch("");
+                                                             }}
+                                                             className={cn(
+                                                                 "w-full flex items-center justify-between px-3 py-2 text-sm text-left rounded-md transition-colors hover:bg-accent",
+                                                                 !parentId && "bg-accent font-medium text-accent-foreground"
+                                                             )}
+                                                         >
+                                                             <span className="truncate">Ana Kategori</span>
+                                                             {!parentId && <Check className="h-4 w-4 text-[#17457C] shrink-0" />}
+                                                         </button>
+                                                         
+                                                         {categories
+                                                             .filter(c => c.id !== editCategory?.id)
+                                                             .filter((c) =>
+                                                                 c.name.toLocaleLowerCase("tr-TR").includes(parentSearch.toLocaleLowerCase("tr-TR"))
+                                                             )
+                                                             .map((c) => (
+                                                                 <button
+                                                                     key={c.id}
+                                                                     type="button"
+                                                                     onClick={() => {
+                                                                         setParentId(c.id);
+                                                                         setParentSelectOpen(false);
+                                                                         setParentSearch("");
+                                                                     }}
+                                                                     className={cn(
+                                                                         "w-full flex items-center justify-between px-3 py-2 text-sm text-left rounded-md transition-colors hover:bg-accent",
+                                                                         parentId === c.id && "bg-accent font-medium text-accent-foreground"
+                                                                     )}
+                                                                 >
+                                                                     <span className="truncate">{c.name}</span>
+                                                                     {parentId === c.id && (
+                                                                         <Check className="h-4 w-4 text-[#17457C] shrink-0" />
+                                                                     )}
+                                                                 </button>
+                                                             ))}
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </PopoverContent>
+                                     </Popover>
+                                 </div>
                                 <div className="space-y-2">
                                     <Label>Kategori Görseli</Label>
                                     <div className="flex items-center gap-4">
