@@ -20,20 +20,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!post) return { title: "Yazı Bulunamadı" };
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-    const description = post.summary || "Bardakcı Bike blog sayfamızda bisiklet kültürü ve rehberleri hakkında yazılarımızı okuyun.";
-    const imageUrl = post.imageUrl ? (post.imageUrl.startsWith("http") ? post.imageUrl : `${baseUrl}${post.imageUrl}`) : `${baseUrl}/img/og-default.jpg`;
+    const description = post.summary || "Blog sayfamızda sektörel rehberler ve güncel yazılarımızı okuyun.";
+    const imageUrl = post.imageUrl || "/img/og-default.jpg";
 
     return {
-        title: post.title, // Root layout will automatically append " | Bardakcı Bike"
+        title: post.title, // Root layout will automatically append " | storeTitle"
         description,
         alternates: {
-            canonical: `${baseUrl}/blog/${slug}`
+            canonical: `/blog/${slug}`
         },
         openGraph: {
             title: post.title,
             description,
-            url: `${baseUrl}/blog/${slug}`,
+            url: `/blog/${slug}`,
             images: [{ url: imageUrl }],
             type: "article",
         }

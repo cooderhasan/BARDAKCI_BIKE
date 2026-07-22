@@ -16,10 +16,10 @@ export async function generateMetadata({ params }: PolicyPageProps): Promise<Met
     if (!policy) return { title: "Sayfa Bulunamadı" };
 
     return {
-        title: `${policy.title} | Bardakcı Bike`,
-        description: `Bardakcı Bike ${policy.title.toLowerCase()} sayfası. Haklarınız ve politikalarımız hakkında detaylı bilgi edinin.`,
+        title: policy.title, // Root layout will automatically append " | storeTitle"
+        description: `${policy.title} sayfası. Haklarınız ve politikalarımız hakkında detaylı bilgi edinin.`,
         alternates: {
-            canonical: `${BASE_URL}/policies/${slug}`,
+            canonical: `/policies/${slug}`,
         },
         robots: {
             index: true,

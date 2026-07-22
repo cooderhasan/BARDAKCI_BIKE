@@ -5,10 +5,10 @@ import type { Metadata } from "next";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
 export const metadata: Metadata = {
-    title: "Mesafeli Satış Sözleşmesi | Bardakcı Bike",
-    description: "Bardakcı Bike Mesafeli Satış Sözleşmesi. Alışveriş koşulları, teslimat, cayma hakkı ve hukuki sorumluluklar hakkında detaylar.",
+    title: "Mesafeli Satış Sözleşmesi",
+    description: "Mesafeli Satış Sözleşmesi. Alışveriş koşulları, teslimat, cayma hakkı ve hukuki sorumluluklar hakkında detaylar.",
     alternates: {
-        canonical: `${BASE_URL}/policies/distance-sales`,
+        canonical: "/policies/distance-sales",
     },
 };
 

@@ -49,18 +49,16 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
         description = "En uygun fiyatlı bisiklet yedek parça ve fırsat ürünleri.";
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-
     return {
-        title: `${title} | Bardakcı Bike`,
+        title: title,
         description,
         alternates: {
-            canonical: `${siteUrl}/products`
+            canonical: "/products"
         },
         openGraph: {
-            title: `${title} | Bardakcı Bike`,
+            title: title,
             description,
-            url: `${siteUrl}/products`,
+            url: "/products",
             type: "website",
         }
     };

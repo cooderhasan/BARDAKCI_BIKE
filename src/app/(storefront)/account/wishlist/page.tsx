@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-    title: "Favorilerim | Bardakcı Bike",
+    title: "Favorilerim",
     description: "Favori ürünleriniz.",
 };
 

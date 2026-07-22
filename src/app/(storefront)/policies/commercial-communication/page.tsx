@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
 export const metadata: Metadata = {
-    title: "Elektronik Ticaret İleti Onayı | Bardakcı Bike",
-    description: "Bardakcı Bike Ticari Elektronik İleti Onay Metni. Kampanya ve bilgilendirme duyuruları hakkındaki onay ve ret haklarınız.",
+    title: "Elektronik Ticaret İleti Onayı",
+    description: "Ticari Elektronik İleti Onay Metni. Kampanya ve bilgilendirme duyuruları hakkındaki onay ve ret haklarınız.",
     alternates: {
-        canonical: `${BASE_URL}/policies/commercial-communication`,
+        canonical: "/policies/commercial-communication",
     },
 };
 

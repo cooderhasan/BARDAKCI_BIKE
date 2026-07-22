@@ -5,10 +5,10 @@ import type { Metadata } from "next";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
 export const metadata: Metadata = {
-    title: "Çerez Politikası | Bardakcı Bike",
-    description: "Bardakcı Bike çerez politikası. Web sitemizde kullanılan çerez türleri ve çerez tercihlerinizi nasıl yöneteceğiniz hakkında bilgi edinin.",
+    title: "Çerez Politikası",
+    description: "Çerez politikası. Web sitemizde kullanılan çerez türleri ve çerez tercihlerinizi nasıl yöneteceğiniz hakkında bilgi edinin.",
     alternates: {
-        canonical: `${BASE_URL}/policies/cookies`,
+        canonical: "/policies/cookies",
     },
 };
 

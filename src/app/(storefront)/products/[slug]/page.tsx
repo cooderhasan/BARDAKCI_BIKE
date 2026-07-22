@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     const maxDescLength = 155;
     const description = cleanDesc 
         ? (cleanDesc.length > maxDescLength ? cleanDesc.slice(0, maxDescLength).trim() + "..." : cleanDesc)
-        : `${product.name} uygun fiyat ve taksit seçenekleriyle Bardakcı Bike'ta.`;
+        : `${product.name} en uygun fiyat ve taksit seçenekleriyle.`;
 
     return {
         title: product.name, // Site name is appended automatically by layout.tsx
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             images: product.images || [],
         },
         alternates: {
-            canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr"}/products/${slug}`
+            canonical: `/products/${slug}`
         }
     };
 }

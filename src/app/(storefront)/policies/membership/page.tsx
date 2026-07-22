@@ -5,10 +5,10 @@ import type { Metadata } from "next";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
 export const metadata: Metadata = {
-    title: "Üyelik Sözleşmesi | Bardakcı Bike",
-    description: "Bardakcı Bike Üyelik Sözleşmesi. Bayilik ve üyelik şartları, hak ve yükümlülükler hakkında bilgiler.",
+    title: "Üyelik Sözleşmesi",
+    description: "Üyelik Sözleşmesi. Bayilik ve üyelik şartları, hak ve yükümlülükler hakkında bilgiler.",
     alternates: {
-        canonical: `${BASE_URL}/policies/membership`,
+        canonical: "/policies/membership",
     },
 };
 

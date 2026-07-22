@@ -8,12 +8,12 @@ import { HelpCircle, Phone, Mail, ArrowRight, MessageSquare, Truck, ShieldCheck,
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-    title: "Sıkça Sorulan Sorular (S.S.S) | Bardakcı Bike",
-    description: "Bardakcı Bike toptan ve perakende bisiklet satışı, bayilik süreçleri, ödeme seçenekleri, kargo teslimatı ve yetkili servis kurulumu hakkında merak ettiğiniz tüm soruların yanıtları.",
-    keywords: ["bisiklet sss", "toptan bisiklet", "bisiklet kurulumu", "bisiklet garanti", "bardakcı bike yardım", "bayilik başvuru"],
+    title: "Sıkça Sorulan Sorular (S.S.S)",
+    description: "Toptan satış, bayilik süreçleri, ödeme seçenekleri, kargo teslimatı ve kurulum hakkında merak ettiğiniz tüm soruların yanıtları.",
+    keywords: ["b2b e-ticaret sss", "toptan satış sss", "bayilik başvuru", "kargo teslimatı sss"],
     openGraph: {
-        title: "Sıkça Sorulan Sorular (S.S.S) | Bardakcı Bike",
-        description: "Bisiklet siparişleri, kargo teslimatı, garanti ve bayilik süreçleriyle ilgili tüm merak edilenler bu sayfada.",
+        title: "Sıkça Sorulan Sorular (S.S.S)",
+        description: "Siparişler, kargo teslimatı, garanti ve bayilik süreçleriyle ilgili tüm merak edilenler bu sayfada.",
         type: "website",
     }
 };

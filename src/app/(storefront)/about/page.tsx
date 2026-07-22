@@ -7,18 +7,17 @@ import type { Metadata } from "next";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
 export const metadata: Metadata = {
-    title: "Hakkımızda | Bardakcı Bike",
+    title: "Hakkımızda",
     description:
-        "Bardakcı Bike hakkında bilgi edinin. Bisiklet ve yedek parça sektöründe yılların verdiği tecrübeyle en kaliteli ürünleri uygun fiyatlarla sunuyoruz.",
+        "Hakkımızda bilgi edinin. Sektörde yılların verdiği tecrübeyle en kaliteli ürünleri uygun fiyatlarla sunuyoruz.",
     alternates: {
-        canonical: `${BASE_URL}/about`,
+        canonical: "/about",
     },
     openGraph: {
-        title: "Hakkımızda | Bardakcı Bike",
+        title: "Hakkımızda",
         description:
-            "Bisiklet ve yedek parça sektöründe güvenilir çözüm ortağınız Bardakcı Bike hakkında detaylı bilgi alın.",
-        url: `${BASE_URL}/about`,
-        siteName: "Bardakcı Bike",
+            "Sektörde güvenilir çözüm ortağınız hakkında detaylı bilgi alın.",
+        url: "/about",
         locale: "tr_TR",
         type: "website",
     },

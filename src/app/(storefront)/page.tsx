@@ -46,7 +46,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 
-import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+import { getStoreType, getStoreFilter, getStoreSettings } from "@/lib/store-helper";
 
 const safeToISO = (d: any) => {
     if (!d) return new Date().toISOString();

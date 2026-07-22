@@ -3,10 +3,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Clock, Calendar, ChevronRight } from "lucide-react";
 import { Metadata } from "next";
+import { getStoreType } from "@/lib/store-helper";
 
 export const metadata: Metadata = {
-    title: 'Bisiklet Rehberleri ve Blog Yazıları',
-    description: 'Bisiklet seçim rehberleri, bakım ipuçları, teknik incelemeler ve bisiklet kültürüne dair yazılarımızı keşfedin.',
+    title: 'Rehberler ve Blog Yazıları',
+    description: 'Seçim rehberleri, bakım ipuçları, teknik incelemeler ve sektörel blog yazılarımızı keşfedin.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -17,16 +18,21 @@ export default async function StorefrontBlogPage() {
         orderBy: { createdAt: "desc" },
     });
 
+    const activeStore = await getStoreType();
+    const isMotor = activeStore === "MOTOR";
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900 py-12">
             <div className="container mx-auto px-4 max-w-6xl">
                 {/* Header */}
                 <div className="text-center max-w-2xl mx-auto mb-16 animate-in fade-in slide-in-from-top-4 duration-500">
                     <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight mb-4">
-                        Bisiklet Kültürü & <span className="text-[#17457C]">Rehberler</span>
+                        {isMotor ? "Motosiklet Kültürü & " : "Bisiklet Kültürü & "}<span className="text-[#17457C]">{isMotor ? "Motovitrin" : "Rehberler"}</span>
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
-                        Bisiklet seçimi, bakımı, teknik özellikleri ve güvenli sürüşe dair bilmeniz gereken her şey bu rehberlerde!
+                        {isMotor 
+                            ? "Motosiklet seçimi, bakımı, teknik özellikleri ve güvenli sürüşe dair bilmeniz gereken her şey bu rehberlerde!"
+                            : "Bisiklet seçimi, bakımı, teknik özellikleri ve güvenli sürüşe dair bilmeniz gereken her şey bu rehberlerde!"}
                     </p>
                     <div className="w-16 h-1 bg-[#17457C] mx-auto mt-6 rounded-full" />
                 </div>
@@ -54,7 +60,7 @@ export default async function StorefrontBlogPage() {
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-850 text-gray-400 font-medium text-sm">
-                                            Bardakcı Bike
+                                            {isMotor ? "Motovitrin" : "Bardakcı Bike"}
                                         </div>
                                     )}
                                     <div className="absolute top-4 left-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs px-3 py-1 rounded-full text-xs font-semibold text-[#17457C] flex items-center gap-1.5 shadow-sm">

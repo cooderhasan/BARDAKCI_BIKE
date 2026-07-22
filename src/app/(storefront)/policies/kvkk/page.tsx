@@ -5,10 +5,10 @@ import type { Metadata } from "next";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
 export const metadata: Metadata = {
-    title: "KVKK Aydınlatma Metni | Bardakcı Bike",
-    description: "Bardakcı Bike KVKK (Kişisel Verilerin Korunması Kanunu) aydınlatma metni. Kişisel verilerinizin nasıl işlendiği hakkında bilgi edinin.",
+    title: "KVKK Aydınlatma Metni",
+    description: "KVKK (Kişisel Verilerin Korunması Kanunu) aydınlatma metni. Kişisel verilerinizin nasıl işlendiği ve haklarınız hakkında bilgi edinin.",
     alternates: {
-        canonical: `${BASE_URL}/policies/kvkk`,
+        canonical: "/policies/kvkk",
     },
 };
 

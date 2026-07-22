@@ -5,10 +5,10 @@ interface PageProps {
 }
 
 export const metadata = {
-    title: "İndirimli Ürünler | Bardakcı Bike",
-    description: "En uygun fiyatlı bisiklet modelleri ve fırsat ürünleri.",
+    title: "İndirimli Ürünler",
+    description: "En uygun fiyatlı fırsat ve kampanya ürünleri.",
     alternates: {
-        canonical: `${process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr"}/indirimli-urunler`
+        canonical: "/indirimli-urunler"
     }
 };
 

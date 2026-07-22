@@ -43,8 +43,6 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
     if (!category) return { title: "Kategori Bulunamadı" };
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-    
     // Turkish Title Case Helper Function
     const toTitleCase = (str: string) => {
         return str.toLowerCase().replace(/(?:^|[\s-/])\S/g, (match) => {
@@ -53,21 +51,21 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     };
     
     const formattedName = toTitleCase(category.name);
-    const seoTitle = `${formattedName} Modelleri ve Fiyatları`;
-    
-    const description = `${formattedName} kategorisindeki en kaliteli bisiklet modellerini inceleyin ve karşılaştırın.`;
-    const imageUrl = category.imageUrl ? (category.imageUrl.startsWith("http") ? category.imageUrl : `${baseUrl}${category.imageUrl}`) : `${baseUrl}/img/og-default.jpg`;
+    const seoTitle = `${formattedName} Ürünleri`;
+
+    const description = `${formattedName} kategorisindeki en kaliteli ürünleri inceleyin ve karşılaştırın.`;
+    const imageUrl = category.imageUrl || "/img/og-default.jpg";
 
     return {
-        title: seoTitle, // Root layout will automatically append " | Bardakcı Bike"
+        title: seoTitle, // Root layout will automatically append " | storeTitle"
         description,
         alternates: {
-            canonical: `${baseUrl}/category/${slug}`
+            canonical: `/category/${slug}`
         },
         openGraph: {
             title: seoTitle,
             description,
-            url: `${baseUrl}/category/${slug}`,
+            url: `/category/${slug}`,
             images: [{ url: imageUrl }],
             type: "website",
         }
