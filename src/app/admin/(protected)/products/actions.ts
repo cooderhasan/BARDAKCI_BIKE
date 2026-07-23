@@ -16,6 +16,13 @@ export async function createProduct(formData: FormData) {
         throw new Error("Unauthorized");
     }
 
+    const parseDecimal = (val: any) => {
+        if (!val) return null;
+        const str = String(val).replace(",", ".").trim();
+        const num = Number(str);
+        return isNaN(num) ? null : num;
+    };
+
     // Generate a unique slug: if the slug already exists in DB, append -1, -2, etc.
     const baseSlug = (formData.get("slug") as string) || generateSlug(formData.get("name") as string);
     let uniqueSlug = baseSlug;
@@ -62,11 +69,11 @@ export async function createProduct(formData: FormData) {
         isGoogleActive: formData.get("isGoogleActive") === "true",
         googlePrice: formData.get("googlePrice") ? Number(formData.get("googlePrice")) : undefined,
         // Kargo & Desi
-        weight: formData.get("weight") ? Number(formData.get("weight")) : null,
-        width: formData.get("width") ? Number(formData.get("width")) : null,
-        height: formData.get("height") ? Number(formData.get("height")) : null,
-        length: formData.get("length") ? Number(formData.get("length")) : null,
-        desi: formData.get("desi") ? Number(formData.get("desi")) : null,
+        weight: parseDecimal(formData.get("weight")),
+        width: parseDecimal(formData.get("width")),
+        height: parseDecimal(formData.get("height")),
+        length: parseDecimal(formData.get("length")),
+        desi: parseDecimal(formData.get("desi")),
         referenceUrl: (formData.get("referenceUrl") as string) || undefined,
         n11CatalogId: (formData.get("n11CatalogId") as string) || null,
         gender: (formData.get("gender") as string) === "none" ? undefined : (formData.get("gender") as string) || undefined,
@@ -201,11 +208,11 @@ export async function updateProduct(productId: string, formData: FormData) {
         isGoogleActive: formData.get("isGoogleActive") === "true",
         googlePrice: formData.get("googlePrice") ? Number(formData.get("googlePrice")) : undefined,
         // Kargo & Desi
-        weight: formData.get("weight") ? Number(formData.get("weight")) : null,
-        width: formData.get("width") ? Number(formData.get("width")) : null,
-        height: formData.get("height") ? Number(formData.get("height")) : null,
-        length: formData.get("length") ? Number(formData.get("length")) : null,
-        desi: formData.get("desi") ? Number(formData.get("desi")) : null,
+        weight: parseDecimal(formData.get("weight")),
+        width: parseDecimal(formData.get("width")),
+        height: parseDecimal(formData.get("height")),
+        length: parseDecimal(formData.get("length")),
+        desi: parseDecimal(formData.get("desi")),
         referenceUrl: (formData.get("referenceUrl") as string) || undefined,
         n11CatalogId: (formData.get("n11CatalogId") as string) || null,
         gender: (formData.get("gender") as string) === "none" ? null : (formData.get("gender") as string) || null,
