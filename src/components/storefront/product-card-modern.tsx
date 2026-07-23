@@ -52,6 +52,7 @@ export function ProductCardModern({
     discountRate,
     isDealer,
     badge,
+    priority = false,
 }: ProductCardProps) {
     const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const { addItem, openAddedToCartModal } = useCartStore();
