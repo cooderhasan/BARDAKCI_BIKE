@@ -84,6 +84,7 @@ const menuGroups: MenuGroup[] = [
             { title: "N11", href: "/admin/integrations/n11", icon: Zap },
             { title: "Hepsiburada", href: "/admin/integrations/hepsiburada", icon: Zap },
             { title: "Idefix", href: "/admin/integrations/idefix", icon: Zap },
+            { title: "Pazarama", href: "/admin/integrations/pazarama", icon: Zap },
             { title: "Google Merchant", href: "/admin/integrations/google", icon: Zap },
             { title: "Gemini AI", href: "/admin/integrations/gemini", icon: Brain },
             { title: "Yurtiçi Kargo", href: "/admin/integrations/yurtici", icon: Truck },
