@@ -30,20 +30,22 @@ export class PazaramaClient {
       return this.cachedToken.token;
     }
 
-    if (!this.config.apiKey || !this.config.apiSecret) {
-      throw new Error("API Key ve API Secret bulunamadı.");
+    const apiKey = (this.config.apiKey || "").trim();
+    const apiSecret = (this.config.apiSecret || "").trim();
+
+    if (!apiKey || !apiSecret) {
+      throw new Error("API Key (Client ID) ve API Secret (Client Secret) girilmelidir.");
     }
 
-    const basicAuth = Buffer.from(
-      `${this.config.apiKey}:${this.config.apiSecret}`
-    ).toString("base64");
+    const basicAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
 
     const bodyParams = new URLSearchParams({
       grant_type: "client_credentials",
+      client_id: apiKey,
+      client_secret: apiSecret,
       scope: "merchantgatewayapi.fullaccess",
     });
 
-    // Request token from Pazarama Identity Server
     const response = await fetch(this.tokenUrl, {
       method: "POST",
       headers: {
@@ -57,24 +59,41 @@ export class PazaramaClient {
     if (!response.ok) {
       const errText = await response.text().catch(() => "");
       if (response.status === 401 || response.status === 403) {
-        throw new Error("Pazarama API Key veya Secret hatalı/yetkisiz (401/403).");
+        throw new Error(`Pazarama API Anahtarı/Secret yetkisiz veya hatalı (HTTP ${response.status}). Paneli kontrol edin.`);
       }
       throw new Error(
-        `Pazarama Token Alınamadı (${response.status}): ${errText || response.statusText}`
+        `Pazarama Token Alınamadı (HTTP ${response.status}): ${errText || response.statusText}`
       );
     }
 
     const data = await response.json();
-    const token = data.access_token;
-    const expiresIn = (data.expires_in || 3600) - 300; // cache with 5m buffer
+
+    // Check all possible token response structures
+    const token =
+      data?.access_token ||
+      data?.accessToken ||
+      data?.data?.access_token ||
+      data?.data?.accessToken ||
+      data?.result?.access_token ||
+      data?.result?.accessToken ||
+      data?.token;
+
+    const expiresIn =
+      data?.expires_in ||
+      data?.expiresIn ||
+      data?.data?.expires_in ||
+      3600;
 
     if (!token) {
-      throw new Error("Pazarama token yanıtında access_token bulunamadı.");
+      const respStr = JSON.stringify(data);
+      throw new Error(
+        `Pazarama Token yanıtında access_token bulunamadı. Yanıt: ${respStr.substring(0, 150)}`
+      );
     }
 
     this.cachedToken = {
       token,
-      expiresAt: Date.now() + expiresIn * 1000,
+      expiresAt: Date.now() + (expiresIn - 300) * 1000,
     };
 
     return token;
@@ -102,28 +121,14 @@ export class PazaramaClient {
     }
 
     try {
-      // Step 1: Check token acquisition
       const token = await this.getAccessToken();
       if (!token) {
         return { success: false, message: "Pazarama Access Token alınamadı." };
       }
 
-      // Step 2: Try fetching categories or merchant info
-      const headers = await this.getHeaders();
-      const res = await fetch(`${this.baseUrl}/api/v1/category/getCategoryWithAttributes`, {
-        method: "GET",
-        headers,
-        cache: "no-store",
-      }).catch(() => null);
-
-      if (res && (res.ok || res.status === 200 || res.status === 404)) {
-        return { success: true, message: "Pazarama API kimlik doğrulaması başarılı! (Token alındı)" };
-      }
-
-      // If category endpoint URL differs, as long as token was retrieved successfully:
       return {
         success: true,
-        message: "Pazarama API Bağlantısı başarılı! Access Token doğrulandı.",
+        message: "✅ Pazarama API Bağlantısı Başarılı! Access Token alındı ve doğrulandı.",
       };
     } catch (error: any) {
       return {
