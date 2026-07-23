@@ -47,6 +47,7 @@ export function ProductCard({
     isDealer,
     badge,
 }: ProductCardProps) {
+    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const { addItem } = useCartStore();
     const price = calculatePrice(
         product.listPrice,
@@ -125,9 +126,11 @@ export function ProductCard({
                                 %{discountRate} İndirim
                             </Badge>
                         )}
-                        <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white animate-in fade-in duration-300">
-                            Ücretsiz Kargo
-                        </Badge>
+                        {!isMotorStore && (
+                            <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white animate-in fade-in duration-300">
+                                Ücretsiz Kargo
+                            </Badge>
+                        )}
                     </div>
 
                     {/* Wishlist Button */}

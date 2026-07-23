@@ -125,6 +125,7 @@ export function ProductDetail({
     const [inputValue, setInputValue] = useState(product.minQuantity.toString());
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const addItem = useCartStore((state) => state.addItem);
 
     // Get unique colors and sizes from variants
@@ -496,10 +497,12 @@ export function ProductDetail({
                                         </div>
                                     )}
                                 </div>
-                                <div className="text-xs text-emerald-600 dark:text-emerald-400 italic flex items-center gap-1.5 p-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-md border border-emerald-100 dark:border-emerald-900/20 animate-in fade-in duration-300">
-                                    <Truck className="w-4 h-4 shrink-0" />
-                                    <span>Tebrikler! Bu üründe <strong>kargo ücreti</strong> tarafımızca karşılanmaktadır (Ücretsiz Kargo).</span>
-                                </div>
+                                {!isMotorStore && (
+                                    <div className="text-xs text-emerald-600 dark:text-emerald-400 italic flex items-center gap-1.5 p-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-md border border-emerald-100 dark:border-emerald-900/20 animate-in fade-in duration-300">
+                                        <Truck className="w-4 h-4 shrink-0" />
+                                        <span>Tebrikler! Bu üründe <strong>kargo ücreti</strong> tarafımızca karşılanmaktadır (Ücretsiz Kargo).</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Variants */}

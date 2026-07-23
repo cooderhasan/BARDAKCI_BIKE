@@ -52,6 +52,7 @@ export function ProductCardV2({
     isDealer,
     badge,
 }: ProductCardProps) {
+    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const { addItem } = useCartStore();
     const [quantity, setQuantity] = useState(product.minQuantity || 1);
 
@@ -137,10 +138,12 @@ export function ProductCardV2({
                                 %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
                             </div>
                         )}
-                        <div className="bg-emerald-600 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-in fade-in duration-300 flex items-center gap-1">
-                            <Truck className="w-3.5 h-3.5" />
-                            <span>ÜCRETSİZ KARGO</span>
-                        </div>
+                        {!isMotorStore && (
+                            <div className="bg-emerald-600 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-in fade-in duration-300 flex items-center gap-1">
+                                <Truck className="w-3.5 h-3.5" />
+                                <span>ÜCRETSİZ KARGO</span>
+                            </div>
+                        )}
                     </div>
                     {/* Badge */}
                     {badge && (
