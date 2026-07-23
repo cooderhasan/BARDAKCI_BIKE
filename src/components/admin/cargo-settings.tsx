@@ -171,6 +171,11 @@ export function CargoSettings({ initialCompanies }: CargoSettingsProps) {
     const handleSaveDesiRanges = async () => {
         if (!expandedCompanyId) return;
 
+        const parseNum = (val: string) => {
+            const clean = String(val || "0").replace(",", ".").trim();
+            return Number(clean) || 0;
+        };
+
         // Validasyon
         for (let i = 0; i < desiRows.length; i++) {
             const row = desiRows[i];
@@ -178,11 +183,11 @@ export function CargoSettings({ initialCompanies }: CargoSettingsProps) {
                 toast.error(`Satır ${i + 1}: Tüm alanlar doldurulmalıdır.`);
                 return;
             }
-            if (Number(row.minDesi) > Number(row.maxDesi)) {
+            if (parseNum(row.minDesi) > parseNum(row.maxDesi)) {
                 toast.error(`Satır ${i + 1}: Başlangıç desi, bitiş desiden büyük olamaz.`);
                 return;
             }
-            if (Number(row.price) < 0) {
+            if (parseNum(row.price) < 0) {
                 toast.error(`Satır ${i + 1}: Ücret negatif olamaz.`);
                 return;
             }
@@ -193,9 +198,9 @@ export function CargoSettings({ initialCompanies }: CargoSettingsProps) {
             const result = await saveDesiPriceRanges(
                 expandedCompanyId,
                 desiRows.map((r: DesiPriceRow) => ({
-                    minDesi: Number(r.minDesi),
-                    maxDesi: Number(r.maxDesi),
-                    price: Number(r.price),
+                    minDesi: parseNum(r.minDesi),
+                    maxDesi: parseNum(r.maxDesi),
+                    price: parseNum(r.price),
                     multiplierType: r.multiplierType,
                 }))
             );
