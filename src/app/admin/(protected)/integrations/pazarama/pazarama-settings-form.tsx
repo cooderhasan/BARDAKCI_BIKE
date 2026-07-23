@@ -25,7 +25,7 @@ export function PazaramaSettingsForm({ initialData }: PazaramaSettingsFormProps)
   const [isPending, startTransition] = useTransition();
   const [isTesting, setIsTesting] = useState(false);
   const [isActive, setIsActive] = useState(initialData?.isActive ?? false);
-  const [isTestMode, setIsTestMode] = useState(initialData?.isTestMode ?? true);
+  const [isTestMode, setIsTestMode] = useState(initialData?.isTestMode ?? false);
 
   const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -157,7 +157,7 @@ export function PazaramaSettingsForm({ initialData }: PazaramaSettingsFormProps)
                   Test Modu (Stage API)
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Açık ise Pazarama test ortamı (`stage-api.pazarama.com`) kullanılır.
+                  Canlı mağaza anahtarlarınız (isortagim.pazarama.com) için <strong>Kapalı (Canlı Ortam)</strong> olmalıdır.
                 </p>
               </div>
               <Switch
