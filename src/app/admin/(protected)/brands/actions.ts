@@ -29,7 +29,7 @@ export async function getBrands() {
 
 import { StoreType } from "@prisma/client";
 
-export async function createBrand(data: { name: string; logoUrl?: string; store?: StoreType; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null }) {
+export async function createBrand(data: { name: string; logoUrl?: string; store?: StoreType; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null; pazaramaBrandId?: string | number | null }) {
     await prisma.brand.create({
         data: {
             name: data.name,
@@ -40,18 +40,22 @@ export async function createBrand(data: { name: string; logoUrl?: string; store?
             n11BrandId: data.n11BrandId ?? null,
             hbBrandId: data.hbBrandId ?? null,
             idefixBrandId: data.idefixBrandId ? String(data.idefixBrandId) : null,
+            pazaramaBrandId: data.pazaramaBrandId ? String(data.pazaramaBrandId) : null,
         },
     });
     revalidatePath("/admin/brands");
 }
 
-export async function updateBrand(id: string, data: { name?: string; logoUrl?: string; store?: StoreType; isActive?: boolean; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null }) {
+export async function updateBrand(id: string, data: { name?: string; logoUrl?: string; store?: StoreType; isActive?: boolean; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null; pazaramaBrandId?: string | number | null }) {
     const updateData: any = { ...data };
     if (data.name) {
         updateData.slug = slugify(data.name);
     }
     if (data.idefixBrandId !== undefined) {
         updateData.idefixBrandId = data.idefixBrandId ? String(data.idefixBrandId) : null;
+    }
+    if (data.pazaramaBrandId !== undefined) {
+        updateData.pazaramaBrandId = data.pazaramaBrandId ? String(data.pazaramaBrandId) : null;
     }
     await prisma.brand.update({
         where: { id },

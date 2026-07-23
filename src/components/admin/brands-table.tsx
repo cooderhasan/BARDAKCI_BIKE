@@ -141,6 +141,7 @@ interface Brand {
     n11BrandId?: number | null;
     hbBrandId?: string | null;
     idefixBrandId?: string | number | null;
+    pazaramaBrandId?: string | number | null;
     createdAt: Date;
     _count: {
         products: number;
@@ -162,6 +163,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
     const [n11BrandId, setN11BrandId] = useState<number | undefined>(undefined);
     const [hbBrandId, setHbBrandId] = useState<string | undefined>(undefined);
     const [idefixBrandId, setIdefixBrandId] = useState<number | undefined>(undefined);
+    const [pazaramaBrandId, setPazaramaBrandId] = useState<string | undefined>(undefined);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -169,10 +171,10 @@ export function BrandsTable({ brands }: BrandsTableProps) {
 
         try {
             if (editBrand) {
-                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
+                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId });
                 toast.success("Marka güncellendi.");
             } else {
-                await createBrand({ name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId });
+                await createBrand({ name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId });
                 toast.success("Marka oluşturuldu.");
             }
             setIsOpen(false);
@@ -184,8 +186,6 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         }
     };
 
-    // ... existing code ...
-
     const resetForm = () => {
         setName("");
         setLogoUrl("");
@@ -194,6 +194,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         setN11BrandId(undefined);
         setHbBrandId(undefined);
         setIdefixBrandId(undefined);
+        setPazaramaBrandId(undefined);
         setEditBrand(null);
     };
 
@@ -205,7 +206,8 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         setTrendyolBrandId(brand.trendyolBrandId ?? undefined);
         setN11BrandId(brand.n11BrandId ?? undefined);
         setHbBrandId(brand.hbBrandId ?? undefined);
-        setIdefixBrandId(brand.idefixBrandId ?? undefined);
+        setIdefixBrandId(brand.idefixBrandId ? Number(brand.idefixBrandId) : undefined);
+        setPazaramaBrandId(brand.pazaramaBrandId ? String(brand.pazaramaBrandId) : undefined);
         setIsOpen(true);
     };
 
@@ -318,14 +320,14 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                                     />
                                     <p className="text-[10px] text-purple-600">Idefix panelindeki Marka ID bilgisini girin.</p>
                                 </div>
-                                <div className="space-y-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                                    <Label htmlFor="hbBrandId" className="text-amber-700 dark:text-amber-400 font-semibold text-xs uppercase tracking-wide">🟡 Hepsiburada Marka</Label>
+                                <div className="space-y-2 p-3 bg-pink-50 dark:bg-pink-950/20 rounded-lg border border-pink-200 dark:border-pink-800">
+                                    <Label htmlFor="pazaramaBrandId" className="text-pink-700 dark:text-pink-400 font-semibold text-xs uppercase tracking-wide">🌸 Pazarama Marka ID</Label>
                                     <Input
-                                        id="hbBrandId"
-                                        value={hbBrandId || ""}
-                                        onChange={(e) => setHbBrandId(e.target.value)}
-                                        placeholder="Örn: Samsung"
-                                        className="border-amber-200 dark:border-amber-700"
+                                        id="pazaramaBrandId"
+                                        value={pazaramaBrandId || ""}
+                                        onChange={(e) => setPazaramaBrandId(e.target.value)}
+                                        placeholder="Pazarama marka ID / adını giriniz"
+                                        className="border-pink-200 dark:border-pink-700"
                                     />
                                 </div>
                             </div>

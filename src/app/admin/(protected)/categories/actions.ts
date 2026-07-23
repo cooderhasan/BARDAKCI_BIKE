@@ -14,7 +14,7 @@ export async function getCategories() {
     });
 }
 
-export async function createCategory(data: { name: string; slug: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string }) {
+export async function createCategory(data: { name: string; slug: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string }) {
     try {
         await prisma.category.create({
             data: {
@@ -32,6 +32,7 @@ export async function createCategory(data: { name: string; slug: string; store?:
                 n11CategoryId: data.n11CategoryId ?? null,
                 hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : null,
                 idefixCategoryId: data.idefixCategoryId ? String(data.idefixCategoryId) : null,
+                pazaramaCategoryId: data.pazaramaCategoryId ? String(data.pazaramaCategoryId) : null,
                 googleProductCategory: data.googleProductCategory ?? null,
                 description: data.description ?? null,
             },
@@ -45,7 +46,7 @@ export async function createCategory(data: { name: string; slug: string; store?:
     }
 }
 
-export async function updateCategory(id: string, data: { name?: string; slug?: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
+export async function updateCategory(id: string, data: { name?: string; slug?: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
     try {
         await prisma.category.update({
             where: { id },
@@ -54,6 +55,7 @@ export async function updateCategory(id: string, data: { name?: string; slug?: s
                 store: data.store || undefined,
                 hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : (data.hbCategoryId === null ? null : undefined),
                 idefixCategoryId: data.idefixCategoryId ? String(data.idefixCategoryId) : (data.idefixCategoryId === null ? null : undefined),
+                pazaramaCategoryId: data.pazaramaCategoryId ? String(data.pazaramaCategoryId) : (data.pazaramaCategoryId === null ? null : undefined),
                 parentId: data.parentId === undefined ? undefined : (data.parentId || null),
             },
         });
