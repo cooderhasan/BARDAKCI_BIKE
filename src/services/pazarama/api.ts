@@ -75,14 +75,22 @@ export class PazaramaClient {
       throw new Error(`Pazarama yanıtı JSON formatında değil: ${responseText.substring(0, 100)}`);
     }
 
-    // Official IdentityServer response field: access_token
+    // Extract token from Pazarama API response ({ success: true, data: { accessToken: "..." } })
     const token =
-      data?.access_token ||
+      data?.data?.accessToken ||
+      data?.data?.access_token ||
       data?.accessToken ||
+      data?.access_token ||
+      data?.result?.accessToken ||
       data?.result?.access_token ||
-      data?.data?.access_token;
+      data?.token;
 
-    const expiresIn = data?.expires_in || data?.expiresIn || 3600;
+    const expiresIn =
+      data?.data?.expiresIn ||
+      data?.data?.expires_in ||
+      data?.expires_in ||
+      data?.expiresIn ||
+      3600;
 
     if (!token) {
       throw new Error(
