@@ -39,10 +39,9 @@ export class PazaramaClient {
 
     const basicAuth = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
 
+    // Standard Pazarama API OAuth2 IdentityServer payload
     const bodyParams = new URLSearchParams({
       grant_type: "client_credentials",
-      client_id: apiKey,
-      client_secret: apiSecret,
       scope: "merchantgatewayapi.fullaccess",
     });
 
@@ -56,38 +55,38 @@ export class PazaramaClient {
       cache: "no-store",
     });
 
+    const responseText = await response.text().catch(() => "");
+
     if (!response.ok) {
-      const errText = await response.text().catch(() => "");
       if (response.status === 401 || response.status === 403) {
-        throw new Error(`Pazarama API Anahtarı/Secret yetkisiz veya hatalı (HTTP ${response.status}). Paneli kontrol edin.`);
+        throw new Error(
+          `Pazarama yetkilendirme hatası (HTTP ${response.status}). API Key (Client ID) veya Secret yanlış.`
+        );
       }
       throw new Error(
-        `Pazarama Token Alınamadı (HTTP ${response.status}): ${errText || response.statusText}`
+        `Pazarama Token Alınamadı (HTTP ${response.status}): ${responseText || response.statusText}`
       );
     }
 
-    const data = await response.json();
+    let data: any = {};
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      throw new Error(`Pazarama yanıtı JSON formatında değil: ${responseText.substring(0, 100)}`);
+    }
 
-    // Check all possible token response structures
+    // Official IdentityServer response field: access_token
     const token =
       data?.access_token ||
       data?.accessToken ||
-      data?.data?.access_token ||
-      data?.data?.accessToken ||
       data?.result?.access_token ||
-      data?.result?.accessToken ||
-      data?.token;
+      data?.data?.access_token;
 
-    const expiresIn =
-      data?.expires_in ||
-      data?.expiresIn ||
-      data?.data?.expires_in ||
-      3600;
+    const expiresIn = data?.expires_in || data?.expiresIn || 3600;
 
     if (!token) {
-      const respStr = JSON.stringify(data);
       throw new Error(
-        `Pazarama Token yanıtında access_token bulunamadı. Yanıt: ${respStr.substring(0, 150)}`
+        `Pazarama Token yanıtında access_token bulunamadı. Gelen Cevap: ${responseText.substring(0, 150)}`
       );
     }
 
@@ -128,7 +127,7 @@ export class PazaramaClient {
 
       return {
         success: true,
-        message: "✅ Pazarama API Bağlantısı Başarılı! Access Token alındı ve doğrulandı.",
+        message: "✅ Pazarama API Bağlantısı Başarılı! Access Token başarıyla alındı.",
       };
     } catch (error: any) {
       return {
