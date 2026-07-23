@@ -165,6 +165,7 @@ model Category {
   n11CategoryId      Int? // N11 Kategori ID
   hbCategoryId       String? // Hepsiburada Kategori ID (HB uses strings often like "telefon")
   idefixCategoryId   String? // Idefix Kategori ID (Büyük id'ler için String)
+  pazaramaCategoryId String? // Pazarama Kategori ID
   googleProductCategory String? // Google Product Taxonomy (örn. "Ev ve Bahçe > Mobilya > Sandalyeler")
   isFeatured Boolean  @default(false)
   isInHeader Boolean  @default(false)
@@ -193,6 +194,7 @@ model Brand {
   n11BrandId      Int?
   hbBrandId       String?
   idefixBrandId   String?
+  pazaramaBrandId String?
   products  Product[]
   createdAt DateTime  @default(now())
 
@@ -218,6 +220,7 @@ model Product {
   n11Price    Decimal?    @db.Decimal(12, 2) // N11'e gönderilecek özel fiyat
   hepsiburadaPrice Decimal? @db.Decimal(12, 2) // Hepsiburada'ya gönderilecek özel fiyat
   idefixPrice Decimal?    @db.Decimal(12, 2) // Idefix'e gönderilecek özel fiyat
+  pazaramaPrice Decimal?  @db.Decimal(12, 2) // Pazarama'ya gönderilecek özel fiyat
   vatRate     Int         @default(20)
   minQuantity Int         @default(1)
   stock       Int         @default(0)
@@ -243,7 +246,11 @@ model Product {
   isN11Active         Boolean @default(false)
   isHepsiburadaActive Boolean @default(false)
   isIdefixActive      Boolean @default(false)
+  isPazaramaActive    Boolean @default(false)
   isGoogleActive      Boolean @default(false) // Google Shopping Feed'e dahil edilsin mi?
+
+  pazaramaStatus      String?
+  pazaramaBatchId     String?
 
   // Google Merchant Center
   googlePrice  Decimal?  @db.Decimal(12, 2) // Google'a özel fiyat (boşsa listPrice kullanılır)
@@ -883,6 +890,22 @@ model IdefixOrder {
   @@index([orderNumber])
   @@index([state])
   @@map("idefix_orders")
+}
+
+// ==================== PAZARAMA ENTEGRASYONU ====================
+
+model PazaramaConfig {
+  id           String   @id @default(cuid())
+  apiKey       String   // API KEY (Pazarama Satıcı Portalı)
+  apiSecret    String   // API SECRET KEY
+  merchantId   String?  // Mağaza / Tedarikçi kodu
+  profitMargin Float?   @default(0) // Pazarama kâr marjı %
+  isActive     Boolean  @default(false)
+  isTestMode   Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("pazarama_configs")
 }
 
 // ==================== PASSWORD RESET ====================
