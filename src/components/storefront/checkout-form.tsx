@@ -94,8 +94,8 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
     const isFreeShipping = !isMotorStore; // Bisiklet mağazasında ücretsiz kargo
 
     if (!isFreeShipping && selectedCargo && selectedCargo.isDesiActive && selectedCargo.desiPrices.length > 0) {
-        // Desi 0 ise en az 1 desi üzerinden hesapla (minimum kargo ücreti için)
-        const totalDesi = Math.max(1, summary.totalDesi || 0);
+        // Desi 0 ise en az 0.01 desi üzerinden hesapla (0-0.99 aralığı için)
+        const totalDesi = summary.totalDesi && summary.totalDesi > 0 ? summary.totalDesi : 0.01;
         const range = selectedCargo.desiPrices.find(r =>
             totalDesi >= Number(r.minDesi) && totalDesi <= Number(r.maxDesi)
         ) || selectedCargo.desiPrices[selectedCargo.desiPrices.length - 1]; // Fallback to last range if exceeds max
