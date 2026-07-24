@@ -761,7 +761,7 @@ function PazaramaCategorySearch({
     value?: string | number;
     onChange: (id: string | undefined) => void;
 }) {
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(String(value || ""));
     const [allCategories, setAllCategories] = useState<PazaramaCat[]>([]);
     const [results, setResults] = useState<PazaramaCat[]>([]);
     const [loading, setLoading] = useState(false);
@@ -795,7 +795,7 @@ function PazaramaCategorySearch({
         try {
             const { getPazaramaCategories } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
             const res = await getPazaramaCategories();
-            if (res.success && res.data) {
+            if (res.success && res.data && res.data.length > 0) {
                 const flattened = flattenPazaramaCategories(res.data);
                 setAllCategories(flattened);
                 return flattened;
@@ -813,17 +813,18 @@ function PazaramaCategorySearch({
 
     const handleSearch = async (q: string) => {
         setSearch(q);
-        if (q.length < 2) { setResults([]); return; }
+        onChange(q ? q : undefined);
+        if (q.length < 2) { setResults([]); setOpen(false); return; }
         const cats = await fetchCategories();
-        const filtered = cats.filter(c => c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 100);
+        const filtered = cats.filter(c => c.name.toLowerCase().includes(q.toLowerCase()) || c.id.toLowerCase().includes(q.toLowerCase())).slice(0, 100);
         setResults(filtered);
-        setOpen(true);
+        setOpen(filtered.length > 0);
     };
 
     const handleSelect = (cat: PazaramaCat) => {
         onChange(cat.id);
         setSelectedName(cat.name);
-        setSearch("");
+        setSearch(cat.id);
         setResults([]);
         setOpen(false);
     };
@@ -833,6 +834,7 @@ function PazaramaCategorySearch({
         setSelectedName("");
         setSearch("");
         setResults([]);
+        setOpen(false);
     };
 
     return (
@@ -845,13 +847,6 @@ function PazaramaCategorySearch({
                         <X className="w-4 h-4" />
                     </button>
                 </div>
-            ) : value ? (
-                <div className="flex items-center gap-2 p-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-sm">
-                    <span className="font-medium text-pink-800 dark:text-pink-300 flex-1">Mevcut ID: <span className="font-mono">#{value}</span></span>
-                    <button type="button" onClick={handleClear} className="text-pink-500 hover:text-red-600">
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
             ) : null}
 
             <div className="relative">
@@ -859,7 +854,7 @@ function PazaramaCategorySearch({
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                     <Input
                         className="pl-8 border-pink-200 focus-visible:ring-pink-500"
-                        placeholder="Pazarama kategorisi ara (örn: Pedal, Aksesuar)..."
+                        placeholder="Kategori adı ara veya doğrudan Pazarama ID yazınız..."
                         value={search}
                         onChange={(e) => handleSearch(e.target.value)}
                     />
@@ -867,7 +862,9 @@ function PazaramaCategorySearch({
                 </div>
 
                 {error && (
-                    <p className="text-xs text-red-500 mt-1">{error}</p>
+                    <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 p-2 rounded mt-1">
+                        ⚠️ {error}
+                    </div>
                 )}
 
                 {open && results.length > 0 && (
@@ -883,12 +880,6 @@ function PazaramaCategorySearch({
                                 <span className="text-xs text-gray-400 font-mono shrink-0 pt-0.5">#{cat.id}</span>
                             </button>
                         ))}
-                    </div>
-                )}
-
-                {open && results.length === 0 && search.length >= 2 && !loading && (
-                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-pink-200 rounded-lg shadow-xl p-3 text-sm text-gray-500 text-center">
-                        Pazarama'da eşleşen kategori bulunamadı.
                     </div>
                 )}
             </div>

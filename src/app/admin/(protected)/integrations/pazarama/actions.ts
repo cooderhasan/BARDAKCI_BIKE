@@ -72,11 +72,22 @@ export async function getPazaramaCategories() {
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config) {
-      return { success: false, message: "Pazarama ayarları bulunamadı.", data: [] };
+      return {
+        success: false,
+        message: "Pazarama API ayarları kaydedilmemiş. Lütfen önce Entegrasyon > Pazarama sayfasından API Key ve Secret girip KAYDET butonuna basın.",
+        data: []
+      };
     }
 
     const client = new PazaramaClient(config);
     const categories = await client.getCategories();
+    if (!categories || categories.length === 0) {
+      return {
+        success: false,
+        message: "Pazarama API'si henüz kategori yanıtı vermedi. Manuel olarak kategori ID girebilirsiniz.",
+        data: []
+      };
+    }
     return { success: true, data: categories };
   } catch (error: any) {
     return { success: false, message: error.message || "Kategoriler çekilemedi.", data: [] };
