@@ -274,7 +274,7 @@ export class PazaramaClient {
           stockCode: stockCode,
           StockCount: p.stockQuantity,
           VatRate: p.vatRate || 20,
-          ListPrice: p.listPrice,
+          ListPrice: Math.max(p.listPrice, p.salePrice),
           SalePrice: p.salePrice,
           currencyType: "TRY",
           Desi: 1,
