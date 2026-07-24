@@ -49,6 +49,7 @@ export async function createProduct(formData: FormData) {
         n11Price: formData.get("n11Price") ? Number(formData.get("n11Price")) : undefined,
         hepsiburadaPrice: formData.get("hepsiburadaPrice") ? Number(formData.get("hepsiburadaPrice")) : undefined,
         idefixPrice: formData.get("idefixPrice") ? Number(formData.get("idefixPrice")) : undefined,
+        pazaramaPrice: formData.get("pazaramaPrice") ? Number(formData.get("pazaramaPrice")) : undefined,
         vatRate: Number(formData.get("vatRate")),
         minQuantity: Number(formData.get("minQuantity")) || 1,
         stock: Number(formData.get("stock")) || 0,
@@ -66,6 +67,7 @@ export async function createProduct(formData: FormData) {
         isN11Active: formData.get("isN11Active") === "true",
         isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
         isIdefixActive: formData.get("isIdefixActive") === "true",
+        isPazaramaActive: formData.get("isPazaramaActive") === "true",
         isGoogleActive: formData.get("isGoogleActive") === "true",
         googlePrice: formData.get("googlePrice") ? Number(formData.get("googlePrice")) : undefined,
         // Kargo & Desi
@@ -188,6 +190,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         n11Price: formData.get("n11Price") ? Number(formData.get("n11Price")) : undefined,
         hepsiburadaPrice: formData.get("hepsiburadaPrice") ? Number(formData.get("hepsiburadaPrice")) : undefined,
         idefixPrice: formData.get("idefixPrice") ? Number(formData.get("idefixPrice")) : undefined,
+        pazaramaPrice: formData.get("pazaramaPrice") ? Number(formData.get("pazaramaPrice")) : undefined,
         vatRate: Number(formData.get("vatRate")),
         minQuantity: Number(formData.get("minQuantity")) || 1,
         stock: Number(formData.get("stock")) || 0,
@@ -205,6 +208,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         isN11Active: formData.get("isN11Active") === "true",
         isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
         isIdefixActive: formData.get("isIdefixActive") === "true",
+        isPazaramaActive: formData.get("isPazaramaActive") === "true",
         isGoogleActive: formData.get("isGoogleActive") === "true",
         googlePrice: formData.get("googlePrice") ? Number(formData.get("googlePrice")) : undefined,
         // Kargo & Desi

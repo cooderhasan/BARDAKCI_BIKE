@@ -222,25 +222,48 @@ export class PazaramaClient {
         })),
       };
 
-      const res = await fetch(`${this.baseUrl}/api/v1/product/createProduct`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      });
+      const candidateEndpoints = [
+        `${this.baseUrl}/product/create-product`,
+        `${this.baseUrl}/product/createProduct`,
+        `${this.baseUrl}/api/v1/product/createProduct`,
+        `${this.baseUrl}/api/v1/product/create-product`,
+        `${this.baseUrl}/product/create`,
+      ];
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        return {
-          success: false,
-          error: `Pazarama Ürün Gönderim Hatası (${res.status}): ${errorText}`,
-        };
+      let lastStatus = 404;
+      let lastErrorText = "";
+
+      for (const endpoint of candidateEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            return {
+              success: true,
+              batchId: data?.batchRequestId || data?.result?.batchRequestId || "BATCH-" + Date.now(),
+              message: "Ürünler Pazarama'ya başarıyla gönderildi.",
+            };
+          }
+
+          lastStatus = res.status;
+          lastErrorText = await res.text();
+          if (res.status !== 404) {
+            // Found the endpoint but it returned validation/auth error
+            break;
+          }
+        } catch (e: any) {
+          lastErrorText = e.message;
+        }
       }
 
-      const data = await res.json();
       return {
-        success: true,
-        batchId: data?.batchRequestId || data?.result?.batchRequestId || "BATCH-" + Date.now(),
-        message: "Ürünler Pazarama'ya başarıyla gönderildi.",
+        success: false,
+        error: `Pazarama Ürün Gönderim Hatası (${lastStatus}): ${lastErrorText || "Sunucuya ulaşılamadı"}`,
       };
     } catch (error: any) {
       return {
