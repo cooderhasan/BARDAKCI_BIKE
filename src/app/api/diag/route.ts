@@ -112,28 +112,7 @@ export async function GET() {
         }
 
         return NextResponse.json({
-            success: true,
             pazaramaDiag,
-            childCat: childCat ? {
-                id: childCat.id,
-                name: childCat.name,
-                slug: childCat.slug,
-                children: childCat.children.map(c => ({
-                    id: c.id,
-                    name: c.name,
-                    slug: c.slug,
-                    parentId: c.parentId,
-                    productsCount: c._count.products
-                }))
-            } : "Not Found",
-            keywordsCatsCount: keywordsCats.length,
-            keywordsCats: keywordsCats.map(c => ({
-                id: c.id,
-                name: c.name,
-                slug: c.slug,
-                parent: c.parent ? c.parent.name : null
-            })),
-            recentProductsCount: recentProducts.length,
         });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message });
