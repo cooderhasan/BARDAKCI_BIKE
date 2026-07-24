@@ -771,15 +771,18 @@ function PazaramaCategorySearch({
 
     const flattenPazaramaCategories = (cats: any[], prefix = ""): PazaramaCat[] => {
         let result: PazaramaCat[] = [];
+        if (!Array.isArray(cats)) return result;
         for (const c of cats) {
-            const catId = String(c.id || c.categoryId || c.code || "");
-            const rawName = String(c.name || c.categoryName || c.title || "");
+            if (!c || typeof c !== "object") continue;
+            const catId = String(c.id || c.categoryId || c.code || c.key || c.idString || "");
+            const rawName = String(c.name || c.categoryName || c.title || c.displayName || c.label || "");
             const fullName = prefix ? `${prefix} > ${rawName}` : rawName;
             if (catId && rawName) {
                 result.push({ id: catId, name: fullName });
             }
-            if (c.subCategories && Array.isArray(c.subCategories)) {
-                result = result.concat(flattenPazaramaCategories(c.subCategories, fullName));
+            const children = c.subCategories || c.subCategoriesList || c.children || c.items || c.nodes;
+            if (children && Array.isArray(children)) {
+                result = result.concat(flattenPazaramaCategories(children, fullName));
             }
         }
         return result;

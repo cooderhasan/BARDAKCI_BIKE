@@ -146,20 +146,48 @@ export class PazaramaClient {
   }
 
   /**
-   * Fetch Pazarama category tree
+   * Fetch Pazarama category tree with multi-endpoint fallback
    */
   async getCategories(): Promise<PazaramaCategory[]> {
     try {
       const headers = await this.getHeaders();
-      const res = await fetch(`${this.baseUrl}/api/v1/category/getCategoryWithAttributes`, {
-        method: "GET",
-        headers,
-      });
+      const endpoints = [
+        `${this.baseUrl}/category/get-categories`,
+        `${this.baseUrl}/api/v1/category/get-categories`,
+        `${this.baseUrl}/category/getCategories`,
+        `${this.baseUrl}/api/v1/category/getCategories`,
+        `${this.baseUrl}/category/get-all-categories`,
+        `${this.baseUrl}/api/v1/category/getCategoryWithAttributes`,
+        `${this.baseUrl}/category/getCategoryWithAttributes`,
+      ];
 
-      if (!res.ok) return [];
+      for (const endpoint of endpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: "GET",
+            headers,
+            cache: "no-store",
+          });
 
-      const data = await res.json();
-      return (data?.result || data?.data || []) as PazaramaCategory[];
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          const list =
+            data?.data?.categories ||
+            data?.data ||
+            data?.result?.categories ||
+            data?.result ||
+            (Array.isArray(data) ? data : null);
+
+          if (Array.isArray(list) && list.length > 0) {
+            return list as PazaramaCategory[];
+          }
+        } catch (e) {
+          // try next endpoint
+        }
+      }
+
+      return [];
     } catch (error) {
       console.error("Pazarama getCategories error:", error);
       return [];
