@@ -69,10 +69,11 @@ export async function pushZeroStockToAllMarketplaces(productIds: string[]): Prom
         pushZeroStockToN11(productIds),
         pushZeroStockToHepsiburada(productIds),
         pushZeroStockToPazarama(productIds),
+        pushZeroStockToIdefix(productIds),
     ]);
 
     for (const [index, result] of results.entries()) {
-        const marketplaces = ["Trendyol", "N11", "Hepsiburada", "Pazarama"];
+        const marketplaces = ["Trendyol", "N11", "Hepsiburada", "Pazarama", "Idefix"];
         if (result.status === "fulfilled") {
             console.log(`✅ [Kritik Stok] ${marketplaces[index]} stok=0 gönderildi`);
         } else {
@@ -122,6 +123,7 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: normalIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds: normalIds }).catch(console.error),
             ]);
         }
     } catch (error) {
@@ -134,6 +136,7 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: affectedProductIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds: affectedProductIds }).catch(console.error),
             ]);
         } catch (e) {
             console.error("❌ [PostOrder StockSync] Yedek kuyruk da başarısız:", e);
@@ -372,4 +375,59 @@ async function pushZeroStockToPazarama(productIds: string[]): Promise<void> {
     if (!result.success) {
         throw new Error(`Pazarama stok=0 hatası: ${result.message || "Bilinmeyen"}`);
     }
+}
+
+/**
+ * Idefix'e doğrudan stok=0 gönderir
+ */
+async function pushZeroStockToIdefix(productIds: string[]): Promise<void> {
+    const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+    if (!config) return;
+
+    const { IdefixClient } = await import("@/services/idefix/api");
+    const client = new IdefixClient({
+        apiKey: config.apiKey,
+        apiSecret: config.apiSecret,
+        vendorId: config.vendorId,
+        isTestMode: Boolean(config.isTestMode),
+    });
+
+    const products = await prisma.product.findMany({
+        where: {
+            id: { in: productIds },
+            isActive: true,
+            isIdefixActive: true,
+        },
+        select: { id: true, barcode: true, sku: true, salePrice: true, listPrice: true, idefixPrice: true, variants: { select: { barcode: true, stock: true } } },
+    });
+
+    if (products.length === 0) return;
+
+    const items: any[] = [];
+    for (const p of products) {
+        const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
+        const comparePrice = Number(p.listPrice) >= price ? Number(p.listPrice) : price;
+        const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+        if (validVariants.length > 0) {
+            for (const v of validVariants) {
+                items.push({
+                    barcode: v.barcode,
+                    price,
+                    comparePrice,
+                    inventoryQuantity: 0,
+                });
+            }
+        } else if (p.barcode) {
+            items.push({
+                barcode: p.barcode,
+                price,
+                comparePrice,
+                inventoryQuantity: 0,
+            });
+        }
+    }
+
+    if (items.length === 0) return;
+
+    await client.updateInventory(items);
 }

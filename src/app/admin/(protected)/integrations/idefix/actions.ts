@@ -281,9 +281,10 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
     const newProducts: any[] = [];
 
     for (const p of products) {
-      if ((p as any).idefixProduct?.isSynced) {
+      if (isSingleSync || (p as any).idefixProduct?.isSynced) {
         alreadySyncedProducts.push(p);
-      } else {
+      }
+      if (!(p as any).idefixProduct?.isSynced) {
         newProducts.push(p);
       }
     }
