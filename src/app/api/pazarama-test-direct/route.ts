@@ -11,8 +11,12 @@ export async function GET() {
       return NextResponse.json({ error: "DB'de Pazarama konfigürasyonu bulunamadı" });
     }
 
-    const client = new PazaramaClient(config);
-    const tokenRes = await (client as any).getToken();
+    let token = "";
+    try {
+      token = await client.getAccessToken();
+    } catch (tokenErr: any) {
+      return NextResponse.json({ error: "Token error: " + tokenErr.message });
+    }
     const baseUrl = config.isTestMode
       ? "https://stage-isortagimapi.pazarama.com"
       : "https://isortagimapi.pazarama.com";
@@ -29,14 +33,14 @@ export async function GET() {
     ];
 
     const results: any[] = [];
-    if (tokenRes.success) {
+    if (token) {
       for (const ep of endpoints) {
         try {
           const res = await fetch(ep.url, {
             method: ep.method,
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${tokenRes.accessToken}`,
+              Authorization: `Bearer ${token}`,
             },
             ...(ep.body ? { body: JSON.stringify(ep.body) } : {}),
             cache: "no-store",
