@@ -618,7 +618,7 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
     const result = await client.updateStockAndPrice(items);
 
     if (result.success) {
-      revalidatePath("/admin/integrations/pazarama/products");
+      try { revalidatePath("/admin/integrations/pazarama/products"); } catch {}
       return { success: true, message: result.message };
     } else {
       return { success: false, message: result.message };

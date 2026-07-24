@@ -112,10 +112,13 @@ export function initializeWorker() {
 
                 // Manual Product Sync Jobs
                 if (job.data.marketplace === "trendyol") {
-                    const { syncProductsToTrendyol } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
-                    const result = await syncProductsToTrendyol(job.data.productIds, job.data.type);
-                    if (!result.success) throw new Error(result.message);
-                    console.log(`✅ Tamamlandı: Trendyol Sync - ${result.message}`);
+                    const trendyolConfig = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
+                    if (trendyolConfig) {
+                        const { syncProductsToTrendyol } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
+                        const result = await syncProductsToTrendyol(job.data.productIds, job.data.type);
+                        if (!result.success) throw new Error(result.message);
+                        console.log(`✅ Tamamlandı: Trendyol Sync - ${result.message}`);
+                    }
                 } else if (job.data.marketplace === "n11") {
                     const n11Config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
                     if (n11Config) {
