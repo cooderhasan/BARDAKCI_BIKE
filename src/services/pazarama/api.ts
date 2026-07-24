@@ -479,8 +479,9 @@ export class PazaramaClient {
   }
 
   /**
-   * Pazarama Stok Güncelleme API Servisi
-   * Endpoint: POST /product/updateStock or POST /product/updateStock-v2
+   * Pazarama Dokümantasyonu Resmi Stok Güncelleme API Servisi
+   * Endpoint: POST /product/updateStock-v2
+   * Doküman Linki: https://isortagim.pazarama.com/auth/integration/urun-stok-guncelleme
    */
   async updateStock(
     items: Array<{ code: string; stock: number }>
@@ -494,52 +495,40 @@ export class PazaramaClient {
         })),
       };
 
-      const endpoints = [
-        `${this.baseUrl}/product/updateStock`,
-        `${this.baseUrl}/product/updateStock-v2`,
-        `${this.baseUrl}/productInput/updateStock`,
-      ];
+      const endpoint = `${this.baseUrl}/product/updateStock-v2`;
+      console.log(`[Pazarama] POST ${endpoint} - ${items.length} ürün stoku güncelleniyor (updateStock-v2)`);
 
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`[Pazarama] POST ${endpoint} - ${items.length} ürün stoku güncelleniyor`);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
 
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-            cache: "no-store",
-          });
+      const rawText = await res.text().catch(() => "");
+      console.log(`[Pazarama] Stok Güncelleme HTTP ${res.status} (${endpoint}):`, rawText.substring(0, 400));
 
-          const rawText = await res.text().catch(() => "");
-          console.log(`[Pazarama] Stok Güncelleme HTTP ${res.status} (${endpoint}):`, rawText.substring(0, 400));
-
-          if (res.status === 404 || res.status === 405) continue;
-
-          let data: any = {};
-          try { data = JSON.parse(rawText); } catch { /* ok */ }
-
-          if (!res.ok) {
-            const errMsg = data?.message || data?.Message || data?.error || rawText.substring(0, 200) || `HTTP ${res.status}`;
-            continue;
-          }
-
-          if (data?.isSuccess === false || data?.success === false) {
-            const errMsg = data?.message || data?.Message || data?.userMessage || "Stok güncelleme reddedildi.";
-            return { success: false, message: `Pazarama Hata: ${errMsg}` };
-          }
-
-          return {
-            success: true,
-            message: `${items.length} adet ürünün stoku Pazarama'da sıraya alındı.`,
-          };
-        } catch (e: any) {
-          console.log(`[Pazarama] Stok güncelleme endpoint hatası (${endpoint}):`, e.message);
-          continue;
-        }
+      if (res.status === 429) {
+        return { success: false, message: "Pazarama API İstek Limiti Aşıldı (HTTP 429). Lütfen kısa bir süre sonra tekrar deneyiniz." };
       }
 
-      return { success: false, message: "Pazarama: Stok güncelleme endpoint'i yanıt vermedi." };
+      let data: any = {};
+      try { data = JSON.parse(rawText); } catch { /* ok */ }
+
+      if (!res.ok) {
+        const errMsg = data?.message || data?.Message || data?.error || rawText.substring(0, 200) || `HTTP ${res.status}`;
+        return { success: false, message: `Pazarama Hata: ${errMsg}` };
+      }
+
+      if (data?.isSuccess === false || data?.success === false) {
+        const errMsg = data?.message || data?.Message || data?.userMessage || "Stok güncelleme reddedildi.";
+        return { success: false, message: `Pazarama Hata: ${errMsg}` };
+      }
+
+      return {
+        success: true,
+        message: `${items.length} adet ürünün stoku Pazarama'da (updateStock-v2) sıraya alındı.`,
+      };
     } catch (error: any) {
       return { success: false, message: `Stok güncelleme hatası: ${error.message}` };
     }
