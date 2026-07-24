@@ -6,46 +6,6 @@ export const revalidate = 0;
 
 export async function GET() {
     try {
-        // 1. Fetch Çocuk Bisikleti category hierarchy
-        const childCat = await prisma.category.findUnique({
-            where: { slug: "cocuk-bisikleti" },
-            include: {
-                children: {
-                    include: {
-                        _count: { select: { products: true } }
-                    }
-                }
-            }
-        });
-
-        // 2. Fetch all products containing "bisiklet" or recently created
-        const recentProducts = await prisma.product.findMany({
-            orderBy: { createdAt: "desc" },
-            take: 20,
-            include: {
-                categories: {
-                    select: { id: true, name: true, slug: true, parentId: true }
-                }
-            }
-        });
-
-        // 3. Fetch all categories containing "bisiklet" or "çocuk" or "kız"
-        const keywordsCats = await prisma.category.findMany({
-            where: {
-                OR: [
-                    { name: { contains: "çocuk", mode: "insensitive" } },
-                    { name: { contains: "cocuk", mode: "insensitive" } },
-                    { name: { contains: "kız", mode: "insensitive" } },
-                    { name: { contains: "kiz", mode: "insensitive" } },
-                    { name: { contains: "jant", mode: "insensitive" } }
-                ]
-            },
-            include: {
-                parent: { select: { name: true, slug: true } }
-            }
-        });
-
-        // 4. Test Pazarama Config & Category Endpoints
         let pazaramaDiag: any = null;
         try {
             const config = await (prisma as any).pazaramaConfig.findFirst();
