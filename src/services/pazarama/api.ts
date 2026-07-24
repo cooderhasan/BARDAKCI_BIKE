@@ -146,47 +146,45 @@ export class PazaramaClient {
   }
 
   /**
-   * Fetch Pazarama category tree with multi-endpoint fallback
+   * Fetch Pazarama category tree
+   * Real endpoint from Pazarama docs: /category/getCategoryWithAttributes
    */
   async getCategories(): Promise<PazaramaCategory[]> {
     try {
       const headers = await this.getHeaders();
+      // Pazarama gerçek endpoint sırası (dokümana göre)
       const endpoints = [
-        `${this.baseUrl}/category/get-categories`,
-        `${this.baseUrl}/api/v1/category/get-categories`,
-        `${this.baseUrl}/category/getCategories`,
-        `${this.baseUrl}/api/v1/category/getCategories`,
-        `${this.baseUrl}/category/get-all-categories`,
-        `${this.baseUrl}/api/v1/category/getCategoryWithAttributes`,
-        `${this.baseUrl}/category/getCategoryWithAttributes`,
+        { url: `${this.baseUrl}/category/getCategoryWithAttributes`, method: "GET" },
+        { url: `${this.baseUrl}/category/getCategoryWithAttributes`, method: "POST" },
+        { url: `${this.baseUrl}/category/get-categories`, method: "GET" },
+        { url: `${this.baseUrl}/category/get-categories`, method: "POST" },
+        { url: `${this.baseUrl}/category/getCategories`, method: "GET" },
       ];
 
-      for (const endpoint of endpoints) {
-        for (const method of ["GET", "POST"]) {
-          try {
-            const res = await fetch(endpoint, {
-              method,
-              headers,
-              ...(method === "POST" ? { body: JSON.stringify({}) } : {}),
-              cache: "no-store",
-            });
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep.url, {
+            method: ep.method,
+            headers,
+            ...(ep.method === "POST" ? { body: JSON.stringify({}) } : {}),
+            cache: "no-store",
+          });
 
-            if (!res.ok) continue;
+          if (!res.ok) continue;
 
-            const data = await res.json();
-            const list =
-              data?.data?.categories ||
-              data?.data ||
-              data?.result?.categories ||
-              data?.result ||
-              (Array.isArray(data) ? data : null);
+          const data = await res.json();
+          const list =
+            data?.data?.categories ||
+            data?.data ||
+            data?.result?.categories ||
+            data?.result ||
+            (Array.isArray(data) ? data : null);
 
-            if (Array.isArray(list) && list.length > 0) {
-              return list as PazaramaCategory[];
-            }
-          } catch (e) {
-            // try next method/endpoint
+          if (Array.isArray(list) && list.length > 0) {
+            return list as PazaramaCategory[];
           }
+        } catch (e) {
+          // try next endpoint
         }
       }
 
@@ -199,95 +197,103 @@ export class PazaramaClient {
 
   /**
    * Create / Upload product batch
+   * Real Pazarama endpoint (from error message): /productInput/createProduct
+   * Payload: { products: [...] } with PascalCase fields
    */
   async createProductBatch(
     products: PazaramaProductInput[]
   ): Promise<PazaramaBatchResult> {
     try {
       const headers = await this.getHeaders();
+
+      // Pazarama API dokümantasyonuna göre PascalCase alanlar + images dizisi
       const productList = products.map((p) => {
         const rawImages = p.images || [];
-        const imageObjects = rawImages.map((url) => ({ imageurl: url, url }));
+        const imageObjects = rawImages.map((url, idx) => ({
+          imageurl: url,
+          displayOrder: idx + 1,
+          isMain: idx === 0,
+        }));
         return {
-          code: p.code,
-          groupCode: p.code,
-          name: p.title,
-          title: p.title,
-          displayName: p.title,
-          description: p.description,
-          barcode: p.barcode,
-          brandId: p.brandId,
-          categoryId: p.categoryId,
-          listPrice: p.listPrice,
-          salePrice: p.salePrice,
-          stockQuantity: p.stockQuantity,
-          stockCount: p.stockQuantity,
-          vatRate: p.vatRate,
-          desi: 1,
+          // PascalCase – Pazarama API formatı
+          Name: p.title,
+          DisplayName: p.title,
+          Description: p.description || p.title,
+          BrandId: p.brandId,
+          CategoryId: p.categoryId,
+          Code: p.code,
+          GroupCode: p.code,
+          Barcode: p.barcode || p.code,
+          StockCount: p.stockQuantity,
+          VatRate: p.vatRate || 20,
+          ListPrice: p.listPrice,
+          SalePrice: p.salePrice,
+          Desi: 1,
           images: imageObjects,
-          imageUrls: rawImages,
           attributes: p.attributes || [],
         };
       });
 
-      const payload = {
-        products: productList,
-        items: productList,
-      };
+      // Pazarama "products" root key kullanıyor (BAC_108 hatası bunu şart koşuyor)
+      const payload = { products: productList };
 
-      const candidateEndpoints = [
-        `${this.baseUrl}/product/create-product`,
-        `${this.baseUrl}/product/createProduct`,
-        `${this.baseUrl}/api/v1/product/createProduct`,
-        `${this.baseUrl}/api/v1/product/create-product`,
-        `${this.baseUrl}/product/create`,
-      ];
+      // Gerçek endpoint (hata mesajından doğrulandı: Method:/productInput/createProduct)
+      const endpoint = `${this.baseUrl}/productInput/createProduct`;
 
-      let lastStatus = 404;
-      let lastErrorText = "";
+      console.log(`[Pazarama] POST ${endpoint} - ${productList.length} ürün gönderiliyor`);
+      console.log(`[Pazarama] İlk ürün örneği:`, JSON.stringify(productList[0], null, 2));
 
-      for (const endpoint of candidateEndpoints) {
-        try {
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-          });
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
 
-          if (res.ok) {
-            const data = await res.json().catch(() => ({}));
-            const realBatchId =
-              data?.batchRequestId ||
-              data?.data?.batchRequestId ||
-              data?.result?.batchRequestId ||
-              data?.data?.id ||
-              data?.id;
+      const rawText = await res.text().catch(() => "");
+      console.log(`[Pazarama] HTTP ${res.status} yanıtı:`, rawText.substring(0, 500));
 
-            if (data?.isSuccess === false || data?.success === false) {
-              const errMsg = data?.message || data?.error || data?.errors?.join(", ") || "Pazarama işlemi reddetti.";
-              return { success: false, error: `Pazarama Hata: ${errMsg}` };
-            }
+      let data: any = {};
+      try { data = JSON.parse(rawText); } catch { /* raw text yeterli */ }
 
-            if (realBatchId) {
-              return {
-                success: true,
-                batchId: realBatchId,
-                message: "Ürünler Pazarama'ya başarıyla gönderildi.",
-              };
-            }
-          }
+      if (!res.ok) {
+        const errMsg = data?.message || data?.Message || rawText.substring(0, 300) || `HTTP ${res.status}`;
+        return { success: false, error: `Pazarama Hata: ${errMsg}` };
+      }
 
-          lastStatus = res.status;
-          lastErrorText = await res.text().catch(() => "");
-          if (res.status !== 404) break;
-        } catch (e: any) {
-          lastErrorText = e.message;
-        }
+      // Pazarama isSuccess=false durumu (HTTP 200 ama hata)
+      if (data?.isSuccess === false || data?.success === false) {
+        const errMsg = data?.message || data?.Message || data?.error || data?.errors?.join(", ") || "Pazarama işlemi reddetti.";
+        return { success: false, error: `Pazarama Hata: ${errMsg}` };
+      }
+
+      const realBatchId =
+        data?.batchRequestId ||
+        data?.data?.batchRequestId ||
+        data?.result?.batchRequestId ||
+        data?.data?.id ||
+        data?.id;
+
+      if (realBatchId) {
+        return {
+          success: true,
+          batchId: String(realBatchId),
+          message: "Ürünler Pazarama'ya başarıyla gönderildi.",
+        };
+      }
+
+      // batchId yoksa ama isSuccess=true ise yine başarılı say
+      if (data?.isSuccess === true || data?.success === true) {
+        return {
+          success: true,
+          batchId: undefined,
+          message: `Ürünler Pazarama'ya gönderildi. Yanıt: ${rawText.substring(0, 200)}`,
+        };
       }
 
       return {
         success: false,
-        error: `Pazarama Ürün Gönderim Hatası (${lastStatus}): ${lastErrorText || "Sunucuya ulaşılamadı"}`,
+        error: `Pazarama beklenmedik yanıt: ${rawText.substring(0, 300)}`,
       };
     } catch (error: any) {
       return {
@@ -299,60 +305,54 @@ export class PazaramaClient {
 
   /**
    * Update Stock & Price for product batch
+   * Real Pazarama endpoint: /productInput/updatePriceAndStock
    */
   async updateStockAndPrice(
     items: Array<{ code: string; stock: number; price: number }>
   ): Promise<{ success: boolean; message: string }> {
     try {
       const headers = await this.getHeaders();
-      const itemList = items.map((i) => ({
-        code: i.code,
-        stockQuantity: i.stock,
-        stockCount: i.stock,
-        salePrice: i.price,
+
+      // Pazarama stok/fiyat güncelleme payload yapısı (dokümana göre)
+      const productList = items.map((i) => ({
+        Code: i.code,
+        StockCount: i.stock,
+        SalePrice: i.price,
+        ListPrice: i.price,
       }));
-      const payload = {
-        products: itemList,
-        items: itemList,
-      };
+      const payload = { products: productList };
 
-      const candidateEndpoints = [
-        `${this.baseUrl}/product/update-price-and-stock`,
-        `${this.baseUrl}/product/updatePriceAndStock`,
-        `${this.baseUrl}/api/v1/product/updatePriceAndStock`,
-        `${this.baseUrl}/api/v1/product/update-price-and-stock`,
-        `${this.baseUrl}/product/update-price-stock`,
-      ];
+      // Gerçek Pazarama stok/fiyat endpoint'i
+      const endpoint = `${this.baseUrl}/productInput/updatePriceAndStock`;
 
-      let lastStatus = 404;
-      let lastErrorText = "";
+      console.log(`[Pazarama] POST ${endpoint} - ${productList.length} ürün güncelleniyor`);
 
-      for (const endpoint of candidateEndpoints) {
-        try {
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-          });
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
 
-          if (res.ok) {
-            return {
-              success: true,
-              message: `${items.length} adet ürünün stok ve fiyatı Pazarama'da güncellendi.`,
-            };
-          }
+      const rawText = await res.text().catch(() => "");
+      console.log(`[Pazarama] Stok güncelleme HTTP ${res.status}:`, rawText.substring(0, 300));
 
-          lastStatus = res.status;
-          lastErrorText = await res.text();
-          if (res.status !== 404) break;
-        } catch (e: any) {
-          lastErrorText = e.message;
-        }
+      let data: any = {};
+      try { data = JSON.parse(rawText); } catch { /* ok */ }
+
+      if (!res.ok) {
+        const errMsg = data?.message || data?.Message || rawText.substring(0, 200) || `HTTP ${res.status}`;
+        return { success: false, message: `Stok/Fiyat Güncelleme Hatası: ${errMsg}` };
+      }
+
+      if (data?.isSuccess === false || data?.success === false) {
+        const errMsg = data?.message || data?.Message || "Güncelleme reddedildi.";
+        return { success: false, message: `Pazarama Hata: ${errMsg}` };
       }
 
       return {
-        success: false,
-        message: `Stok/Fiyat Güncelleme Hatası (${lastStatus}): ${lastErrorText || "Sunucu yanıt vermedi"}`,
+        success: true,
+        message: `${items.length} adet ürünün stok ve fiyatı Pazarama'da güncellendi.`,
       };
     } catch (error: any) {
       return {
@@ -404,18 +404,23 @@ export class PazaramaClient {
     }
   }
 
+  /**
+   * Get Batch Status
+   * Real Pazarama endpoint: /productInput/getBatchRequestResult
+   */
   async getBatchStatus(batchId: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       const headers = await this.getHeaders();
+
+      // Gerçek Pazarama batch sonuç endpoint'i (productInput prefix)
       const candidateRequests = [
+        { url: `${this.baseUrl}/productInput/getBatchRequestResult?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
+        { url: `${this.baseUrl}/productInput/getBatchRequestResult`, method: "POST", body: { batchRequestId: batchId } },
+        { url: `${this.baseUrl}/productInput/getBatchResult?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
+        { url: `${this.baseUrl}/productInput/getBatchResult`, method: "POST", body: { batchRequestId: batchId } },
+        // Eski fallback
         { url: `${this.baseUrl}/product/get-batch-result?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
-        { url: `${this.baseUrl}/product/get-batch-result?batchId=${encodeURIComponent(batchId)}`, method: "GET" },
         { url: `${this.baseUrl}/product/get-batch-result`, method: "POST", body: { batchRequestId: batchId } },
-        { url: `${this.baseUrl}/product/get-batch-result`, method: "POST", body: { batchId: batchId } },
-        { url: `${this.baseUrl}/product/get-batch-status?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
-        { url: `${this.baseUrl}/product/get-batch-status`, method: "POST", body: { batchRequestId: batchId } },
-        { url: `${this.baseUrl}/api/v1/product/getBatchResult?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
-        { url: `${this.baseUrl}/api/v1/product/getBatchResult`, method: "POST", body: { batchRequestId: batchId } },
       ];
 
       let lastStatus = 0;
