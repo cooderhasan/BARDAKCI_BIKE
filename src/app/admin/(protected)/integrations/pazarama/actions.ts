@@ -165,7 +165,7 @@ export async function syncProductsToPazarama(productIds: string[]) {
 
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      include: { brand: true, category: true },
+      include: { brand: true, categories: true },
     });
 
     if (products.length === 0) {
@@ -178,6 +178,7 @@ export async function syncProductsToPazarama(productIds: string[]) {
     const payloadProducts = products.map((p) => {
       const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
       const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
+      const catWithPazarama = p.categories.find((c) => c.pazaramaCategoryId) || p.categories[0];
 
       return {
         code: p.sku || p.id,
@@ -185,7 +186,7 @@ export async function syncProductsToPazarama(productIds: string[]) {
         description: p.marketplaceDescription || p.description || p.name,
         barcode: p.barcode || p.sku || p.id,
         brandId: p.brand?.pazaramaBrandId || undefined,
-        categoryId: p.category?.pazaramaCategoryId || undefined,
+        categoryId: catWithPazarama?.pazaramaCategoryId || undefined,
         listPrice: Math.round(Number(p.listPrice) * (1 + profitMargin / 100) * 100) / 100,
         salePrice: Math.round(finalPrice * 100) / 100,
         stockQuantity: p.stock,

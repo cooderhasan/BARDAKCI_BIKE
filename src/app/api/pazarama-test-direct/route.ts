@@ -42,13 +42,20 @@ export async function GET() {
       : "https://isortagimapi.pazarama.com";
 
     const endpoints = [
+      // Categories
       { name: "GET /category/get-categories", url: `${baseUrl}/category/get-categories`, method: "GET" },
       { name: "POST /category/get-categories", url: `${baseUrl}/category/get-categories`, method: "POST", body: {} },
-      { name: "GET /api/v1/category/get-categories", url: `${baseUrl}/api/v1/category/get-categories`, method: "GET" },
-      { name: "POST /api/v1/category/get-categories", url: `${baseUrl}/api/v1/category/get-categories`, method: "POST", body: {} },
       { name: "GET /category/getCategories", url: `${baseUrl}/category/getCategories`, method: "GET" },
-      { name: "POST /category/getCategories", url: `${baseUrl}/category/getCategories`, method: "POST", body: {} },
-      { name: "GET /category/getCategoryWithAttributes", url: `${baseUrl}/category/getCategoryWithAttributes`, method: "GET" },
+      // Product Create Candidates
+      { name: "POST /product/create-product", url: `${baseUrl}/product/create-product`, method: "POST", body: { items: [] } },
+      { name: "POST /product/createProduct", url: `${baseUrl}/product/createProduct`, method: "POST", body: { items: [] } },
+      { name: "POST /product/create", url: `${baseUrl}/product/create`, method: "POST", body: { items: [] } },
+      { name: "POST /api/v1/product/createProduct", url: `${baseUrl}/api/v1/product/createProduct`, method: "POST", body: { items: [] } },
+      // Stock & Price Update Candidates
+      { name: "POST /product/update-price-and-stock", url: `${baseUrl}/product/update-price-and-stock`, method: "POST", body: { items: [] } },
+      { name: "POST /product/updatePriceAndStock", url: `${baseUrl}/product/updatePriceAndStock`, method: "POST", body: { items: [] } },
+      { name: "POST /product/update-stock-and-price", url: `${baseUrl}/product/update-stock-and-price`, method: "POST", body: { items: [] } },
+      { name: "POST /api/v1/product/updatePriceAndStock", url: `${baseUrl}/api/v1/product/updatePriceAndStock`, method: "POST", body: { items: [] } },
     ];
 
     const results: any[] = [];
