@@ -68,6 +68,21 @@ export async function testPazaramaConnection() {
   }
 }
 
+export async function getPazaramaCategories() {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst();
+    if (!config) {
+      return { success: false, message: "Pazarama ayarları bulunamadı.", data: [] };
+    }
+
+    const client = new PazaramaClient(config);
+    const categories = await client.getCategories();
+    return { success: true, data: categories };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Kategoriler çekilemedi.", data: [] };
+  }
+}
+
 // ==================== PRODUCT ACTIONS ====================
 
 export async function getPazaramaProducts() {

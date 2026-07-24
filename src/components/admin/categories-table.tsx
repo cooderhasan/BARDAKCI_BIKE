@@ -749,6 +749,150 @@ function IdefixCategorySearch({
     );
 }
 
+interface PazaramaCat {
+    id: string;
+    name: string;
+}
+
+function PazaramaCategorySearch({
+    value,
+    onChange,
+}: {
+    value?: string | number;
+    onChange: (id: string | undefined) => void;
+}) {
+    const [search, setSearch] = useState("");
+    const [allCategories, setAllCategories] = useState<PazaramaCat[]>([]);
+    const [results, setResults] = useState<PazaramaCat[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [selectedName, setSelectedName] = useState<string>("");
+    const [error, setError] = useState<string>("");
+
+    const flattenPazaramaCategories = (cats: any[], prefix = ""): PazaramaCat[] => {
+        let result: PazaramaCat[] = [];
+        for (const c of cats) {
+            const catId = String(c.id || c.categoryId || c.code || "");
+            const rawName = String(c.name || c.categoryName || c.title || "");
+            const fullName = prefix ? `${prefix} > ${rawName}` : rawName;
+            if (catId && rawName) {
+                result.push({ id: catId, name: fullName });
+            }
+            if (c.subCategories && Array.isArray(c.subCategories)) {
+                result = result.concat(flattenPazaramaCategories(c.subCategories, fullName));
+            }
+        }
+        return result;
+    };
+
+    const fetchCategories = async () => {
+        if (allCategories.length > 0) return allCategories;
+        setLoading(true);
+        setError("");
+        try {
+            const { getPazaramaCategories } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
+            const res = await getPazaramaCategories();
+            if (res.success && res.data) {
+                const flattened = flattenPazaramaCategories(res.data);
+                setAllCategories(flattened);
+                return flattened;
+            } else {
+                setError(res.message || "Pazarama kategorileri alınamadı.");
+                return [];
+            }
+        } catch {
+            setError("Bağlantı hatası.");
+            return [];
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = async (q: string) => {
+        setSearch(q);
+        if (q.length < 2) { setResults([]); return; }
+        const cats = await fetchCategories();
+        const filtered = cats.filter(c => c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 100);
+        setResults(filtered);
+        setOpen(true);
+    };
+
+    const handleSelect = (cat: PazaramaCat) => {
+        onChange(cat.id);
+        setSelectedName(cat.name);
+        setSearch("");
+        setResults([]);
+        setOpen(false);
+    };
+
+    const handleClear = () => {
+        onChange(undefined);
+        setSelectedName("");
+        setSearch("");
+        setResults([]);
+    };
+
+    return (
+        <div className="space-y-2">
+            {value && selectedName ? (
+                <div className="flex items-center gap-2 p-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-sm">
+                    <span className="font-medium text-pink-800 dark:text-pink-300 flex-1 truncate">✓ {selectedName}</span>
+                    <span className="text-xs text-pink-600 font-mono">#{value}</span>
+                    <button type="button" onClick={handleClear} className="text-pink-500 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : value ? (
+                <div className="flex items-center gap-2 p-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-sm">
+                    <span className="font-medium text-pink-800 dark:text-pink-300 flex-1">Mevcut ID: <span className="font-mono">#{value}</span></span>
+                    <button type="button" onClick={handleClear} className="text-pink-500 hover:text-red-600">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : null}
+
+            <div className="relative">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                        className="pl-8 border-pink-200 focus-visible:ring-pink-500"
+                        placeholder="Pazarama kategorisi ara (örn: Pedal, Aksesuar)..."
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                    />
+                    {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-pink-500" />}
+                </div>
+
+                {error && (
+                    <p className="text-xs text-red-500 mt-1">{error}</p>
+                )}
+
+                {open && results.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-pink-200 rounded-lg shadow-xl">
+                        {results.map((cat) => (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => handleSelect(cat)}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-pink-50 dark:hover:bg-pink-900/20 flex items-start justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                            >
+                                <span className="whitespace-normal leading-relaxed text-xs">{cat.name}</span>
+                                <span className="text-xs text-gray-400 font-mono shrink-0 pt-0.5">#{cat.id}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {open && results.length === 0 && search.length >= 2 && !loading && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-pink-200 rounded-lg shadow-xl p-3 text-sm text-gray-500 text-center">
+                        Pazarama'da eşleşen kategori bulunamadı.
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [parentSearch, setParentSearch] = useState("");
@@ -1198,14 +1342,11 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                 </div>
                                 <div className="space-y-2 p-3 bg-pink-50 dark:bg-pink-950/20 rounded-lg border border-pink-200 dark:border-pink-800">
                                     <Label htmlFor="pazaramaCategoryId" className="text-pink-700 dark:text-pink-400 font-semibold text-xs uppercase tracking-wide">🌸 Pazarama Kategori Eşleştirme</Label>
-                                    <Input
-                                        id="pazaramaCategoryId"
-                                        value={pazaramaCategoryId || ""}
-                                        onChange={(e) => setPazaramaCategoryId(e.target.value)}
-                                        placeholder="Pazarama Kategori ID / Kodunu giriniz"
-                                        className="border-pink-200 dark:border-pink-700"
+                                    <PazaramaCategorySearch
+                                        value={pazaramaCategoryId}
+                                        onChange={setPazaramaCategoryId}
                                     />
-                                    <p className="text-[10px] text-pink-600">Pazarama kategorisini ID veya koduyla eşleştirebilirsiniz.</p>
+                                    <p className="text-[10px] text-pink-600">Pazarama kategorisini adıyla arayıp (örn: Bisiklet Pedal) seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="googleProductCategory" className="text-[#17457C]">Google Ürün Kategorisi (Taxonomy)</Label>
