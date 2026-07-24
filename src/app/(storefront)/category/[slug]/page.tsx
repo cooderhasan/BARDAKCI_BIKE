@@ -89,7 +89,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     const category = await prisma.category.findUnique({
         where: { slug },
         include: { 
-            children: { select: { id: true, name: true, slug: true, imageUrl: true } },
+            children: {
+                where: { isActive: true, store: storeFilter as any },
+                select: { id: true, name: true, slug: true, imageUrl: true }
+            },
             parent: {
                 include: {
                     parent: true
@@ -246,15 +249,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         sidebarCategories = category.children;
     } else if (category.parentId) {
         sidebarCategories = await prisma.category.findMany({
-            where: { parentId: category.parentId, isActive: true },
+            where: { parentId: category.parentId, isActive: true, store: storeFilter as any },
             orderBy: { order: "asc" }
         });
     } else {
-        // Fallback to top level if root logic needed, but for now children or siblings is good.
-        // If root category with no children, show nothing or maybe all roots?
-        // Let's stick to simple logic: match what products page did.
         sidebarCategories = await prisma.category.findMany({
-            where: { parentId: null, isActive: true },
+            where: { parentId: null, isActive: true, store: storeFilter as any },
             orderBy: { order: "asc" },
         });
     }

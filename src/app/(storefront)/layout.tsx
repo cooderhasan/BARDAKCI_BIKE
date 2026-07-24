@@ -56,7 +56,7 @@ export default async function StorefrontLayout({
                 menuImageUrl: true,
                 isInHeader: true,
                 children: {
-                    where: { isActive: true },
+                    where: { isActive: true, store: storeFilter },
                     select: {
                         id: true,
                         name: true,
@@ -73,6 +73,7 @@ export default async function StorefrontLayout({
             categories = await prisma.category.findMany({
                 where: {
                     isActive: true,
+                    store: storeFilter,
                     parent: { name: "Home" }
                 },
                 orderBy: { order: "asc" },
@@ -86,7 +87,7 @@ export default async function StorefrontLayout({
                     menuImageUrl: true,
                     isInHeader: true,
                     children: {
-                        where: { isActive: true },
+                        where: { isActive: true, store: storeFilter },
                         select: {
                             id: true,
                             name: true,
@@ -117,7 +118,7 @@ export default async function StorefrontLayout({
                         menuImageUrl: true,
                         isInHeader: true,
                         children: {
-                            where: { isActive: true },
+                            where: { isActive: true, store: storeFilter },
                             select: {
                                 id: true,
                                 name: true,
@@ -150,7 +151,7 @@ export default async function StorefrontLayout({
                 name: true,
                 slug: true,
                 children: {
-                    where: { isActive: true },
+                    where: { isActive: true, store: storeFilter },
                     select: { id: true, name: true, slug: true },
                     orderBy: { order: "asc" }
                 }

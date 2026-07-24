@@ -217,9 +217,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     let currentCategory: { name: string; slug: string } | null = null;
 
     if (params.category) {
-        const foundCategory = await prisma.category.findUnique({
-            where: { slug: params.category },
-            include: { children: { where: { isActive: true }, orderBy: { order: "asc" } } }
+        const foundCategory = await prisma.category.findFirst({
+            where: { slug: params.category, store: storeFilter as any },
+            include: { children: { where: { isActive: true, store: storeFilter as any }, orderBy: { order: "asc" } } }
         });
 
         if (foundCategory) {
@@ -231,7 +231,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 // Show siblings (excluding Root if parent is null)
                 if (foundCategory.parentId) {
                     sidebarCategories = await prisma.category.findMany({
-                        where: { parentId: foundCategory.parentId, isActive: true },
+                        where: { parentId: foundCategory.parentId, isActive: true, store: storeFilter as any },
                         orderBy: { order: "asc" }
                     });
                 }
@@ -242,7 +242,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     // If still empty (no category selected OR invalid category OR root fallback), fetch Top Level
     if (sidebarCategories.length === 0) {
         sidebarCategories = await prisma.category.findMany({
-            where: { parentId: null, isActive: true },
+            where: { parentId: null, isActive: true, store: storeFilter as any },
             orderBy: { order: "asc" },
         });
     }
