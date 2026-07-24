@@ -387,33 +387,52 @@ export class PazaramaClient {
     }
   }
 
-  /**
-   * Query Batch Result & Error Log by BatchId
-   */
   async getBatchStatus(batchId: string): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       const headers = await this.getHeaders();
-      const candidateEndpoints = [
-        `${this.baseUrl}/product/get-batch-result?batchRequestId=${batchId}`,
-        `${this.baseUrl}/product/getBatchResult?batchRequestId=${batchId}`,
-        `${this.baseUrl}/product/get-batch-status?batchRequestId=${batchId}`,
-        `${this.baseUrl}/api/v1/product/getBatchResult?batchRequestId=${batchId}`,
-        `${this.baseUrl}/product/batch-result?batchRequestId=${batchId}`,
+      const candidateRequests = [
+        { url: `${this.baseUrl}/product/get-batch-result?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
+        { url: `${this.baseUrl}/product/get-batch-result?batchId=${encodeURIComponent(batchId)}`, method: "GET" },
+        { url: `${this.baseUrl}/product/get-batch-result`, method: "POST", body: { batchRequestId: batchId } },
+        { url: `${this.baseUrl}/product/get-batch-result`, method: "POST", body: { batchId: batchId } },
+        { url: `${this.baseUrl}/product/get-batch-status?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
+        { url: `${this.baseUrl}/product/get-batch-status`, method: "POST", body: { batchRequestId: batchId } },
+        { url: `${this.baseUrl}/api/v1/product/getBatchResult?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
+        { url: `${this.baseUrl}/api/v1/product/getBatchResult`, method: "POST", body: { batchRequestId: batchId } },
       ];
 
-      for (const endpoint of candidateEndpoints) {
+      let lastStatus = 0;
+      let lastText = "";
+
+      for (const req of candidateRequests) {
         try {
-          const res = await fetch(endpoint, { method: "GET", headers });
+          const res = await fetch(req.url, {
+            method: req.method,
+            headers,
+            ...(req.body ? { body: JSON.stringify(req.body) } : {}),
+            cache: "no-store",
+          });
+
+          lastStatus = res.status;
+          lastText = await res.text();
+
           if (res.ok) {
-            const data = await res.json();
-            return { success: true, data };
+            try {
+              const data = JSON.parse(lastText);
+              return { success: true, data };
+            } catch {
+              return { success: true, data: lastText };
+            }
           }
-        } catch {
-          // try next
+        } catch (e: any) {
+          lastText = e.message;
         }
       }
 
-      return { success: false, error: "Pazarama toplu işlem sonucu henüz sorgulanamadı veya paket hazır değil." };
+      return {
+        success: false,
+        error: `Pazarama Sorgu Yanıtı (${lastStatus}): ${lastText ? lastText.substring(0, 200) : "Sunucu yanıt vermedi"}`,
+      };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
