@@ -74,33 +74,249 @@ import { DEFAULT_PAZARAMA_CATEGORIES } from "@/lib/pazarama-categories-seed";
 
 export async function getPazaramaCategories() {
   try {
-    const config = await (prisma as any).pazaramaConfig.findFirst();
-    if (!config) {
+    // 1. Önce siteSettings'deki özel yüklenmiş/yapıştırılmış Pazarama kategorilerini kontrol et
+    const saved = await prisma.siteSettings.findUnique({
+      where: { key: "pazarama_categories" },
+    });
+
+    if (
+      saved &&
+      saved.value &&
+      Array.isArray((saved.value as any).items) &&
+      (saved.value as any).items.length > 0
+    ) {
       return {
         success: true,
-        message: "Pazarama API ayarları kaydedilmemiş. Hazır kategori listesi gösteriliyor.",
-        data: DEFAULT_PAZARAMA_CATEGORIES
+        data: (saved.value as any).items,
+        source: "database",
       };
     }
 
-    const client = new PazaramaClient(config);
-    const apiCategories = await client.getCategories();
-    
-    if (apiCategories && apiCategories.length > 0) {
-      return { success: true, data: apiCategories };
+    // 2. Canlı API'den çekmeyi dene
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (config) {
+      const client = new PazaramaClient(config);
+      const apiCategories = await client.getCategories();
+      if (apiCategories && apiCategories.length > 0) {
+        return { success: true, data: apiCategories, source: "api" };
+      }
     }
 
+    // 3. Varsayılan hazır tohum kategorilerine düş
     return {
       success: true,
-      message: "API henüz canlı yanıt vermediği için varsayılan Pazarama kategori ağacı yüklendi.",
-      data: DEFAULT_PAZARAMA_CATEGORIES
+      message: "Özel kayıtlı liste bulunamadığı için hazır kategoriler gösteriliyor.",
+      data: DEFAULT_PAZARAMA_CATEGORIES,
+      source: "seed",
     };
   } catch (error: any) {
     return {
       success: true,
-      message: error.message || "Kategoriler yüklenirken hazır liste kullanıldı.",
-      data: DEFAULT_PAZARAMA_CATEGORIES
+      data: DEFAULT_PAZARAMA_CATEGORIES,
+      source: "seed",
     };
+  }
+}
+
+export async function getPazaramaBrands() {
+  try {
+    // 1. Önce siteSettings'deki özel yüklenmiş/yapıştırılmış Pazarama markalarını kontrol et
+    const saved = await prisma.siteSettings.findUnique({
+      where: { key: "pazarama_brands" },
+    });
+
+    if (
+      saved &&
+      saved.value &&
+      Array.isArray((saved.value as any).items) &&
+      (saved.value as any).items.length > 0
+    ) {
+      return {
+        success: true,
+        data: (saved.value as any).items,
+        source: "database",
+      };
+    }
+
+    // 2. Canlı API'den çekmeyi dene
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (config) {
+      const client = new PazaramaClient(config);
+      const apiBrands = await client.getBrands();
+      if (apiBrands && apiBrands.length > 0) {
+        return { success: true, data: apiBrands, source: "api" };
+      }
+    }
+
+    return { success: true, data: [], source: "none" };
+  } catch (error: any) {
+    return { success: false, data: [] };
+  }
+}
+
+/**
+ * Pazarama Kategori Listesini Metin/Excel/JSON Şeklinde Toplu Kaydeder.
+ * Kullanıcı https://isortagim.pazarama.com/auth/integration/kategori-listesi sayfasından
+ * kopyaladığı veriyi yapıştırdığında çalışır.
+ */
+export async function savePazaramaCategoriesBulk(rawInput: string) {
+  try {
+    if (!rawInput || !rawInput.trim()) {
+      return { success: false, message: "Lütfen yapıştırılacak veri giriniz." };
+    }
+
+    const items: Array<{ id: string; name: string }> = [];
+
+    // JSON formatında mı?
+    if (rawInput.trim().startsWith("[") || rawInput.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(rawInput);
+        const arr = Array.isArray(parsed) ? parsed : parsed.categories || parsed.data || [];
+        for (const item of arr) {
+          const id = String(item.id || item.categoryId || item.code || "").trim();
+          const name = String(item.name || item.categoryName || item.title || "").trim();
+          if (id && name) {
+            items.push({ id, name });
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Satır satır ayrıştırma (Excel Tab / Noktalı virgül / Virgül)
+    if (items.length === 0) {
+      const lines = rawInput.split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        let parts = trimmed.split("\t");
+        if (parts.length < 2) parts = trimmed.split(";");
+        if (parts.length < 2) parts = trimmed.split(",");
+
+        if (parts.length >= 2) {
+          const p1 = parts[0].trim();
+          const p2 = parts[1].trim();
+
+          const isGuidP1 = /^[a-zA-Z0-9-]{8,}$/.test(p1) && /\d/.test(p1);
+          const isGuidP2 = /^[a-zA-Z0-9-]{8,}$/.test(p2) && /\d/.test(p2);
+
+          if (isGuidP1) {
+            items.push({ id: p1, name: p2 });
+          } else if (isGuidP2) {
+            items.push({ id: p2, name: p1 });
+          } else {
+            items.push({ id: p1, name: p2 });
+          }
+        }
+      }
+    }
+
+    if (items.length === 0) {
+      return {
+        success: false,
+        message:
+          "Geçerli bir kategori ID ve adı eşleşmesi bulunamadı. Lütfen 'ID [Sekme] Kategori Adı' veya Excel tablosu formatında yapıştırınız.",
+      };
+    }
+
+    await prisma.siteSettings.upsert({
+      where: { key: "pazarama_categories" },
+      create: { key: "pazarama_categories", value: { items, updatedAt: new Date().toISOString() } },
+      update: { value: { items, updatedAt: new Date().toISOString() } },
+    });
+
+    try {
+      revalidatePath("/admin/categories");
+    } catch {}
+
+    return {
+      success: true,
+      message: `Başarılı! ${items.length} adet Pazarama kategorisi veritabanına kaydedildi.`,
+      count: items.length,
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Kaydetme hatası." };
+  }
+}
+
+/**
+ * Pazarama Marka Listesini Metin/Excel/JSON Şeklinde Toplu Kaydeder.
+ */
+export async function savePazaramaBrandsBulk(rawInput: string) {
+  try {
+    if (!rawInput || !rawInput.trim()) {
+      return { success: false, message: "Lütfen yapıştırılacak veri giriniz." };
+    }
+
+    const items: Array<{ id: string; name: string }> = [];
+
+    if (rawInput.trim().startsWith("[") || rawInput.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(rawInput);
+        const arr = Array.isArray(parsed) ? parsed : parsed.brands || parsed.data || [];
+        for (const item of arr) {
+          const id = String(item.id || item.brandId || item.code || "").trim();
+          const name = String(item.name || item.brandName || item.title || "").trim();
+          if (id && name) {
+            items.push({ id, name });
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (items.length === 0) {
+      const lines = rawInput.split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        let parts = trimmed.split("\t");
+        if (parts.length < 2) parts = trimmed.split(";");
+        if (parts.length < 2) parts = trimmed.split(",");
+
+        if (parts.length >= 2) {
+          const p1 = parts[0].trim();
+          const p2 = parts[1].trim();
+
+          const isGuidP1 = /^[a-zA-Z0-9-]{4,}$/.test(p1) && /\d/.test(p1);
+          const isGuidP2 = /^[a-zA-Z0-9-]{4,}$/.test(p2) && /\d/.test(p2);
+
+          if (isGuidP1) {
+            items.push({ id: p1, name: p2 });
+          } else if (isGuidP2) {
+            items.push({ id: p2, name: p1 });
+          } else {
+            items.push({ id: p1, name: p2 });
+          }
+        }
+      }
+    }
+
+    if (items.length === 0) {
+      return {
+        success: false,
+        message:
+          "Geçerli bir marka ID ve adı eşleşmesi bulunamadı. Lütfen 'ID [Sekme] Marka Adı' veya Excel tablosu formatında yapıştırınız.",
+      };
+    }
+
+    await prisma.siteSettings.upsert({
+      where: { key: "pazarama_brands" },
+      create: { key: "pazarama_brands", value: { items, updatedAt: new Date().toISOString() } },
+      update: { value: { items, updatedAt: new Date().toISOString() } },
+    });
+
+    try {
+      revalidatePath("/admin/brands");
+    } catch {}
+
+    return {
+      success: true,
+      message: `Başarılı! ${items.length} adet Pazarama markası veritabanına kaydedildi.`,
+      count: items.length,
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Kaydetme hatası." };
   }
 }
 

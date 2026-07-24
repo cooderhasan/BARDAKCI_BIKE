@@ -195,6 +195,60 @@ export class PazaramaClient {
   }
 
   /**
+   * Fetch Pazarama brand list
+   */
+  async getBrands(): Promise<Array<{ id: string; name: string }>> {
+    try {
+      const headers = await this.getHeaders();
+      const endpoints = [
+        { url: `${this.baseUrl}/brand/getBrands`, method: "GET" },
+        { url: `${this.baseUrl}/brand/getBrands`, method: "POST" },
+        { url: `${this.baseUrl}/brand/getBrandList`, method: "GET" },
+        { url: `${this.baseUrl}/brand/getBrandList`, method: "POST" },
+        { url: `${this.baseUrl}/brand/get`, method: "GET" },
+        { url: `${this.baseUrl}/brand/getAll`, method: "GET" },
+      ];
+
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep.url, {
+            method: ep.method,
+            headers,
+            ...(ep.method === "POST" ? { body: JSON.stringify({}) } : {}),
+            cache: "no-store",
+          });
+
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          const list =
+            data?.data?.brands ||
+            data?.data ||
+            data?.result?.brands ||
+            data?.result ||
+            (Array.isArray(data) ? data : null);
+
+          if (Array.isArray(list) && list.length > 0) {
+            return list
+              .map((b: any) => ({
+                id: String(b.id || b.brandId || b.code || "").trim(),
+                name: String(b.name || b.brandName || b.title || "").trim(),
+              }))
+              .filter((b) => b.id && b.name);
+          }
+        } catch (e) {
+          // try next endpoint
+        }
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Pazarama getBrands error:", error);
+      return [];
+    }
+  }
+
+  /**
    * Fetch category attributes (required for product upload)
    * Endpoint: /category/getCategoryWithAttributes?categoryId={id}
    */
