@@ -596,16 +596,24 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
     const client = new PazaramaClient(config);
     const profitMargin = config.profitMargin || 0;
 
-    const items = products.map((p) => {
+    const items: Array<{ code: string; stock: number; price: number; listPrice?: number }> = [];
+
+    for (const p of products) {
       const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
       const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
+      const salePrice = Math.round(finalPrice * 100) / 100;
+      const listPrice = Math.round(Number(p.listPrice || basePrice) * (1 + profitMargin / 100) * 100) / 100;
 
-      return {
-        code: p.sku || p.id,
-        stock: p.stock,
-        price: Math.round(finalPrice * 100) / 100,
-      };
-    });
+      if (p.barcode) {
+        items.push({ code: p.barcode, stock: p.stock, price: salePrice, listPrice });
+      }
+      if (p.sku && p.sku !== p.barcode) {
+        items.push({ code: p.sku, stock: p.stock, price: salePrice, listPrice });
+      }
+      if (!p.barcode && !p.sku) {
+        items.push({ code: p.id, stock: p.stock, price: salePrice, listPrice });
+      }
+    }
 
     const result = await client.updateStockAndPrice(items);
 
