@@ -1,6 +1,6 @@
 import { getPazaramaConfig } from "./actions";
 import { PazaramaSettingsForm } from "./pazarama-settings-form";
-import { Box, ExternalLink, Store } from "lucide-react";
+import { Box, ExternalLink, Store, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default async function PazaramaIntegrationPage() {
@@ -65,11 +65,17 @@ export default async function PazaramaIntegrationPage() {
               </li>
             </ul>
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               <a href="/admin/integrations/pazarama/products">
                 <Button className="w-full bg-[#D81B60] hover:bg-[#C2185B] text-white gap-2 shadow-lg shadow-pink-500/20">
                   <Box className="w-4 h-4" />
                   Pazarama Ürünlerini Yönet
+                </Button>
+              </a>
+              <a href="/admin/integrations/pazarama/orders">
+                <Button variant="outline" className="w-full border-pink-200 text-pink-700 hover:bg-pink-50 gap-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  Pazarama Siparişleri
                 </Button>
               </a>
             </div>

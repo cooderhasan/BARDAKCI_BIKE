@@ -316,3 +316,30 @@ export async function checkPazaramaBatchStatus(batchId: string) {
     return { success: false, message: error.message || "Sorgulama hatası." };
   }
 }
+
+export async function getPazaramaOrders(params?: {
+  startDate?: string;
+  endDate?: string;
+  orderNumber?: string;
+}) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst();
+    if (!config || !config.isActive) {
+      return { success: false, message: "Pazarama entegrasyonu aktif değil." };
+    }
+
+    const client = new PazaramaClient(config);
+    const orders = await client.getOrders({
+      startDate: params?.startDate,
+      endDate: params?.endDate,
+      orderNumber: params?.orderNumber ? parseInt(params.orderNumber) : undefined,
+    });
+
+    return {
+      success: true,
+      data: orders,
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Sipariş çekme hatası." };
+  }
+}

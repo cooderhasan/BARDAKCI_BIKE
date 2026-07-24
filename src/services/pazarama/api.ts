@@ -442,37 +442,89 @@ export class PazaramaClient {
 
   /**
    * Fetch Pazarama Orders
+   * Endpoint: POST /order/getOrdersForApi
+   * Request: { pageSize, pageNumber, startDate, endDate }
    */
-  async getOrders(): Promise<PazaramaOrder[]> {
+  async getOrders(params?: {
+    pageSize?: number;
+    pageNumber?: number;
+    startDate?: string;
+    endDate?: string;
+    orderNumber?: number;
+  }): Promise<PazaramaOrder[]> {
     try {
       const headers = await this.getHeaders();
-      const candidateEndpoints = [
-        `${this.baseUrl}/order/get-orders`,
-        `${this.baseUrl}/order/getOrders`,
-        `${this.baseUrl}/api/v1/order/getOrders`,
-        `${this.baseUrl}/api/v1/order/get-orders`,
-      ];
+      const endpoint = `${this.baseUrl}/order/getOrdersForApi`;
 
-      for (const endpoint of candidateEndpoints) {
-        for (const method of ["POST", "GET"]) {
-          try {
-            const res = await fetch(endpoint, {
-              method,
-              headers,
-              ...(method === "POST" ? { body: JSON.stringify({ page: 1, pageSize: 50 }) } : {}),
-            });
+      const body: any = {};
+      if (params?.orderNumber) {
+        body.orderNumber = params.orderNumber;
+      }
+      if (params?.startDate) {
+        body.startDate = params.startDate;
+      }
+      if (params?.endDate) {
+        body.endDate = params.endDate;
+      }
+      if (params?.pageSize) {
+        body.pageSize = params.pageSize;
+      }
+      if (params?.pageNumber) {
+        body.pageNumber = params.pageNumber;
+      }
 
-            if (!res.ok) continue;
+      if (Object.keys(body).length === 0) {
+        const today = new Date();
+        const lastMonth = new Date(today);
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        body.startDate = lastMonth.toISOString().split("T")[0];
+        body.endDate = today.toISOString().split("T")[0];
+        body.pageSize = 500;
+        body.pageNumber = 1;
+      }
 
-            const data = await res.json();
-            const list = data?.data?.orders || data?.data || data?.result?.orders || data?.result || (Array.isArray(data) ? data : null);
-            if (Array.isArray(list)) {
-              return list as PazaramaOrder[];
-            }
-          } catch {
-            // try next
-          }
-        }
+      console.log(`[Pazarama] POST ${endpoint} - body:`, JSON.stringify(body));
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+        cache: "no-store",
+      });
+
+      const rawText = await res.text().catch(() => "");
+      console.log(`[Pazarama] Order HTTP ${res.status}:`, rawText.substring(0, 500));
+
+      if (!res.ok) return [];
+
+      const data = JSON.parse(rawText);
+      const orders = data?.data || [];
+
+      if (Array.isArray(orders)) {
+        return orders.map((o: any) => ({
+          id: o.orderId,
+          orderNumber: String(o.orderNumber),
+          orderDate: o.orderDate,
+          status: String(o.orderStatus),
+          totalAmount: o.orderAmount,
+          customerName: o.customerName || "",
+          customerPhone: o.shipmentAddress?.phoneNumber || "",
+          customerEmail: o.customerEmail || "",
+          deliveryAddress: {
+            address: o.shipmentAddress?.addressDetail || "",
+            city: o.shipmentAddress?.cityName || "",
+            district: o.shipmentAddress?.districtName || "",
+            postalCode: o.shipmentAddress?.postalCode || "",
+          },
+          items: (o.items || []).map((item: any) => ({
+            productId: item.orderItemId,
+            sku: item.product?.stockCode || "",
+            productName: item.product?.name || "",
+            quantity: item.quantity,
+            price: item.salePrice?.value || 0,
+            totalAmount: item.totalPrice?.value || 0,
+          })),
+        })) as PazaramaOrder[];
       }
 
       return [];
