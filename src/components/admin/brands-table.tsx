@@ -140,35 +140,24 @@ function PazaramaBrandSearch({
     value?: string | number;
     onChange: (id: string | undefined) => void;
 }) {
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(String(value || ""));
     const [allBrands, setAllBrands] = useState<PazaramaBrand[]>([]);
     const [results, setResults] = useState<PazaramaBrand[]>([]);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
-    const [selectedName, setSelectedName] = useState<string>("");
-    const [error, setError] = useState<string>("");
-    const [showPasteBox, setShowPasteBox] = useState(false);
-    const [pasteText, setPasteText] = useState("");
-    const [savingPaste, setSavingPaste] = useState(false);
-    const [isManual, setIsManual] = useState(false);
-    const [manualId, setManualId] = useState("");
 
-    const fetchBrands = async (forceRefresh = false) => {
-        if (allBrands.length > 0 && !forceRefresh) return allBrands;
+    const fetchBrands = async () => {
+        if (allBrands.length > 0) return allBrands;
         setLoading(true);
-        setError("");
         try {
             const { getPazaramaBrands } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
             const res = await getPazaramaBrands();
             if (res.success && res.data && res.data.length > 0) {
                 setAllBrands(res.data);
                 return res.data;
-            } else {
-                setError("Pazarama markaları bulunamadı. Yapıştırma modunu kullanarak ekleyebilirsiniz.");
-                return [];
             }
+            return [];
         } catch {
-            setError("Bağlantı hatası.");
             return [];
         } finally {
             setLoading(false);
@@ -177,203 +166,59 @@ function PazaramaBrandSearch({
 
     const handleSearch = async (q: string) => {
         setSearch(q);
-        if (!q.trim()) { setResults([]); setOpen(false); return; }
+        onChange(q ? q : undefined);
+        if (q.length < 2) { setResults([]); setOpen(false); return; }
         const brands = await fetchBrands();
         const filtered = brands.filter((b: PazaramaBrand) => b.name.toLowerCase().includes(q.toLowerCase()) || b.id.toLowerCase().includes(q.toLowerCase())).slice(0, 50);
         setResults(filtered);
-        setOpen(true);
+        setOpen(filtered.length > 0);
     };
 
     const handleSelect = (brand: PazaramaBrand) => {
         onChange(brand.id);
-        setSelectedName(brand.name);
-        setSearch("");
+        setSearch(brand.id);
         setResults([]);
         setOpen(false);
     };
 
     const handleClear = () => {
         onChange(undefined);
-        setSelectedName("");
         setSearch("");
         setResults([]);
-        setManualId("");
-    };
-
-    const handleManualSubmit = () => {
-        if (manualId.trim()) {
-            onChange(manualId.trim());
-            setSelectedName("Manuel Marka ID");
-            setIsManual(false);
-        }
-    };
-
-    const [syncingApi, setSyncingApi] = useState(false);
-
-    const handleApiSync = async () => {
-        setSyncingApi(true);
-        try {
-            const { syncPazaramaCategoriesAndBrandsFromApi } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
-            const res = await syncPazaramaCategoriesAndBrandsFromApi();
-            if (res.success) {
-                toast.success(res.message);
-                setAllBrands([]);
-                await fetchBrands(true);
-            } else {
-                toast.error(res.message);
-            }
-        } catch {
-            toast.error("API çekme hatası.");
-        } finally {
-            setSyncingApi(false);
-        }
-    };
-
-    const handleBulkSave = async () => {
-        if (!pasteText.trim()) return;
-        setSavingPaste(true);
-        try {
-            const { savePazaramaBrandsBulk } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
-            const res = await savePazaramaBrandsBulk(pasteText);
-            if (res.success) {
-                toast.success(res.message);
-                setShowPasteBox(false);
-                setPasteText("");
-                setAllBrands([]);
-                await fetchBrands(true);
-            } else {
-                toast.error(res.message);
-            }
-        } catch {
-            toast.error("Kaydetme hatası.");
-        } finally {
-            setSavingPaste(false);
-        }
+        setOpen(false);
     };
 
     return (
-        <div className="space-y-2">
-            {value && selectedName ? (
-                <div className="flex items-center gap-2 p-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-sm">
-                    <span className="font-medium text-pink-800 dark:text-pink-300 flex-1 truncate">✓ {selectedName}</span>
-                    <span className="text-xs text-pink-600 font-mono select-all">#{value}</span>
-                    <button type="button" onClick={handleClear} className="text-pink-500 hover:text-red-600"><X className="w-4 h-4" /></button>
-                </div>
-            ) : value ? (
-                <div className="flex items-center gap-2 p-2 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-sm">
-                    <span className="font-medium text-pink-800 dark:text-pink-300 flex-1">Mevcut Marka ID: <span className="font-mono select-all">#{value}</span></span>
-                    <button type="button" onClick={handleClear} className="text-pink-500 hover:text-red-600"><X className="w-4 h-4" /></button>
-                </div>
-            ) : null}
+        <div className="space-y-1.5">
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                    className="pl-8 pr-8 border-pink-200 focus-visible:ring-pink-500 text-xs font-mono"
+                    placeholder="Pazarama Marka ID giriniz veya adı ile arayınız..."
+                    value={search}
+                    onChange={(e) => handleSearch(e.target.value)}
+                />
+                {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-pink-500" />}
+                {search && !loading && (
+                    <button type="button" onClick={handleClear} className="absolute right-2.5 top-2.5 text-gray-400 hover:text-red-500">
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
 
-            {!isManual ? (
-                <div className="relative">
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                        <Input
-                            className="pl-8 border-pink-200 focus-visible:ring-pink-500 text-xs"
-                            placeholder="Pazarama marka adıyla arayın (örn: Shimano)..."
-                            value={search}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            onFocus={() => {
-                                if (search.length >= 2) fetchBrands().then(brands => {
-                                    setResults(brands.filter((b: PazaramaBrand) => b.name.toLowerCase().includes(search.toLowerCase()) || b.id.toLowerCase().includes(search.toLowerCase())).slice(0, 50));
-                                    setOpen(true);
-                                });
-                            }}
-                        />
-                        {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-pink-500" />}
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] pt-1 px-1">
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={handleApiSync}
-                                disabled={syncingApi}
-                                className="text-pink-700 hover:underline font-semibold flex items-center gap-1"
-                            >
-                                {syncingApi ? <Loader2 className="w-3 h-3 animate-spin" /> : "🌐 Pazarama API'den Çek"}
-                            </button>
-                            <span className="text-gray-300">|</span>
-                            <button
-                                type="button"
-                                onClick={() => setShowPasteBox(!showPasteBox)}
-                                className="text-pink-600 hover:underline font-medium flex items-center gap-1"
-                            >
-                                📋 Toplu Yapıştır
-                            </button>
-                        </div>
+            {open && results.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-pink-200 rounded-lg shadow-xl">
+                    {results.map((b) => (
                         <button
+                            key={b.id}
                             type="button"
-                            onClick={() => setIsManual(true)}
-                            className="text-gray-500 hover:underline"
+                            onClick={() => handleSelect(b)}
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-pink-50 dark:hover:bg-pink-900/20 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
                         >
-                            Manuel ID gir
+                            <span className="font-medium text-gray-800 dark:text-gray-200">{b.name}</span>
+                            <span className="text-[10px] text-pink-600 font-mono shrink-0">#{b.id}</span>
                         </button>
-                    </div>
-
-                    {showPasteBox && (
-                        <div className="mt-2 p-3 bg-pink-50/80 dark:bg-pink-950/40 border border-pink-200 rounded-lg space-y-2">
-                            <label className="text-xs font-semibold text-pink-800 dark:text-pink-300 block">
-                                Pazarama Satıcı Portalı'ndan kopyaladığınız veya Excel marka tablonuzu yapıştırın:
-                            </label>
-                            <textarea
-                                className="w-full h-20 p-2 text-xs font-mono border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                                placeholder={`Örnek Format (ID [Sekme] Marka Adı):\n12345\tShimano\n67890\tCarraro`}
-                                value={pasteText}
-                                onChange={(e) => setPasteText(e.target.value)}
-                            />
-                            <div className="flex justify-between items-center pt-1">
-                                <a
-                                    href="https://isortagim.pazarama.com/auth/integration/kategori-listesi"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[10px] text-pink-600 hover:underline flex items-center gap-1"
-                                >
-                                    🔗 Pazarama Portalı ↗
-                                </a>
-                                <div className="flex gap-2">
-                                    <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPasteBox(false)}>İptal</Button>
-                                    <Button type="button" size="sm" className="h-7 text-xs bg-[#D81B60] hover:bg-[#C2185B]" onClick={handleBulkSave} disabled={savingPaste}>
-                                        {savingPaste ? "Kaydediliyor..." : "Verileri Kaydet"}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {error && <p className="text-xs text-amber-600 mt-1">{error}</p>}
-
-                    {open && results.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-pink-200 rounded-lg shadow-xl">
-                            {results.map((b) => (
-                                <button
-                                    key={b.id}
-                                    type="button"
-                                    onClick={() => handleSelect(b)}
-                                    className="w-full text-left px-3 py-2 text-xs hover:bg-pink-50 dark:hover:bg-pink-900/20 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
-                                >
-                                    <span className="font-medium text-gray-800 dark:text-gray-200">{b.name}</span>
-                                    <span className="text-[10px] text-pink-600 font-mono shrink-0 select-all">#{b.id}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div className="space-y-2 p-2 border border-dashed border-pink-300 rounded-lg bg-pink-50/50 dark:bg-pink-950/20">
-                    <Label className="text-[10px] text-pink-700 dark:text-pink-300 font-semibold uppercase">Manuel Pazarama Marka ID</Label>
-                    <div className="flex gap-2">
-                        <Input
-                            className="h-8 text-xs font-mono"
-                            placeholder="Örn: 12345"
-                            value={manualId}
-                            onChange={(e) => setManualId(e.target.value)}
-                        />
-                        <Button size="sm" className="h-8 bg-[#D81B60] hover:bg-[#C2185B] text-xs" onClick={handleManualSubmit}>Ekle</Button>
-                        <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setIsManual(false)}>İptal</Button>
-                    </div>
+                    ))}
                 </div>
             )}
         </div>
