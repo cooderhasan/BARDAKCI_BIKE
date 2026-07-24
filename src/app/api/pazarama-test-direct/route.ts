@@ -41,31 +41,28 @@ export async function GET() {
       ? "https://stage-isortagimapi.pazarama.com"
       : "https://isortagimapi.pazarama.com";
 
+    const pedalCategoryId = "4580478b-7b8c-432b-b6e0-b945130425d9";
+
     const endpoints = [
-      // Categories
+      // Categories & Category Attributes
       { name: "GET /category/get-categories", url: `${baseUrl}/category/get-categories`, method: "GET" },
       { name: "POST /category/get-categories", url: `${baseUrl}/category/get-categories`, method: "POST", body: {} },
       { name: "GET /category/getCategories", url: `${baseUrl}/category/getCategories`, method: "GET" },
-      { name: "GET /category/get-all-categories", url: `${baseUrl}/category/get-all-categories`, method: "GET" },
+      { name: "GET /category/get-category-attributes?categoryId=" + pedalCategoryId, url: `${baseUrl}/category/get-category-attributes?categoryId=${pedalCategoryId}`, method: "GET" },
+      { name: "POST /category/get-category-attributes", url: `${baseUrl}/category/get-category-attributes`, method: "POST", body: { categoryId: pedalCategoryId } },
+      { name: "GET /category/getCategoryWithAttributes?categoryId=" + pedalCategoryId, url: `${baseUrl}/category/getCategoryWithAttributes?categoryId=${pedalCategoryId}`, method: "GET" },
+      { name: "POST /category/getCategoryWithAttributes", url: `${baseUrl}/category/getCategoryWithAttributes`, method: "POST", body: { categoryId: pedalCategoryId } },
+      
       // Product Create Candidates
       { name: "POST /product/create-product", url: `${baseUrl}/product/create-product`, method: "POST", body: { items: [] } },
       { name: "POST /product/createProduct", url: `${baseUrl}/product/createProduct`, method: "POST", body: { items: [] } },
       { name: "POST /product/create", url: `${baseUrl}/product/create`, method: "POST", body: { items: [] } },
-      { name: "POST /product/add", url: `${baseUrl}/product/add`, method: "POST", body: { items: [] } },
-      { name: "POST /product/batch-create", url: `${baseUrl}/product/batch-create`, method: "POST", body: { items: [] } },
       { name: "POST /api/v1/product/createProduct", url: `${baseUrl}/api/v1/product/createProduct`, method: "POST", body: { items: [] } },
-      { name: "POST /v1/product/create-product", url: `${baseUrl}/v1/product/create-product`, method: "POST", body: { items: [] } },
+      
       // Stock & Price Update Candidates
       { name: "POST /product/update-price-and-stock", url: `${baseUrl}/product/update-price-and-stock`, method: "POST", body: { items: [] } },
       { name: "POST /product/updatePriceAndStock", url: `${baseUrl}/product/updatePriceAndStock`, method: "POST", body: { items: [] } },
-      { name: "POST /product/update-stock-and-price", url: `${baseUrl}/product/update-stock-and-price`, method: "POST", body: { items: [] } },
-      { name: "POST /product/update-price-stock", url: `${baseUrl}/product/update-price-stock`, method: "POST", body: { items: [] } },
-      { name: "POST /product/update-inventory", url: `${baseUrl}/product/update-inventory`, method: "POST", body: { items: [] } },
       { name: "POST /api/v1/product/updatePriceAndStock", url: `${baseUrl}/api/v1/product/updatePriceAndStock`, method: "POST", body: { items: [] } },
-      // Orders
-      { name: "GET /order/get-orders", url: `${baseUrl}/order/get-orders`, method: "GET" },
-      { name: "POST /order/get-orders", url: `${baseUrl}/order/get-orders`, method: "POST", body: { page: 1, pageSize: 10 } },
-      { name: "POST /order/getOrders", url: `${baseUrl}/order/getOrders`, method: "POST", body: { page: 1, pageSize: 10 } },
     ];
 
     const results: any[] = [];
