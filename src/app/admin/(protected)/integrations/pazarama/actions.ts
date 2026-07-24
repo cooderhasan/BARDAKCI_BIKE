@@ -68,29 +68,37 @@ export async function testPazaramaConnection() {
   }
 }
 
+import { DEFAULT_PAZARAMA_CATEGORIES } from "@/lib/pazarama-categories-seed";
+
 export async function getPazaramaCategories() {
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config) {
       return {
-        success: false,
-        message: "Pazarama API ayarları kaydedilmemiş. Lütfen önce Entegrasyon > Pazarama sayfasından API Key ve Secret girip KAYDET butonuna basın.",
-        data: []
+        success: true,
+        message: "Pazarama API ayarları kaydedilmemiş. Hazır kategori listesi gösteriliyor.",
+        data: DEFAULT_PAZARAMA_CATEGORIES
       };
     }
 
     const client = new PazaramaClient(config);
-    const categories = await client.getCategories();
-    if (!categories || categories.length === 0) {
-      return {
-        success: false,
-        message: "Pazarama API'si henüz kategori yanıtı vermedi. Manuel olarak kategori ID girebilirsiniz.",
-        data: []
-      };
+    const apiCategories = await client.getCategories();
+    
+    if (apiCategories && apiCategories.length > 0) {
+      return { success: true, data: apiCategories };
     }
-    return { success: true, data: categories };
+
+    return {
+      success: true,
+      message: "API henüz canlı yanıt vermediği için varsayılan Pazarama kategori ağacı yüklendi.",
+      data: DEFAULT_PAZARAMA_CATEGORIES
+    };
   } catch (error: any) {
-    return { success: false, message: error.message || "Kategoriler çekilemedi.", data: [] };
+    return {
+      success: true,
+      message: error.message || "Kategoriler yüklenirken hazır liste kullanıldı.",
+      data: DEFAULT_PAZARAMA_CATEGORIES
+    };
   }
 }
 
