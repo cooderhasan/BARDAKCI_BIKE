@@ -602,7 +602,8 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
       const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
       const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
       const salePrice = Math.round(finalPrice * 100) / 100;
-      const listPrice = Math.round(Number(p.listPrice || basePrice) * (1 + profitMargin / 100) * 100) / 100;
+      let listPrice = Math.round(Number(p.listPrice || basePrice) * (1 + profitMargin / 100) * 100) / 100;
+      if (listPrice < salePrice) listPrice = salePrice;
 
       if (p.barcode) {
         items.push({ code: p.barcode, stock: p.stock, price: salePrice, listPrice });
