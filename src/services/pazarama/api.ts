@@ -422,16 +422,94 @@ export class PazaramaClient {
   }
 
   /**
+   * Pazarama Dokümantasyonu Resmi Fiyat Güncelleme API Servisi
+   * Endpoint: POST /product/updatePrice-v2
+   * Doküman Linki: https://isortagim.pazarama.com/auth/integration/urun-fiyat-guncelleme
+   */
+  async updatePrice(
+    items: Array<{ code: string; salePrice: number; listPrice?: number }>
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const headers = await this.getHeaders();
+      const payload = {
+        items: items.map((i) => ({
+          code: i.code,
+          listPrice: i.listPrice || i.salePrice,
+          salePrice: i.salePrice,
+        })),
+      };
+
+      const endpoints = [
+        `${this.baseUrl}/product/updatePrice-v2`,
+        `${this.baseUrl}/productInput/updatePrice-v2`,
+        `${this.baseUrl}/product/updatePrice`,
+        `${this.baseUrl}/productInput/updatePrice`,
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`[Pazarama] POST ${endpoint} - ${items.length} ürün fiyatı güncelleniyor (updatePrice-v2)`);
+
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+            cache: "no-store",
+          });
+
+          const rawText = await res.text().catch(() => "");
+          console.log(`[Pazarama] Fiyat Güncelleme HTTP ${res.status} (${endpoint}):`, rawText.substring(0, 400));
+
+          if (res.status === 404 || res.status === 405) continue;
+
+          let data: any = {};
+          try { data = JSON.parse(rawText); } catch { /* ok */ }
+
+          if (!res.ok) {
+            const errMsg = data?.message || data?.Message || data?.error || rawText.substring(0, 200) || `HTTP ${res.status}`;
+            continue;
+          }
+
+          if (data?.isSuccess === false || data?.success === false) {
+            const errMsg = data?.message || data?.Message || "Fiyat güncelleme reddedildi.";
+            return { success: false, message: `Pazarama Hata: ${errMsg}` };
+          }
+
+          return {
+            success: true,
+            message: `${items.length} adet ürünün fiyatı Pazarama'da (updatePrice-v2) sıraya alındı.`,
+          };
+        } catch (e: any) {
+          console.log(`[Pazarama] Fiyat güncelleme endpoint hatası (${endpoint}):`, e.message);
+          continue;
+        }
+      }
+
+      return { success: false, message: "Pazarama: Fiyat güncelleme endpoint'i yanıt vermedi." };
+    } catch (error: any) {
+      return { success: false, message: `Fiyat güncelleme hatası: ${error.message}` };
+    }
+  }
+
+  /**
    * Update Stock & Price for Pazarama products
-   * Pazarama endpoints: /product/updatePriceAndStock, /productInput/updatePriceAndStock, /product/updatePrice
+   * Pazarama endpoints: /product/updatePrice-v2, /product/updatePriceAndStock
    */
   async updateStockAndPrice(
     items: Array<{ code: string; stock: number; price: number; listPrice?: number }>
   ): Promise<{ success: boolean; message: string }> {
     try {
+      // Önce fiyat güncelleme v2 API'sini çağır
+      const priceRes = await this.updatePrice(
+        items.map((i) => ({ code: i.code, salePrice: i.price, listPrice: i.listPrice }))
+      );
+      if (priceRes.success) {
+        console.log(`[Pazarama] updatePrice-v2 fiyat güncellemesi başarılı:`, priceRes.message);
+      }
+
       const headers = await this.getHeaders();
 
-      // Pazarama supports multiple body wrapper formats
+      // Pazarama supports multiple body wrapper formats for stock & price
       const payloads = [
         // 1. Pazarama items (camelCase)
         {
@@ -465,6 +543,8 @@ export class PazaramaClient {
         `${this.baseUrl}/productInput/updatePriceAndStock`,
         `${this.baseUrl}/product/update-price-and-stock`,
         `${this.baseUrl}/productInput/update-price-and-stock`,
+        `${this.baseUrl}/product/updatePrice-v2`,
+        `${this.baseUrl}/productInput/updatePrice-v2`,
         `${this.baseUrl}/product/updatePrice`,
         `${this.baseUrl}/productInput/updatePrice`,
         `${this.baseUrl}/api/v1/product/updatePriceAndStock`,
@@ -474,7 +554,7 @@ export class PazaramaClient {
       for (const endpoint of endpoints) {
         for (const payload of payloads) {
           try {
-            console.log(`[Pazarama] POST ${endpoint} - ${items.length} ürün güncelleniyor`);
+            console.log(`[Pazarama] POST ${endpoint} - ${items.length} ürün stok/fiyat güncelleniyor`);
 
             const res = await fetch(endpoint, {
               method: "POST",
@@ -511,6 +591,11 @@ export class PazaramaClient {
             continue;
           }
         }
+      }
+
+      // Eğer updatePrice-v2 başarılı olduysa bunu başarı say
+      if (priceRes.success) {
+        return priceRes;
       }
 
       return { success: false, message: "Pazarama: Hiçbir stok/fiyat güncelleme endpoint'i yanıt vermedi." };
