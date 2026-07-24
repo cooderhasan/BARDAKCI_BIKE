@@ -525,6 +525,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                 <SelectItem value="N11">N11</SelectItem>
                                 <SelectItem value="HEPSIBURADA">Hepsiburada</SelectItem>
                                 <SelectItem value="IDEFIX">Idefix</SelectItem>
+                                <SelectItem value="PAZARAMA">Pazarama</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -671,6 +672,11 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         IDEFIX
                                                     </Badge>
                                                 )}
+                                                {order.source === "PAZARAMA" && (
+                                                    <Badge className="bg-[#d8005f] hover:bg-[#b0004e] text-white border-none px-1.5 py-0 text-[10px] font-bold">
+                                                        PAZARAMA
+                                                    </Badge>
+                                                )}
                                                 {(order.source === "WEB" || !order.source) && (
                                                     <Badge variant="outline" className="text-gray-500 border-gray-200 px-1.5 py-0.5 text-[10px] font-bold uppercase">
                                                         WEB
@@ -687,7 +693,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                         <TableCell>
                                             <div className="flex flex-col">
                                                 <span className="font-medium">
-                                                    {order.shippingAddress?.fullName || (order.shippingAddress as any)?.name || order.user?.name || order.user?.companyName || order.user?.email || order.guestEmail || "Misafir"}
+                                                    {order.shippingAddress?.fullName || (order.shippingAddress as any)?.name || (order.user as any)?.name || order.user?.companyName || order.user?.email || order.guestEmail || "Misafir"}
                                                 </span>
                                                 <div className="flex items-center gap-2 mt-0.5">
                                                     {order.cargoCompany && (
@@ -1062,11 +1068,11 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                 <span className="font-medium">{selectedOrder.payment.providerData.payment_type}</span>
                                             </div>
                                         )}
-                                        {selectedOrder.payment.providerRef && (
+                                        {(selectedOrder.payment as any).providerRef && (
                                             <div>
                                                 <span className="text-xs text-gray-500 block">İşlem Referansı</span>
                                                 <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded select-all">
-                                                    {selectedOrder.payment.providerRef}
+                                                    {(selectedOrder.payment as any).providerRef}
                                                 </span>
                                             </div>
                                         )}

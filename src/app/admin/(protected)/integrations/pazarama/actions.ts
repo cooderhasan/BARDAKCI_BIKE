@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { PazaramaClient } from "@/services/pazarama/api";
+import { OrderStatus } from "@prisma/client";
+import { handlePostOrderStockSync } from "@/lib/stock-sync";
 
 // ==================== CONFIG ACTIONS ====================
 
@@ -343,3 +345,194 @@ export async function getPazaramaOrders(params?: {
     return { success: false, message: error.message || "Sipariş çekme hatası." };
   }
 }
+
+function mapPazaramaStatusToOrderStatus(statusStr: string): OrderStatus {
+  const s = String(statusStr || "").trim();
+  if (s === "3" || s.toLowerCase().includes("alındı") || s.toLowerCase() === "created") return OrderStatus.CONFIRMED;
+  if (s === "12" || s.toLowerCase().includes("hazırlanıyor") || s.toLowerCase() === "picking" || s.toLowerCase() === "processing") return OrderStatus.PROCESSING;
+  if (s === "5" || s.toLowerCase().includes("kargo") || s.toLowerCase() === "shipped") return OrderStatus.SHIPPED;
+  if (s === "11" || s.toLowerCase().includes("teslim") || s.toLowerCase() === "delivered") return OrderStatus.DELIVERED;
+  if (s === "6" || s === "13" || s === "14" || s === "7" || s === "8" || s === "10" || s.toLowerCase().includes("iptal") || s.toLowerCase().includes("iade") || s.toLowerCase() === "cancelled") return OrderStatus.CANCELLED;
+  return OrderStatus.CONFIRMED;
+}
+
+export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif Pazarama entegrasyonu bulunamadı." };
+    }
+
+    const client = new PazaramaClient(config);
+    const pazaramaOrders = await client.getOrders(
+      specificOrderNumber ? { orderNumber: parseInt(specificOrderNumber) } : undefined
+    );
+
+    if (!Array.isArray(pazaramaOrders) || pazaramaOrders.length === 0) {
+      return { success: true, message: "Pazarama'da çekilecek yeni sipariş bulunamadı.", count: 0 };
+    }
+
+    let importedCount = 0;
+    let updatedCount = 0;
+    const affectedProductIds: string[] = [];
+
+    for (const pOrder of pazaramaOrders) {
+      const orderNum = String(pOrder.orderNumber);
+
+      const existing = await prisma.order.findUnique({
+        where: { orderNumber: orderNum },
+      });
+
+      const newStatus = mapPazaramaStatusToOrderStatus(pOrder.status);
+
+      if (existing) {
+        if (existing.status !== newStatus) {
+          await prisma.order.update({
+            where: { id: existing.id },
+            data: { status: newStatus },
+          });
+          updatedCount++;
+        }
+        continue;
+      }
+
+      const resolvedItems: any[] = [];
+      const stockUpdates: { productId?: string; variantId?: string; quantity: number }[] = [];
+      let total = 0;
+      let totalVat = 0;
+
+      for (const item of pOrder.items || []) {
+        const barcodeOrSku = (item.barcode || item.sku || "").trim();
+        let productId: string | null = null;
+        let variantId: string | null = null;
+        let product: any = null;
+
+        if (barcodeOrSku) {
+          const variant = await prisma.productVariant.findFirst({
+            where: {
+              OR: [{ barcode: barcodeOrSku }, { sku: barcodeOrSku }],
+            },
+            include: { product: true },
+          });
+
+          if (variant) {
+            productId = variant.productId;
+            variantId = variant.id;
+            product = variant.product;
+          } else {
+            const prd = await prisma.product.findFirst({
+              where: {
+                OR: [{ barcode: barcodeOrSku }, { sku: barcodeOrSku }],
+              },
+            });
+            if (prd) {
+              productId = prd.id;
+              product = prd;
+            }
+          }
+        }
+
+        if (!product && item.productName) {
+          product = await prisma.product.findFirst({
+            where: {
+              name: { contains: item.productName, mode: "insensitive" },
+            },
+          });
+          if (product) {
+            productId = product.id;
+          }
+        }
+
+        if (product) {
+          const lineUnitPrice = Number(item.price) || 0;
+          const lineQty = Number(item.quantity) || 1;
+          const lineInvoiceAmount = item.totalAmount != null ? Number(item.totalAmount) : lineUnitPrice * lineQty;
+          const vatRate = product.vatRate || 20;
+          const lineVat = lineInvoiceAmount - lineInvoiceAmount / (1 + vatRate / 100);
+
+          resolvedItems.push({
+            productId: product.id,
+            variantId: variantId || undefined,
+            productName: item.productName || product.name,
+            quantity: lineQty,
+            unitPrice: lineUnitPrice,
+            lineTotal: lineInvoiceAmount,
+            vatRate,
+            discountRate: 0,
+          });
+
+          total += lineInvoiceAmount;
+          totalVat += lineVat;
+          stockUpdates.push({ productId: product.id, variantId: variantId || undefined, quantity: lineQty });
+          affectedProductIds.push(product.id);
+        }
+      }
+
+      if (resolvedItems.length > 0) {
+        await prisma.$transaction(async (tx) => {
+          await tx.order.create({
+            data: {
+              orderNumber: orderNum,
+              source: "PAZARAMA",
+              status: newStatus,
+              total,
+              subtotal: total - totalVat,
+              discountAmount: 0,
+              appliedDiscountRate: 0,
+              vatAmount: totalVat,
+              guestEmail: pOrder.customerEmail || `pazarama_${orderNum}@customer.com`,
+              shippingAddress: {
+                fullName: pOrder.customerName || "Pazarama Müşterisi",
+                address: pOrder.deliveryAddress?.address || "",
+                city: pOrder.deliveryAddress?.city || "",
+                district: pOrder.deliveryAddress?.district || "",
+                phone: pOrder.customerPhone || "",
+                postalCode: pOrder.deliveryAddress?.postalCode || "",
+              },
+              items: { create: resolvedItems },
+              cargoCompany: (pOrder as any).cargoCompany || (pOrder as any).cargoProviderName || null,
+              cargoTrackingNumber: (pOrder as any).cargoTrackingNumber || null,
+              shipmentPackageId: pOrder.id || null,
+            },
+          });
+
+          for (const update of stockUpdates) {
+            if (update.variantId) {
+              await tx.productVariant.update({
+                where: { id: update.variantId },
+                data: { stock: { decrement: update.quantity } },
+              });
+            } else if (update.productId) {
+              await tx.product.update({
+                where: { id: update.productId },
+                data: { stock: { decrement: update.quantity } },
+              });
+            }
+          }
+        });
+
+        importedCount++;
+      }
+    }
+
+    if (affectedProductIds.length > 0) {
+      const uniqueIds = Array.from(new Set(affectedProductIds));
+      handlePostOrderStockSync(uniqueIds, "site").catch(console.error);
+    }
+
+    try {
+      revalidatePath("/admin/orders");
+      revalidatePath("/admin/integrations/pazarama/orders");
+    } catch {}
+
+    return {
+      success: true,
+      message: `Pazarama siparişleri senkronize edildi. (${importedCount} yeni aktarıldı, ${updatedCount} güncellendi)`,
+      count: importedCount,
+    };
+  } catch (error: any) {
+    console.error("syncOrdersFromPazarama error:", error);
+    return { success: false, message: error.message || "Pazarama sipariş senkronizasyon hatası." };
+  }
+}
+

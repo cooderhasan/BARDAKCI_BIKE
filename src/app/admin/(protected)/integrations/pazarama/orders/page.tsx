@@ -1,5 +1,6 @@
 import { getPazaramaOrders } from "../actions";
 import { PazaramaOrderList } from "./pazarama-order-list";
+import { PazaramaOrderSyncButton } from "../pazarama-order-sync-button";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ export default async function PazaramaOrdersPage() {
             </p>
           </div>
         </div>
+        <PazaramaOrderSyncButton variant="button" />
       </div>
 
       <PazaramaOrderList initialOrders={orders || []} />

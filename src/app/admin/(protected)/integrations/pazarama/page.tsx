@@ -1,5 +1,6 @@
 import { getPazaramaConfig } from "./actions";
 import { PazaramaSettingsForm } from "./pazarama-settings-form";
+import { PazaramaOrderSyncButton } from "./pazarama-order-sync-button";
 import { Box, ExternalLink, Store, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -80,6 +81,8 @@ export default async function PazaramaIntegrationPage() {
               </a>
             </div>
           </div>
+
+          <PazaramaOrderSyncButton />
 
           {/* Durum Kartı */}
           {config && (

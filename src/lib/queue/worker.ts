@@ -47,6 +47,15 @@ export async function setupRepeatableJobs() {
         jobId: 'idefix-order-sync-cron'
     });
     console.log("⏰ Idefix Order Sync Cron (15m) registered.");
+
+    // Her 15 dakikada bir Pazarama siparişlerini çek
+    await queue.add("pazarama-order-sync", {}, {
+        repeat: {
+            pattern: '*/15 * * * *' // Every 15 minutes
+        },
+        jobId: 'pazarama-order-sync-cron'
+    });
+    console.log("⏰ Pazarama Order Sync Cron (15m) registered.");
 }
 
 export function initializeWorker() {
@@ -89,6 +98,14 @@ export function initializeWorker() {
                     console.log("🔄 Otomatik Idefix Sipariş Senkronizasyonu başlatıldı...");
                     const { syncOrdersFromIdefix } = await import("@/app/admin/(protected)/integrations/idefix/actions");
                     const result = await syncOrdersFromIdefix();
+                    console.log(`✅ Cron Sonucu: ${result.message}`);
+                    return;
+                }
+
+                if (job.name === "pazarama-order-sync") {
+                    console.log("🔄 Otomatik Pazarama Sipariş Senkronizasyonu başlatıldı...");
+                    const { syncOrdersFromPazarama } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
+                    const result = await syncOrdersFromPazarama();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
                     return;
                 }
