@@ -252,20 +252,31 @@ export class PazaramaClient {
           });
 
           if (res.ok) {
-            const data = await res.json();
-            return {
-              success: true,
-              batchId: data?.batchRequestId || data?.result?.batchRequestId || "BATCH-" + Date.now(),
-              message: "Ürünler Pazarama'ya başarıyla gönderildi.",
-            };
+            const data = await res.json().catch(() => ({}));
+            const realBatchId =
+              data?.batchRequestId ||
+              data?.data?.batchRequestId ||
+              data?.result?.batchRequestId ||
+              data?.data?.id ||
+              data?.id;
+
+            if (data?.isSuccess === false || data?.success === false) {
+              const errMsg = data?.message || data?.error || data?.errors?.join(", ") || "Pazarama işlemi reddetti.";
+              return { success: false, error: `Pazarama Hata: ${errMsg}` };
+            }
+
+            if (realBatchId) {
+              return {
+                success: true,
+                batchId: realBatchId,
+                message: "Ürünler Pazarama'ya başarıyla gönderildi.",
+              };
+            }
           }
 
           lastStatus = res.status;
-          lastErrorText = await res.text();
-          if (res.status !== 404) {
-            // Found the endpoint but it returned validation/auth error
-            break;
-          }
+          lastErrorText = await res.text().catch(() => "");
+          if (res.status !== 404) break;
         } catch (e: any) {
           lastErrorText = e.message;
         }
