@@ -6,6 +6,7 @@ import { ProductDetail } from "@/components/storefront/product-detail";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Metadata } from "next";
 import { getProductReviews, getReviewStats } from "@/app/actions/review";
+import { getStoreType, getStoreFilter } from "@/lib/store-helper";
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
@@ -13,8 +14,11 @@ interface ProductPageProps {
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
     const { slug } = await params;
-    const product = await prisma.product.findUnique({
-        where: { slug, isActive: true },
+    const activeStore = await getStoreType();
+    const storeFilter = getStoreFilter(activeStore);
+
+    const product = await prisma.product.findFirst({
+        where: { slug, isActive: true, store: storeFilter },
         select: { name: true, description: true, images: true }
     });
 
@@ -47,6 +51,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const { slug } = await params;
     const session = await auth();
     const settings = await getSiteSettings();
+    const activeStore = await getStoreType();
+    const storeFilter = getStoreFilter(activeStore);
     const discountRate = session?.user?.discountRate || 0;
     const isDealer =
         (session?.user?.role === "DEALER" && session?.user?.status === "APPROVED") ||
@@ -54,8 +60,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
         session?.user?.role === "OPERATOR";
     const isAuthenticated = !!session?.user;
 
-    const product = await prisma.product.findUnique({
-        where: { slug, isActive: true },
+    const product = await prisma.product.findFirst({
+        where: {
+            slug,
+            isActive: true,
+            store: storeFilter,
+        },
         include: {
             categories: {
                 include: {
@@ -86,6 +96,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const relatedProducts = await prisma.product.findMany({
         where: {
             isActive: true,
+            store: storeFilter,
             id: { not: product.id },
             ...(categoryIds.length > 0
                 ? {
