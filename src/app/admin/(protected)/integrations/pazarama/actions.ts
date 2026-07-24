@@ -518,6 +518,9 @@ export async function syncProductsToPazarama(
         return `${siteUrl}${img.startsWith("/") ? "" : "/"}${img}`;
       });
 
+      const criticalStock = p.criticalStock ?? 0;
+      const effectiveStock = p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
+
       return {
         code: p.sku || p.id,
         title: p.name,
@@ -527,7 +530,7 @@ export async function syncProductsToPazarama(
         categoryId: catWithPazarama?.pazaramaCategoryId || undefined,
         listPrice: Math.round(Number(p.listPrice) * (1 + profitMargin / 100) * 100) / 100,
         salePrice: Math.round(finalPrice * 100) / 100,
-        stockQuantity: p.stock,
+        stockQuantity: effectiveStock,
         vatRate: p.vatRate || 20,
         images: formattedImages,
         attributes: attributes || [],
@@ -605,14 +608,17 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
       let listPrice = Math.round(Number(p.listPrice || basePrice) * (1 + profitMargin / 100) * 100) / 100;
       if (listPrice < salePrice) listPrice = salePrice;
 
+      const criticalStock = p.criticalStock ?? 0;
+      const effectiveStock = p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
+
       if (p.barcode) {
-        items.push({ code: p.barcode, stock: p.stock, price: salePrice, listPrice });
+        items.push({ code: p.barcode, stock: effectiveStock, price: salePrice, listPrice });
       }
       if (p.sku && p.sku !== p.barcode) {
-        items.push({ code: p.sku, stock: p.stock, price: salePrice, listPrice });
+        items.push({ code: p.sku, stock: effectiveStock, price: salePrice, listPrice });
       }
       if (!p.barcode && !p.sku) {
-        items.push({ code: p.id, stock: p.stock, price: salePrice, listPrice });
+        items.push({ code: p.id, stock: effectiveStock, price: salePrice, listPrice });
       }
     }
 
