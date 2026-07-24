@@ -44,8 +44,76 @@ export async function GET() {
             }
         });
 
+        // 4. Test Pazarama Config & Category Endpoints
+        let pazaramaDiag: any = null;
+        try {
+            const config = await (prisma as any).pazaramaConfig.findFirst();
+            if (config) {
+                const { PazaramaClient } = await import("@/services/pazarama/api");
+                const client = new PazaramaClient(config);
+                const tokenRes = await (client as any).getToken();
+                const baseUrl = config.isTestMode
+                    ? "https://stage-isortagimapi.pazarama.com"
+                    : "https://isortagimapi.pazarama.com";
+
+                const endpoints = [
+                    { url: `${baseUrl}/category/get-categories`, method: "GET" },
+                    { url: `${baseUrl}/category/get-categories`, method: "POST", body: {} },
+                    { url: `${baseUrl}/api/v1/category/get-categories`, method: "GET" },
+                    { url: `${baseUrl}/api/v1/category/get-categories`, method: "POST", body: {} },
+                    { url: `${baseUrl}/category/getCategories`, method: "GET" },
+                    { url: `${baseUrl}/category/getCategories`, method: "POST", body: {} },
+                    { url: `${baseUrl}/category/getCategoryWithAttributes`, method: "GET" },
+                    { url: `${baseUrl}/api/v1/category/getCategoryWithAttributes`, method: "GET" },
+                ];
+
+                const epResults: any[] = [];
+                if (tokenRes.success) {
+                    for (const ep of endpoints) {
+                        try {
+                            const res = await fetch(ep.url, {
+                                method: ep.method,
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${tokenRes.accessToken}`,
+                                },
+                                ...(ep.body ? { body: JSON.stringify(ep.body) } : {}),
+                                cache: "no-store",
+                            });
+
+                            const text = await res.text();
+                            let parsed = null;
+                            try { parsed = JSON.parse(text); } catch {}
+
+                            epResults.push({
+                                url: ep.url,
+                                method: ep.method,
+                                status: res.status,
+                                response: parsed || text.slice(0, 200),
+                            });
+                        } catch (e: any) {
+                            epResults.push({ url: ep.url, method: ep.method, error: e.message });
+                        }
+                    }
+                }
+
+                pazaramaDiag = {
+                    configFound: true,
+                    isActive: config.isActive,
+                    isTestMode: config.isTestMode,
+                    tokenRes,
+                    epResults,
+                };
+            } else {
+                pazaramaDiag = { configFound: false };
+            }
+        } catch (e: any) {
+            pazaramaDiag = { error: e.message };
+        }
+
         return NextResponse.json({
             success: true,
+            pazaramaDiag,
             childCat: childCat ? {
                 id: childCat.id,
                 name: childCat.name,
@@ -58,20 +126,14 @@ export async function GET() {
                     productsCount: c._count.products
                 }))
             } : "Not Found",
-            recentProducts: recentProducts.map(p => ({
-                id: p.id,
-                name: p.name,
-                createdAt: p.createdAt,
-                isActive: p.isActive,
-                categories: p.categories
-            })),
+            keywordsCatsCount: keywordsCats.length,
             keywordsCats: keywordsCats.map(c => ({
                 id: c.id,
                 name: c.name,
                 slug: c.slug,
-                parentId: c.parentId,
-                parentName: c.parent ? c.parent.name : null
-            }))
+                parent: c.parent ? c.parent.name : null
+            })),
+            recentProductsCount: recentProducts.length,
         });
     } catch (error: any) {
         return NextResponse.json({ success: false, error: error.message });
