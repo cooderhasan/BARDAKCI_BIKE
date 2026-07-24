@@ -156,7 +156,10 @@ export async function togglePazaramaProductActive(productId: string, currentStat
   }
 }
 
-export async function syncProductsToPazarama(productIds: string[]) {
+export async function syncProductsToPazarama(
+  productIds: string[],
+  attributes?: Array<{ attributeId: string; attributeValueId: string }>
+) {
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config || !config.isActive) {
@@ -199,13 +202,13 @@ export async function syncProductsToPazarama(productIds: string[]) {
         stockQuantity: p.stock,
         vatRate: p.vatRate || 20,
         images: formattedImages,
+        attributes: attributes || [],
       };
     });
 
     const result = await client.createProductBatch(payloadProducts);
 
     if (result.success) {
-      // Update pazaramaBatchId and status on products
       await prisma.product.updateMany({
         where: { id: { in: productIds } },
         data: {
@@ -225,6 +228,25 @@ export async function syncProductsToPazarama(productIds: string[]) {
     }
   } catch (error: any) {
     return { success: false, message: error.message || "Senkronizasyon hatası." };
+  }
+}
+
+export async function getPazaramaCategoryAttributes(categoryId: string) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst();
+    if (!config) {
+      return { success: false, message: "Pazarama ayarları bulunamadı." };
+    }
+
+    const client = new PazaramaClient(config);
+    const attributes = await client.getCategoryAttributes(categoryId);
+
+    return {
+      success: true,
+      data: attributes,
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Attribute çekme hatası." };
   }
 }
 

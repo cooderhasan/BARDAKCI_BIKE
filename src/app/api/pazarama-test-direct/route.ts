@@ -50,8 +50,6 @@ export async function GET() {
       ? "https://stage-isortagimapi.pazarama.com"
       : "https://isortagimapi.pazarama.com";
 
-    const pedalCategoryId = "4580478b-7b8c-432b-b6e0-b945130425d9";
-
     const endpoints = [
       // Categories & Category Attributes
       { name: "GET /category/get-categories", url: `${baseUrl}/category/get-categories`, method: "GET" },

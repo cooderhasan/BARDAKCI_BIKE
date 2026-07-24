@@ -39,7 +39,7 @@ export interface PazaramaProductInput {
   stockQuantity: number;
   vatRate: number;
   images: string[];
-  attributes?: Record<string, string>;
+  attributes?: Array<{ attributeId: string; attributeValueId: string }>;
 }
 
 export interface PazaramaBatchResult {

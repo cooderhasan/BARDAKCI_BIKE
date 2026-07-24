@@ -13,6 +13,7 @@ import {
   togglePazaramaProductActive,
   syncProductsToPazarama,
   syncPazaramaStockAndPrice,
+  getPazaramaCategoryAttributes,
 } from "../actions";
 import {
   Search,
@@ -22,6 +23,7 @@ import {
   Package,
   Layers,
   Sparkles,
+  X,
 } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 
@@ -52,6 +54,16 @@ export function PazaramaProductList({ initialProducts }: PazaramaProductListProp
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");
   const [isPending, startTransition] = useTransition();
+  
+  const [showAttributeModal, setShowAttributeModal] = useState(false);
+  const [categoryAttributes, setCategoryAttributes] = useState<Array<{
+    attributeId: string;
+    attributeName: string;
+    isRequired: boolean;
+    values: Array<{ attributeValueId: string; value: string }>;
+  }>>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  const [isLoadingAttributes, setIsLoadingAttributes] = useState(false);
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -98,8 +110,46 @@ export function PazaramaProductList({ initialProducts }: PazaramaProductListProp
       return;
     }
 
+    const selectedProducts = products.filter((p) => selectedIds.includes(p.id));
+    const firstProduct = selectedProducts[0];
+    
+    if (!firstProduct) {
+      toast.error("Ürün bulunamadı.");
+      return;
+    }
+
+    const pedalCategoryId = "4580478b-7b8c-432b-b6e0-b945130425d9";
+    
+    setIsLoadingAttributes(true);
+    setShowAttributeModal(true);
+    
+    try {
+      const res = await getPazaramaCategoryAttributes(pedalCategoryId);
+      if (res.success && res.data) {
+        setCategoryAttributes(res.data);
+        setSelectedAttributes({});
+      } else {
+        toast.error(res.message || "Attribute çekme hatası.");
+        setShowAttributeModal(false);
+      }
+    } catch (error) {
+      toast.error("Attribute çekme hatası.");
+      setShowAttributeModal(false);
+    } finally {
+      setIsLoadingAttributes(false);
+    }
+  };
+
+  const handleAttributeSync = async () => {
+    const attributes = Object.entries(selectedAttributes).map(([attributeId, attributeValueId]) => ({
+      attributeId,
+      attributeValueId,
+    }));
+
+    setShowAttributeModal(false);
+
     startTransition(async () => {
-      const res = await syncProductsToPazarama(selectedIds);
+      const res = await syncProductsToPazarama(selectedIds, attributes);
       if (res.success) {
         toast.success(res.message);
         setSelectedIds([]);
@@ -343,6 +393,88 @@ export function PazaramaProductList({ initialProducts }: PazaramaProductListProp
           </div>
         </CardContent>
       </Card>
+
+      {showAttributeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b p-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Pazarama Kategori Attribute Seçimi</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAttributeModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {isLoadingAttributes ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 animate-spin text-pink-600" />
+                  <span className="ml-2">Attribute'lar yükleniyor...</span>
+                </div>
+              ) : categoryAttributes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Bu kategori için attribute bulunamadı.
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Seçili ürünler için zorunlu attribute değerlerini seçiniz:
+                  </p>
+
+                  {categoryAttributes.map((attr) => (
+                    <div key={attr.attributeId} className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        {attr.attributeName}
+                        {attr.isRequired && (
+                          <span className="text-red-500 text-xs">*</span>
+                        )}
+                      </label>
+                      <select
+                        className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                        value={selectedAttributes[attr.attributeId] || ""}
+                        onChange={(e) =>
+                          setSelectedAttributes((prev) => ({
+                            ...prev,
+                            [attr.attributeId]: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">Seçiniz...</option>
+                        {attr.values.map((val) => (
+                          <option key={val.attributeValueId} value={val.attributeValueId}>
+                            {val.value}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      onClick={handleAttributeSync}
+                      className="flex-1 bg-[#D81B60] hover:bg-[#C2185B] text-white"
+                      disabled={isPending}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      {isPending ? "Gönderiliyor..." : "Pazarama'ya Gönder"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAttributeModal(false)}
+                      disabled={isPending}
+                    >
+                      İptal
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
