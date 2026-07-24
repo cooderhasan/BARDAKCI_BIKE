@@ -205,31 +205,34 @@ export class PazaramaClient {
   ): Promise<PazaramaBatchResult> {
     try {
       const headers = await this.getHeaders();
+      const productList = products.map((p) => {
+        const rawImages = p.images || [];
+        const imageObjects = rawImages.map((url) => ({ imageurl: url, url }));
+        return {
+          code: p.code,
+          groupCode: p.code,
+          name: p.title,
+          title: p.title,
+          displayName: p.title,
+          description: p.description,
+          barcode: p.barcode,
+          brandId: p.brandId,
+          categoryId: p.categoryId,
+          listPrice: p.listPrice,
+          salePrice: p.salePrice,
+          stockQuantity: p.stockQuantity,
+          stockCount: p.stockQuantity,
+          vatRate: p.vatRate,
+          desi: 1,
+          images: imageObjects,
+          imageUrls: rawImages,
+          attributes: p.attributes || [],
+        };
+      });
+
       const payload = {
-        items: products.map((p) => {
-          const rawImages = p.images || [];
-          const imageObjects = rawImages.map((url) => ({ imageurl: url, url }));
-          return {
-            code: p.code,
-            groupCode: p.code,
-            name: p.title,
-            title: p.title,
-            displayName: p.title,
-            description: p.description,
-            barcode: p.barcode,
-            brandId: p.brandId,
-            categoryId: p.categoryId,
-            listPrice: p.listPrice,
-            salePrice: p.salePrice,
-            stockQuantity: p.stockQuantity,
-            stockCount: p.stockQuantity,
-            vatRate: p.vatRate,
-            desi: 1,
-            images: imageObjects,
-            imageUrls: rawImages,
-            attributes: p.attributes || [],
-          };
-        }),
+        products: productList,
+        items: productList,
       };
 
       const candidateEndpoints = [
@@ -302,12 +305,15 @@ export class PazaramaClient {
   ): Promise<{ success: boolean; message: string }> {
     try {
       const headers = await this.getHeaders();
+      const itemList = items.map((i) => ({
+        code: i.code,
+        stockQuantity: i.stock,
+        stockCount: i.stock,
+        salePrice: i.price,
+      }));
       const payload = {
-        items: items.map((i) => ({
-          code: i.code,
-          stockQuantity: i.stock,
-          salePrice: i.price,
-        })),
+        products: itemList,
+        items: itemList,
       };
 
       const candidateEndpoints = [
