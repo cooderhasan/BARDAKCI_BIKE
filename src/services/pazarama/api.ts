@@ -162,28 +162,31 @@ export class PazaramaClient {
       ];
 
       for (const endpoint of endpoints) {
-        try {
-          const res = await fetch(endpoint, {
-            method: "GET",
-            headers,
-            cache: "no-store",
-          });
+        for (const method of ["GET", "POST"]) {
+          try {
+            const res = await fetch(endpoint, {
+              method,
+              headers,
+              ...(method === "POST" ? { body: JSON.stringify({}) } : {}),
+              cache: "no-store",
+            });
 
-          if (!res.ok) continue;
+            if (!res.ok) continue;
 
-          const data = await res.json();
-          const list =
-            data?.data?.categories ||
-            data?.data ||
-            data?.result?.categories ||
-            data?.result ||
-            (Array.isArray(data) ? data : null);
+            const data = await res.json();
+            const list =
+              data?.data?.categories ||
+              data?.data ||
+              data?.result?.categories ||
+              data?.result ||
+              (Array.isArray(data) ? data : null);
 
-          if (Array.isArray(list) && list.length > 0) {
-            return list as PazaramaCategory[];
+            if (Array.isArray(list) && list.length > 0) {
+              return list as PazaramaCategory[];
+            }
+          } catch (e) {
+            // try next method/endpoint
           }
-        } catch (e) {
-          // try next endpoint
         }
       }
 
