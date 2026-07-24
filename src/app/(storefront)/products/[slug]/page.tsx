@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ProductDetail } from "@/components/storefront/product-detail";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Metadata } from "next";
@@ -84,6 +84,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
     });
 
     if (!product) {
+        // SEO-Friendly 301 Redirect Check: If product exists in DB for the other store, redirect to correct domain
+        const existInOtherStore = await prisma.product.findFirst({
+            where: { slug, isActive: true },
+            select: { store: true },
+        });
+
+        if (existInOtherStore) {
+            if (existInOtherStore.store === "MOTOR" && activeStore === "BIKE") {
+                redirect(`https://motor.bardakcibike.com.tr/products/${slug}`);
+            } else if (existInOtherStore.store === "BIKE" && activeStore === "MOTOR") {
+                redirect(`https://www.bardakcibike.com.tr/products/${slug}`);
+            }
+        }
+
         notFound();
     }
 
