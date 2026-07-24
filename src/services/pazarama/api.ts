@@ -197,8 +197,8 @@ export class PazaramaClient {
 
   /**
    * Create / Upload product batch
-   * Pazarama ürün ekleme endpoint: /productInput/createProduct
-   * Payload: { products: [...] } – PascalCase alanlar
+   * Pazarama ürün ekleme endpoint: /product/create
+   * Payload: { products: [...] } – Karışık casing (PascalCase + camelCase)
    */
   async createProductBatch(
     products: PazaramaProductInput[]
@@ -208,41 +208,36 @@ export class PazaramaClient {
 
       const productList = products.map((p) => {
         const rawImages = p.images || [];
-        const imageObjects = rawImages.map((url, idx) => ({
+        const imageObjects = rawImages.map((url) => ({
           imageurl: url,
-          displayOrder: idx + 1,
-          isMain: idx === 0,
         }));
-        // GroupCode max 10 karakter (Pazarama dok: nvarchar(10))
         const groupCode = (p.code || "").substring(0, 10);
-        // StockCode = ürünün stok kodu (zorunlu alan)
         const stockCode = p.code || "";
         return {
           Name: p.title,
           DisplayName: p.title,
           Description: p.description || p.title,
-          BrandId: p.brandId,
+          brandId: p.brandId,
           CategoryId: p.categoryId,
-          Code: p.barcode || p.code,   // Code = barkod bilgisi
-          GroupCode: groupCode,          // max 10 karakter
-          StockCode: stockCode,          // stok kodu – ZORUNLU
+          Code: p.barcode || p.code,
+          groupCode: groupCode,
+          stockCode: stockCode,
           StockCount: p.stockQuantity,
           VatRate: p.vatRate || 20,
           ListPrice: p.listPrice,
           SalePrice: p.salePrice,
+          currencyType: "TRY",
           Desi: 1,
           images: imageObjects,
           attributes: p.attributes || [],
+          deliveries: [],
         };
       });
 
       const payload = { products: productList };
 
       const endpoints = [
-        `${this.baseUrl}/productInput/createProduct`,
-        `${this.baseUrl}/product/createProduct`,
-        `${this.baseUrl}/productInput/create-product`,
-        `${this.baseUrl}/api/v1/productInput/createProduct`,
+        `${this.baseUrl}/product/create`,
       ];
 
       for (const endpoint of endpoints) {
