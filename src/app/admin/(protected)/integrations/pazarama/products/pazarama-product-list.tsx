@@ -303,16 +303,36 @@ export function PazaramaProductList({ initialProducts }: PazaramaProductListProp
                           />
                         </TableCell>
                         <TableCell className="text-right">
-                          {product.isPazaramaActive ? (
-                            <Badge className="bg-pink-100 text-pink-700 border-pink-200">
-                              <Sparkles className="w-3 h-3 mr-1 text-pink-600" />
-                              {product.pazaramaStatus || "Aktif"}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Pasif
-                            </Badge>
-                          )}
+                          <div className="flex flex-col items-end gap-1">
+                            {product.isPazaramaActive ? (
+                              <Badge className="bg-pink-100 text-pink-700 border-pink-200">
+                                <Sparkles className="w-3 h-3 mr-1 text-pink-600" />
+                                {product.pazaramaStatus || "Aktif"}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                Pasif
+                              </Badge>
+                            )}
+                            {product.pazaramaBatchId && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  toast.info(`Paket ${product.pazaramaBatchId} sorgulanıyor...`);
+                                  const { checkPazaramaBatchStatus } = await import("../actions");
+                                  const res = await checkPazaramaBatchStatus(product.pazaramaBatchId!);
+                                  if (res.success) {
+                                    alert(`Pazarama Paket Durumu:\n\n` + JSON.stringify(res.data, null, 2));
+                                  } else {
+                                    toast.error(res.message || "Paket sorgulanamadı.");
+                                  }
+                                }}
+                                className="text-[10px] text-pink-600 underline font-mono hover:text-pink-800"
+                              >
+                                Paket Logu Gör
+                              </button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

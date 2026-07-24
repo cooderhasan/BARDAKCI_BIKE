@@ -386,4 +386,36 @@ export class PazaramaClient {
       return [];
     }
   }
+
+  /**
+   * Query Batch Result & Error Log by BatchId
+   */
+  async getBatchStatus(batchId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const headers = await this.getHeaders();
+      const candidateEndpoints = [
+        `${this.baseUrl}/product/get-batch-result?batchRequestId=${batchId}`,
+        `${this.baseUrl}/product/getBatchResult?batchRequestId=${batchId}`,
+        `${this.baseUrl}/product/get-batch-status?batchRequestId=${batchId}`,
+        `${this.baseUrl}/api/v1/product/getBatchResult?batchRequestId=${batchId}`,
+        `${this.baseUrl}/product/batch-result?batchRequestId=${batchId}`,
+      ];
+
+      for (const endpoint of candidateEndpoints) {
+        try {
+          const res = await fetch(endpoint, { method: "GET", headers });
+          if (res.ok) {
+            const data = await res.json();
+            return { success: true, data };
+          }
+        } catch {
+          // try next
+        }
+      }
+
+      return { success: false, error: "Pazarama toplu işlem sonucu henüz sorgulanamadı veya paket hazır değil." };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
 }

@@ -269,3 +269,22 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
     return { success: false, message: error.message || "Güncelleme hatası." };
   }
 }
+
+export async function checkPazaramaBatchStatus(batchId: string) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst();
+    if (!config || !config.isActive) {
+      return { success: false, message: "Pazarama entegrasyonu aktif değil." };
+    }
+
+    const client = new PazaramaClient(config);
+    const result = await client.getBatchStatus(batchId);
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      return { success: false, message: result.error || "Paket durumu çekilemedi." };
+    }
+  } catch (error: any) {
+    return { success: false, message: error.message || "Sorgulama hatası." };
+  }
+}
