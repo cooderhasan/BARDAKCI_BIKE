@@ -206,20 +206,30 @@ export class PazaramaClient {
     try {
       const headers = await this.getHeaders();
       const payload = {
-        items: products.map((p) => ({
-          code: p.code,
-          title: p.title,
-          description: p.description,
-          barcode: p.barcode,
-          brandId: p.brandId,
-          categoryId: p.categoryId,
-          listPrice: p.listPrice,
-          salePrice: p.salePrice,
-          stockQuantity: p.stockQuantity,
-          vatRate: p.vatRate,
-          images: p.images,
-          attributes: p.attributes,
-        })),
+        items: products.map((p) => {
+          const rawImages = p.images || [];
+          const imageObjects = rawImages.map((url) => ({ imageurl: url, url }));
+          return {
+            code: p.code,
+            groupCode: p.code,
+            name: p.title,
+            title: p.title,
+            displayName: p.title,
+            description: p.description,
+            barcode: p.barcode,
+            brandId: p.brandId,
+            categoryId: p.categoryId,
+            listPrice: p.listPrice,
+            salePrice: p.salePrice,
+            stockQuantity: p.stockQuantity,
+            stockCount: p.stockQuantity,
+            vatRate: p.vatRate,
+            desi: 1,
+            images: imageObjects,
+            imageUrls: rawImages,
+            attributes: p.attributes || [],
+          };
+        }),
       };
 
       const candidateEndpoints = [

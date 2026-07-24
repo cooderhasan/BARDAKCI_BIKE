@@ -175,10 +175,17 @@ export async function syncProductsToPazarama(productIds: string[]) {
     const client = new PazaramaClient(config);
     const profitMargin = config.profitMargin || 0;
 
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+
     const payloadProducts = products.map((p) => {
       const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
       const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
       const catWithPazarama = p.categories.find((c) => c.pazaramaCategoryId) || p.categories[0];
+
+      const formattedImages = (p.images || []).map((img) => {
+        if (img.startsWith("http")) return img;
+        return `${siteUrl}${img.startsWith("/") ? "" : "/"}${img}`;
+      });
 
       return {
         code: p.sku || p.id,
@@ -191,7 +198,7 @@ export async function syncProductsToPazarama(productIds: string[]) {
         salePrice: Math.round(finalPrice * 100) / 100,
         stockQuantity: p.stock,
         vatRate: p.vatRate || 20,
-        images: p.images || [],
+        images: formattedImages,
       };
     });
 
