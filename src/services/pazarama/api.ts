@@ -422,70 +422,98 @@ export class PazaramaClient {
   }
 
   /**
-   * Update Stock & Price for product batch
-   * Pazarama endpoint: /productInput/updatePriceAndStock
+   * Update Stock & Price for Pazarama products
+   * Pazarama endpoints: /product/updatePriceAndStock, /productInput/updatePriceAndStock, /product/updatePrice
    */
   async updateStockAndPrice(
-    items: Array<{ code: string; stock: number; price: number }>
+    items: Array<{ code: string; stock: number; price: number; listPrice?: number }>
   ): Promise<{ success: boolean; message: string }> {
     try {
       const headers = await this.getHeaders();
 
-      const productList = items.map((i) => ({
-        Code: i.code,
-        StockCount: i.stock,
-        SalePrice: i.price,
-        ListPrice: i.price,
-      }));
-      const payload = { products: productList };
+      // Pazarama supports multiple body wrapper formats
+      const payloads = [
+        // 1. Pazarama items (camelCase)
+        {
+          items: items.map((i) => ({
+            code: i.code,
+            stockCount: i.stock,
+            salePrice: i.price,
+            listPrice: i.listPrice || i.price,
+          })),
+        },
+        // 2. Pazarama products (PascalCase)
+        {
+          products: items.map((i) => ({
+            Code: i.code,
+            StockCount: i.stock,
+            SalePrice: i.price,
+            ListPrice: i.listPrice || i.price,
+          })),
+        },
+        // 3. Array at root level
+        items.map((i) => ({
+          code: i.code,
+          stockCount: i.stock,
+          salePrice: i.price,
+          listPrice: i.listPrice || i.price,
+        })),
+      ];
 
       const endpoints = [
-        `${this.baseUrl}/productInput/updatePriceAndStock`,
         `${this.baseUrl}/product/updatePriceAndStock`,
+        `${this.baseUrl}/productInput/updatePriceAndStock`,
+        `${this.baseUrl}/product/update-price-and-stock`,
         `${this.baseUrl}/productInput/update-price-and-stock`,
+        `${this.baseUrl}/product/updatePrice`,
+        `${this.baseUrl}/productInput/updatePrice`,
+        `${this.baseUrl}/api/v1/product/updatePriceAndStock`,
         `${this.baseUrl}/api/v1/productInput/updatePriceAndStock`,
       ];
 
       for (const endpoint of endpoints) {
-        try {
-          console.log(`[Pazarama] POST ${endpoint} - ${productList.length} ürün güncelleniyor`);
+        for (const payload of payloads) {
+          try {
+            console.log(`[Pazarama] POST ${endpoint} - ${items.length} ürün güncelleniyor`);
 
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-            cache: "no-store",
-          });
+            const res = await fetch(endpoint, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(payload),
+              cache: "no-store",
+            });
 
-          const rawText = await res.text().catch(() => "");
-          console.log(`[Pazarama] Stok güncelleme HTTP ${res.status} (${endpoint}):`, rawText.substring(0, 400));
+            const rawText = await res.text().catch(() => "");
+            console.log(`[Pazarama] Stok/Fiyat güncelleme HTTP ${res.status} (${endpoint}):`, rawText.substring(0, 400));
 
-          if (res.status === 404) continue;
+            if (res.status === 404 || res.status === 405) continue;
 
-          let data: any = {};
-          try { data = JSON.parse(rawText); } catch { /* ok */ }
+            let data: any = {};
+            try { data = JSON.parse(rawText); } catch { /* ok */ }
 
-          if (!res.ok) {
-            const errMsg = data?.message || data?.Message || rawText.substring(0, 200) || `HTTP ${res.status}`;
-            return { success: false, message: `Stok/Fiyat Güncelleme Hatası: ${errMsg}` };
+            if (!res.ok) {
+              const errMsg = data?.message || data?.Message || data?.error || rawText.substring(0, 200) || `HTTP ${res.status}`;
+              if (res.status === 400 || res.status === 422) continue; // Try next payload structure
+              return { success: false, message: `Stok/Fiyat Güncelleme Hatası: ${errMsg}` };
+            }
+
+            if (data?.isSuccess === false || data?.success === false) {
+              const errMsg = data?.message || data?.Message || "Güncelleme reddedildi.";
+              return { success: false, message: `Pazarama Hata: ${errMsg}` };
+            }
+
+            return {
+              success: true,
+              message: `${items.length} adet ürünün stok ve fiyatı Pazarama'da güncellendi.`,
+            };
+          } catch (e: any) {
+            console.log(`[Pazarama] Stok/Fiyat güncelleme endpoint hatası (${endpoint}):`, e.message);
+            continue;
           }
-
-          if (data?.isSuccess === false || data?.success === false) {
-            const errMsg = data?.message || data?.Message || "Güncelleme reddedildi.";
-            return { success: false, message: `Pazarama Hata: ${errMsg}` };
-          }
-
-          return {
-            success: true,
-            message: `${items.length} adet ürünün stok ve fiyatı Pazarama'da güncellendi.`,
-          };
-        } catch (e: any) {
-          console.log(`[Pazarama] Stok güncelleme endpoint hatası (${endpoint}):`, e.message);
-          continue;
         }
       }
 
-      return { success: false, message: "Pazarama: Hiçbir stok/fiyat güncelleme endpoint'i yanıt vermedi (tümü 404)." };
+      return { success: false, message: "Pazarama: Hiçbir stok/fiyat güncelleme endpoint'i yanıt vermedi." };
     } catch (error: any) {
       return {
         success: false,

@@ -139,6 +139,14 @@ export function initializeWorker() {
                         if (!result.success) throw new Error(result.message);
                         console.log(`✅ Tamamlandı: Idefix Sync - ${result.message}`);
                     }
+                } else if (job.data.marketplace === "pazarama") {
+                    const pazaramaConfig = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+                    if (pazaramaConfig && job.data.productIds && job.data.productIds.length > 0) {
+                        const { syncPazaramaStockAndPrice } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
+                        const result = await syncPazaramaStockAndPrice(job.data.productIds);
+                        if (!result.success) throw new Error(result.message);
+                        console.log(`✅ Tamamlandı: Pazarama Sync - ${result.message}`);
+                    }
                 }
                 
                 await job.updateProgress(100);

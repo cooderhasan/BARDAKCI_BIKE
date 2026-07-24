@@ -342,12 +342,17 @@ export async function updateProduct(productId: string, formData: FormData) {
             if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId], "prices").catch(console.error);
             if (validatedData.isN11Active) syncProductsToN11([productId]).catch(console.error);
             if (validatedData.isHepsiburadaActive) syncProductsToHepsiburada([productId]).catch(console.error);
+            if (validatedData.isPazaramaActive) {
+                const { syncPazaramaStockAndPrice } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
+                syncPazaramaStockAndPrice([productId]).catch(console.error);
+            }
             
             // Yedek olarak kuyruğa da ekle (Redis/worker çalışıyorsa ikinci güvence)
             const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
             await addMarketplaceSyncJob({ marketplace: "trendyol", type: "prices", productIds: [productId] }).catch(console.error);
             await addMarketplaceSyncJob({ marketplace: "n11", type: "prices", productIds: [productId] }).catch(console.error);
             await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "prices", productIds: [productId] }).catch(console.error);
+            await addMarketplaceSyncJob({ marketplace: "pazarama", type: "prices", productIds: [productId] }).catch(console.error);
         } catch (e) {
             console.error("Marketplace instant sync error:", e);
         }

@@ -68,10 +68,11 @@ export async function pushZeroStockToAllMarketplaces(productIds: string[]): Prom
         pushZeroStockToTrendyol(productIds),
         pushZeroStockToN11(productIds),
         pushZeroStockToHepsiburada(productIds),
+        pushZeroStockToPazarama(productIds),
     ]);
 
     for (const [index, result] of results.entries()) {
-        const marketplaces = ["Trendyol", "N11", "Hepsiburada"];
+        const marketplaces = ["Trendyol", "N11", "Hepsiburada", "Pazarama"];
         if (result.status === "fulfilled") {
             console.log(`✅ [Kritik Stok] ${marketplaces[index]} stok=0 gönderildi`);
         } else {
@@ -120,6 +121,7 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: normalIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: normalIds }).catch(console.error),
             ]);
         }
     } catch (error) {
@@ -131,6 +133,7 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: affectedProductIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: affectedProductIds }).catch(console.error),
             ]);
         } catch (e) {
             console.error("❌ [PostOrder StockSync] Yedek kuyruk da başarısız:", e);
@@ -331,4 +334,42 @@ async function pushZeroStockToHepsiburada(productIds: string[]): Promise<void> {
     if (hbItems.length === 0) return;
 
     await client.uploadInventory(hbItems);
+}
+
+/**
+ * Pazarama'ya doğrudan stok=0 gönderir
+ */
+async function pushZeroStockToPazarama(productIds: string[]): Promise<void> {
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (!config) return;
+
+    const { PazaramaClient } = await import("@/services/pazarama/api");
+    const client = new PazaramaClient(config);
+
+    const products = await prisma.product.findMany({
+        where: {
+            id: { in: productIds },
+            isActive: true,
+            isPazaramaActive: true,
+        },
+        select: { id: true, barcode: true, sku: true, salePrice: true, listPrice: true, pazaramaPrice: true },
+    });
+
+    if (products.length === 0) return;
+
+    const profitMargin = config.profitMargin || 0;
+    const items = products.map((p) => {
+        const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
+        const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
+        return {
+            code: p.barcode || p.sku || p.id,
+            stock: 0,
+            price: Math.round(finalPrice * 100) / 100,
+        };
+    });
+
+    const result = await client.updateStockAndPrice(items);
+    if (!result.success) {
+        throw new Error(`Pazarama stok=0 hatası: ${result.message || "Bilinmeyen"}`);
+    }
 }
