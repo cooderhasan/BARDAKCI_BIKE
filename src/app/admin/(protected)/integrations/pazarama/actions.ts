@@ -320,6 +320,110 @@ export async function savePazaramaBrandsBulk(rawInput: string) {
   }
 }
 
+/**
+ * Pazarama API'sinden Canlı Olarak Tüm Kategori ve Marka Ağacını Çeker ve Veritabanında ÖnBelleğe Alır.
+ */
+export async function syncPazaramaCategoriesAndBrandsFromApi() {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst();
+    if (!config || !config.apiKey || !config.apiSecret) {
+      return {
+        success: false,
+        message:
+          "Pazarama API Kimlik bilgileriniz (API Key / Secret) henüz kaydedilmemiş. Lütfen Pazarama Ayarlar sayfasından bilgilerinizi giriniz.",
+      };
+    }
+
+    const client = new PazaramaClient(config);
+
+    // 1. Kategorileri API'den çek
+    let catCount = 0;
+    try {
+      const categories = await client.getCategories();
+      if (categories && categories.length > 0) {
+        const flatten = (cats: any[], prefix = ""): Array<{ id: string; name: string }> => {
+          let res: Array<{ id: string; name: string }> = [];
+          for (const c of cats) {
+            const id = String(c.id || c.categoryId || c.code || "").trim();
+            const name = String(c.name || c.categoryName || c.title || "").trim();
+            const fullName = prefix ? `${prefix} > ${name}` : name;
+            if (id && name) res.push({ id, name: fullName });
+            const subs = c.subCategories || c.subCategoriesList || c.children || c.items;
+            if (Array.isArray(subs)) {
+              res = res.concat(flatten(subs, fullName));
+            }
+          }
+          return res;
+        };
+
+        const flattenedCats = flatten(categories);
+        if (flattenedCats.length > 0) {
+          catCount = flattenedCats.length;
+          await prisma.siteSettings.upsert({
+            where: { key: "pazarama_categories" },
+            create: {
+              key: "pazarama_categories",
+              value: { items: flattenedCats, updatedAt: new Date().toISOString() },
+            },
+            update: {
+              value: { items: flattenedCats, updatedAt: new Date().toISOString() },
+            },
+          });
+        }
+      }
+    } catch (e: any) {
+      console.error("Categories fetch error:", e);
+    }
+
+    // 2. Markaları API'den çek
+    let brandCount = 0;
+    try {
+      const brands = await client.getBrands();
+      if (brands && brands.length > 0) {
+        brandCount = brands.length;
+        await prisma.siteSettings.upsert({
+          where: { key: "pazarama_brands" },
+          create: {
+            key: "pazarama_brands",
+            value: { items: brands, updatedAt: new Date().toISOString() },
+          },
+          update: {
+            value: { items: brands, updatedAt: new Date().toISOString() },
+          },
+        });
+      }
+    } catch (e: any) {
+      console.error("Brands fetch error:", e);
+    }
+
+    try {
+      revalidatePath("/admin/categories");
+      revalidatePath("/admin/brands");
+      revalidatePath("/admin/integrations/pazarama");
+    } catch {}
+
+    if (catCount === 0 && brandCount === 0) {
+      return {
+        success: false,
+        message:
+          "Pazarama API'sinden kategori veya marka yanıtı alınamadı. API Key ve Secret bilgilerinizi kontrol ediniz.",
+      };
+    }
+
+    return {
+      success: true,
+      message: `Başarılı! Pazarama API'sinden ${catCount} kategori ve ${brandCount} marka başarıyla çekilerek kaydedildi.`,
+      catCount,
+      brandCount,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `Pazarama API çekme hatası: ${error.message || "Bilinmeyen hata"}`,
+    };
+  }
+}
+
 // ==================== PRODUCT ACTIONS ====================
 
 export async function getPazaramaProducts() {

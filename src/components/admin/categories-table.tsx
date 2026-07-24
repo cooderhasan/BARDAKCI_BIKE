@@ -858,6 +858,27 @@ function PazaramaCategorySearch({
         }
     };
 
+    const [syncingApi, setSyncingApi] = useState(false);
+
+    const handleApiSync = async () => {
+        setSyncingApi(true);
+        try {
+            const { syncPazaramaCategoriesAndBrandsFromApi } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
+            const res = await syncPazaramaCategoriesAndBrandsFromApi();
+            if (res.success) {
+                toast.success(res.message);
+                setAllCategories([]);
+                await fetchCategories(true);
+            } else {
+                toast.error(res.message);
+            }
+        } catch {
+            toast.error("API çekme hatası.");
+        } finally {
+            setSyncingApi(false);
+        }
+    };
+
     const handleBulkSave = async () => {
         if (!pasteText.trim()) return;
         setSavingPaste(true);
@@ -920,13 +941,24 @@ function PazaramaCategorySearch({
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] pt-1 px-1">
-                        <button
-                            type="button"
-                            onClick={() => setShowPasteBox(!showPasteBox)}
-                            className="text-pink-700 hover:underline font-semibold flex items-center gap-1"
-                        >
-                            📋 Toplu Kategori Yapıştır / Yükle
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={handleApiSync}
+                                disabled={syncingApi}
+                                className="text-pink-700 hover:underline font-semibold flex items-center gap-1"
+                            >
+                                {syncingApi ? <Loader2 className="w-3 h-3 animate-spin" /> : "🌐 Pazarama API'den Çek"}
+                            </button>
+                            <span className="text-gray-300">|</span>
+                            <button
+                                type="button"
+                                onClick={() => setShowPasteBox(!showPasteBox)}
+                                className="text-pink-600 hover:underline font-medium flex items-center gap-1"
+                            >
+                                📋 Toplu Yapıştır
+                            </button>
+                        </div>
                         <button
                             type="button"
                             onClick={() => setIsManual(true)}
