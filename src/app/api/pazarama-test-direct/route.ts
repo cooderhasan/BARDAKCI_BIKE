@@ -37,6 +37,15 @@ export async function GET() {
       return NextResponse.json({ error: "Token hatası", tokenErr: tokenErr.message, debugLog });
     }
 
+    debugLog.step = "Testing getCategoryAttributes";
+    const pedalCategoryId = "4580478b-7b8c-432b-b6e0-b945130425d9";
+    const attributes = await client.getCategoryAttributes(pedalCategoryId);
+    debugLog.categoryAttributes = {
+      categoryId: pedalCategoryId,
+      attributeCount: attributes.length,
+      attributes: attributes,
+    };
+
     const baseUrl = config.isTestMode
       ? "https://stage-isortagimapi.pazarama.com"
       : "https://isortagimapi.pazarama.com";

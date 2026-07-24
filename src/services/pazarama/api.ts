@@ -152,7 +152,6 @@ export class PazaramaClient {
   async getCategories(): Promise<PazaramaCategory[]> {
     try {
       const headers = await this.getHeaders();
-      // Pazarama gerçek endpoint sırası (dokümana göre)
       const endpoints = [
         { url: `${this.baseUrl}/category/getCategoryWithAttributes`, method: "GET" },
         { url: `${this.baseUrl}/category/getCategoryWithAttributes`, method: "POST" },
@@ -191,6 +190,66 @@ export class PazaramaClient {
       return [];
     } catch (error) {
       console.error("Pazarama getCategories error:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch category attributes (required for product upload)
+   * Endpoint: /category/getCategoryWithAttributes?categoryId={id}
+   */
+  async getCategoryAttributes(categoryId: string): Promise<Array<{
+    attributeId: string;
+    attributeName: string;
+    isRequired: boolean;
+    values: Array<{ attributeValueId: string; value: string }>;
+  }>> {
+    try {
+      const headers = await this.getHeaders();
+      const endpoints = [
+        `${this.baseUrl}/category/getCategoryWithAttributes?categoryId=${encodeURIComponent(categoryId)}`,
+        `${this.baseUrl}/category/getCategoryAttributes?categoryId=${encodeURIComponent(categoryId)}`,
+        `${this.baseUrl}/category/get-category-attributes?categoryId=${encodeURIComponent(categoryId)}`,
+      ];
+
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, {
+            method: "GET",
+            headers,
+            cache: "no-store",
+          });
+
+          if (!res.ok) continue;
+
+          const data = await res.json();
+          const attrs =
+            data?.data?.attributes ||
+            data?.data?.[0]?.attributes ||
+            data?.data ||
+            data?.result?.attributes ||
+            (Array.isArray(data) ? data : null);
+
+          if (Array.isArray(attrs) && attrs.length > 0) {
+            console.log(`[Pazarama] Kategori ${categoryId} için ${attrs.length} attribute bulundu`);
+            return attrs.map((a: any) => ({
+              attributeId: a.attributeId || a.id,
+              attributeName: a.attributeName || a.name,
+              isRequired: a.isRequired ?? false,
+              values: (a.values || a.attributeValues || []).map((v: any) => ({
+                attributeValueId: v.attributeValueId || v.id,
+                value: v.value || v.name,
+              })),
+            }));
+          }
+        } catch (e) {
+          // try next endpoint
+        }
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Pazarama getCategoryAttributes error:", error);
       return [];
     }
   }
