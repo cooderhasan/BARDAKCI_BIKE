@@ -479,19 +479,98 @@ export class PazaramaClient {
   }
 
   /**
+   * Pazarama Stok Güncelleme API Servisi
+   * Endpoint: POST /product/updateStock or POST /product/updateStock-v2
+   */
+  async updateStock(
+    items: Array<{ code: string; stock: number }>
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const headers = await this.getHeaders();
+      const payload = {
+        items: items.map((i) => ({
+          code: i.code,
+          stockCount: i.stock,
+        })),
+      };
+
+      const endpoints = [
+        `${this.baseUrl}/product/updateStock`,
+        `${this.baseUrl}/product/updateStock-v2`,
+        `${this.baseUrl}/productInput/updateStock`,
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`[Pazarama] POST ${endpoint} - ${items.length} ürün stoku güncelleniyor`);
+
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+            cache: "no-store",
+          });
+
+          const rawText = await res.text().catch(() => "");
+          console.log(`[Pazarama] Stok Güncelleme HTTP ${res.status} (${endpoint}):`, rawText.substring(0, 400));
+
+          if (res.status === 404 || res.status === 405) continue;
+
+          let data: any = {};
+          try { data = JSON.parse(rawText); } catch { /* ok */ }
+
+          if (!res.ok) {
+            const errMsg = data?.message || data?.Message || data?.error || rawText.substring(0, 200) || `HTTP ${res.status}`;
+            continue;
+          }
+
+          if (data?.isSuccess === false || data?.success === false) {
+            const errMsg = data?.message || data?.Message || data?.userMessage || "Stok güncelleme reddedildi.";
+            return { success: false, message: `Pazarama Hata: ${errMsg}` };
+          }
+
+          return {
+            success: true,
+            message: `${items.length} adet ürünün stoku Pazarama'da sıraya alındı.`,
+          };
+        } catch (e: any) {
+          console.log(`[Pazarama] Stok güncelleme endpoint hatası (${endpoint}):`, e.message);
+          continue;
+        }
+      }
+
+      return { success: false, message: "Pazarama: Stok güncelleme endpoint'i yanıt vermedi." };
+    } catch (error: any) {
+      return { success: false, message: `Stok güncelleme hatası: ${error.message}` };
+    }
+  }
+
+  /**
    * Update Stock & Price for Pazarama products
-   * Primary Endpoint: /product/updatePrice-v2
+   * Endpoints: /product/updatePrice-v2 & /product/updateStock
    */
   async updateStockAndPrice(
     items: Array<{ code: string; stock: number; price: number; listPrice?: number }>
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Pazarama fiyat güncelleme resmi v2 servisi
+      // 1. Fiyat Güncelle (updatePrice-v2)
       const priceRes = await this.updatePrice(
         items.map((i) => ({ code: i.code, salePrice: i.price, listPrice: i.listPrice }))
       );
 
-      return priceRes;
+      // 2. Stok Güncelle (updateStock)
+      const stockRes = await this.updateStock(
+        items.map((i) => ({ code: i.code, stock: i.stock }))
+      );
+
+      if (priceRes.success || stockRes.success) {
+        return {
+          success: true,
+          message: `${items.length} adet ürünün stok ve fiyatı Pazarama'da sıraya alındı.`,
+        };
+      }
+
+      return priceRes.success ? priceRes : stockRes;
     } catch (error: any) {
       return {
         success: false,
