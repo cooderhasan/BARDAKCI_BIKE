@@ -124,6 +124,11 @@ export async function getPazaramaProducts() {
         brand: {
           select: { name: true },
         },
+        categories: {
+          select: {
+            pazaramaCategoryId: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -135,6 +140,7 @@ export async function getPazaramaProducts() {
         listPrice: Number(p.listPrice),
         salePrice: p.salePrice ? Number(p.salePrice) : null,
         pazaramaPrice: p.pazaramaPrice ? Number(p.pazaramaPrice) : null,
+        pazaramaCategoryId: p.categories.find((c) => c.pazaramaCategoryId)?.pazaramaCategoryId || null,
       })),
     };
   } catch (error) {
@@ -232,32 +238,22 @@ export async function syncProductsToPazarama(
 }
 
 export async function getPazaramaCategoryAttributes(categoryId: string) {
-  // Pazarama API attribute endpoint'i boş dönüyor, hardcode kullanıyoruz
-  const pedalCategoryId = "4580478b-7b8c-432b-b6e0-b945130425d9";
-  
-  if (categoryId === pedalCategoryId) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst();
+    if (!config) {
+      return { success: false, message: "Pazarama ayarları bulunamadı." };
+    }
+
+    const client = new PazaramaClient(config);
+    const attributes = await client.getCategoryAttributes(categoryId);
+
     return {
       success: true,
-      data: [
-        {
-          attributeId: "3fac69b5-679a-46b3-94b1-fc6a7b7578c3",
-          attributeName: "Ürün Tipi",
-          isRequired: true,
-          values: [
-            { attributeValueId: "val_kal", value: "Kal" },
-            { attributeValueId: "val_pedal_karpiyesi", value: "Pedal Karpiyesi" },
-            { attributeValueId: "val_pedal_reflektoru", value: "Pedal Reflektörü" },
-            { attributeValueId: "val_pedal_kayisi", value: "Pedal Kayışı" },
-          ],
-        },
-      ],
+      data: attributes,
     };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Attribute çekme hatası." };
   }
-
-  return {
-    success: true,
-    data: [],
-  };
 }
 
 export async function syncPazaramaStockAndPrice(productIds: string[]) {

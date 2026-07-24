@@ -206,48 +206,39 @@ export class PazaramaClient {
   }>> {
     try {
       const headers = await this.getHeaders();
-      const endpoints = [
-        `${this.baseUrl}/category/getCategoryWithAttributes?categoryId=${encodeURIComponent(categoryId)}`,
-        `${this.baseUrl}/category/getCategoryAttributes?categoryId=${encodeURIComponent(categoryId)}`,
-        `${this.baseUrl}/category/get-category-attributes?categoryId=${encodeURIComponent(categoryId)}`,
-      ];
+      const url = `${this.baseUrl}/category/getCategoryWithAttributes?Id=${encodeURIComponent(categoryId)}`;
 
-      for (const url of endpoints) {
-        try {
-          const res = await fetch(url, {
-            method: "GET",
-            headers,
-            cache: "no-store",
-          });
+      console.log(`[Pazarama] GET ${url}`);
 
-          if (!res.ok) continue;
+      const res = await fetch(url, {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      });
 
-          const data = await res.json();
-          const attrs =
-            data?.data?.attributes ||
-            data?.data?.[0]?.attributes ||
-            data?.data ||
-            data?.result?.attributes ||
-            (Array.isArray(data) ? data : null);
+      const rawText = await res.text().catch(() => "");
+      console.log(`[Pazarama] Attribute HTTP ${res.status}:`, rawText.substring(0, 500));
 
-          if (Array.isArray(attrs) && attrs.length > 0) {
-            console.log(`[Pazarama] Kategori ${categoryId} için ${attrs.length} attribute bulundu`);
-            return attrs.map((a: any) => ({
-              attributeId: a.attributeId || a.id,
-              attributeName: a.attributeName || a.name,
-              isRequired: a.isRequired ?? false,
-              values: (a.values || a.attributeValues || []).map((v: any) => ({
-                attributeValueId: v.attributeValueId || v.id,
-                value: v.value || v.name,
-              })),
-            }));
-          }
-        } catch (e) {
-          // try next endpoint
-        }
+      if (!res.ok) return [];
+
+      const data = JSON.parse(rawText);
+      const attrs = data?.data?.attributes || [];
+
+      if (!Array.isArray(attrs) || attrs.length === 0) {
+        console.log(`[Pazarama] Kategori ${categoryId} için attribute bulunamadı`);
+        return [];
       }
 
-      return [];
+      console.log(`[Pazarama] Kategori ${categoryId} için ${attrs.length} attribute bulundu`);
+      return attrs.map((a: any) => ({
+        attributeId: a.id || a.attributeId,
+        attributeName: a.name || a.displayName || a.attributeName,
+        isRequired: a.isRequired ?? false,
+        values: (a.attributeValues || a.values || []).map((v: any) => ({
+          attributeValueId: v.id || v.attributeValueId,
+          value: v.value || v.name,
+        })),
+      }));
     } catch (error) {
       console.error("Pazarama getCategoryAttributes error:", error);
       return [];

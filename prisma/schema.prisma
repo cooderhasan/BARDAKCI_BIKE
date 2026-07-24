@@ -908,6 +908,22 @@ model PazaramaConfig {
   @@map("pazarama_configs")
 }
 
+model PazaramaCategoryAttribute {
+  id            String   @id @default(cuid())
+  categoryId    String   // Local kategori ID
+  pazaramaCategoryId String? // Pazarama kategori ID
+  attributeId   String   // Pazarama attribute ID
+  attributeName String   // Attribute adı (örn: "Ürün Tipi")
+  isRequired    Boolean  @default(true)
+  values        Json     // [{ attributeValueId: "...", value: "..." }]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([pazaramaCategoryId])
+  @@map("pazarama_category_attributes")
+}
+
 // ==================== PASSWORD RESET ====================
 
 model PasswordResetToken {

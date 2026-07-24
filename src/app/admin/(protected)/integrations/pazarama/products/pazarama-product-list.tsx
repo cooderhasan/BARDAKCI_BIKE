@@ -41,6 +41,7 @@ interface Product {
   isPazaramaActive: boolean;
   pazaramaStatus?: string | null;
   pazaramaBatchId?: string | null;
+  pazaramaCategoryId?: string | null;
   brand?: { name: string } | null;
 }
 
@@ -118,18 +119,22 @@ export function PazaramaProductList({ initialProducts }: PazaramaProductListProp
       return;
     }
 
-    const pedalCategoryId = "4580478b-7b8c-432b-b6e0-b945130425d9";
+    const categoryId = firstProduct.pazaramaCategoryId;
+    if (!categoryId) {
+      toast.error("Seçili ürünlerin Pazarama kategori ID'si bulunamadı. Lütfen ürünleri Pazarama kategorisine eşleyin.");
+      return;
+    }
     
     setIsLoadingAttributes(true);
     setShowAttributeModal(true);
     
     try {
-      const res = await getPazaramaCategoryAttributes(pedalCategoryId);
-      if (res.success && res.data) {
+      const res = await getPazaramaCategoryAttributes(categoryId);
+      if (res.success && res.data && res.data.length > 0) {
         setCategoryAttributes(res.data);
         setSelectedAttributes({});
       } else {
-        toast.error(res.message || "Attribute çekme hatası.");
+        toast.error(res.message || "Bu kategori için attribute bulunamadı.");
         setShowAttributeModal(false);
       }
     } catch (error) {
