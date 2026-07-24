@@ -680,6 +680,18 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         className="border-purple-200 focus:border-purple-500"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="pazaramaPrice" className="text-pink-600 font-semibold">Pazarama Fiyatı (₺)</Label>
+                                    <Input
+                                        id="pazaramaPrice"
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.pazaramaPrice}
+                                        onChange={(e) => handleChange("pazaramaPrice", e.target.value)}
+                                        placeholder="Varsayılan: Liste Fiyatı"
+                                        className="border-pink-200 focus:border-pink-500"
+                                    />
+                                </div>
                             </div>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
@@ -1359,25 +1371,6 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     onCheckedChange={(c) => handleChange("isPazaramaActive", c)}
                                 />
                             </div>
-
-                            {formData.isPazaramaActive && (
-                                <div className="p-4 border border-pink-200 dark:border-pink-800 rounded-lg bg-pink-50/30 dark:bg-pink-950/10 space-y-3">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="pazaramaPrice" className="text-pink-700 dark:text-pink-300 font-semibold">
-                                            Pazarama Fiyatı (₺) <span className="font-normal text-gray-500">— Boş bırakılırsa satış/liste fiyatı kullanılır</span>
-                                        </Label>
-                                        <Input
-                                            id="pazaramaPrice"
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.pazaramaPrice}
-                                            onChange={(e) => handleChange("pazaramaPrice", e.target.value)}
-                                            placeholder="Varsayılan: Satış Fiyatı"
-                                            className="border-pink-200 dark:border-pink-800 focus:border-pink-500 bg-white dark:bg-gray-800 font-mono"
-                                        />
-                                    </div>
-                                </div>
-                            )}
 
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
                                 <div className="space-y-0.5">

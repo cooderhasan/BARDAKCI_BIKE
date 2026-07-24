@@ -149,6 +149,12 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                             Idefix
                         </Button>
                     </Link>
+                    <Link href="/admin/integrations/pazarama">
+                        <Button variant="outline" size="sm" className="h-8 gap-2 border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 bg-white">
+                            <Zap className="h-3.5 w-3.5" />
+                            Pazarama
+                        </Button>
+                    </Link>
                 </div>
             </div>
 

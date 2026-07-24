@@ -66,6 +66,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         n11Price: product.n11Price ? product.n11Price.toNumber() : null,
         hepsiburadaPrice: product.hepsiburadaPrice ? product.hepsiburadaPrice.toNumber() : null,
         idefixPrice: product.idefixPrice ? product.idefixPrice.toNumber() : null,
+        pazaramaPrice: anyProduct.pazaramaPrice ? Number(anyProduct.pazaramaPrice) : null,
         weight: anyProduct.weight ? Number(anyProduct.weight) : null,
         width: anyProduct.width ? Number(anyProduct.width) : null,
         height: anyProduct.height ? Number(anyProduct.height) : null,
@@ -88,6 +89,8 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         isTrendyolActive: anyProduct.isTrendyolActive || false,
         isN11Active: anyProduct.isN11Active || false,
         isHepsiburadaActive: anyProduct.isHepsiburadaActive || false,
+        isIdefixActive: anyProduct.isIdefixActive || false,
+        isPazaramaActive: anyProduct.isPazaramaActive || false,
         isGoogleActive: anyProduct.isGoogleActive || false,
         bundleItems: (product as any).bundleItems?.map((bi: any) => ({
             childProductId: bi.childProductId,

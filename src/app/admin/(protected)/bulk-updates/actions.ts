@@ -625,7 +625,7 @@ export async function executeBulkHepsiburadaPriceUpdate(
 
 // ==================== CROSS PLATFORM PRICE TRANSFER ====================
 
-export type PriceField = "listPrice" | "salePrice" | "trendyolPrice" | "n11Price" | "hepsiburadaPrice" | "idefixPrice";
+export type PriceField = "listPrice" | "salePrice" | "trendyolPrice" | "n11Price" | "hepsiburadaPrice" | "idefixPrice" | "pazaramaPrice";
 
 export interface PriceTransferCriteria extends BulkUpdateCriteria {
     sourceField: PriceField;
