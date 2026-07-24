@@ -289,22 +289,43 @@ export class PazaramaClient {
         })),
       };
 
-      const res = await fetch(`${this.baseUrl}/api/v1/product/updatePriceAndStock`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      });
+      const candidateEndpoints = [
+        `${this.baseUrl}/product/update-price-and-stock`,
+        `${this.baseUrl}/product/updatePriceAndStock`,
+        `${this.baseUrl}/api/v1/product/updatePriceAndStock`,
+        `${this.baseUrl}/api/v1/product/update-price-and-stock`,
+        `${this.baseUrl}/product/update-price-stock`,
+      ];
 
-      if (!res.ok) {
-        return {
-          success: false,
-          message: `Stok/Fiyat Güncelleme Hatası (${res.status})`,
-        };
+      let lastStatus = 404;
+      let lastErrorText = "";
+
+      for (const endpoint of candidateEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          });
+
+          if (res.ok) {
+            return {
+              success: true,
+              message: `${items.length} adet ürünün stok ve fiyatı Pazarama'da güncellendi.`,
+            };
+          }
+
+          lastStatus = res.status;
+          lastErrorText = await res.text();
+          if (res.status !== 404) break;
+        } catch (e: any) {
+          lastErrorText = e.message;
+        }
       }
 
       return {
-        success: true,
-        message: `${items.length} adet ürünün stok ve fiyatı Pazarama'da güncellendi.`,
+        success: false,
+        message: `Stok/Fiyat Güncelleme Hatası (${lastStatus}): ${lastErrorText || "Sunucu yanıt vermedi"}`,
       };
     } catch (error: any) {
       return {
@@ -320,15 +341,36 @@ export class PazaramaClient {
   async getOrders(): Promise<PazaramaOrder[]> {
     try {
       const headers = await this.getHeaders();
-      const res = await fetch(`${this.baseUrl}/api/v1/order/getOrders`, {
-        method: "GET",
-        headers,
-      });
+      const candidateEndpoints = [
+        `${this.baseUrl}/order/get-orders`,
+        `${this.baseUrl}/order/getOrders`,
+        `${this.baseUrl}/api/v1/order/getOrders`,
+        `${this.baseUrl}/api/v1/order/get-orders`,
+      ];
 
-      if (!res.ok) return [];
+      for (const endpoint of candidateEndpoints) {
+        for (const method of ["POST", "GET"]) {
+          try {
+            const res = await fetch(endpoint, {
+              method,
+              headers,
+              ...(method === "POST" ? { body: JSON.stringify({ page: 1, pageSize: 50 }) } : {}),
+            });
 
-      const data = await res.json();
-      return (data?.result || data?.orders || []) as PazaramaOrder[];
+            if (!res.ok) continue;
+
+            const data = await res.json();
+            const list = data?.data?.orders || data?.data || data?.result?.orders || data?.result || (Array.isArray(data) ? data : null);
+            if (Array.isArray(list)) {
+              return list as PazaramaOrder[];
+            }
+          } catch {
+            // try next
+          }
+        }
+      }
+
+      return [];
     } catch (error) {
       console.error("Pazarama getOrders error:", error);
       return [];

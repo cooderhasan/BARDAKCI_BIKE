@@ -11,331 +11,356 @@ import { syncProductsToN11 } from "../integrations/n11/actions";
 import { syncProductsToHepsiburada } from "../integrations/hepsiburada/actions";
 
 export async function createProduct(formData: FormData) {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
-        throw new Error("Unauthorized");
-    }
+    try {
+        const session = await auth();
+        if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+            return { success: false, error: "Yetkisiz erişim" };
+        }
 
-    const parseDecimal = (val: any) => {
-        if (!val) return null;
-        const str = String(val).replace(",", ".").trim();
-        const num = Number(str);
-        return isNaN(num) ? null : num;
-    };
+        const parseDecimal = (val: any) => {
+            if (!val) return null;
+            const str = String(val).replace(",", ".").trim();
+            const num = Number(str);
+            return isNaN(num) ? null : num;
+        };
 
-    // Generate a unique slug: if the slug already exists in DB, append -1, -2, etc.
-    const baseSlug = (formData.get("slug") as string) || generateSlug(formData.get("name") as string);
-    let uniqueSlug = baseSlug;
-    let slugCounter = 0;
-    while (true) {
-        const existing = await prisma.product.findFirst({ where: { slug: uniqueSlug } });
-        if (!existing) break;
-        slugCounter++;
-        uniqueSlug = `${baseSlug}-${slugCounter}`;
-    }
+        // Generate a unique slug: if the slug already exists in DB, append -1, -2, etc.
+        const baseSlug = (formData.get("slug") as string) || generateSlug(formData.get("name") as string);
+        let uniqueSlug = baseSlug;
+        let slugCounter = 0;
+        while (true) {
+            const existing = await prisma.product.findFirst({ where: { slug: uniqueSlug } });
+            if (!existing) break;
+            slugCounter++;
+            uniqueSlug = `${baseSlug}-${slugCounter}`;
+        }
 
-    const rawData = {
-        name: formData.get("name") as string,
-        slug: uniqueSlug,
-        sku: (formData.get("sku") as string) || undefined,
-        barcode: (formData.get("barcode") as string) || undefined,
-        brandId: (formData.get("brandId") as string) === "none" ? undefined : (formData.get("brandId") as string) || undefined,
-        origin: (formData.get("origin") as string) || undefined,
-        description: formData.get("description") as string || undefined,
-        marketplaceDescription: formData.get("marketplaceDescription") as string || undefined,
-        listPrice: Number(formData.get("listPrice")),
-        salePrice: parseDecimal(formData.get("salePrice")),
-        trendyolPrice: parseDecimal(formData.get("trendyolPrice")),
-        n11Price: parseDecimal(formData.get("n11Price")),
-        hepsiburadaPrice: parseDecimal(formData.get("hepsiburadaPrice")),
-        idefixPrice: parseDecimal(formData.get("idefixPrice")),
-        pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
-        vatRate: Number(formData.get("vatRate")),
-        minQuantity: Number(formData.get("minQuantity")) || 1,
-        stock: Number(formData.get("stock")) || 0,
-        criticalStock: Number(formData.get("criticalStock")) || 10,
-        isBundle: formData.get("isBundle") === "true",
+        const rawData = {
+            name: formData.get("name") as string,
+            slug: uniqueSlug,
+            sku: (formData.get("sku") as string) || undefined,
+            barcode: (formData.get("barcode") as string) || undefined,
+            brandId: (formData.get("brandId") as string) === "none" ? undefined : (formData.get("brandId") as string) || undefined,
+            origin: (formData.get("origin") as string) || undefined,
+            description: formData.get("description") as string || undefined,
+            marketplaceDescription: formData.get("marketplaceDescription") as string || undefined,
+            listPrice: Number(formData.get("listPrice")),
+            salePrice: parseDecimal(formData.get("salePrice")),
+            trendyolPrice: parseDecimal(formData.get("trendyolPrice")),
+            n11Price: parseDecimal(formData.get("n11Price")),
+            hepsiburadaPrice: parseDecimal(formData.get("hepsiburadaPrice")),
+            idefixPrice: parseDecimal(formData.get("idefixPrice")),
+            pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
+            vatRate: Number(formData.get("vatRate")),
+            minQuantity: Number(formData.get("minQuantity")) || 1,
+            stock: Number(formData.get("stock")) || 0,
+            criticalStock: Number(formData.get("criticalStock")) || 10,
+            isBundle: formData.get("isBundle") === "true",
 
-        // categoryId: (formData.get("categoryId") as string) === "none" ? undefined : (formData.get("categoryId") as string) || undefined,
-        isFeatured: formData.get("isFeatured") === "true",
-        isNew: formData.get("isNew") === "true",
-        isBestSeller: formData.get("isBestSeller") === "true",
-        isActive: formData.get("isActive") !== "false",
-        store: (formData.get("store") as any) || "BIKE",
-        // Marketplace Visibility
-        isTrendyolActive: formData.get("isTrendyolActive") === "true",
-        isN11Active: formData.get("isN11Active") === "true",
-        isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
-        isIdefixActive: formData.get("isIdefixActive") === "true",
-        isPazaramaActive: formData.get("isPazaramaActive") === "true",
-        isGoogleActive: formData.get("isGoogleActive") === "true",
-        googlePrice: parseDecimal(formData.get("googlePrice")),
-        // Kargo & Desi
-        weight: parseDecimal(formData.get("weight")),
-        width: parseDecimal(formData.get("width")),
-        height: parseDecimal(formData.get("height")),
-        length: parseDecimal(formData.get("length")),
-        desi: parseDecimal(formData.get("desi")),
-        referenceUrl: (formData.get("referenceUrl") as string) || undefined,
-        n11CatalogId: (formData.get("n11CatalogId") as string) || null,
-        gender: (formData.get("gender") as string) === "none" ? undefined : (formData.get("gender") as string) || undefined,
-        brakeType: (formData.get("brakeType") as string) === "none" ? undefined : (formData.get("brakeType") as string) || undefined,
-    };
+            // categoryId: (formData.get("categoryId") as string) === "none" ? undefined : (formData.get("categoryId") as string) || undefined,
+            isFeatured: formData.get("isFeatured") === "true",
+            isNew: formData.get("isNew") === "true",
+            isBestSeller: formData.get("isBestSeller") === "true",
+            isActive: formData.get("isActive") !== "false",
+            store: (formData.get("store") as any) || "BIKE",
+            // Marketplace Visibility
+            isTrendyolActive: formData.get("isTrendyolActive") === "true",
+            isN11Active: formData.get("isN11Active") === "true",
+            isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
+            isIdefixActive: formData.get("isIdefixActive") === "true",
+            isPazaramaActive: formData.get("isPazaramaActive") === "true",
+            isGoogleActive: formData.get("isGoogleActive") === "true",
+            googlePrice: parseDecimal(formData.get("googlePrice")),
+            // Kargo & Desi
+            weight: parseDecimal(formData.get("weight")),
+            width: parseDecimal(formData.get("width")),
+            height: parseDecimal(formData.get("height")),
+            length: parseDecimal(formData.get("length")),
+            desi: parseDecimal(formData.get("desi")),
+            referenceUrl: (formData.get("referenceUrl") as string) || undefined,
+            n11CatalogId: (formData.get("n11CatalogId") as string) || null,
+            gender: (formData.get("gender") as string) === "none" ? undefined : (formData.get("gender") as string) || undefined,
+            brakeType: (formData.get("brakeType") as string) === "none" ? undefined : (formData.get("brakeType") as string) || undefined,
+        };
 
-    const categoryIdsJson = formData.get("categoryIds") as string;
-    const categoryIds: string[] = categoryIdsJson ? JSON.parse(categoryIdsJson) : [];
+        const categoryIdsJson = formData.get("categoryIds") as string;
+        const categoryIds: string[] = categoryIdsJson ? JSON.parse(categoryIdsJson) : [];
 
-    // Merge categoryIds into rawData for validation
-    Object.assign(rawData, { categoryIds });
+        // Merge categoryIds into rawData for validation
+        Object.assign(rawData, { categoryIds });
 
-    const validatedData = productSchema.parse(rawData);
+        const validatedData = productSchema.parse(rawData);
 
-    // Parse images from JSON string
-    const imagesJson = formData.get("images") as string;
-    const images: string[] = imagesJson ? JSON.parse(imagesJson) : [];
+        // Parse images from JSON string
+        const imagesJson = formData.get("images") as string;
+        const images: string[] = imagesJson ? JSON.parse(imagesJson) : [];
 
-    // Parse variants from JSON string
-    const variantsJson = formData.get("variants") as string;
-    const variants = variantsJson ? JSON.parse(variantsJson) : [];
+        // Parse variants from JSON string
+        const variantsJson = formData.get("variants") as string;
+        const variants = variantsJson ? JSON.parse(variantsJson) : [];
 
-    // Destructure relation fields from validated data
-    const { brandId, categoryIds: validCategoryIds, ...productData } = validatedData;
+        // Destructure relation fields from validated data
+        const { brandId, categoryIds: validCategoryIds, ...productData } = validatedData;
 
-    const product = await prisma.product.create({
-        data: {
-            ...productData,
-            images,
-            ...(brandId && brandId !== "none" && { brand: { connect: { id: brandId } } }),
-            categories: {
-                connect: validCategoryIds.map((id) => ({ id })),
+        const product = await prisma.product.create({
+            data: {
+                ...productData,
+                images,
+                ...(brandId && brandId !== "none" && { brand: { connect: { id: brandId } } }),
+                categories: {
+                    connect: validCategoryIds.map((id) => ({ id })),
+                },
             },
-        },
-    });
-
-    // Create variants separately
-    if (variants.length > 0) {
-        await prisma.productVariant.createMany({
-            data: variants.map((v: { color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean }) => ({
-                productId: product.id,
-                color: v.color || null,
-                size: v.size || null,
-                sku: v.sku || null,
-                barcode: v.barcode || null,
-                stock: v.stock || 0,
-                priceAdjustment: v.priceAdjustment || 0,
-                isActive: v.isActive !== false,
-            })),
         });
-    }
 
-    // Create bundle items if this is a bundle product
-    if (validatedData.isBundle) {
-        const bundleItemsJson = formData.get("bundleItems") as string;
-        const bundleItems: { childProductId: string; quantity: number }[] = bundleItemsJson ? JSON.parse(bundleItemsJson) : [];
-        if (bundleItems.length > 0) {
-            await prisma.bundleItem.createMany({
-                data: bundleItems.map((bi) => ({
-                    bundleProductId: product.id,
-                    childProductId: bi.childProductId,
-                    quantity: bi.quantity || 1,
+        // Create variants separately
+        if (variants.length > 0) {
+            await prisma.productVariant.createMany({
+                data: variants.map((v: { color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean }) => ({
+                    productId: product.id,
+                    color: v.color || null,
+                    size: v.size || null,
+                    sku: v.sku || null,
+                    barcode: v.barcode || null,
+                    stock: v.stock || 0,
+                    priceAdjustment: v.priceAdjustment || 0,
+                    isActive: v.isActive !== false,
                 })),
             });
         }
+
+        // Create bundle items if this is a bundle product
+        if (validatedData.isBundle) {
+            const bundleItemsJson = formData.get("bundleItems") as string;
+            const bundleItems: { childProductId: string; quantity: number }[] = bundleItemsJson ? JSON.parse(bundleItemsJson) : [];
+            if (bundleItems.length > 0) {
+                await prisma.bundleItem.createMany({
+                    data: bundleItems.map((bi) => ({
+                        bundleProductId: product.id,
+                        childProductId: bi.childProductId,
+                        quantity: bi.quantity || 1,
+                    })),
+                });
+            }
+        }
+
+        await prisma.adminLog.create({
+            data: {
+                adminId: session.user.id,
+                action: "CREATE_PRODUCT",
+                entityType: "Product",
+                entityId: product.id,
+                newData: validatedData,
+            },
+        });
+
+        revalidatePath("/admin/products");
+        revalidatePath("/products");
+        revalidatePath("/");
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("createProduct error:", error);
+        let errorMsg = error.message || "Ürün oluşturulamadı";
+        if (error.errors && Array.isArray(error.errors)) {
+            errorMsg = error.errors.map((e: any) => `${e.path?.join('.') || ''}: ${e.message}`).join(", ");
+        }
+        return { success: false, error: errorMsg };
     }
-
-    await prisma.adminLog.create({
-        data: {
-            adminId: session.user.id,
-            action: "CREATE_PRODUCT",
-            entityType: "Product",
-            entityId: product.id,
-            newData: validatedData,
-        },
-    });
-
-    revalidatePath("/admin/products");
-    revalidatePath("/products");
-    revalidatePath("/");
-
-    return { success: true };
 }
 
 export async function updateProduct(productId: string, formData: FormData) {
-    const session = await auth();
-    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
-        throw new Error("Unauthorized");
-    }
+    try {
+        const session = await auth();
+        if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+            return { success: false, error: "Yetkisiz erişim" };
+        }
 
-    const oldProduct = await prisma.product.findUnique({ where: { id: productId } });
+        const parseDecimal = (val: any) => {
+            if (!val) return null;
+            const str = String(val).replace(",", ".").trim();
+            const num = Number(str);
+            return isNaN(num) ? null : num;
+        };
 
-    console.log("--- Update Product Started ---");
-    console.log("ProductId:", productId);
-    // Log all form data keys to see what's coming in
-    for (const [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-    }
+        const oldProduct = await prisma.product.findUnique({ where: { id: productId } });
 
-    const rawData = {
-        name: formData.get("name") as string,
-        slug: formData.get("slug") as string,
-        sku: (formData.get("sku") as string) || undefined,
-        barcode: (formData.get("barcode") as string) || undefined,
-        brandId: (formData.get("brandId") as string) === "none" ? undefined : (formData.get("brandId") as string) || undefined,
-        origin: (formData.get("origin") as string) || undefined,
-        description: formData.get("description") as string || undefined,
-        marketplaceDescription: formData.get("marketplaceDescription") as string || undefined,
-        listPrice: Number(formData.get("listPrice")),
-        salePrice: parseDecimal(formData.get("salePrice")),
-        trendyolPrice: parseDecimal(formData.get("trendyolPrice")),
-        n11Price: parseDecimal(formData.get("n11Price")),
-        hepsiburadaPrice: parseDecimal(formData.get("hepsiburadaPrice")),
-        idefixPrice: parseDecimal(formData.get("idefixPrice")),
-        pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
-        vatRate: Number(formData.get("vatRate")),
-        minQuantity: Number(formData.get("minQuantity")) || 1,
-        stock: Number(formData.get("stock")) || 0,
-        criticalStock: Number(formData.get("criticalStock")) || 10,
-        isBundle: formData.get("isBundle") === "true",
+        console.log("--- Update Product Started ---");
+        console.log("ProductId:", productId);
+        // Log all form data keys to see what's coming in
+        for (const [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+        }
 
-        // categoryId: (formData.get("categoryId") as string) === "none" ? undefined : (formData.get("categoryId") as string) || undefined,
-        isFeatured: formData.get("isFeatured") === "true",
-        isNew: formData.get("isNew") === "true",
-        isBestSeller: formData.get("isBestSeller") === "true",
-        isActive: formData.get("isActive") !== "false",
-        store: (formData.get("store") as any) || "BIKE",
-        // Marketplace Visibility
-        isTrendyolActive: formData.get("isTrendyolActive") === "true",
-        isN11Active: formData.get("isN11Active") === "true",
-        isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
-        isIdefixActive: formData.get("isIdefixActive") === "true",
-        isPazaramaActive: formData.get("isPazaramaActive") === "true",
-        isGoogleActive: formData.get("isGoogleActive") === "true",
-        googlePrice: parseDecimal(formData.get("googlePrice")),
-        // Kargo & Desi
-        weight: parseDecimal(formData.get("weight")),
-        width: parseDecimal(formData.get("width")),
-        height: parseDecimal(formData.get("height")),
-        length: parseDecimal(formData.get("length")),
-        desi: parseDecimal(formData.get("desi")),
-        referenceUrl: (formData.get("referenceUrl") as string) || undefined,
-        n11CatalogId: (formData.get("n11CatalogId") as string) || null,
-        gender: (formData.get("gender") as string) === "none" ? null : (formData.get("gender") as string) || null,
-        brakeType: (formData.get("brakeType") as string) === "none" ? null : (formData.get("brakeType") as string) || null,
-    };
+        const rawData = {
+            name: formData.get("name") as string,
+            slug: formData.get("slug") as string,
+            sku: (formData.get("sku") as string) || undefined,
+            barcode: (formData.get("barcode") as string) || undefined,
+            brandId: (formData.get("brandId") as string) === "none" ? undefined : (formData.get("brandId") as string) || undefined,
+            origin: (formData.get("origin") as string) || undefined,
+            description: formData.get("description") as string || undefined,
+            marketplaceDescription: formData.get("marketplaceDescription") as string || undefined,
+            listPrice: Number(formData.get("listPrice")),
+            salePrice: parseDecimal(formData.get("salePrice")),
+            trendyolPrice: parseDecimal(formData.get("trendyolPrice")),
+            n11Price: parseDecimal(formData.get("n11Price")),
+            hepsiburadaPrice: parseDecimal(formData.get("hepsiburadaPrice")),
+            idefixPrice: parseDecimal(formData.get("idefixPrice")),
+            pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
+            vatRate: Number(formData.get("vatRate")),
+            minQuantity: Number(formData.get("minQuantity")) || 1,
+            stock: Number(formData.get("stock")) || 0,
+            criticalStock: Number(formData.get("criticalStock")) || 10,
+            isBundle: formData.get("isBundle") === "true",
 
-    const categoryIdsJson = formData.get("categoryIds") as string;
-    const categoryIds: string[] = categoryIdsJson ? JSON.parse(categoryIdsJson) : [];
+            // categoryId: (formData.get("categoryId") as string) === "none" ? undefined : (formData.get("categoryId") as string) || undefined,
+            isFeatured: formData.get("isFeatured") === "true",
+            isNew: formData.get("isNew") === "true",
+            isBestSeller: formData.get("isBestSeller") === "true",
+            isActive: formData.get("isActive") !== "false",
+            store: (formData.get("store") as any) || "BIKE",
+            // Marketplace Visibility
+            isTrendyolActive: formData.get("isTrendyolActive") === "true",
+            isN11Active: formData.get("isN11Active") === "true",
+            isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
+            isIdefixActive: formData.get("isIdefixActive") === "true",
+            isPazaramaActive: formData.get("isPazaramaActive") === "true",
+            isGoogleActive: formData.get("isGoogleActive") === "true",
+            googlePrice: parseDecimal(formData.get("googlePrice")),
+            // Kargo & Desi
+            weight: parseDecimal(formData.get("weight")),
+            width: parseDecimal(formData.get("width")),
+            height: parseDecimal(formData.get("height")),
+            length: parseDecimal(formData.get("length")),
+            desi: parseDecimal(formData.get("desi")),
+            referenceUrl: (formData.get("referenceUrl") as string) || undefined,
+            n11CatalogId: (formData.get("n11CatalogId") as string) || null,
+            gender: (formData.get("gender") as string) === "none" ? null : (formData.get("gender") as string) || null,
+            brakeType: (formData.get("brakeType") as string) === "none" ? null : (formData.get("brakeType") as string) || null,
+        };
 
-    // Merge categoryIds into rawData for validation
-    Object.assign(rawData, { categoryIds });
+        const categoryIdsJson = formData.get("categoryIds") as string;
+        const categoryIds: string[] = categoryIdsJson ? JSON.parse(categoryIdsJson) : [];
 
-    const validatedData = productSchema.parse(rawData);
+        // Merge categoryIds into rawData for validation
+        Object.assign(rawData, { categoryIds });
 
-    // Parse images from JSON string
-    const imagesJson = formData.get("images") as string;
-    const images: string[] = imagesJson ? JSON.parse(imagesJson) : [];
+        const validatedData = productSchema.parse(rawData);
 
-    // Parse variants from JSON string
-    const variantsJson = formData.get("variants") as string;
-    const variants = variantsJson ? JSON.parse(variantsJson) : [];
+        // Parse images from JSON string
+        const imagesJson = formData.get("images") as string;
+        const images: string[] = imagesJson ? JSON.parse(imagesJson) : [];
 
-    // Delete existing variants and recreate
-    await prisma.productVariant.deleteMany({
-        where: { productId },
-    });
+        // Parse variants from JSON string
+        const variantsJson = formData.get("variants") as string;
+        const variants = variantsJson ? JSON.parse(variantsJson) : [];
 
-    // Extract relation IDs and remove from validatedData for update
-    const { brandId, categoryIds: validIds, ...updateData } = validatedData;
+        // Delete existing variants and recreate
+        await prisma.productVariant.deleteMany({
+            where: { productId },
+        });
 
-    await prisma.product.update({
-        where: { id: productId },
-        data: {
-            ...updateData,
-            images,
-            brand: brandId ? { connect: { id: brandId } } : { disconnect: true },
-            // category: categoryId ? { connect: { id: categoryId } } : { disconnect: true },
-            categories: {
-                set: validatedData.categoryIds.map((id) => ({ id })),
+        // Extract relation IDs and remove from validatedData for update
+        const { brandId, categoryIds: validIds, ...updateData } = validatedData;
+
+        await prisma.product.update({
+            where: { id: productId },
+            data: {
+                ...updateData,
+                images,
+                brand: brandId ? { connect: { id: brandId } } : { disconnect: true },
+                // category: categoryId ? { connect: { id: categoryId } } : { disconnect: true },
+                categories: {
+                    set: validatedData.categoryIds.map((id) => ({ id })),
+                },
             },
-        },
-    });
-
-    // Create new variants
-    if (variants.length > 0) {
-        await prisma.productVariant.createMany({
-            data: variants.map((v: { color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean }) => ({
-                productId,
-                color: v.color || null,
-                size: v.size || null,
-                sku: v.sku || null,
-                barcode: v.barcode || null,
-                stock: v.stock || 0,
-                priceAdjustment: v.priceAdjustment || 0,
-                isActive: v.isActive !== false,
-            })),
         });
-    }
 
-    await prisma.adminLog.create({
-        data: {
-            adminId: session.user.id,
-            action: "UPDATE_PRODUCT",
-            entityType: "Product",
-            entityId: productId,
-            oldData: oldProduct ? JSON.parse(JSON.stringify(oldProduct)) : null,
-            newData: validatedData,
-        },
-    });
-
-    // Update bundle items if this is a bundle product
-    if (validatedData.isBundle) {
-        // Delete existing bundle items and recreate
-        await prisma.bundleItem.deleteMany({
-            where: { bundleProductId: productId },
-        });
-        const bundleItemsJson = formData.get("bundleItems") as string;
-        const bundleItems: { childProductId: string; quantity: number }[] = bundleItemsJson ? JSON.parse(bundleItemsJson) : [];
-        if (bundleItems.length > 0) {
-            await prisma.bundleItem.createMany({
-                data: bundleItems.map((bi) => ({
-                    bundleProductId: productId,
-                    childProductId: bi.childProductId,
-                    quantity: bi.quantity || 1,
+        // Create new variants
+        if (variants.length > 0) {
+            await prisma.productVariant.createMany({
+                data: variants.map((v: { color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean }) => ({
+                    productId,
+                    color: v.color || null,
+                    size: v.size || null,
+                    sku: v.sku || null,
+                    barcode: v.barcode || null,
+                    stock: v.stock || 0,
+                    priceAdjustment: v.priceAdjustment || 0,
+                    isActive: v.isActive !== false,
                 })),
             });
         }
-    } else {
-        // If product was a bundle but is no longer, remove bundle items
-        await prisma.bundleItem.deleteMany({
-            where: { bundleProductId: productId },
+
+        await prisma.adminLog.create({
+            data: {
+                adminId: session.user.id,
+                action: "UPDATE_PRODUCT",
+                entityType: "Product",
+                entityId: productId,
+                oldData: oldProduct ? JSON.parse(JSON.stringify(oldProduct)) : null,
+                newData: validatedData,
+            },
         });
+
+        // Update bundle items if this is a bundle product
+        if (validatedData.isBundle) {
+            // Delete existing bundle items and recreate
+            await prisma.bundleItem.deleteMany({
+                where: { bundleProductId: productId },
+            });
+            const bundleItemsJson = formData.get("bundleItems") as string;
+            const bundleItems: { childProductId: string; quantity: number }[] = bundleItemsJson ? JSON.parse(bundleItemsJson) : [];
+            if (bundleItems.length > 0) {
+                await prisma.bundleItem.createMany({
+                    data: bundleItems.map((bi) => ({
+                        bundleProductId: productId,
+                        childProductId: bi.childProductId,
+                        quantity: bi.quantity || 1,
+                    })),
+                });
+            }
+        } else {
+            // If product was a bundle but is no longer, remove bundle items
+            await prisma.bundleItem.deleteMany({
+                where: { bundleProductId: productId },
+            });
+        }
+
+        revalidatePath("/admin/products");
+        revalidatePath("/products");
+        revalidatePath(`/products/${validatedData.slug}`);
+        revalidatePath("/");
+
+        // --- ANLIK PAZARYERİ SENKRONİZASYONU ---
+        // Ürün güncellendiğinde (stok/fiyat değişmiş olabilir), anlık olarak pazaryerlerini güncelle
+        // type: "prices" kullanarak hızlı fiyat+stok güncelleme API'sini çağırıyoruz
+        // (type: "products" yeni ürün oluşturma modudur, fiyat güncellemesi için YANLIŞ!)
+        try {
+            // Doğrudan senkronizasyon fonksiyonlarını çağır (arka planda, kullanıcıyı bekletmeden)
+            if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId], "prices").catch(console.error);
+            if (validatedData.isN11Active) syncProductsToN11([productId]).catch(console.error);
+            if (validatedData.isHepsiburadaActive) syncProductsToHepsiburada([productId]).catch(console.error);
+            
+            // Yedek olarak kuyruğa da ekle (Redis/worker çalışıyorsa ikinci güvence)
+            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+            await addMarketplaceSyncJob({ marketplace: "trendyol", type: "prices", productIds: [productId] }).catch(console.error);
+            await addMarketplaceSyncJob({ marketplace: "n11", type: "prices", productIds: [productId] }).catch(console.error);
+            await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "prices", productIds: [productId] }).catch(console.error);
+        } catch (e) {
+            console.error("Marketplace instant sync error:", e);
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("updateProduct error:", error);
+        let errorMsg = error.message || "Güncelleme sırasında hata oluştu";
+        if (error.errors && Array.isArray(error.errors)) {
+            errorMsg = error.errors.map((e: any) => `${e.path?.join('.') || ''}: ${e.message}`).join(", ");
+        }
+        return { success: false, error: errorMsg };
     }
-
-    revalidatePath("/admin/products");
-    revalidatePath("/products");
-    revalidatePath(`/products/${validatedData.slug}`);
-    revalidatePath("/");
-
-    // --- ANLIK PAZARYERİ SENKRONİZASYONU ---
-    // Ürün güncellendiğinde (stok/fiyat değişmiş olabilir), anlık olarak pazaryerlerini güncelle
-    // type: "prices" kullanarak hızlı fiyat+stok güncelleme API'sini çağırıyoruz
-    // (type: "products" yeni ürün oluşturma modudur, fiyat güncellemesi için YANLIŞ!)
-    try {
-        // Doğrudan senkronizasyon fonksiyonlarını çağır (arka planda, kullanıcıyı bekletmeden)
-        if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId], "prices").catch(console.error);
-        if (validatedData.isN11Active) syncProductsToN11([productId]).catch(console.error);
-        if (validatedData.isHepsiburadaActive) syncProductsToHepsiburada([productId]).catch(console.error);
-        
-        // Yedek olarak kuyruğa da ekle (Redis/worker çalışıyorsa ikinci güvence)
-        const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-        await addMarketplaceSyncJob({ marketplace: "trendyol", type: "prices", productIds: [productId] }).catch(console.error);
-        await addMarketplaceSyncJob({ marketplace: "n11", type: "prices", productIds: [productId] }).catch(console.error);
-        await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "prices", productIds: [productId] }).catch(console.error);
-    } catch (e) {
-        console.error("Marketplace instant sync error:", e);
-    }
-
-    return { success: true };
 }
 
 export async function deleteProduct(productId: string) {

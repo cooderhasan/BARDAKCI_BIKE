@@ -41,7 +41,7 @@ export const productSchema = z.object({
     hepsiburadaPrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
     idefixPrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
     pazaramaPrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
-    vatRate: z.number().min(0).refine((val) => val === 10 || val === 20, "KDV oranı %10 veya %20 olmalıdır"),
+    vatRate: z.number().min(0, "KDV oranı 0 veya daha büyük olmalıdır"),
     minQuantity: z.coerce.number().int().positive("Minimum adet pozitif olmalıdır").default(1),
     stock: z.coerce.number().int().min(0, "Stok negatif olamaz").default(0),
     criticalStock: z.coerce.number().int().min(0, "Kritik stok negatif olamaz").default(10),

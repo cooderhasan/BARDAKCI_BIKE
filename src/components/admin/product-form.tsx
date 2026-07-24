@@ -379,7 +379,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
             }
         } catch (error: any) {
             console.error("Save error:", error);
-            toast.error("Kaydetme başarısız");
+            toast.error(error?.message || "Kaydetme başarısız");
         } finally {
             setLoading(false);
         }
