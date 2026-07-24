@@ -1088,6 +1088,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     n11CategoryId,
                     hbCategoryId,
                     idefixCategoryId,
+                    pazaramaCategoryId,
                     googleProductCategory,
                     description: description || null
                 });
@@ -1107,6 +1108,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     n11CategoryId,
                     hbCategoryId,
                     idefixCategoryId,
+                    pazaramaCategoryId,
                     googleProductCategory,
                     description: description || undefined
                 });
