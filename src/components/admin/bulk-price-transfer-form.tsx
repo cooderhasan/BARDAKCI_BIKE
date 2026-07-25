@@ -32,7 +32,8 @@ const FIELD_LABELS: Record<PriceField, string> = {
     n11Price: "N11 Fiyatı",
     hepsiburadaPrice: "Hepsiburada Fiyatı",
     idefixPrice: "Idefix Fiyatı",
-    pazaramaPrice: "Pazarama Fiyatı"
+    pazaramaPrice: "Pazarama Fiyatı",
+    pttavmPrice: "ePttAVM Fiyatı"
 };
 
 const OP_LABELS: Record<PriceTransferParams["operation"], string> = {

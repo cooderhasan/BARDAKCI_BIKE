@@ -51,6 +51,7 @@ export async function createProduct(formData: FormData) {
             hepsiburadaPrice: parseDecimal(formData.get("hepsiburadaPrice")),
             idefixPrice: parseDecimal(formData.get("idefixPrice")),
             pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
+            pttavmPrice: parseDecimal(formData.get("pttavmPrice")),
             vatRate: Number(formData.get("vatRate")),
             minQuantity: Number(formData.get("minQuantity")) || 1,
             stock: Number(formData.get("stock")) || 0,
@@ -69,6 +70,7 @@ export async function createProduct(formData: FormData) {
             isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
             isIdefixActive: formData.get("isIdefixActive") === "true",
             isPazaramaActive: formData.get("isPazaramaActive") === "true",
+            isPttavmActive: formData.get("isPttavmActive") === "true",
             isGoogleActive: formData.get("isGoogleActive") === "true",
             googlePrice: parseDecimal(formData.get("googlePrice")),
             // Kargo & Desi
@@ -208,6 +210,7 @@ export async function updateProduct(productId: string, formData: FormData) {
             hepsiburadaPrice: parseDecimal(formData.get("hepsiburadaPrice")),
             idefixPrice: parseDecimal(formData.get("idefixPrice")),
             pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
+            pttavmPrice: parseDecimal(formData.get("pttavmPrice")),
             vatRate: Number(formData.get("vatRate")),
             minQuantity: Number(formData.get("minQuantity")) || 1,
             stock: Number(formData.get("stock")) || 0,
@@ -226,6 +229,7 @@ export async function updateProduct(productId: string, formData: FormData) {
             isHepsiburadaActive: formData.get("isHepsiburadaActive") === "true",
             isIdefixActive: formData.get("isIdefixActive") === "true",
             isPazaramaActive: formData.get("isPazaramaActive") === "true",
+            isPttavmActive: formData.get("isPttavmActive") === "true",
             isGoogleActive: formData.get("isGoogleActive") === "true",
             googlePrice: parseDecimal(formData.get("googlePrice")),
             // Kargo & Desi

@@ -97,6 +97,8 @@ interface Product {
     isIdefixActive?: boolean;
     isPazaramaActive?: boolean;
     pazaramaPrice?: number | null;
+    isPttavmActive?: boolean;
+    pttavmPrice?: number | null;
     isGoogleActive?: boolean;
     googlePrice?: number | null;
     weight?: number | null;
@@ -156,6 +158,8 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         isIdefixActive: (product as any)?.isIdefixActive ?? false,
         isPazaramaActive: (product as any)?.isPazaramaActive ?? false,
         pazaramaPrice: (product as any)?.pazaramaPrice || "",
+        isPttavmActive: (product as any)?.isPttavmActive ?? false,
+        pttavmPrice: (product as any)?.pttavmPrice || "",
         isGoogleActive: product?.isGoogleActive ?? false,
         googlePrice: product?.googlePrice || "",
         isFeatured: product?.isFeatured || false,
@@ -690,6 +694,18 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         onChange={(e) => handleChange("pazaramaPrice", e.target.value)}
                                         placeholder="Varsayılan: Liste Fiyatı"
                                         className="border-pink-200 focus:border-pink-500"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="pttavmPrice" className="text-teal-600 font-semibold">ePttAVM Fiyatı (₺)</Label>
+                                    <Input
+                                        id="pttavmPrice"
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.pttavmPrice}
+                                        onChange={(e) => handleChange("pttavmPrice", e.target.value)}
+                                        placeholder="Varsayılan: Liste Fiyatı"
+                                        className="border-teal-200 focus:border-teal-500"
                                     />
                                 </div>
                             </div>
@@ -1369,6 +1385,17 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 <Checkbox
                                     checked={formData.isPazaramaActive}
                                     onCheckedChange={(c) => handleChange("isPazaramaActive", c)}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-teal-50 dark:bg-teal-900/10">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base text-teal-700 dark:text-teal-300">📮 ePttAVM Satış</Label>
+                                    <p className="text-sm text-muted-foreground">Bu ürünü ePttAVM'ye gönder?</p>
+                                </div>
+                                <Checkbox
+                                    checked={formData.isPttavmActive}
+                                    onCheckedChange={(c) => handleChange("isPttavmActive", c)}
                                 />
                             </div>
 

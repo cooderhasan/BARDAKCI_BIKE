@@ -41,6 +41,7 @@ export const productSchema = z.object({
     hepsiburadaPrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
     idefixPrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
     pazaramaPrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
+    pttavmPrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
     vatRate: z.number().min(0, "KDV oranı 0 veya daha büyük olmalıdır"),
     minQuantity: z.coerce.number().int().positive("Minimum adet pozitif olmalıdır").default(1),
     stock: z.coerce.number().int().min(0, "Stok negatif olamaz").default(0),
@@ -60,6 +61,7 @@ export const productSchema = z.object({
     isHepsiburadaActive: z.boolean().default(false),
     isIdefixActive: z.boolean().default(false),
     isPazaramaActive: z.boolean().default(false),
+    isPttavmActive: z.boolean().default(false),
     isGoogleActive: z.boolean().default(false),
     googlePrice: z.number().min(0, "Fiyat 0'dan küçük olamaz").nullable().optional(),
     // Kargo & Desi

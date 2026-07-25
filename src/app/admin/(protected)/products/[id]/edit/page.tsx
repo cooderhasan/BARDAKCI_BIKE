@@ -67,6 +67,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         hepsiburadaPrice: product.hepsiburadaPrice ? product.hepsiburadaPrice.toNumber() : null,
         idefixPrice: product.idefixPrice ? product.idefixPrice.toNumber() : null,
         pazaramaPrice: anyProduct.pazaramaPrice ? Number(anyProduct.pazaramaPrice) : null,
+        pttavmPrice: anyProduct.pttavmPrice ? Number(anyProduct.pttavmPrice) : null,
         weight: anyProduct.weight ? Number(anyProduct.weight) : null,
         width: anyProduct.width ? Number(anyProduct.width) : null,
         height: anyProduct.height ? Number(anyProduct.height) : null,
@@ -91,6 +92,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         isHepsiburadaActive: anyProduct.isHepsiburadaActive || false,
         isIdefixActive: anyProduct.isIdefixActive || false,
         isPazaramaActive: anyProduct.isPazaramaActive || false,
+        isPttavmActive: anyProduct.isPttavmActive || false,
         isGoogleActive: anyProduct.isGoogleActive || false,
         bundleItems: (product as any).bundleItems?.map((bi: any) => ({
             childProductId: bi.childProductId,
