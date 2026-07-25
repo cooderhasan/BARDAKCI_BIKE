@@ -70,10 +70,11 @@ export async function pushZeroStockToAllMarketplaces(productIds: string[]): Prom
         pushZeroStockToHepsiburada(productIds),
         pushZeroStockToPazarama(productIds),
         pushZeroStockToIdefix(productIds),
+        pushZeroStockToPttavm(productIds),
     ]);
 
     for (const [index, result] of results.entries()) {
-        const marketplaces = ["Trendyol", "N11", "Hepsiburada", "Pazarama", "Idefix"];
+        const marketplaces = ["Trendyol", "N11", "Hepsiburada", "Pazarama", "Idefix", "PTTAVM"];
         if (result.status === "fulfilled") {
             console.log(`✅ [Kritik Stok] ${marketplaces[index]} stok=0 gönderildi`);
         } else {
@@ -124,6 +125,7 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds: normalIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "pttavm", type: "stocks", productIds: normalIds }).catch(console.error),
             ]);
         }
     } catch (error) {
@@ -137,6 +139,7 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds: affectedProductIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "pttavm", type: "stocks", productIds: affectedProductIds }).catch(console.error),
             ]);
         } catch (e) {
             console.error("❌ [PostOrder StockSync] Yedek kuyruk da başarısız:", e);
@@ -430,4 +433,73 @@ async function pushZeroStockToIdefix(productIds: string[]): Promise<void> {
     if (items.length === 0) return;
 
     await client.updateInventory(items);
+}
+
+/**
+ * ePttAVM'ye doğrudan stok=0 gönderir
+ */
+async function pushZeroStockToPttavm(productIds: string[]): Promise<void> {
+    const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+    if (!config) return;
+
+    const { PttavmClient } = await import("@/services/pttavm/api");
+    const client = new PttavmClient({
+        apiKey: config.apiKey,
+        accessToken: config.accessToken,
+        profitMargin: config.profitMargin || 0,
+        isTestMode: Boolean(config.isTestMode),
+    });
+
+    const products = await prisma.product.findMany({
+        where: {
+            id: { in: productIds },
+            isActive: true,
+            isPttavmActive: true,
+        },
+        select: { id: true, barcode: true, sku: true, salePrice: true, listPrice: true, pttavmPrice: true, vatRate: true, variants: { select: { barcode: true } } },
+    });
+
+    if (products.length === 0) return;
+
+    const profitMargin = config.profitMargin || 0;
+    const items: any[] = [];
+
+    for (const p of products) {
+        const basePrice = Number(p.pttavmPrice || p.salePrice || p.listPrice);
+        const finalPriceWithVat = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
+        const vatRate = p.vatRate || 20;
+        const priceWithoutVAT = Math.round((finalPriceWithVat / (1 + vatRate / 100)) * 100) / 100;
+        const priceWithVAT = Math.round(finalPriceWithVat * 100) / 100;
+
+        const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+        if (validVariants.length > 0) {
+            for (const v of validVariants) {
+                items.push({
+                    barcode: v.barcode,
+                    active: false,
+                    quantity: 0,
+                    priceWithoutVAT,
+                    priceWithVAT,
+                    vatRate,
+                    discount: 0,
+                    isCargoFromSupplier: true,
+                });
+            }
+        } else if (p.barcode) {
+            items.push({
+                barcode: p.barcode,
+                active: false,
+                quantity: 0,
+                priceWithoutVAT,
+                priceWithVAT,
+                vatRate,
+                discount: 0,
+                isCargoFromSupplier: true,
+            });
+        }
+    }
+
+    if (items.length === 0) return;
+
+    await client.updateStockAndPrice(items);
 }

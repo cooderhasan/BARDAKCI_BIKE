@@ -526,6 +526,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                 <SelectItem value="HEPSIBURADA">Hepsiburada</SelectItem>
                                 <SelectItem value="IDEFIX">Idefix</SelectItem>
                                 <SelectItem value="PAZARAMA">Pazarama</SelectItem>
+                                <SelectItem value="PTTAVM">ePttAVM</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -675,6 +676,11 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                 {order.source === "PAZARAMA" && (
                                                     <Badge className="bg-[#d8005f] hover:bg-[#b0004e] text-white border-none px-1.5 py-0 text-[10px] font-bold">
                                                         PAZARAMA
+                                                    </Badge>
+                                                )}
+                                                {order.source === "PTTAVM" && (
+                                                    <Badge className="bg-[#00A896] hover:bg-[#00897B] text-white border-none px-1.5 py-0 text-[10px] font-bold">
+                                                        PTTAVM
                                                     </Badge>
                                                 )}
                                                 {(order.source === "WEB" || !order.source) && (

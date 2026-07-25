@@ -150,6 +150,14 @@ export function initializeWorker() {
                         if (!result.success) throw new Error(result.message);
                         console.log(`✅ Tamamlandı: Pazarama Sync - ${result.message}`);
                     }
+                } else if (job.data.marketplace === "pttavm") {
+                    const pttavmConfig = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+                    if (pttavmConfig && job.data.productIds && job.data.productIds.length > 0) {
+                        const { syncPttavmStockAndPrice } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
+                        const result = await syncPttavmStockAndPrice(job.data.productIds);
+                        if (!result.success) throw new Error(result.message);
+                        console.log(`✅ Tamamlandı: ePttAVM Sync - ${result.message}`);
+                    }
                 }
                 
                 await job.updateProgress(100);

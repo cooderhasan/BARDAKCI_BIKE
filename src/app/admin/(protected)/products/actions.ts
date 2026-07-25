@@ -350,6 +350,10 @@ export async function updateProduct(productId: string, formData: FormData) {
                 const { syncProductsToIdefix } = await import("@/app/admin/(protected)/integrations/idefix/actions");
                 syncProductsToIdefix([productId]).catch(console.error);
             }
+            if (validatedData.isPttavmActive) {
+                const { syncPttavmStockAndPrice } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
+                syncPttavmStockAndPrice([productId]).catch(console.error);
+            }
             
             // Yedek olarak kuyruğa da ekle (Redis/worker çalışıyorsa ikinci güvence)
             const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
@@ -358,6 +362,7 @@ export async function updateProduct(productId: string, formData: FormData) {
             await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "prices", productIds: [productId] }).catch(console.error);
             await addMarketplaceSyncJob({ marketplace: "pazarama", type: "prices", productIds: [productId] }).catch(console.error);
             await addMarketplaceSyncJob({ marketplace: "idefix", type: "prices", productIds: [productId] }).catch(console.error);
+            await addMarketplaceSyncJob({ marketplace: "pttavm", type: "prices", productIds: [productId] }).catch(console.error);
         } catch (e) {
             console.error("Marketplace instant sync error:", e);
         }

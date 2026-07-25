@@ -35,7 +35,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     await prisma.order.updateMany({
         where: {
             orderNumber: { startsWith: "IDE", mode: "insensitive" },
-            OR: [{ source: null }, { source: "WEB" }, { source: "" }],
+            OR: [{ source: null as any }, { source: "WEB" }, { source: "" }],
         },
         data: { source: "IDEFIX" },
     }).catch(() => null);
