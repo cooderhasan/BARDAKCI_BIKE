@@ -155,6 +155,12 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                             Pazarama
                         </Button>
                     </Link>
+                    <Link href="/admin/integrations/pttavm">
+                        <Button variant="outline" size="sm" className="h-8 gap-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800 bg-white">
+                            <Zap className="h-3.5 w-3.5" />
+                            ePttAVM
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
