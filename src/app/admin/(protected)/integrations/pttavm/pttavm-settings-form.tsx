@@ -61,27 +61,33 @@ export function PttavmSettingsForm({ initialData }: PttavmSettingsFormProps) {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="apiKey">API Key (Satıcı Anahtarı)</Label>
+          <Label htmlFor="apiKey">API Key / Kullanıcı Adı (User Name)</Label>
           <Input
             id="apiKey"
             name="apiKey"
-            type="password"
+            type="text"
             defaultValue={initialData?.apiKey || ""}
-            placeholder="ePttAVM API Key"
+            placeholder="Örn: motovitrin veya API Key"
             required
           />
+          <p className="text-xs text-muted-foreground">
+            ePttAVM REST API Key bilginiz veya Entegra panelindeki <strong>User Name</strong> (Örn: <code>motovitrin</code>).
+          </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="accessToken">Access Token</Label>
+          <Label htmlFor="accessToken">Access Token / API Şifresi (Password)</Label>
           <Input
             id="accessToken"
             name="accessToken"
             type="password"
             defaultValue={initialData?.accessToken || ""}
-            placeholder="ePttAVM Access Token"
+            placeholder="ePttAVM Access Token veya API Şifresi"
             required
           />
+          <p className="text-xs text-muted-foreground">
+            ePttAVM Access Token bilginiz veya Entegra panelindeki <strong>Password</strong> (API Şifreniz).
+          </p>
         </div>
 
         <div className="space-y-2">
