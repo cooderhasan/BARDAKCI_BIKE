@@ -1,7 +1,7 @@
 import { getPttavmConfig } from "./actions";
 import { PttavmSettingsForm } from "./pttavm-settings-form";
 import { PttavmOrderSyncButton } from "./pttavm-order-sync-button";
-import { ExternalLink, Store } from "lucide-react";
+import { ExternalLink, Store, Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default async function PttavmIntegrationPage() {
@@ -65,6 +65,15 @@ export default async function PttavmIntegrationPage() {
                 <strong>Sipariş Yönetimi:</strong> Gelen ePttAVM siparişleri yerel sipariş listenizle eşleştirilip stoklarınız otomatik eksiltilir.
               </li>
             </ul>
+
+            <div className="pt-2 space-y-2">
+              <a href="/admin/integrations/pttavm/products">
+                <Button className="w-full bg-[#00A896] hover:bg-[#00897B] text-white gap-2 shadow-lg shadow-teal-500/20">
+                  <Box className="w-4 h-4" />
+                  ePttAVM Ürünlerini Yönet
+                </Button>
+              </a>
+            </div>
           </div>
 
           <PttavmOrderSyncButton />

@@ -482,3 +482,64 @@ export async function syncOrdersFromPttavm() {
     return { success: false, message: "Sipariş çekme hatası: " + error.message };
   }
 }
+
+// ==================== ÜRÜN LİSTELEME VE TOGGLE ====================
+
+export async function getPttavmProducts() {
+  try {
+    const products = await prisma.product.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        sku: true,
+        barcode: true,
+        listPrice: true,
+        salePrice: true,
+        pttavmPrice: true,
+        stock: true,
+        images: true,
+        isPttavmActive: true,
+        pttavmProduct: true,
+        brand: {
+          select: { name: true },
+        },
+        categories: {
+          select: {
+            pttavmCategoryId: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      success: true,
+      data: products.map((p) => ({
+        ...p,
+        listPrice: Number(p.listPrice),
+        salePrice: p.salePrice ? Number(p.salePrice) : null,
+        pttavmPrice: p.pttavmPrice ? Number(p.pttavmPrice) : null,
+        pttavmCategoryId: p.categories.find((c) => c.pttavmCategoryId)?.pttavmCategoryId || null,
+        pttavmStatus: p.pttavmProduct?.batchStatus || (p.isPttavmActive ? "ACTIVE" : "INACTIVE"),
+        trackingId: p.pttavmProduct?.trackingId || null,
+      })),
+    };
+  } catch (error) {
+    return { success: false, error: "ePttAVM ürünleri çekilemedi." };
+  }
+}
+
+export async function togglePttavmProductActive(productId: string, currentState: boolean) {
+  try {
+    await prisma.product.update({
+      where: { id: productId },
+      data: { isPttavmActive: !currentState },
+    });
+    revalidatePath("/admin/integrations/pttavm/products");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Güncelleme başarısız." };
+  }
+}
+
