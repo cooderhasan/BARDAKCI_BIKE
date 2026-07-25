@@ -31,6 +31,15 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const startDate = params.startDate ? new Date(params.startDate) : undefined;
     const endDate = params.endDate ? new Date(params.endDate) : undefined;
 
+    // Auto-fix missing marketplace source tags for past orders
+    await prisma.order.updateMany({
+        where: {
+            orderNumber: { startsWith: "IDE", mode: "insensitive" },
+            OR: [{ source: null }, { source: "WEB" }, { source: "" }],
+        },
+        data: { source: "IDEFIX" },
+    }).catch(() => null);
+
     // Construct Where Clause
     const andClauses: any[] = [];
 

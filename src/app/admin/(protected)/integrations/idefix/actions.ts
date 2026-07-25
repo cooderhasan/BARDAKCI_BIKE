@@ -831,16 +831,30 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
               const barcode = rawItem.barcode;
               const merchantSku = rawItem.merchantSku;
 
-              let dbProd = null;
+              let dbProd: any = null;
               if (barcode) {
                 dbProd = await prisma.product.findFirst({
                   where: { OR: [{ barcode: String(barcode) }, { sku: String(barcode) }] },
                 });
+                if (!dbProd) {
+                  const variant = await prisma.productVariant.findFirst({
+                    where: { OR: [{ barcode: String(barcode) }, { sku: String(barcode) }] },
+                    include: { product: true },
+                  });
+                  if (variant?.product) dbProd = variant.product;
+                }
               }
               if (!dbProd && merchantSku) {
                 dbProd = await prisma.product.findFirst({
                   where: { OR: [{ barcode: String(merchantSku) }, { sku: String(merchantSku) }] },
                 });
+                if (!dbProd) {
+                  const variant = await prisma.productVariant.findFirst({
+                    where: { OR: [{ barcode: String(merchantSku) }, { sku: String(merchantSku) }] },
+                    include: { product: true },
+                  });
+                  if (variant?.product) dbProd = variant.product;
+                }
               }
 
               const itemPrice = Number(rawItem.price ?? rawItem.discountedTotalPrice ?? 0);
@@ -890,6 +904,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
               await prisma.order.create({
                 data: {
                   orderNumber,
+                  source: "IDEFIX",
                   status: "CONFIRMED",
                   total: Number(item.totalPrice ?? item.discountedTotalPrice ?? subtotal),
                   subtotal,
