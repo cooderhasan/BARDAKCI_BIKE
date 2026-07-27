@@ -157,6 +157,8 @@ export class CiceksepetiClient {
    */
   async createOrUpdateProducts(products: CiceksepetiProductInput[]): Promise<CiceksepetiBatchResult> {
     await this.loadConfig();
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr";
+
     const formattedProducts = products.map((p) => ({
       productName: p.productName,
       productCode: p.productCode || p.stockCode,
@@ -169,11 +171,18 @@ export class CiceksepetiClient {
       salesPrice: Number(p.salesPrice),
       stockQuantity: Number(p.stockQuantity),
       barcode: p.barcode,
-      images: p.images.map((img) => (typeof img === "string" ? { url: img } : img)),
+      images: p.images.map((img) => {
+        let rawUrl = typeof img === "string" ? img : (img as any)?.url || "";
+        if (rawUrl.startsWith("/")) {
+          rawUrl = `${siteUrl}${rawUrl}`;
+        }
+        return { url: rawUrl };
+      }),
       attributes: p.attributes || [],
     }));
 
     const payload = {
+      items: formattedProducts,
       products: formattedProducts,
     };
 
