@@ -30,12 +30,10 @@ export class CiceksepetiClient {
   async loadConfig(): Promise<CiceksepetiConfig> {
     if (this.config) return this.config;
 
-    const dbConfig = await (prisma as any).ciceksepetiConfig.findFirst({
-      where: { isActive: true },
-    });
+    const dbConfig = await (prisma as any).ciceksepetiConfig.findFirst();
 
-    if (!dbConfig) {
-      throw new Error("Aktif Çiçeksepeti yapılandırması bulunamadı.");
+    if (!dbConfig || !dbConfig.apiKey) {
+      throw new Error("Kaydedilmiş Çiçeksepeti API anahtarı bulunamadı. Lütfen önce ayarlarınızı kaydedin.");
     }
 
     this.config = {

@@ -59,8 +59,22 @@ export async function saveCiceksepetiConfig(formData: FormData) {
   }
 }
 
-export async function testCiceksepetiConnection() {
+export async function testCiceksepetiConnection(params?: {
+  apiKey?: string;
+  supplierId?: string;
+  isTestMode?: boolean;
+}) {
   try {
+    if (params?.apiKey) {
+      const client = new CiceksepetiClient({
+        apiKey: params.apiKey,
+        supplierId: params.supplierId || null,
+        isActive: true,
+        isTestMode: params.isTestMode ?? true,
+      });
+      return await client.testConnection();
+    }
+
     const client = new CiceksepetiClient();
     return await client.testConnection();
   } catch (error: any) {

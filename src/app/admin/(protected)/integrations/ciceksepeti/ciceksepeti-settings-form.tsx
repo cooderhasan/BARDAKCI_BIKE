@@ -47,11 +47,18 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
     }
   }
 
+  const [apiKeyInput, setApiKeyInput] = useState(initialData?.apiKey || "");
+  const [supplierIdInput, setSupplierIdInput] = useState(initialData?.supplierId || "");
+
   async function handleTestConnection() {
     setTesting(true);
     setTestResult(null);
 
-    const res = await testCiceksepetiConnection();
+    const res = await testCiceksepetiConnection({
+      apiKey: apiKeyInput,
+      supplierId: supplierIdInput,
+      isTestMode,
+    });
     setTesting(false);
     setTestResult(res);
 
@@ -78,7 +85,8 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
             <Input
               id="apiKey"
               name="apiKey"
-              defaultValue={initialData?.apiKey}
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
               placeholder="e.g. cs_live_9a87f6e5d4..."
               required
               className="font-mono text-sm"
@@ -93,7 +101,8 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
             <Input
               id="supplierId"
               name="supplierId"
-              defaultValue={initialData?.supplierId || ""}
+              value={supplierIdInput}
+              onChange={(e) => setSupplierIdInput(e.target.value)}
               placeholder="e.g. 102938"
               className="font-mono text-sm"
             />
