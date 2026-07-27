@@ -238,131 +238,69 @@ export async function syncProductsToCiceksepeti(
       const productInputs: any[] = [];
 
       for (const p of products) {
-        // Tüm olası kaynaklardan Çiçeksepeti Kategori ID'sini bul
-        const productCatName = p.category?.name || p.categories?.[0]?.name || "Bilinmeyen";
-        const productCatId = p.categoryId || p.category?.id || p.categories?.[0]?.id;
-
-        console.log(`[CS-SYNC] Ürün: "${p.name}", categoryId: ${p.categoryId}, category?.id: ${p.category?.id}, category?.name: ${p.category?.name}, category?.ciceksepetiCategoryId: ${p.category?.ciceksepetiCategoryId}, categories count: ${p.categories?.length || 0}, categories[0]?.name: ${p.categories?.[0]?.name}, categories[0]?.ciceksepetiCategoryId: ${p.categories?.[0]?.ciceksepetiCategoryId}`);
+        // ÖNCELİK SIRASI:
+        // 1) Ürüne özel CiceksepetiProduct.ciceksepetiCategoryId (ürün bazında eşleştirme)
+        // 2) Ürünün categories[] dizisindeki herhangi bir kategorinin ciceksepetiCategoryId'si
+        // 3) Üst kategoriler (parent chain)
+        // 4) DB'den benzer isimli kategori
 
         let rawCatId: string | null = null;
+        const productCatName = p.category?.name || p.categories?.[0]?.name || "Bilinmeyen";
 
-        // 1) Ürünün doğrudan kategorisi
+        // 1) Ürüne özel Çiçeksepeti kategori ID'si (EN ÖNCELİKLİ)
+        if (p.ciceksepetiProduct?.ciceksepetiCategoryId) {
+          rawCatId = p.ciceksepetiProduct.ciceksepetiCategoryId;
+          console.log(`[CS-SYNC] "${p.name}" -> Ürün bazında ciceksepetiCategoryId: ${rawCatId}`);
+        }
+
+        // 2) Ürünün tüm categories[] dizisini tara
+        if (!rawCatId && p.categories?.length) {
+          for (const cat of p.categories) {
+            if (cat.ciceksepetiCategoryId) {
+              rawCatId = cat.ciceksepetiCategoryId;
+              console.log(`[CS-SYNC] "${p.name}" -> categories'den bulundu: "${cat.name}" = ${rawCatId}`);
+              break;
+            }
+            if (cat.parent?.ciceksepetiCategoryId) {
+              rawCatId = cat.parent.ciceksepetiCategoryId;
+              console.log(`[CS-SYNC] "${p.name}" -> categories parent'dan bulundu: "${cat.parent.name}" = ${rawCatId}`);
+              break;
+            }
+          }
+        }
+
+        // 3) category (tekil) alanı
         if (!rawCatId && p.category?.ciceksepetiCategoryId) {
           rawCatId = p.category.ciceksepetiCategoryId;
-          console.log(`[CS-SYNC] -> Adım 1: category.ciceksepetiCategoryId = ${rawCatId}`);
         }
-        // 2) Ürünün categories[] dizisindeki ilk kategori
-        if (!rawCatId && p.categories?.[0]?.ciceksepetiCategoryId) {
-          rawCatId = p.categories[0].ciceksepetiCategoryId;
-          console.log(`[CS-SYNC] -> Adım 2: categories[0].ciceksepetiCategoryId = ${rawCatId}`);
-        }
-        // 3) Üst kategoriler (parent chain)
         if (!rawCatId && p.category?.parent?.ciceksepetiCategoryId) {
           rawCatId = p.category.parent.ciceksepetiCategoryId;
-          console.log(`[CS-SYNC] -> Adım 3a: category.parent.ciceksepetiCategoryId = ${rawCatId}`);
-        }
-        if (!rawCatId && p.categories?.[0]?.parent?.ciceksepetiCategoryId) {
-          rawCatId = p.categories[0].parent.ciceksepetiCategoryId;
-          console.log(`[CS-SYNC] -> Adım 3b: categories[0].parent.ciceksepetiCategoryId = ${rawCatId}`);
-        }
-        // 4) DB'den tam zincir taraması: ürünün kategorisinden başlayarak tüm üst ve alt kategorileri tara
-        if (!rawCatId && productCatId) {
-          console.log(`[CS-SYNC] -> Adım 4: DB zincir taraması başlıyor. productCatId = ${productCatId}`);
-          // Üst kategorileri tara (kendisi dahil)
-          let currentId: string | null = productCatId;
-          for (let depth = 0; depth < 5 && currentId && !rawCatId; depth++) {
-            const cat = await prisma.category.findUnique({
-              where: { id: currentId },
-              select: { ciceksepetiCategoryId: true, parentId: true, name: true },
-            });
-            console.log(`[CS-SYNC]    Derinlik ${depth}: id=${currentId}, name=${(cat as any)?.name}, ciceksepetiCategoryId=${cat?.ciceksepetiCategoryId}, parentId=${cat?.parentId}`);
-            if (cat?.ciceksepetiCategoryId) {
-              rawCatId = cat.ciceksepetiCategoryId;
-            } else {
-              currentId = cat?.parentId || null;
-            }
-          }
-          // Alt kategorileri tara
-          if (!rawCatId) {
-            const childCat = await prisma.category.findFirst({
-              where: {
-                OR: [
-                  { parentId: productCatId, ciceksepetiCategoryId: { not: null } },
-                  { parent: { parentId: productCatId }, ciceksepetiCategoryId: { not: null } },
-                ],
-              },
-              select: { ciceksepetiCategoryId: true, name: true },
-            });
-            console.log(`[CS-SYNC]    Alt kategori taraması: ${childCat ? `Bulundu: ${(childCat as any).name} = ${childCat.ciceksepetiCategoryId}` : "Bulunamadı"}`);
-            if (childCat?.ciceksepetiCategoryId) {
-              rawCatId = childCat.ciceksepetiCategoryId;
-            }
-          }
         }
 
-        // 5) Son çare: aynı isimde başka bir kategoride eşleştirme var mı?
-        if (!rawCatId && productCatName && productCatName !== "Bilinmeyen") {
-          const sameNameCat = await prisma.category.findFirst({
-            where: {
-              name: productCatName,
-              ciceksepetiCategoryId: { not: null },
-            },
-            select: { ciceksepetiCategoryId: true, id: true, name: true },
-          });
-          if (sameNameCat?.ciceksepetiCategoryId) {
-            rawCatId = sameNameCat.ciceksepetiCategoryId;
-            console.log(`[CS-SYNC] -> Adım 5: Aynı isimde başka kategori bulundu! id=${sameNameCat.id}, name=${(sameNameCat as any).name}, ciceksepetiCategoryId=${sameNameCat.ciceksepetiCategoryId}`);
-            // Ürünün kendi kategorisine de aynı eşleştirmeyi yaz
-            if (productCatId) {
-              await prisma.category.update({
-                where: { id: productCatId },
-                data: { ciceksepetiCategoryId: sameNameCat.ciceksepetiCategoryId },
-              });
-              console.log(`[CS-SYNC]    Ürünün kategorisi (${productCatId}) otomatik güncellendi: ciceksepetiCategoryId = ${sameNameCat.ciceksepetiCategoryId}`);
-            }
-          }
-        }
-
-        // 6) Hâlâ bulunamadıysa: DB'deki TÜM ciceksepetiCategoryId dolu kategoriler arasında benzer isim ara
-        if (!rawCatId && productCatName && productCatName !== "Bilinmeyen") {
+        // 4) DB'den benzer isimli herhangi bir kategoride eşleştirme ara
+        if (!rawCatId && productCatName !== "Bilinmeyen") {
           const allMapped = await prisma.category.findMany({
             where: { ciceksepetiCategoryId: { not: null } },
-            select: { ciceksepetiCategoryId: true, id: true, name: true },
+            select: { ciceksepetiCategoryId: true, name: true },
           });
-          const normalized = productCatName.toLowerCase().replace(/[ıİüÜöÖçÇşŞğĞ]/g, (c: string) => {
+          const normalize = (s: string) => s.toLowerCase().replace(/[ıİüÜöÖçÇşŞğĞ]/g, (c: string) => {
             const map: Record<string, string> = { 'ı': 'i', 'İ': 'i', 'ü': 'u', 'Ü': 'u', 'ö': 'o', 'Ö': 'o', 'ç': 'c', 'Ç': 'c', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g' };
             return map[c] || c;
           }).trim();
+          const norm = normalize(productCatName);
           for (const mc of allMapped) {
-            const mcNorm = (mc.name || "").toLowerCase().replace(/[ıİüÜöÖçÇşŞğĞ]/g, (c: string) => {
-              const map: Record<string, string> = { 'ı': 'i', 'İ': 'i', 'ü': 'u', 'Ü': 'u', 'ö': 'o', 'Ö': 'o', 'ç': 'c', 'Ç': 'c', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g' };
-              return map[c] || c;
-            }).trim();
-            if (mcNorm === normalized || mcNorm.includes(normalized) || normalized.includes(mcNorm)) {
+            const mcNorm = normalize(mc.name || "");
+            if (mcNorm === norm || mcNorm.includes(norm) || norm.includes(mcNorm)) {
               rawCatId = mc.ciceksepetiCategoryId;
-              console.log(`[CS-SYNC] -> Adım 6: Benzer isimli kategori bulundu! "${mc.name}" (${mc.id}) -> ciceksepetiCategoryId=${mc.ciceksepetiCategoryId}`);
-              if (productCatId) {
-                await prisma.category.update({
-                  where: { id: productCatId },
-                  data: { ciceksepetiCategoryId: mc.ciceksepetiCategoryId },
-                });
-                console.log(`[CS-SYNC]    Ürünün kategorisi (${productCatId}) otomatik güncellendi: ciceksepetiCategoryId = ${mc.ciceksepetiCategoryId}`);
-              }
+              console.log(`[CS-SYNC] "${p.name}" -> Benzer isimli kategori bulundu: "${mc.name}" = ${rawCatId}`);
               break;
             }
           }
         }
 
         if (!rawCatId) {
-          // Tüm eşleştirilmiş kategorileri listele
-          const allMappedCats = await prisma.category.findMany({
-            where: { ciceksepetiCategoryId: { not: null } },
-            select: { id: true, name: true, ciceksepetiCategoryId: true },
-          });
-          console.error(`[CS-SYNC] HATA: "${p.name}" için hiçbir aşamada ciceksepetiCategoryId bulunamadı!`);
-          console.error(`[CS-SYNC] Ürün kategorisi: "${productCatName}" (${productCatId})`);
-          console.error(`[CS-SYNC] DB'de eşleştirilmiş tüm kategoriler:`, allMappedCats.map(c => `${c.name}(${c.id})=${c.ciceksepetiCategoryId}`));
-          throw new Error(`'${p.name}' ürünü (Kategori: "${productCatName}", ID: ${productCatId || "yok"}) için Çiçeksepeti Kategori ID tanımlanmamış. Eşleştirme "${productCatName}" (${productCatId}) kategorisinde yapılmalıdır.`);
+          const catNames = p.categories?.map((c: any) => c.name).join(", ") || productCatName;
+          throw new Error(`'${p.name}' ürünü (Kategoriler: ${catNames}) için Çiçeksepeti Kategori ID tanımlanmamış. Çiçeksepeti ürün listesinden bu ürüne kategori atayabilirsiniz.`);
         }
 
         const categoryId = parseInt(rawCatId) || 0;
@@ -649,3 +587,48 @@ export async function saveCiceksepetiCategoryAttributes(
   }
 }
 
+// Ürün bazında Çiçeksepeti Kategori ID ayarlama
+export async function setCiceksepetiProductCategory(productId: string, ciceksepetiCategoryId: string | null) {
+  try {
+    await (prisma as any).ciceksepetiProduct.upsert({
+      where: { productId },
+      create: {
+        productId,
+        ciceksepetiCategoryId: ciceksepetiCategoryId?.trim() || null,
+      },
+      update: {
+        ciceksepetiCategoryId: ciceksepetiCategoryId?.trim() || null,
+      },
+    });
+    revalidatePath("/admin/integrations/ciceksepeti");
+    return { success: true, message: "Ürün Çiçeksepeti kategori ID'si güncellendi." };
+  } catch (error: any) {
+    console.error("setCiceksepetiProductCategory error:", error);
+    return { success: false, error: error.message || "Kategori ID güncellenemedi." };
+  }
+}
+
+// Toplu olarak birden fazla ürüne aynı Çiçeksepeti Kategori ID ata
+export async function setBulkCiceksepetiProductCategory(productIds: string[], ciceksepetiCategoryId: string) {
+  try {
+    let updated = 0;
+    for (const productId of productIds) {
+      await (prisma as any).ciceksepetiProduct.upsert({
+        where: { productId },
+        create: {
+          productId,
+          ciceksepetiCategoryId: ciceksepetiCategoryId.trim(),
+        },
+        update: {
+          ciceksepetiCategoryId: ciceksepetiCategoryId.trim(),
+        },
+      });
+      updated++;
+    }
+    revalidatePath("/admin/integrations/ciceksepeti");
+    return { success: true, message: `${updated} ürünün Çiçeksepeti kategorisi güncellendi.` };
+  } catch (error: any) {
+    console.error("setBulkCiceksepetiProductCategory error:", error);
+    return { success: false, error: error.message || "Toplu kategori ataması başarısız." };
+  }
+}

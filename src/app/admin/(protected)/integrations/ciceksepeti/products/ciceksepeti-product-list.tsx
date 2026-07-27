@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus } from "../actions";
+import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory } from "../actions";
 import { toast } from "sonner";
-import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save } from "lucide-react";
 import Image from "next/image";
 
 interface Props {
@@ -28,6 +28,11 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "SYNCED" | "ERROR" | "PENDING">("ALL");
   const [loading, setLoading] = useState(false);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editCatValue, setEditCatValue] = useState("");
+  const [bulkCatModalOpen, setBulkCatModalOpen] = useState(false);
+  const [bulkCatValue, setBulkCatValue] = useState("");
+  const catInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -90,6 +95,48 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
     }
   }
 
+  async function handleSaveCatId(productId: string) {
+    if (!editCatValue.trim()) {
+      toast.warning("Lütfen geçerli bir Çiçeksepeti Kategori ID girin.");
+      return;
+    }
+    const res = await setCiceksepetiProductCategory(productId, editCatValue.trim());
+    if (res.success) {
+      toast.success(res.message);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, ciceksepetiProduct: { ...p.ciceksepetiProduct, ciceksepetiCategoryId: editCatValue.trim() } } : p))
+      );
+      setEditingCatId(null);
+      setEditCatValue("");
+    } else {
+      toast.error(res.error);
+    }
+  }
+
+  async function handleBulkCatAssign() {
+    if (selectedIds.length === 0) {
+      toast.warning("Lütfen ürün seçin.");
+      return;
+    }
+    if (!bulkCatValue.trim()) {
+      toast.warning("Lütfen Çiçeksepeti Kategori ID girin.");
+      return;
+    }
+    setLoading(true);
+    const res = await setBulkCiceksepetiProductCategory(selectedIds, bulkCatValue.trim());
+    setLoading(false);
+    if (res.success) {
+      toast.success(res.message);
+      setProducts((prev) =>
+        prev.map((p) => selectedIds.includes(p.id) ? { ...p, ciceksepetiProduct: { ...p.ciceksepetiProduct, ciceksepetiCategoryId: bulkCatValue.trim() } } : p)
+      );
+      setBulkCatModalOpen(false);
+      setBulkCatValue("");
+    } else {
+      toast.error(res.error);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Top Filter and Action Bar */}
@@ -133,7 +180,18 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
+            disabled={selectedIds.length === 0}
+            className="border-purple-200 text-purple-700 hover:bg-purple-50"
+          >
+            <Tag className="mr-1.5 h-3.5 w-3.5" />
+            Toplu Kategori Ata ({selectedIds.length})
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -142,7 +200,7 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
             className="border-rose-200 text-rose-700 hover:bg-rose-50"
           >
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Seçilen Fiyat/Stok Güncelle ({selectedIds.length})
+            Fiyat/Stok Güncelle ({selectedIds.length})
           </Button>
 
           <Button
@@ -157,6 +215,42 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
         </div>
       </div>
 
+      {/* Toplu Kategori Atama Paneli */}
+      {bulkCatModalOpen && (
+        <div className="flex items-center gap-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 rounded-xl p-4">
+          <Tag className="h-5 w-5 text-purple-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-purple-800 dark:text-purple-300 mb-1.5">
+              Seçili {selectedIds.length} ürüne Çiçeksepeti Kategori ID ata
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Çiçeksepeti Kategori ID (örn: 14604)"
+                value={bulkCatValue}
+                onChange={(e) => setBulkCatValue(e.target.value)}
+                className="max-w-xs text-sm bg-white"
+              />
+              <Button
+                size="sm"
+                onClick={handleBulkCatAssign}
+                disabled={loading || !bulkCatValue.trim()}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+                Kaydet
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => { setBulkCatModalOpen(false); setBulkCatValue(""); }}
+              >
+                İptal
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Product List Table */}
       <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
         <Table>
@@ -170,6 +264,7 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
               </TableHead>
               <TableHead className="w-16">Görsel</TableHead>
               <TableHead>Ürün Adı & Kategori</TableHead>
+              <TableHead className="w-36">ÇS Kategori ID</TableHead>
               <TableHead className="w-32">Barkod / SKU</TableHead>
               <TableHead className="w-28 text-right">Fiyat (Çiçeksepeti)</TableHead>
               <TableHead className="w-20 text-center">Stok</TableHead>
@@ -181,7 +276,7 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   Arama kriterlerine uygun ürün bulunamadı.
                 </TableCell>
               </TableRow>
@@ -220,15 +315,52 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
                     <TableCell>
                       <div className="space-y-0.5">
                         <span className="font-medium text-sm line-clamp-1">{p.name}</span>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{p.category?.name || p.categories?.[0]?.name || "Kategori Yok"}</span>
-                          {(p.category?.ciceksepetiCategoryId || p.categories?.[0]?.ciceksepetiCategoryId) && (
-                            <Badge variant="outline" className="text-[10px] bg-rose-50 text-rose-700 border-rose-200">
-                              ÇS Cat ID: {p.category?.ciceksepetiCategoryId || p.categories?.[0]?.ciceksepetiCategoryId}
-                            </Badge>
-                          )}
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+                          {(p.categories || []).map((cat: any, i: number) => (
+                            <Badge key={i} variant="outline" className="text-[10px]">{cat.name}</Badge>
+                          ))}
+                          {!p.categories?.length && <span>{p.category?.name || "Kategori Yok"}</span>}
                         </div>
                       </div>
+                    </TableCell>
+
+                    {/* Çiçeksepeti Kategori ID - ürün bazında */}
+                    <TableCell>
+                      {editingCatId === p.id ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            ref={catInputRef}
+                            value={editCatValue}
+                            onChange={(e) => setEditCatValue(e.target.value)}
+                            placeholder="Kategori ID"
+                            className="h-7 text-xs w-20"
+                            onKeyDown={(e) => { if (e.key === "Enter") handleSaveCatId(p.id); if (e.key === "Escape") { setEditingCatId(null); setEditCatValue(""); } }}
+                            autoFocus
+                          />
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveCatId(p.id)}>
+                            <Save className="h-3 w-3 text-emerald-600" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div
+                          className="flex items-center gap-1 cursor-pointer group"
+                          onClick={() => {
+                            setEditingCatId(p.id);
+                            setEditCatValue(p.ciceksepetiProduct?.ciceksepetiCategoryId || "");
+                          }}
+                        >
+                          {p.ciceksepetiProduct?.ciceksepetiCategoryId ? (
+                            <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-xs font-mono">
+                              {p.ciceksepetiProduct.ciceksepetiCategoryId}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-gray-400 border-dashed">
+                              Tanımsız
+                            </Badge>
+                          )}
+                          <Edit3 className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition" />
+                        </div>
+                      )}
                     </TableCell>
 
                     <TableCell className="font-mono text-xs text-muted-foreground">
