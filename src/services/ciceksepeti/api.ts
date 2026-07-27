@@ -173,19 +173,34 @@ export class CiceksepetiClient {
       barcode: p.barcode,
       images: p.images.map((img) => {
         let rawUrl = typeof img === "string" ? img : (img as any)?.url || "";
-        if (rawUrl.startsWith("/")) {
+        if (rawUrl && !rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
+          if (!rawUrl.startsWith("/")) {
+            rawUrl = `/${rawUrl}`;
+          }
           rawUrl = `${siteUrl}${rawUrl}`;
         }
         return { url: rawUrl };
       }),
-      attributes: p.attributes || [],
+      attributes: (p.attributes || [])
+        .map((attr: any) => {
+          const item: any = {
+            attributeId: Number(attr.attributeId),
+          };
+          if (attr.attributeValueId !== undefined && attr.attributeValueId !== null && attr.attributeValueId !== "") {
+            item.attributeValueId = Number(attr.attributeValueId);
+          } else if (attr.customAttributeValue) {
+            item.customAttributeValue = String(attr.customAttributeValue);
+          }
+          return item;
+        })
+        .filter((attr: any) => Boolean(attr.attributeId) && (Boolean(attr.attributeValueId) || Boolean(attr.customAttributeValue))),
     }));
 
     const url = `${this.baseUrl}/Products`;
 
-    // Çiçeksepeti API dokümanı: { "products": [ ... ] } veya doğrudan [ ... ] array
+    // Çiçeksepeti API dokümanı: { "items": [ ... ] }
     const payload = {
-      products: formattedProducts,
+      items: formattedProducts,
     };
 
     console.log("[CS-API] POST /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
@@ -203,9 +218,9 @@ export class CiceksepetiClient {
       let detailMsg = responseText;
       try {
         const errJson = JSON.parse(responseText);
-        detailMsg = errJson.message || errJson.Message || errJson.errors?.join(", ") || JSON.stringify(errJson);
+        detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
       } catch {}
-      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg}`);
+      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
     }
 
     try {

@@ -40,6 +40,8 @@ export function CiceksepetiProductAttributeModal({
   const [submitting, setSubmitting] = useState(false);
   const [attributes, setAttributes] = useState<any[]>([]);
   const [attributeValues, setAttributeValues] = useState<Record<string, { attributeValueId?: string; customValue?: string }>>({});
+  const [deliveryType, setDeliveryType] = useState<string>("1");
+  const [deliveryDays, setDeliveryDays] = useState<string>("1");
 
   const categoryId =
     product?.ciceksepetiProduct?.ciceksepetiCategoryId ||
@@ -104,10 +106,32 @@ export function CiceksepetiProductAttributeModal({
       return;
     }
 
+    const selectedAttributes = Object.entries(attributeValues)
+      .map(([attrId, val]) => {
+        if (val.attributeValueId) {
+          return {
+            attributeId: Number(attrId),
+            attributeValueId: Number(val.attributeValueId),
+          };
+        } else if (val.customValue) {
+          return {
+            attributeId: Number(attrId),
+            customAttributeValue: String(val.customValue),
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
     setSubmitting(true);
     try {
-      // Direct sync call for single product
-      const res = await syncProductsToCiceksepeti([product.id], "all");
+      // Direct sync call for single product with custom attributes and delivery options
+      const res = await syncProductsToCiceksepeti([product.id], "all", {
+        attributes: selectedAttributes,
+        deliveryType: Number(deliveryType),
+        deliveryDays: Number(deliveryDays),
+      });
+
       if (res.success) {
         toast.success(res.message || "Ürün başarıyla Çiçeksepeti'ye aktarıldı!");
         onSuccess();
@@ -154,7 +178,7 @@ export function CiceksepetiProductAttributeModal({
               <div className="grid grid-cols-2 gap-3 p-3 bg-rose-50/60 border border-rose-200 rounded-lg shadow-sm">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-rose-900">Teslimat Tipi <span className="text-red-500">*</span></Label>
-                  <Select defaultValue="1">
+                  <Select value={deliveryType} onValueChange={setDeliveryType}>
                     <SelectTrigger className="w-full text-xs bg-white h-8 border-rose-200">
                       <SelectValue placeholder="Teslimat Tipi" />
                     </SelectTrigger>
@@ -166,7 +190,7 @@ export function CiceksepetiProductAttributeModal({
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-rose-900">Teslimat Aralığı <span className="text-red-500">*</span></Label>
-                  <Select defaultValue="1">
+                  <Select value={deliveryDays} onValueChange={setDeliveryDays}>
                     <SelectTrigger className="w-full text-xs bg-white h-8 border-rose-200">
                       <SelectValue placeholder="Teslimat Aralığı" />
                     </SelectTrigger>

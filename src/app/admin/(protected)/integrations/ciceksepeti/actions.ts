@@ -123,7 +123,12 @@ export async function searchCiceksepetiCategories(query: string) {
 
 export async function syncProductsToCiceksepeti(
   productIds?: string[],
-  syncType: "all" | "prices" | "new" = "all"
+  syncType: "all" | "prices" | "new" = "all",
+  customOptions?: {
+    attributes?: any[];
+    deliveryType?: number;
+    deliveryDays?: number;
+  }
 ) {
   try {
     const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
@@ -169,9 +174,15 @@ export async function syncProductsToCiceksepeti(
       const priceStockItems: any[] = [];
 
       for (const p of products) {
-        const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice);
-        const salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
-        const listPrice = Number(p.listPrice) >= salesPrice ? Number(p.listPrice) : salesPrice;
+        const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice || 0);
+        let salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
+        salesPrice = Math.round(salesPrice * 100) / 100;
+
+        let rawListPrice = Number(p.listPrice) || salesPrice;
+        rawListPrice = Math.round(rawListPrice * 100) / 100;
+
+        // Çiçeksepeti kuralı: listPrice (piyasa/üretici fiyatı), salesPrice (satış fiyatı)'dan küçük olamaz.
+        const listPrice = rawListPrice >= salesPrice ? rawListPrice : salesPrice;
 
         const validVariants = p.variants?.filter((v) => v.barcode || v.sku) || [];
         if (validVariants.length > 0) {
@@ -304,9 +315,15 @@ export async function syncProductsToCiceksepeti(
         }
 
         const categoryId = parseInt(rawCatId) || 0;
-        const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice);
-        const salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
-        const listPrice = Number(p.listPrice) >= salesPrice ? Number(p.listPrice) : salesPrice;
+        const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice || 0);
+        let salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
+        salesPrice = Math.round(salesPrice * 100) / 100;
+
+        let rawListPrice = Number(p.listPrice) || salesPrice;
+        rawListPrice = Math.round(rawListPrice * 100) / 100;
+
+        // Çiçeksepeti kuralı: listPrice (piyasa/üst fiyat), salesPrice (satış fiyatı)'dan küçük olamaz.
+        const listPrice = rawListPrice >= salesPrice ? rawListPrice : salesPrice;
 
         // Kategoriye özel kaydedilmiş Çiçeksepeti niteliklerini al
         const targetCatId = p.categoryId || p.category?.id || p.categories?.[0]?.id || "";
@@ -317,30 +334,31 @@ export async function syncProductsToCiceksepeti(
         // Ürün Nitelikleri (Attributes: Marka, Cinsiyet, Fren Tipi, Menşei vb.)
         const attributes: any[] = [];
 
-        // Önce Kategoriye Özel Kaydedilmiş Nitelikleri ekle
-        for (const savedAttr of savedCategoryAttrs) {
-          if (savedAttr.selectedAttributeValueId) {
-            attributes.push({
-              attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
-              attributeValueId: Number(savedAttr.selectedAttributeValueId) || savedAttr.selectedAttributeValueId,
-              attributeName: savedAttr.attributeName,
-            });
-          } else if (savedAttr.customValue) {
-            attributes.push({
-              attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
-              customAttributeValue: savedAttr.customValue,
-              attributeName: savedAttr.attributeName,
-            });
+        if (customOptions?.attributes && customOptions.attributes.length > 0) {
+          attributes.push(...customOptions.attributes);
+        } else {
+          // Önce Kategoriye Özel Kaydedilmiş Nitelikleri ekle
+          for (const savedAttr of savedCategoryAttrs) {
+            if (savedAttr.selectedAttributeValueId) {
+              attributes.push({
+                attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
+                attributeValueId: Number(savedAttr.selectedAttributeValueId) || savedAttr.selectedAttributeValueId,
+              });
+            } else if (savedAttr.customValue) {
+              attributes.push({
+                attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
+                customAttributeValue: savedAttr.customValue,
+              });
+            }
           }
         }
 
         if (p.brand?.name) {
-          // Eğer kaydedilmiş niteliklerde Marka yoksa ekle
-          const hasBrandAttr = attributes.some((a) => a.attributeName === "Marka" || a.attributeId === 1 || a.attributeId === "1");
+          // Eğer kaydedilmiş niteliklerde Marka (attrId: 1) yoksa ekle
+          const hasBrandAttr = attributes.some((a) => Number(a.attributeId) === 1);
           if (!hasBrandAttr) {
             attributes.push({
               attributeId: 1,
-              attributeName: "Marka",
               customAttributeValue: p.brand.name,
             });
           }
@@ -352,8 +370,8 @@ export async function syncProductsToCiceksepeti(
           stockCode: p.barcode || p.sku || p.id,
           mainCategoryId: categoryId,
           description: p.marketplaceDescription || p.description || p.name,
-          deliveryType: 1, // 1 = Kargo ile Teslimat
-          deliveryDays: 1, // 1 Gün İçinde Kargo
+          deliveryType: Number(customOptions?.deliveryType || 1), // 1 = Kargo ile Teslimat
+          deliveryDays: Number(customOptions?.deliveryDays || 1), // 1 Gün İçinde Kargo
           listPrice,
           salesPrice,
           stockQuantity: p.stock,
