@@ -60,10 +60,18 @@ export class CiceksepetiClient {
       throw new Error("Çiçeksepeti API Key bulunamadı.");
     }
 
-    return {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "x-api-key": this.config.apiKey.trim(),
     };
+
+    if (this.config.supplierId && this.config.supplierId.trim()) {
+      headers["User-Agent"] = this.config.supplierId.trim();
+    } else {
+      headers["User-Agent"] = "Motovitrin";
+    }
+
+    return headers;
   }
 
   /**
