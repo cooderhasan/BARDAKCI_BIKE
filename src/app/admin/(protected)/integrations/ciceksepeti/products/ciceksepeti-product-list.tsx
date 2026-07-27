@@ -15,8 +15,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory } from "../actions";
 import { toast } from "sonner";
-import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save } from "lucide-react";
+import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save, SlidersHorizontal } from "lucide-react";
 import Image from "next/image";
+import { CiceksepetiProductAttributeModal } from "@/components/admin/ciceksepeti-product-attribute-modal";
 
 interface Props {
   initialProducts: any[];
@@ -32,6 +33,7 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
   const [editCatValue, setEditCatValue] = useState("");
   const [bulkCatModalOpen, setBulkCatModalOpen] = useState(false);
   const [bulkCatValue, setBulkCatValue] = useState("");
+  const [selectedModalProduct, setSelectedModalProduct] = useState<any | null>(null);
   const catInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = products.filter((p) => {
@@ -414,14 +416,26 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
                     </TableCell>
 
                     <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleStatus(p.id, p.isCiceksepetiActive)}
-                        className={`text-xs ${p.isCiceksepetiActive ? "text-emerald-700 hover:bg-emerald-50" : "text-gray-500"}`}
-                      >
-                        {p.isCiceksepetiActive ? "Aktif" : "Pasif"}
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedModalProduct(p)}
+                          className="h-7 text-xs border-rose-200 text-rose-700 hover:bg-rose-50 gap-1 px-2"
+                          title="Nitelikleri Seç ve Gönder"
+                        >
+                          <SlidersHorizontal className="w-3 h-3" />
+                          Gönder
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleStatus(p.id, p.isCiceksepetiActive)}
+                          className={`h-7 text-xs ${p.isCiceksepetiActive ? "text-emerald-700 hover:bg-emerald-50" : "text-gray-500"}`}
+                        >
+                          {p.isCiceksepetiActive ? "Aktif" : "Pasif"}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -430,6 +444,31 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
           </TableBody>
         </Table>
       </div>
+
+      {selectedModalProduct && (
+        <CiceksepetiProductAttributeModal
+          isOpen={Boolean(selectedModalProduct)}
+          onClose={() => setSelectedModalProduct(null)}
+          product={selectedModalProduct}
+          onSuccess={() => {
+            // refresh product status
+            setProducts((prev) =>
+              prev.map((item) =>
+                item.id === selectedModalProduct.id
+                  ? {
+                      ...item,
+                      ciceksepetiProduct: {
+                        ...item.ciceksepetiProduct,
+                        isSynced: true,
+                        lastSyncError: null,
+                      },
+                    }
+                  : item
+              )
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
