@@ -183,7 +183,6 @@ export class CiceksepetiClient {
 
     const payload = {
       items: formattedProducts,
-      products: formattedProducts,
     };
 
     const url = `${this.baseUrl}/Products`;
