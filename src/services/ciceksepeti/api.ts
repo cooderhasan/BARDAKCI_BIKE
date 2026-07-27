@@ -157,24 +157,25 @@ export class CiceksepetiClient {
    */
   async createOrUpdateProducts(products: CiceksepetiProductInput[]): Promise<CiceksepetiBatchResult> {
     await this.loadConfig();
-    const url = `${this.baseUrl}/Products`;
+    const formattedProducts = products.map((p) => ({
+      productName: p.productName,
+      productCode: p.productCode || p.stockCode,
+      stockCode: p.stockCode,
+      categoryId: Number(p.subCategoryId || p.mainCategoryId) || 0,
+      description: p.description,
+      deliveryType: Number(p.deliveryType || 1),
+      deliveryDays: Number(p.deliveryDays || 2),
+      listPrice: Number(p.listPrice),
+      salesPrice: Number(p.salesPrice),
+      stockQuantity: Number(p.stockQuantity),
+      barcode: p.barcode,
+      images: p.images.map((img) => (typeof img === "string" ? { url: img } : img)),
+      attributes: p.attributes || [],
+    }));
 
     const payload = {
-      products: products.map((p) => ({
-        productName: p.productName,
-        productCode: p.productCode || p.stockCode,
-        stockCode: p.stockCode,
-        categoryId: p.subCategoryId || p.mainCategoryId,
-        description: p.description,
-        deliveryType: p.deliveryType || 1,
-        deliveryDays: p.deliveryDays || 2,
-        listPrice: p.listPrice,
-        salesPrice: p.salesPrice,
-        stockQuantity: p.stockQuantity,
-        barcode: p.barcode,
-        images: p.images.map((img) => ({ url: img })),
-        attributes: p.attributes || [],
-      })),
+      items: formattedProducts,
+      products: formattedProducts,
     };
 
     const res = await fetch(url, {

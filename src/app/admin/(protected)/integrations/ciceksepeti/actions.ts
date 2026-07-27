@@ -236,7 +236,12 @@ export async function syncProductsToCiceksepeti(
       const productInputs: any[] = [];
 
       for (const p of products) {
-        const categoryId = (p as any).ciceksepetiCategoryId || p.categories?.[0]?.ciceksepetiCategoryId || "1";
+        const rawCatId = (p as any).ciceksepetiCategoryId || p.categories?.[0]?.ciceksepetiCategoryId;
+        if (!rawCatId) {
+          throw new Error(`'${p.name}' ürünü için Çiçeksepeti Kategori ID tanımlanmamış. Lütfen önce Kategoriler sayfasından eşleştirme yapın.`);
+        }
+
+        const categoryId = parseInt(rawCatId) || 0;
         const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice);
         const salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
         const listPrice = Number(p.listPrice) >= salesPrice ? Number(p.listPrice) : salesPrice;
@@ -288,6 +293,30 @@ export async function syncProductsToCiceksepeti(
     }
   } catch (error: any) {
     console.error("syncProductsToCiceksepeti error:", error);
+
+    // Seçilen ürünlerin hata durumunu veritabanına kaydet
+    if (productIds && productIds.length > 0) {
+      for (const pid of productIds) {
+        try {
+          await (prisma as any).ciceksepetiProduct.upsert({
+            where: { productId: pid },
+            create: {
+              productId: pid,
+              isSynced: false,
+              lastSyncError: error.message || "Hata oluştu",
+              lastSyncedAt: new Date(),
+            },
+            update: {
+              isSynced: false,
+              lastSyncError: error.message || "Hata oluştu",
+              lastSyncedAt: new Date(),
+            },
+          });
+        } catch {}
+      }
+      revalidatePath("/admin/integrations/ciceksepeti/products");
+    }
+
     return { success: false, error: error.message || "Senkronizasyon sırasında hata oluştu." };
   }
 }
