@@ -300,9 +300,69 @@ export async function syncProductsToCiceksepeti(
           }
         }
 
+        // 5) Son çare: aynı isimde başka bir kategoride eşleştirme var mı?
+        if (!rawCatId && productCatName && productCatName !== "Bilinmeyen") {
+          const sameNameCat = await prisma.category.findFirst({
+            where: {
+              name: productCatName,
+              ciceksepetiCategoryId: { not: null },
+            },
+            select: { ciceksepetiCategoryId: true, id: true, name: true },
+          });
+          if (sameNameCat?.ciceksepetiCategoryId) {
+            rawCatId = sameNameCat.ciceksepetiCategoryId;
+            console.log(`[CS-SYNC] -> Adım 5: Aynı isimde başka kategori bulundu! id=${sameNameCat.id}, name=${(sameNameCat as any).name}, ciceksepetiCategoryId=${sameNameCat.ciceksepetiCategoryId}`);
+            // Ürünün kendi kategorisine de aynı eşleştirmeyi yaz
+            if (productCatId) {
+              await prisma.category.update({
+                where: { id: productCatId },
+                data: { ciceksepetiCategoryId: sameNameCat.ciceksepetiCategoryId },
+              });
+              console.log(`[CS-SYNC]    Ürünün kategorisi (${productCatId}) otomatik güncellendi: ciceksepetiCategoryId = ${sameNameCat.ciceksepetiCategoryId}`);
+            }
+          }
+        }
+
+        // 6) Hâlâ bulunamadıysa: DB'deki TÜM ciceksepetiCategoryId dolu kategoriler arasında benzer isim ara
+        if (!rawCatId && productCatName && productCatName !== "Bilinmeyen") {
+          const allMapped = await prisma.category.findMany({
+            where: { ciceksepetiCategoryId: { not: null } },
+            select: { ciceksepetiCategoryId: true, id: true, name: true },
+          });
+          const normalized = productCatName.toLowerCase().replace(/[ıİüÜöÖçÇşŞğĞ]/g, (c: string) => {
+            const map: Record<string, string> = { 'ı': 'i', 'İ': 'i', 'ü': 'u', 'Ü': 'u', 'ö': 'o', 'Ö': 'o', 'ç': 'c', 'Ç': 'c', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g' };
+            return map[c] || c;
+          }).trim();
+          for (const mc of allMapped) {
+            const mcNorm = (mc.name || "").toLowerCase().replace(/[ıİüÜöÖçÇşŞğĞ]/g, (c: string) => {
+              const map: Record<string, string> = { 'ı': 'i', 'İ': 'i', 'ü': 'u', 'Ü': 'u', 'ö': 'o', 'Ö': 'o', 'ç': 'c', 'Ç': 'c', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g' };
+              return map[c] || c;
+            }).trim();
+            if (mcNorm === normalized || mcNorm.includes(normalized) || normalized.includes(mcNorm)) {
+              rawCatId = mc.ciceksepetiCategoryId;
+              console.log(`[CS-SYNC] -> Adım 6: Benzer isimli kategori bulundu! "${mc.name}" (${mc.id}) -> ciceksepetiCategoryId=${mc.ciceksepetiCategoryId}`);
+              if (productCatId) {
+                await prisma.category.update({
+                  where: { id: productCatId },
+                  data: { ciceksepetiCategoryId: mc.ciceksepetiCategoryId },
+                });
+                console.log(`[CS-SYNC]    Ürünün kategorisi (${productCatId}) otomatik güncellendi: ciceksepetiCategoryId = ${mc.ciceksepetiCategoryId}`);
+              }
+              break;
+            }
+          }
+        }
+
         if (!rawCatId) {
+          // Tüm eşleştirilmiş kategorileri listele
+          const allMappedCats = await prisma.category.findMany({
+            where: { ciceksepetiCategoryId: { not: null } },
+            select: { id: true, name: true, ciceksepetiCategoryId: true },
+          });
           console.error(`[CS-SYNC] HATA: "${p.name}" için hiçbir aşamada ciceksepetiCategoryId bulunamadı!`);
-          throw new Error(`'${p.name}' ürünü (Kategori: "${productCatName}", ID: ${productCatId || "yok"}) için Çiçeksepeti Kategori ID tanımlanmamış. Lütfen "${productCatName}" kategorisine Çiçeksepeti eşleştirmesi yapın.`);
+          console.error(`[CS-SYNC] Ürün kategorisi: "${productCatName}" (${productCatId})`);
+          console.error(`[CS-SYNC] DB'de eşleştirilmiş tüm kategoriler:`, allMappedCats.map(c => `${c.name}(${c.id})=${c.ciceksepetiCategoryId}`));
+          throw new Error(`'${p.name}' ürünü (Kategori: "${productCatName}", ID: ${productCatId || "yok"}) için Çiçeksepeti Kategori ID tanımlanmamış. Eşleştirme "${productCatName}" (${productCatId}) kategorisinde yapılmalıdır.`);
         }
 
         const categoryId = parseInt(rawCatId) || 0;
