@@ -133,46 +133,7 @@ export class CiceksepetiClient {
    */
   async getCategoryAttributes(categoryId: number | string): Promise<CiceksepetiAttribute[]> {
     await this.loadConfig();
-    const targetId = Number(categoryId);
 
-    // 1) Önce GET /Categories (Tüm kategori ağacı ve içindeki gömülü nitelikler)
-    try {
-      const categories = await this.getCategories();
-      const findCategoryRecursive = (catList: any[]): any | null => {
-        for (const cat of catList) {
-          if (Number(cat.id || cat.categoryId) === targetId) {
-            return cat;
-          }
-          const children = cat.subCategories || cat.nodes || cat.categories || cat.children;
-          if (Array.isArray(children) && children.length > 0) {
-            const found = findCategoryRecursive(children);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-
-      const matchedCat = findCategoryRecursive(categories);
-      if (matchedCat) {
-        console.log(`[CS-API] Category ${targetId} found in tree: "${matchedCat.name}"`);
-        const embeddedAttrs = matchedCat.attributes || matchedCat.categoryAttributes || matchedCat.attributeList || matchedCat.properties;
-        if (Array.isArray(embeddedAttrs) && embeddedAttrs.length > 0) {
-          console.log(`[CS-API] Found ${embeddedAttrs.length} embedded attributes for cat ${targetId}`);
-          return embeddedAttrs.map((a: any) => ({
-            id: a.id || a.attributeId || a.code,
-            name: a.name || a.attributeName || a.displayName || "Nitelik",
-            required: Boolean(a.required || a.isRequired || a.mandatory),
-            isRequired: Boolean(a.required || a.isRequired || a.mandatory),
-            attributeValues: (a.attributeValues || a.values || a.options || []).map((v: any) => ({
-              id: v.id || v.valueId || v.code,
-              name: v.name || v.valueName || v.displayName || String(v),
-            })),
-          }));
-        }
-      }
-    } catch (err: any) {
-      console.warn(`[CS-API] Error searching categories tree for cat ${targetId}:`, err.message);
-    }
 
     // 2) Resmi Dokümantasyon Uç Noktası: GET /api/v1/categories/{categoryId}/attributes
     const candidateUrls = [
