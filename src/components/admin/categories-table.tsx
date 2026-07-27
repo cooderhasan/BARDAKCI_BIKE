@@ -880,6 +880,136 @@ function PazaramaCategorySearch({
     );
 }
 
+interface CiceksepetiCat {
+    id: string;
+    name: string;
+}
+
+function CiceksepetiCategorySearch({
+    value,
+    onChange,
+}: {
+    value?: string | number;
+    onChange: (id: string | undefined) => void;
+}) {
+    const [search, setSearch] = useState(String(value || ""));
+    const [allCategories, setAllCategories] = useState<CiceksepetiCat[]>([]);
+    const [results, setResults] = useState<CiceksepetiCat[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        setSearch(String(value || ""));
+    }, [value]);
+
+    const flattenCiceksepetiCategories = (cats: any[], prefix = ""): CiceksepetiCat[] => {
+        let result: CiceksepetiCat[] = [];
+        if (!Array.isArray(cats)) return result;
+        for (const c of cats) {
+            if (!c || typeof c !== "object") continue;
+            const catId = String(c.id || c.categoryId || "");
+            const rawName = String(c.name || c.categoryName || "");
+            const fullName = prefix ? `${prefix} > ${rawName}` : rawName;
+            if (catId && rawName) {
+                result.push({ id: catId, name: fullName });
+            }
+            const children = c.subCategories || c.categories || c.items;
+            if (children && Array.isArray(children)) {
+                result = result.concat(flattenCiceksepetiCategories(children, fullName));
+            }
+        }
+        return result;
+    };
+
+    const fetchCategories = async () => {
+        if (allCategories.length > 0) return allCategories;
+        setLoading(true);
+        try {
+            const { getCiceksepetiCategories } = await import("@/app/admin/(protected)/integrations/ciceksepeti/actions");
+            const cats = await getCiceksepetiCategories();
+            if (Array.isArray(cats) && cats.length > 0) {
+                const flattened = flattenCiceksepetiCategories(cats);
+                setAllCategories(flattened);
+                return flattened;
+            }
+            return [];
+        } catch {
+            return [];
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = async (q: string) => {
+        setSearch(q);
+        onChange(q ? q : undefined);
+        if (q.length < 2) {
+            setResults([]);
+            setOpen(false);
+            return;
+        }
+
+        const cats = await fetchCategories();
+        const query = q.toLowerCase();
+        const filtered = cats
+            .filter((c) => c.name.toLowerCase().includes(query) || c.id.toLowerCase().includes(query))
+            .slice(0, 50);
+
+        setResults(filtered);
+        setOpen(filtered.length > 0);
+    };
+
+    const handleSelect = (cat: CiceksepetiCat) => {
+        onChange(cat.id);
+        setSearch(cat.id);
+        setResults([]);
+        setOpen(false);
+    };
+
+    const handleClear = () => {
+        onChange(undefined);
+        setSearch("");
+        setResults([]);
+        setOpen(false);
+    };
+
+    return (
+        <div className="space-y-1.5">
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                    className="pl-8 pr-8 border-rose-200 focus-visible:ring-rose-500 text-xs font-mono"
+                    placeholder="Çiçeksepeti Kategori ID giriniz veya adı ile arayınız (örn: Bisiklet)..."
+                    value={search}
+                    onChange={(e) => handleSearch(e.target.value)}
+                />
+                {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-rose-500" />}
+                {search && !loading && (
+                    <button type="button" onClick={handleClear} className="absolute right-2.5 top-2.5 text-gray-400 hover:text-red-500">
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+
+            {open && results.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-rose-200 rounded-lg shadow-xl">
+                    {results.map((cat) => (
+                        <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => handleSelect(cat)}
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                        >
+                            <span className="font-medium text-gray-800 dark:text-gray-200">{cat.name}</span>
+                            <span className="text-[10px] text-rose-600 font-mono shrink-0">#{cat.id}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [parentSearch, setParentSearch] = useState("");
@@ -1353,14 +1483,11 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                             />
                                         )}
                                     </div>
-                                    <Input
-                                        id="ciceksepetiCategoryId"
-                                        value={ciceksepetiCategoryId || ""}
-                                        onChange={(e) => setCiceksepetiCategoryId(e.target.value)}
-                                        placeholder="Örn: 1024"
-                                        className="border-rose-200"
+                                    <CiceksepetiCategorySearch
+                                        value={ciceksepetiCategoryId}
+                                        onChange={setCiceksepetiCategoryId}
                                     />
-                                    <p className="text-[10px] text-rose-600">Çiçeksepeti kategori kodunu girin.</p>
+                                    <p className="text-[10px] text-rose-600">Çiçeksepeti kategorisini adıyla arayıp (örn: Bisiklet) seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="googleProductCategory" className="text-[#17457C]">Google Ürün Kategorisi (Taxonomy)</Label>
