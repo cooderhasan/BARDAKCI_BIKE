@@ -49,17 +49,36 @@ export async function createCategory(data: { name: string; slug: string; store?:
 
 export async function updateCategory(id: string, data: { name?: string; slug?: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; ciceksepetiCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
     try {
+        const updateData: Record<string, any> = {};
+        
+        // Sadece tanımlı alanları ekle (undefined olanları Prisma'ya gönderme)
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.slug !== undefined) updateData.slug = data.slug;
+        if (data.store !== undefined) updateData.store = data.store;
+        if (data.order !== undefined) updateData.order = data.order;
+        if (data.isActive !== undefined) updateData.isActive = data.isActive;
+        if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+        if (data.menuImageUrl !== undefined) updateData.menuImageUrl = data.menuImageUrl;
+        if (data.isFeatured !== undefined) updateData.isFeatured = data.isFeatured;
+        if (data.isInHeader !== undefined) updateData.isInHeader = data.isInHeader;
+        if (data.headerOrder !== undefined) updateData.headerOrder = data.headerOrder;
+        if (data.trendyolCategoryId !== undefined) updateData.trendyolCategoryId = data.trendyolCategoryId;
+        if (data.n11CategoryId !== undefined) updateData.n11CategoryId = data.n11CategoryId;
+        if (data.googleProductCategory !== undefined) updateData.googleProductCategory = data.googleProductCategory;
+        if (data.description !== undefined) updateData.description = data.description;
+        if (data.parentId !== undefined) updateData.parentId = data.parentId || null;
+        
+        // String marketplace ID'leri - özellikle dönüştür
+        if (data.hbCategoryId !== undefined) updateData.hbCategoryId = data.hbCategoryId ? String(data.hbCategoryId).trim() : null;
+        if (data.idefixCategoryId !== undefined) updateData.idefixCategoryId = data.idefixCategoryId ? String(data.idefixCategoryId).trim() : null;
+        if (data.pazaramaCategoryId !== undefined) updateData.pazaramaCategoryId = data.pazaramaCategoryId ? String(data.pazaramaCategoryId).trim() : null;
+        if (data.ciceksepetiCategoryId !== undefined) updateData.ciceksepetiCategoryId = data.ciceksepetiCategoryId ? String(data.ciceksepetiCategoryId).trim() : null;
+
+        console.log("[updateCategory] ID:", id, "ciceksepetiCategoryId input:", data.ciceksepetiCategoryId, "-> saved:", updateData.ciceksepetiCategoryId);
+
         await prisma.category.update({
             where: { id },
-            data: {
-                ...data,
-                store: data.store || undefined,
-                hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId).trim() : null,
-                idefixCategoryId: data.idefixCategoryId ? String(data.idefixCategoryId).trim() : null,
-                pazaramaCategoryId: data.pazaramaCategoryId ? String(data.pazaramaCategoryId).trim() : null,
-                ciceksepetiCategoryId: data.ciceksepetiCategoryId ? String(data.ciceksepetiCategoryId).trim() : null,
-                parentId: data.parentId === undefined ? undefined : (data.parentId || null),
-            },
+            data: updateData,
         });
         revalidatePath("/admin/categories");
         revalidatePath("/");

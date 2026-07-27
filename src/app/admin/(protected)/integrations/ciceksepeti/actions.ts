@@ -238,26 +238,71 @@ export async function syncProductsToCiceksepeti(
       const productInputs: any[] = [];
 
       for (const p of products) {
-        let rawCatId =
-          p.category?.ciceksepetiCategoryId ||
-          p.category?.parent?.ciceksepetiCategoryId ||
-          p.categories?.[0]?.ciceksepetiCategoryId ||
-          p.categories?.[0]?.parent?.ciceksepetiCategoryId ||
-          (p as any).ciceksepetiCategoryId;
+        // Tüm olası kaynaklardan Çiçeksepeti Kategori ID'sini bul
+        const productCatName = p.category?.name || p.categories?.[0]?.name || "Bilinmeyen";
+        const productCatId = p.categoryId || p.category?.id || p.categories?.[0]?.id;
 
-        if (!rawCatId && (p.categoryId || p.category?.id)) {
-          const catId = p.categoryId || p.category?.id;
-          const childCat = await prisma.category.findFirst({
-            where: { parentId: catId, ciceksepetiCategoryId: { not: null } },
-            select: { ciceksepetiCategoryId: true },
-          });
-          if (childCat?.ciceksepetiCategoryId) {
-            rawCatId = childCat.ciceksepetiCategoryId;
+        console.log(`[CS-SYNC] Ürün: "${p.name}", categoryId: ${p.categoryId}, category?.id: ${p.category?.id}, category?.name: ${p.category?.name}, category?.ciceksepetiCategoryId: ${p.category?.ciceksepetiCategoryId}, categories count: ${p.categories?.length || 0}, categories[0]?.name: ${p.categories?.[0]?.name}, categories[0]?.ciceksepetiCategoryId: ${p.categories?.[0]?.ciceksepetiCategoryId}`);
+
+        let rawCatId: string | null = null;
+
+        // 1) Ürünün doğrudan kategorisi
+        if (!rawCatId && p.category?.ciceksepetiCategoryId) {
+          rawCatId = p.category.ciceksepetiCategoryId;
+          console.log(`[CS-SYNC] -> Adım 1: category.ciceksepetiCategoryId = ${rawCatId}`);
+        }
+        // 2) Ürünün categories[] dizisindeki ilk kategori
+        if (!rawCatId && p.categories?.[0]?.ciceksepetiCategoryId) {
+          rawCatId = p.categories[0].ciceksepetiCategoryId;
+          console.log(`[CS-SYNC] -> Adım 2: categories[0].ciceksepetiCategoryId = ${rawCatId}`);
+        }
+        // 3) Üst kategoriler (parent chain)
+        if (!rawCatId && p.category?.parent?.ciceksepetiCategoryId) {
+          rawCatId = p.category.parent.ciceksepetiCategoryId;
+          console.log(`[CS-SYNC] -> Adım 3a: category.parent.ciceksepetiCategoryId = ${rawCatId}`);
+        }
+        if (!rawCatId && p.categories?.[0]?.parent?.ciceksepetiCategoryId) {
+          rawCatId = p.categories[0].parent.ciceksepetiCategoryId;
+          console.log(`[CS-SYNC] -> Adım 3b: categories[0].parent.ciceksepetiCategoryId = ${rawCatId}`);
+        }
+        // 4) DB'den tam zincir taraması: ürünün kategorisinden başlayarak tüm üst ve alt kategorileri tara
+        if (!rawCatId && productCatId) {
+          console.log(`[CS-SYNC] -> Adım 4: DB zincir taraması başlıyor. productCatId = ${productCatId}`);
+          // Üst kategorileri tara (kendisi dahil)
+          let currentId: string | null = productCatId;
+          for (let depth = 0; depth < 5 && currentId && !rawCatId; depth++) {
+            const cat = await prisma.category.findUnique({
+              where: { id: currentId },
+              select: { ciceksepetiCategoryId: true, parentId: true, name: true },
+            });
+            console.log(`[CS-SYNC]    Derinlik ${depth}: id=${currentId}, name=${(cat as any)?.name}, ciceksepetiCategoryId=${cat?.ciceksepetiCategoryId}, parentId=${cat?.parentId}`);
+            if (cat?.ciceksepetiCategoryId) {
+              rawCatId = cat.ciceksepetiCategoryId;
+            } else {
+              currentId = cat?.parentId || null;
+            }
+          }
+          // Alt kategorileri tara
+          if (!rawCatId) {
+            const childCat = await prisma.category.findFirst({
+              where: {
+                OR: [
+                  { parentId: productCatId, ciceksepetiCategoryId: { not: null } },
+                  { parent: { parentId: productCatId }, ciceksepetiCategoryId: { not: null } },
+                ],
+              },
+              select: { ciceksepetiCategoryId: true, name: true },
+            });
+            console.log(`[CS-SYNC]    Alt kategori taraması: ${childCat ? `Bulundu: ${(childCat as any).name} = ${childCat.ciceksepetiCategoryId}` : "Bulunamadı"}`);
+            if (childCat?.ciceksepetiCategoryId) {
+              rawCatId = childCat.ciceksepetiCategoryId;
+            }
           }
         }
 
         if (!rawCatId) {
-          throw new Error(`'${p.name}' ürünü için Çiçeksepeti Kategori ID tanımlanmamış. Lütfen önce Kategoriler sayfasından eşleştirme yapın.`);
+          console.error(`[CS-SYNC] HATA: "${p.name}" için hiçbir aşamada ciceksepetiCategoryId bulunamadı!`);
+          throw new Error(`'${p.name}' ürünü (Kategori: "${productCatName}", ID: ${productCatId || "yok"}) için Çiçeksepeti Kategori ID tanımlanmamış. Lütfen "${productCatName}" kategorisine Çiçeksepeti eşleştirmesi yapın.`);
         }
 
         const categoryId = parseInt(rawCatId) || 0;
