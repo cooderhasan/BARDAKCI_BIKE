@@ -162,32 +162,7 @@ export function CiceksepetiProductAttributeModal({
       }
     });
 
-    // 2) Sık kullanılan standart alanlar
-    if (brandName.trim()) {
-      selectedAttributes.push({ attributeId: 1, customAttributeValue: brandName.trim() });
-    }
-    if (colorName.trim()) {
-      selectedAttributes.push({ attributeId: 2, customAttributeValue: colorName.trim() });
-    }
-    if (sizeName.trim()) {
-      selectedAttributes.push({ attributeId: 3, customAttributeValue: sizeName.trim() });
-    }
-    if (materialName.trim()) {
-      selectedAttributes.push({ attributeId: 4, customAttributeValue: materialName.trim() });
-    }
-    if (genderName.trim()) {
-      selectedAttributes.push({ attributeId: 5, customAttributeValue: genderName.trim() });
-    }
-
-    // 3) Özel eklenen alanlar
-    customFields.forEach((cf, idx) => {
-      if (cf.name.trim() && cf.value.trim()) {
-        selectedAttributes.push({
-          attributeId: 100 + idx,
-          customAttributeValue: `${cf.name.trim()}: ${cf.value.trim()}`,
-        });
-      }
-    });
+    // Sadece Çiçeksepeti API'sinden gelen geçerli kategori nitelikleri gönderilir
 
     setSubmitting(true);
     try {
@@ -270,65 +245,7 @@ export function CiceksepetiProductAttributeModal({
                 </div>
               </div>
 
-              {/* Sık Kullanılan Ürün Özellikleri (Renk, Beden, Marka vb.) */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
-                <p className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-slate-600" />
-                  Ürün Özellikleri & Nitelikleri (Renk, Beden, Marka vb.)
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-gray-700">Marka</Label>
-                    <Input
-                      placeholder="Örn: Umt, Shimno, Salcano"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-gray-700">Renk</Label>
-                    <Input
-                      placeholder="Örn: Siyah, Kırmızı, Gümüş"
-                      value={colorName}
-                      onChange={(e) => setColorName(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-gray-700">Beden / Ölçü / Jant</Label>
-                    <Input
-                      placeholder="Örn: Standart, 26 Jant, XL"
-                      value={sizeName}
-                      onChange={(e) => setSizeName(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-gray-700">Materyal / Malzeme</Label>
-                    <Input
-                      placeholder="Örn: Alüminyum, Çelik, Plastik"
-                      value={materialName}
-                      onChange={(e) => setMaterialName(e.target.value)}
-                      className="h-8 text-xs bg-white"
-                    />
-                  </div>
-                  <div className="col-span-2 space-y-1">
-                    <Label className="text-[11px] text-gray-700">Cinsiyet / Hedef Kitle</Label>
-                    <Select value={genderName} onValueChange={setGenderName}>
-                      <SelectTrigger className="w-full h-8 text-xs bg-white">
-                        <SelectValue placeholder="Cinsiyet seçiniz (Opsiyonel)..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Unisex" className="text-xs">Unisex</SelectItem>
-                        <SelectItem value="Erkek" className="text-xs">Erkek</SelectItem>
-                        <SelectItem value="Kadın" className="text-xs">Kadın</SelectItem>
-                        <SelectItem value="Çocuk" className="text-xs">Çocuk</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
+
 
               {/* Çiçeksepeti Canlı Kategori Nitelikleri */}
               {loading ? (
