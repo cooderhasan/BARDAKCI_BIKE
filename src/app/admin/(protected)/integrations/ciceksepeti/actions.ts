@@ -151,6 +151,7 @@ export async function syncProductsToCiceksepeti(
     const products = await prisma.product.findMany({
       where: whereCondition,
       include: {
+        brand: true,
         categories: true,
         variants: true,
         ciceksepetiProduct: true,
@@ -246,17 +247,47 @@ export async function syncProductsToCiceksepeti(
         const salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
         const listPrice = Number(p.listPrice) >= salesPrice ? Number(p.listPrice) : salesPrice;
 
+        // Ürün Nitelikleri (Attributes: Marka, Cinsiyet, Fren Tipi, Menşei vb.)
+        const attributes: any[] = [];
+        if (p.brand?.name) {
+          attributes.push({
+            attributeName: "Marka",
+            customAttributeValue: p.brand.name,
+          });
+        }
+        if (p.gender && p.gender !== "none") {
+          attributes.push({
+            attributeName: "Cinsiyet",
+            customAttributeValue: p.gender,
+          });
+        }
+        if (p.brakeType && p.brakeType !== "none") {
+          attributes.push({
+            attributeName: "Fren Tipi",
+            customAttributeValue: p.brakeType,
+          });
+        }
+        if (p.origin) {
+          attributes.push({
+            attributeName: "Menşei",
+            customAttributeValue: p.origin,
+          });
+        }
+
         productInputs.push({
           productName: p.name,
           productCode: p.sku || p.barcode || p.id,
           stockCode: p.barcode || p.sku || p.id,
           mainCategoryId: categoryId,
           description: p.marketplaceDescription || p.description || p.name,
+          deliveryType: 1, // 1 = Kargo ile Teslimat
+          deliveryDays: 1, // 1 Gün İçinde Kargo
           listPrice,
           salesPrice,
           stockQuantity: p.stock,
           barcode: p.barcode || p.sku || p.id,
           images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500"],
+          attributes,
         });
       }
 
