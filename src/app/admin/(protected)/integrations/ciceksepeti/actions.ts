@@ -325,38 +325,49 @@ export async function syncProductsToCiceksepeti(
         // Çiçeksepeti kuralı: listPrice (piyasa/üst fiyat), salesPrice (satış fiyatı)'dan küçük olamaz.
         const listPrice = rawListPrice >= salesPrice ? rawListPrice : salesPrice;
 
-        // Kategoriye özel kaydedilmiş Çiçeksepeti niteliklerini al
-        const targetCatId = p.categoryId || p.category?.id || p.categories?.[0]?.id || "";
+        // Kategoriye özel kaydedilmiş Çiçeksepeti niteliklerini al (SADECE ilgili ciceksepetiCategoryId ile)
         const savedCategoryAttrs = await (prisma as any).ciceksepetiCategoryAttribute.findMany({
           where: {
-            OR: [
-              { ciceksepetiCategoryId: String(categoryId) },
-              ...(targetCatId ? [{ categoryId: targetCatId }] : []),
-            ],
+            ciceksepetiCategoryId: String(categoryId),
           },
         });
 
-        // Ürün Nitelikleri (Attributes: Marka, Cinsiyet, Fren Tipi, Menşei vb.)
-        const attributes: any[] = [];
+        // Çiçeksepeti canlı kategorisindeki geçerli attributeId'leri al
+        let validAttributeIds = new Set<number>();
+        try {
+          const liveAttrs = await client.getCategoryAttributes(categoryId);
+          if (Array.isArray(liveAttrs)) {
+            liveAttrs.forEach((a: any) => {
+              if (a.id) validAttributeIds.add(Number(a.id));
+            });
+          }
+        } catch {}
+
+        // Ürün Nitelikleri (Attributes)
+        let rawAttributes: any[] = [];
 
         if (customOptions?.attributes && customOptions.attributes.length > 0) {
-          attributes.push(...customOptions.attributes);
+          rawAttributes.push(...customOptions.attributes);
         } else {
-          // Önce Kategoriye Özel Kaydedilmiş Nitelikleri ekle
           for (const savedAttr of savedCategoryAttrs) {
             if (savedAttr.selectedAttributeValueId) {
-              attributes.push({
+              rawAttributes.push({
                 attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
                 attributeValueId: Number(savedAttr.selectedAttributeValueId) || savedAttr.selectedAttributeValueId,
               });
             } else if (savedAttr.customValue) {
-              attributes.push({
+              rawAttributes.push({
                 attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
                 customAttributeValue: savedAttr.customValue,
               });
             }
           }
         }
+
+        // Eğer canlı kategoride nitelik tanımı varsa, sadece o kategoriye ait geçerli attributeId'leri filtrele
+        const attributes = validAttributeIds.size > 0
+          ? rawAttributes.filter((attr) => validAttributeIds.has(Number(attr.attributeId)))
+          : rawAttributes;
 
         productInputs.push({
           productName: p.name,
