@@ -221,10 +221,10 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
                       <div className="space-y-0.5">
                         <span className="font-medium text-sm line-clamp-1">{p.name}</span>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{p.categories?.[0]?.name || "Kategori Yok"}</span>
-                          {p.ciceksepetiCategoryId && (
+                          <span>{p.category?.name || p.categories?.[0]?.name || "Kategori Yok"}</span>
+                          {(p.category?.ciceksepetiCategoryId || p.categories?.[0]?.ciceksepetiCategoryId) && (
                             <Badge variant="outline" className="text-[10px] bg-rose-50 text-rose-700 border-rose-200">
-                              ÇS Cat ID: {p.ciceksepetiCategoryId}
+                              ÇS Cat ID: {p.category?.ciceksepetiCategoryId || p.categories?.[0]?.ciceksepetiCategoryId}
                             </Badge>
                           )}
                         </div>

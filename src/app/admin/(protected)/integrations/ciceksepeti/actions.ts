@@ -152,7 +152,8 @@ export async function syncProductsToCiceksepeti(
       where: whereCondition,
       include: {
         brand: true,
-        categories: true,
+        category: { include: { parent: true } },
+        categories: { include: { parent: true } },
         variants: true,
         ciceksepetiProduct: true,
       },
@@ -237,7 +238,13 @@ export async function syncProductsToCiceksepeti(
       const productInputs: any[] = [];
 
       for (const p of products) {
-        const rawCatId = (p as any).ciceksepetiCategoryId || p.categories?.[0]?.ciceksepetiCategoryId;
+        const rawCatId =
+          p.category?.ciceksepetiCategoryId ||
+          p.category?.parent?.ciceksepetiCategoryId ||
+          p.categories?.[0]?.ciceksepetiCategoryId ||
+          p.categories?.[0]?.parent?.ciceksepetiCategoryId ||
+          (p as any).ciceksepetiCategoryId;
+
         if (!rawCatId) {
           throw new Error(`'${p.name}' ürünü için Çiçeksepeti Kategori ID tanımlanmamış. Lütfen önce Kategoriler sayfasından eşleştirme yapın.`);
         }
@@ -248,8 +255,9 @@ export async function syncProductsToCiceksepeti(
         const listPrice = Number(p.listPrice) >= salesPrice ? Number(p.listPrice) : salesPrice;
 
         // Kategoriye özel kaydedilmiş Çiçeksepeti niteliklerini al
+        const targetCatId = p.categoryId || p.category?.id || p.categories?.[0]?.id || "";
         const savedCategoryAttrs = await (prisma as any).ciceksepetiCategoryAttribute.findMany({
-          where: { categoryId: p.categories?.[0]?.id || p.categoryId || "" },
+          where: { categoryId: targetCatId },
         });
 
         // Ürün Nitelikleri (Attributes: Marka, Cinsiyet, Fren Tipi, Menşei vb.)
@@ -381,7 +389,8 @@ export async function getCiceksepetiProducts() {
       where: { isCiceksepetiActive: true },
       include: {
         ciceksepetiProduct: true,
-        categories: { select: { name: true, ciceksepetiCategoryId: true } },
+        category: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
+        categories: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
       },
       orderBy: { updatedAt: "desc" },
     });
