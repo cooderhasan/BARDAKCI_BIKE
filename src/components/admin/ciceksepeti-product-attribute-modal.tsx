@@ -154,6 +154,34 @@ export function CiceksepetiProductAttributeModal({
             </div>
           ) : (
             <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-rose-50/50 border border-rose-100 rounded-lg">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-rose-900">Teslimat Tipi <span className="text-red-500">*</span></Label>
+                  <Select defaultValue="1">
+                    <SelectTrigger className="w-full text-xs bg-white h-8">
+                      <SelectValue placeholder="Teslimat Tipi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1" className="text-xs">Kargo ile Teslimat (1)</SelectItem>
+                      <SelectItem value="2" className="text-xs">Özel Teslimat / Kendi Aracıyla (2)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-rose-900">Kargoya Veriliş Süresi <span className="text-red-500">*</span></Label>
+                  <Select defaultValue="1">
+                    <SelectTrigger className="w-full text-xs bg-white h-8">
+                      <SelectValue placeholder="Kargo Süresi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1" className="text-xs">Aynı Gün / 1 Gün</SelectItem>
+                      <SelectItem value="2" className="text-xs">2 Gün</SelectItem>
+                      <SelectItem value="3" className="text-xs">3 Gün</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <p className="text-xs text-muted-foreground">
                 Kırmızı yıldızlı (<span className="text-red-500">*</span>) alanlar Çiçeksepeti tarafından zorunlu tutulmaktadır.
               </p>
