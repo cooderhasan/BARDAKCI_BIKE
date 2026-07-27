@@ -328,7 +328,12 @@ export async function syncProductsToCiceksepeti(
         // Kategoriye özel kaydedilmiş Çiçeksepeti niteliklerini al
         const targetCatId = p.categoryId || p.category?.id || p.categories?.[0]?.id || "";
         const savedCategoryAttrs = await (prisma as any).ciceksepetiCategoryAttribute.findMany({
-          where: { categoryId: targetCatId },
+          where: {
+            OR: [
+              { ciceksepetiCategoryId: String(categoryId) },
+              ...(targetCatId ? [{ categoryId: targetCatId }] : []),
+            ],
+          },
         });
 
         // Ürün Nitelikleri (Attributes: Marka, Cinsiyet, Fren Tipi, Menşei vb.)

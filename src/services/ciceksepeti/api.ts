@@ -135,19 +135,28 @@ export class CiceksepetiClient {
     await this.loadConfig();
     const url = `${this.baseUrl}/Categories/${categoryId}/attributes`;
 
+    console.log(`[CS-API] GET /Categories/${categoryId}/attributes`);
+
     const res = await fetch(url, {
       method: "GET",
       headers: this.getHeaders(),
       cache: "no-store",
     });
 
+    const responseText = await res.text().catch(() => "");
     if (!res.ok) {
-      return [];
+      console.error(`[CS-API] getCategoryAttributes error (${res.status}):`, responseText);
+      throw new Error(`Çiçeksepeti (Kategori ID: ${categoryId}) nitelikleri alınamadı (${res.status}): ${responseText || res.statusText}`);
     }
 
-    const data = await res.json();
+    let data: any = {};
+    try {
+      data = JSON.parse(responseText);
+    } catch {}
+
     if (Array.isArray(data)) return data;
     if (data && Array.isArray(data.attributes)) return data.attributes;
+    if (data && Array.isArray(data.categoryAttributes)) return data.categoryAttributes;
     return [];
   }
 
