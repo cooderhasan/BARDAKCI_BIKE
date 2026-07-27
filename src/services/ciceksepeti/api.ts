@@ -174,12 +174,11 @@ export class CiceksepetiClient {
       console.warn(`[CS-API] Error searching categories tree for cat ${targetId}:`, err.message);
     }
 
-    // 2) Eğer kategori ağacında gömülü bulunamazsa endpoint denemeleri yap
+    // 2) Resmi Dokümantasyon Uç Noktası: GET /api/v1/categories/{categoryId}/attributes
     const candidateUrls = [
+      `${this.baseUrl}/categories/${categoryId}/attributes`,
       `${this.baseUrl}/Categories/${categoryId}/attributes`,
       `${this.baseUrl}/Categories/attributes?categoryId=${categoryId}`,
-      `${this.baseUrl}/Categories/attributes/${categoryId}`,
-      `${this.baseUrl}/Categories/${categoryId}`,
     ];
 
     const headers = this.getHeaders();
@@ -187,7 +186,7 @@ export class CiceksepetiClient {
 
     for (const url of candidateUrls) {
       try {
-        console.log(`[CS-API] Trying attribute URL: ${url}`);
+        console.log(`[CS-API] GET ${url}`);
         const res = await fetch(url, {
           method: "GET",
           headers,
@@ -196,12 +195,12 @@ export class CiceksepetiClient {
 
         const responseText = await res.text().catch(() => "");
         if (!res.ok) {
-          console.warn(`[CS-API] Attribute URL ${url} returned ${res.status}:`, responseText);
+          console.warn(`[CS-API] ${url} returned ${res.status}:`, responseText);
           lastError = responseText || res.statusText;
           continue;
         }
 
-        console.log(`[CS-API] Attribute URL ${url} SUCCESS response:`, responseText.substring(0, 500));
+        console.log(`[CS-API] ${url} SUCCESS:`, responseText.substring(0, 500));
 
         let data: any = {};
         try {
@@ -209,23 +208,22 @@ export class CiceksepetiClient {
         } catch {}
 
         let attrs: any[] = [];
-        if (Array.isArray(data)) attrs = data;
+        if (data && Array.isArray(data.categoryAttributes)) attrs = data.categoryAttributes;
+        else if (Array.isArray(data)) attrs = data;
         else if (data && Array.isArray(data.attributes)) attrs = data.attributes;
-        else if (data && Array.isArray(data.categoryAttributes)) attrs = data.categoryAttributes;
         else if (data && Array.isArray(data.categoryAttributeList)) attrs = data.categoryAttributeList;
         else if (data && Array.isArray(data.attributeList)) attrs = data.attributeList;
-        else if (data && Array.isArray(data.data)) attrs = data.data;
-        else if (data?.data && Array.isArray(data.data.attributes)) attrs = data.data.attributes;
 
         if (attrs && attrs.length > 0) {
           return attrs.map((a: any) => ({
-            id: a.id || a.attributeId || a.code,
-            name: a.name || a.attributeName || a.displayName || "Nitelik",
+            id: Number(a.attributeId || a.id),
+            name: String(a.attributeName || a.name || "Nitelik"),
             required: Boolean(a.required || a.isRequired || a.mandatory),
-            isRequired: Boolean(a.required || a.isRequired || a.mandatory),
+            varianter: Boolean(a.varianter),
+            type: String(a.type || ""),
             attributeValues: (a.attributeValues || a.values || a.options || []).map((v: any) => ({
-              id: v.id || v.valueId || v.code,
-              name: v.name || v.valueName || v.displayName || String(v),
+              id: Number(v.id || v.valueId),
+              name: String(v.name || v.valueName || String(v)),
             })),
           }));
         }
