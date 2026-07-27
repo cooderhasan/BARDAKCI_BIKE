@@ -99,6 +99,8 @@ interface Product {
     pazaramaPrice?: number | null;
     isPttavmActive?: boolean;
     pttavmPrice?: number | null;
+    isCiceksepetiActive?: boolean;
+    ciceksepetiPrice?: number | null;
     isGoogleActive?: boolean;
     googlePrice?: number | null;
     weight?: number | null;
@@ -160,6 +162,8 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         pazaramaPrice: (product as any)?.pazaramaPrice || "",
         isPttavmActive: (product as any)?.isPttavmActive ?? false,
         pttavmPrice: (product as any)?.pttavmPrice || "",
+        isCiceksepetiActive: (product as any)?.isCiceksepetiActive ?? false,
+        ciceksepetiPrice: (product as any)?.ciceksepetiPrice || "",
         isGoogleActive: product?.isGoogleActive ?? false,
         googlePrice: product?.googlePrice || "",
         isFeatured: product?.isFeatured || false,
@@ -706,6 +710,18 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         onChange={(e) => handleChange("pttavmPrice", e.target.value)}
                                         placeholder="Varsayılan: Liste Fiyatı"
                                         className="border-teal-200 focus:border-teal-500"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ciceksepetiPrice" className="text-rose-600 font-semibold">Çiçeksepeti Fiyatı (₺)</Label>
+                                    <Input
+                                        id="ciceksepetiPrice"
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.ciceksepetiPrice}
+                                        onChange={(e) => handleChange("ciceksepetiPrice", e.target.value)}
+                                        placeholder="Varsayılan: Liste Fiyatı"
+                                        className="border-rose-200 focus:border-rose-500"
                                     />
                                 </div>
                             </div>
@@ -1396,6 +1412,17 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 <Checkbox
                                     checked={formData.isPttavmActive}
                                     onCheckedChange={(c) => handleChange("isPttavmActive", c)}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-rose-50 dark:bg-rose-900/10">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base text-rose-700 dark:text-rose-300">🌸 Çiçeksepeti Satış</Label>
+                                    <p className="text-sm text-muted-foreground">Bu ürünü Çiçeksepeti'ye gönder?</p>
+                                </div>
+                                <Checkbox
+                                    checked={formData.isCiceksepetiActive}
+                                    onCheckedChange={(c) => handleChange("isCiceksepetiActive", c)}
                                 />
                             </div>
 

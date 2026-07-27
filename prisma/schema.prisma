@@ -167,6 +167,7 @@ model Category {
   idefixCategoryId   String? // Idefix Kategori ID (Büyük id'ler için String)
   pazaramaCategoryId String? // Pazarama Kategori ID
   pttavmCategoryId   Int?    // ePttAVM Kategori ID
+  ciceksepetiCategoryId String? // Çiçeksepeti Kategori ID
   googleProductCategory String? // Google Product Taxonomy (örn. "Ev ve Bahçe > Mobilya > Sandalyeler")
   isFeatured Boolean  @default(false)
   isInHeader Boolean  @default(false)
@@ -197,6 +198,7 @@ model Brand {
   idefixBrandId   String?
   pazaramaBrandId String?
   pttavmBrandId   Int?
+  ciceksepetiBrandId String?
   products  Product[]
   createdAt DateTime  @default(now())
 
@@ -224,6 +226,7 @@ model Product {
   idefixPrice Decimal?    @db.Decimal(12, 2) // Idefix'e gönderilecek özel fiyat
   pazaramaPrice Decimal?  @db.Decimal(12, 2) // Pazarama'ya gönderilecek özel fiyat
   pttavmPrice Decimal?    @db.Decimal(12, 2) // ePttAVM'ye gönderilecek özel fiyat
+  ciceksepetiPrice Decimal? @db.Decimal(12, 2) // Çiçeksepeti'ye gönderilecek özel fiyat
   vatRate     Int         @default(20)
   minQuantity Int         @default(1)
   stock       Int         @default(0)
@@ -251,6 +254,7 @@ model Product {
   isIdefixActive      Boolean @default(false)
   isPazaramaActive    Boolean @default(false)
   isPttavmActive      Boolean @default(false)
+  isCiceksepetiActive Boolean @default(false)
   isGoogleActive      Boolean @default(false) // Google Shopping Feed'e dahil edilsin mi?
 
   pazaramaStatus      String?
@@ -278,6 +282,7 @@ model Product {
   hepsiburadaProduct HepsiburadaProduct?
   idefixProduct   IdefixProduct?
   pttavmProduct   PttavmProduct?
+  ciceksepetiProduct CiceksepetiProduct?
   reviews         Review[]
   wishlistItems   Wishlist[]
   bundleItems     BundleItem[] @relation("BundleParent")  // Bu paketin içindeki ürünler
@@ -1025,5 +1030,55 @@ model PttavmOrder {
   @@index([orderNumber])
   @@index([state])
   @@map("pttavm_orders")
+}
+
+// ==================== ÇİÇEKSEPETİ ENTEGRASYONU ====================
+
+model CiceksepetiConfig {
+  id           String   @id @default(cuid())
+  apiKey       String   // API KEY (x-api-key)
+  supplierId   String?  // Tedarikçi / Mağaza ID
+  profitMargin Float?   @default(0) // Çiçeksepeti kâr marjı %
+  isActive     Boolean  @default(false)
+  isTestMode   Boolean  @default(true) // true = sandbox, false = production
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("ciceksepeti_configs")
+}
+
+model CiceksepetiProduct {
+  id                String   @id @default(cuid())
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  ciceksepetiCode   String?   // Çiçeksepeti Ürün Kodu / StockCode
+  barcode           String?   // Barkod
+  batchRequestId    String?   // Batch İşlem Takip ID
+  batchStatus       String?   // PENDING, SUCCESS, FAILED
+  isSynced          Boolean   @default(false)
+  lastSyncError     String?   @db.Text
+  lastSyncedAt      DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([productId])
+  @@map("ciceksepeti_products")
+}
+
+model CiceksepetiOrder {
+  id                String   @id @default(cuid())
+  ciceksepetiOrderId String  @unique  // Çiçeksepeti Sipariş ID
+  orderNumber       String             // Çiçeksepeti Sipariş Numarası
+  state             String             // Sipariş durumu
+  rawData           Json               // Ham API response verisi
+  processedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([orderNumber])
+  @@index([state])
+  @@map("ciceksepeti_orders")
 }
 

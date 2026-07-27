@@ -79,6 +79,7 @@ interface Category {
     hbCategoryId?: string | null;
     idefixCategoryId?: string | number | null;
     pazaramaCategoryId?: string | number | null;
+    ciceksepetiCategoryId?: string | number | null;
     googleProductCategory?: string | null;
     description?: string | null;
     parent?: {
@@ -173,6 +174,9 @@ function SortableRow({ category, onEdit, onDelete, onToggleStatus, reorderMode }
                     </div>
                     <div title={category.pazaramaCategoryId ? "Pazarama Bağlı" : "Pazarama Bağlı Değil"}>
                         <div className={`w-2 h-2 rounded-full ${category.pazaramaCategoryId ? "bg-pink-600" : "bg-gray-200"}`} />
+                    </div>
+                    <div title={category.ciceksepetiCategoryId ? "Çiçeksepeti Bağlı" : "Çiçeksepeti Bağlı Değil"}>
+                        <div className={`w-2 h-2 rounded-full ${category.ciceksepetiCategoryId ? "bg-rose-600" : "bg-gray-200"}`} />
                     </div>
                 </div>
             </TableCell>
@@ -896,6 +900,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [hbCategoryId, setHbCategoryId] = useState<string | undefined>(undefined);
     const [idefixCategoryId, setIdefixCategoryId] = useState<number | undefined>(undefined);
     const [pazaramaCategoryId, setPazaramaCategoryId] = useState<string | undefined>(undefined);
+    const [ciceksepetiCategoryId, setCiceksepetiCategoryId] = useState<string | undefined>(undefined);
     const [googleProductCategory, setGoogleProductCategory] = useState<string | undefined>(undefined);
     const [description, setDescription] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -1077,6 +1082,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     hbCategoryId,
                     idefixCategoryId,
                     pazaramaCategoryId,
+                    ciceksepetiCategoryId,
                     googleProductCategory,
                     description: description || null
                 });
@@ -1097,6 +1103,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     hbCategoryId,
                     idefixCategoryId,
                     pazaramaCategoryId,
+                    ciceksepetiCategoryId,
                     googleProductCategory,
                     description: description || undefined
                 });
@@ -1155,6 +1162,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setHbCategoryId(undefined);
         setIdefixCategoryId(undefined);
         setPazaramaCategoryId(undefined);
+        setCiceksepetiCategoryId(undefined);
         setGoogleProductCategory(undefined);
         setDescription("");
         setEditCategory(null);
@@ -1177,6 +1185,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setHbCategoryId(category.hbCategoryId ?? undefined);
         setIdefixCategoryId(category.idefixCategoryId ? Number(category.idefixCategoryId) : undefined);
         setPazaramaCategoryId(category.pazaramaCategoryId ? String(category.pazaramaCategoryId) : undefined);
+        setCiceksepetiCategoryId(category.ciceksepetiCategoryId ? String(category.ciceksepetiCategoryId) : undefined);
         setGoogleProductCategory(category.googleProductCategory ?? undefined);
         setDescription(category.description || "");
         setIsOpen(true);
@@ -1331,6 +1340,17 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                         onChange={setPazaramaCategoryId}
                                     />
                                     <p className="text-[10px] text-pink-600">Pazarama kategorisini adıyla arayıp (örn: Bisiklet Pedal) seçebilirsiniz.</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ciceksepetiCategoryId" className="text-rose-700 font-semibold text-xs uppercase tracking-wide">🌸 Çiçeksepeti Kategori ID</Label>
+                                    <Input
+                                        id="ciceksepetiCategoryId"
+                                        value={ciceksepetiCategoryId || ""}
+                                        onChange={(e) => setCiceksepetiCategoryId(e.target.value)}
+                                        placeholder="Örn: 1024"
+                                        className="border-rose-200"
+                                    />
+                                    <p className="text-[10px] text-rose-600">Çiçeksepeti kategori kodunu girin.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="googleProductCategory" className="text-[#17457C]">Google Ürün Kategorisi (Taxonomy)</Label>

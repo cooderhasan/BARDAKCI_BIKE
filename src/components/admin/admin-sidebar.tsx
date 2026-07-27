@@ -77,6 +77,7 @@ const menuGroups: MenuGroup[] = [
             { title: "Idefix", href: "/admin/integrations/idefix", icon: Zap },
             { title: "Pazarama", href: "/admin/integrations/pazarama", icon: Zap },
             { title: "ePttAVM", href: "/admin/integrations/pttavm", icon: Zap },
+            { title: "Çiçeksepeti", href: "/admin/integrations/ciceksepeti", icon: Zap },
             { title: "Google Merchant", href: "/admin/integrations/google", icon: Zap },
             { title: "Toplu İşlemler", href: "/admin/bulk-updates", icon: Zap },
         ],

@@ -52,6 +52,7 @@ export async function createProduct(formData: FormData) {
             idefixPrice: parseDecimal(formData.get("idefixPrice")),
             pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
             pttavmPrice: parseDecimal(formData.get("pttavmPrice")),
+            ciceksepetiPrice: parseDecimal(formData.get("ciceksepetiPrice")),
             vatRate: Number(formData.get("vatRate")),
             minQuantity: Number(formData.get("minQuantity")) || 1,
             stock: Number(formData.get("stock")) || 0,
@@ -71,6 +72,7 @@ export async function createProduct(formData: FormData) {
             isIdefixActive: formData.get("isIdefixActive") === "true",
             isPazaramaActive: formData.get("isPazaramaActive") === "true",
             isPttavmActive: formData.get("isPttavmActive") === "true",
+            isCiceksepetiActive: formData.get("isCiceksepetiActive") === "true",
             isGoogleActive: formData.get("isGoogleActive") === "true",
             googlePrice: parseDecimal(formData.get("googlePrice")),
             // Kargo & Desi
@@ -211,6 +213,7 @@ export async function updateProduct(productId: string, formData: FormData) {
             idefixPrice: parseDecimal(formData.get("idefixPrice")),
             pazaramaPrice: parseDecimal(formData.get("pazaramaPrice")),
             pttavmPrice: parseDecimal(formData.get("pttavmPrice")),
+            ciceksepetiPrice: parseDecimal(formData.get("ciceksepetiPrice")),
             vatRate: Number(formData.get("vatRate")),
             minQuantity: Number(formData.get("minQuantity")) || 1,
             stock: Number(formData.get("stock")) || 0,
@@ -230,6 +233,7 @@ export async function updateProduct(productId: string, formData: FormData) {
             isIdefixActive: formData.get("isIdefixActive") === "true",
             isPazaramaActive: formData.get("isPazaramaActive") === "true",
             isPttavmActive: formData.get("isPttavmActive") === "true",
+            isCiceksepetiActive: formData.get("isCiceksepetiActive") === "true",
             isGoogleActive: formData.get("isGoogleActive") === "true",
             googlePrice: parseDecimal(formData.get("googlePrice")),
             // Kargo & Desi
@@ -439,6 +443,21 @@ export async function toggleTrendyolStatus(productId: string, isTrendyolActive: 
     } catch (e) {
         console.error("Marketplace sync queue error:", e);
     }
+
+    revalidatePath("/admin/products");
+    return { success: true };
+}
+
+export async function toggleCiceksepetiStatus(productId: string, isCiceksepetiActive: boolean) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        throw new Error("Unauthorized");
+    }
+
+    await prisma.product.update({
+        where: { id: productId },
+        data: { isCiceksepetiActive },
+    });
 
     revalidatePath("/admin/products");
     return { success: true };

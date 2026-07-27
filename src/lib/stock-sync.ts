@@ -503,3 +503,147 @@ async function pushZeroStockToPttavm(productIds: string[]): Promise<void> {
 
     await client.updateStockAndPrice(items);
 }
+
+/**
+ * Çiçeksepeti'ye doğrudan stok=0 gönderir
+ */
+async function pushZeroStockToCiceksepeti(productIds: string[]): Promise<void> {
+    const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+    if (!config) return;
+
+    const { CiceksepetiClient } = await import("@/services/ciceksepeti/api");
+    const client = new CiceksepetiClient({
+        apiKey: config.apiKey,
+        supplierId: config.supplierId,
+        profitMargin: config.profitMargin || 0,
+        isActive: true,
+        isTestMode: Boolean(config.isTestMode),
+    });
+
+    const products = await prisma.product.findMany({
+        where: {
+            id: { in: productIds },
+            isActive: true,
+            isCiceksepetiActive: true,
+        },
+        select: {
+            id: true,
+            barcode: true,
+            sku: true,
+            salePrice: true,
+            listPrice: true,
+            ciceksepetiPrice: true,
+            variants: { select: { barcode: true, sku: true } },
+        },
+    });
+
+    if (products.length === 0) return;
+
+    const profitMargin = config.profitMargin || 0;
+    const items: any[] = [];
+
+    for (const p of products) {
+        const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice);
+        const salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
+
+        const validVariants = p.variants?.filter((v: any) => v.barcode || v.sku) || [];
+        if (validVariants.length > 0) {
+            for (const v of validVariants) {
+                const stockCode = v.barcode || v.sku;
+                if (stockCode) {
+                    items.push({
+                        stockCode,
+                        salesPrice,
+                        stockQuantity: 0,
+                    });
+                }
+            }
+        } else {
+            const stockCode = p.barcode || p.sku || p.id;
+            if (stockCode) {
+                items.push({
+                    stockCode,
+                    salesPrice,
+                    stockQuantity: 0,
+                });
+            }
+        }
+    }
+
+    if (items.length === 0) return;
+
+    await client.updatePricesAndStocks(items);
+}
+
+/**
+ * Verilen ürün ID'leri için kritik stok seviyesine inenleri tespit edip
+ * TÜM pazar yerlerinde (Trendyol, N11, HB, Pazarama, Idefix, ePttAVM, Çiçeksepeti) stok=0 basar.
+ */
+export async function resetCriticalStockOnMarketplaces(productIds: string[]): Promise<{
+    affectedProducts: string[];
+    errors: string[];
+}> {
+    const criticalResults = await checkCriticalStockLevels(productIds);
+    const criticalProductIds = criticalResults.filter((r) => r.isCritical).map((r) => r.productId);
+
+    if (criticalProductIds.length === 0) {
+        return { affectedProducts: [], errors: [] };
+    }
+
+    const errors: string[] = [];
+
+    // Trendyol
+    try {
+        await pushZeroStockToTrendyol(criticalProductIds);
+    } catch (e: any) {
+        errors.push(`Trendyol: ${e.message}`);
+    }
+
+    // N11
+    try {
+        await pushZeroStockToN11(criticalProductIds);
+    } catch (e: any) {
+        errors.push(`N11: ${e.message}`);
+    }
+
+    // Hepsiburada
+    try {
+        await pushZeroStockToHepsiburada(criticalProductIds);
+    } catch (e: any) {
+        errors.push(`Hepsiburada: ${e.message}`);
+    }
+
+    // Pazarama
+    try {
+        await pushZeroStockToPazarama(criticalProductIds);
+    } catch (e: any) {
+        errors.push(`Pazarama: ${e.message}`);
+    }
+
+    // Idefix
+    try {
+        await pushZeroStockToIdefix(criticalProductIds);
+    } catch (e: any) {
+        errors.push(`Idefix: ${e.message}`);
+    }
+
+    // ePttAVM
+    try {
+        await pushZeroStockToPttavm(criticalProductIds);
+    } catch (e: any) {
+        errors.push(`ePttAVM: ${e.message}`);
+    }
+
+    // Çiçeksepeti
+    try {
+        await pushZeroStockToCiceksepeti(criticalProductIds);
+    } catch (e: any) {
+        errors.push(`Çiçeksepeti: ${e.message}`);
+    }
+
+    return {
+        affectedProducts: criticalResults.filter((r) => r.isCritical).map((r) => r.productName),
+        errors,
+    };
+}
+
