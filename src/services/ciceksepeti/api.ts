@@ -174,11 +174,12 @@ export class CiceksepetiClient {
     }));
 
     const payload = {
-      items: formattedProducts,
       products: formattedProducts,
     };
 
     const url = `${this.baseUrl}/Products`;
+
+    console.log("[CS-API] POST /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
 
     const res = await fetch(url, {
       method: "POST",
@@ -189,7 +190,8 @@ export class CiceksepetiClient {
 
     const responseText = await res.text().catch(() => "");
     if (!res.ok) {
-      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${responseText}`);
+      console.error(`[CS-API] Error ${res.status}:`, responseText);
+      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${responseText || "Geçersiz İstek (400)"}`);
     }
 
     try {
