@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder } from "@/app/admin/(protected)/categories/actions";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { searchHepsiburadaCategories } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
+import { CiceksepetiAttributeMappingModal } from "@/components/admin/ciceksepeti-attribute-mapping-modal";
 import {
     DndContext,
     closestCenter,
@@ -1341,8 +1342,17 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     />
                                     <p className="text-[10px] text-pink-600">Pazarama kategorisini adıyla arayıp (örn: Bisiklet Pedal) seçebilirsiniz.</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="ciceksepetiCategoryId" className="text-rose-700 font-semibold text-xs uppercase tracking-wide">🌸 Çiçeksepeti Kategori ID</Label>
+                                <div className="space-y-2 p-3 bg-rose-50 dark:bg-rose-950/20 rounded-lg border border-rose-200 dark:border-rose-800">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="ciceksepetiCategoryId" className="text-rose-700 font-semibold text-xs uppercase tracking-wide">🌸 Çiçeksepeti Kategori Eşleştirme</Label>
+                                        {editCategory && ciceksepetiCategoryId && (
+                                            <CiceksepetiAttributeMappingModal
+                                                categoryId={editCategory.id}
+                                                categoryName={name}
+                                                ciceksepetiCategoryId={ciceksepetiCategoryId}
+                                            />
+                                        )}
+                                    </div>
                                     <Input
                                         id="ciceksepetiCategoryId"
                                         value={ciceksepetiCategoryId || ""}

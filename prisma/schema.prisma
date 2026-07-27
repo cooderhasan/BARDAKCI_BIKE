@@ -1082,3 +1082,23 @@ model CiceksepetiOrder {
   @@map("ciceksepeti_orders")
 }
 
+model CiceksepetiCategoryAttribute {
+  id                       String   @id @default(cuid())
+  categoryId               String   // Yerel Kategori ID
+  ciceksepetiCategoryId    String   // Çiçeksepeti Kategori ID
+  attributeId              String   // Çiçeksepeti Attribute ID
+  attributeName            String   // Özellik Adı (örn: "Renk", "Jant Boyu")
+  isRequired               Boolean  @default(false)
+  selectedAttributeValueId String?  // Seçilen Varsayılan Seçenek ID
+  selectedAttributeValueName String? // Seçilen Varsayılan Seçenek Adı
+  customValue              String?  // Elle yazılan değer
+  values                   Json?    // Yanıttan dönen tüm seçenekler
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([ciceksepetiCategoryId])
+  @@map("ciceksepeti_category_attributes")
+}
+
+

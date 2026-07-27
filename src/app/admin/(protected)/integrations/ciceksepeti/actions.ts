@@ -247,8 +247,31 @@ export async function syncProductsToCiceksepeti(
         const salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
         const listPrice = Number(p.listPrice) >= salesPrice ? Number(p.listPrice) : salesPrice;
 
+        // Kategoriye özel kaydedilmiş Çiçeksepeti niteliklerini al
+        const savedCategoryAttrs = await (prisma as any).ciceksepetiCategoryAttribute.findMany({
+          where: { categoryId: p.categories?.[0]?.id || p.categoryId || "" },
+        });
+
         // Ürün Nitelikleri (Attributes: Marka, Cinsiyet, Fren Tipi, Menşei vb.)
         const attributes: any[] = [];
+
+        // Önce Kategoriye Özel Kaydedilmiş Nitelikleri ekle
+        for (const savedAttr of savedCategoryAttrs) {
+          if (savedAttr.selectedAttributeValueId) {
+            attributes.push({
+              attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
+              attributeValueId: Number(savedAttr.selectedAttributeValueId) || savedAttr.selectedAttributeValueId,
+              attributeName: savedAttr.attributeName,
+            });
+          } else if (savedAttr.customValue) {
+            attributes.push({
+              attributeId: Number(savedAttr.attributeId) || savedAttr.attributeId,
+              customAttributeValue: savedAttr.customValue,
+              attributeName: savedAttr.attributeName,
+            });
+          }
+        }
+
         if (p.brand?.name) {
           attributes.push({
             attributeName: "Marka",
@@ -420,3 +443,84 @@ export async function syncCiceksepetiOrders() {
     return { success: false, error: error.message || "Siparişler çekilirken hata oluştu." };
   }
 }
+
+export async function getCiceksepetiCategoryAttributes(categoryId: string, ciceksepetiCategoryId: string) {
+  try {
+    const client = new CiceksepetiClient();
+    const liveAttrs = await client.getCategoryAttributes(ciceksepetiCategoryId);
+
+    const savedAttrs = await (prisma as any).ciceksepetiCategoryAttribute.findMany({
+      where: { categoryId, ciceksepetiCategoryId },
+    });
+
+    const savedMap = new Map();
+    for (const sa of savedAttrs) {
+      savedMap.set(String(sa.attributeId), sa);
+    }
+
+    const merged = liveAttrs.map((attr) => {
+      const saved = savedMap.get(String(attr.id));
+      return {
+        ...attr,
+        selectedAttributeValueId: saved?.selectedAttributeValueId || null,
+        customValue: saved?.customValue || "",
+      };
+    });
+
+    return { success: true, attributes: merged };
+  } catch (error: any) {
+    console.error("getCiceksepetiCategoryAttributes error:", error);
+    return { success: false, error: error.message || "Kategori özellikleri çekilemedi." };
+  }
+}
+
+export async function saveCiceksepetiCategoryAttributes(
+  categoryId: string,
+  ciceksepetiCategoryId: string,
+  mappings: {
+    attributeId: string;
+    attributeName: string;
+    isRequired: boolean;
+    selectedAttributeValueId?: string | null;
+    selectedAttributeValueName?: string | null;
+    customValue?: string | null;
+    values?: any;
+  }[]
+) {
+  try {
+    for (const mapItem of mappings) {
+      await (prisma as any).ciceksepetiCategoryAttribute.upsert({
+        where: {
+          id: `${categoryId}_${ciceksepetiCategoryId}_${mapItem.attributeId}`,
+        },
+        create: {
+          id: `${categoryId}_${ciceksepetiCategoryId}_${mapItem.attributeId}`,
+          categoryId,
+          ciceksepetiCategoryId,
+          attributeId: String(mapItem.attributeId),
+          attributeName: mapItem.attributeName,
+          isRequired: mapItem.isRequired ?? false,
+          selectedAttributeValueId: mapItem.selectedAttributeValueId || null,
+          selectedAttributeValueName: mapItem.selectedAttributeValueName || null,
+          customValue: mapItem.customValue || null,
+          values: mapItem.values || null,
+        },
+        update: {
+          attributeName: mapItem.attributeName,
+          isRequired: mapItem.isRequired ?? false,
+          selectedAttributeValueId: mapItem.selectedAttributeValueId || null,
+          selectedAttributeValueName: mapItem.selectedAttributeValueName || null,
+          customValue: mapItem.customValue || null,
+          values: mapItem.values || null,
+        },
+      });
+    }
+
+    revalidatePath("/admin/categories");
+    return { success: true, message: "Kategori özellikleri başarıyla kaydedildi." };
+  } catch (error: any) {
+    console.error("saveCiceksepetiCategoryAttributes error:", error);
+    return { success: false, error: error.message || "Özellikler kaydedilemedi." };
+  }
+}
+

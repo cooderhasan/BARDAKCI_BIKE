@@ -178,6 +178,8 @@ export class CiceksepetiClient {
       products: formattedProducts,
     };
 
+    const url = `${this.baseUrl}/Products`;
+
     const res = await fetch(url, {
       method: "POST",
       headers: this.getHeaders(),
