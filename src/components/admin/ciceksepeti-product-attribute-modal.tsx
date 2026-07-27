@@ -162,21 +162,22 @@ export function CiceksepetiProductAttributeModal({
                       <SelectValue placeholder="Teslimat Tipi" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1" className="text-xs">Kargo ile Teslimat (1)</SelectItem>
-                      <SelectItem value="2" className="text-xs">Özel Teslimat / Kendi Aracıyla (2)</SelectItem>
+                      <SelectItem value="1" className="text-xs">Kargo İle Gönderi</SelectItem>
+                      <SelectItem value="2" className="text-xs">Bayi / Özel Teslimat</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-rose-900">Kargoya Veriliş Süresi <span className="text-red-500">*</span></Label>
+                  <Label className="text-xs font-semibold text-rose-900">Teslimat Aralığı <span className="text-red-500">*</span></Label>
                   <Select defaultValue="1">
                     <SelectTrigger className="w-full text-xs bg-white h-8">
-                      <SelectValue placeholder="Kargo Süresi" />
+                      <SelectValue placeholder="Teslimat Aralığı" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1" className="text-xs">Aynı Gün / 1 Gün</SelectItem>
-                      <SelectItem value="2" className="text-xs">2 Gün</SelectItem>
-                      <SelectItem value="3" className="text-xs">3 Gün</SelectItem>
+                      <SelectItem value="1" className="text-xs">Aynı Gün Kargo</SelectItem>
+                      <SelectItem value="2" className="text-xs">1-2 Gün İçinde Kargo</SelectItem>
+                      <SelectItem value="3" className="text-xs">2-3 Gün İçinde Kargo</SelectItem>
+                      <SelectItem value="5" className="text-xs">3-5 Gün İçinde Kargo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
