@@ -133,30 +133,69 @@ export class CiceksepetiClient {
    */
   async getCategoryAttributes(categoryId: number | string): Promise<CiceksepetiAttribute[]> {
     await this.loadConfig();
-    const url = `${this.baseUrl}/Categories/${categoryId}/attributes`;
+    const candidateUrls = [
+      `${this.baseUrl}/Categories/${categoryId}/attributes`,
+      `${this.baseUrl}/Categories/attributes?categoryId=${categoryId}`,
+      `${this.baseUrl}/Categories/attributes/${categoryId}`,
+      `${this.baseUrl}/Categories/${categoryId}`,
+    ];
 
-    console.log(`[CS-API] GET /Categories/${categoryId}/attributes`);
+    const headers = this.getHeaders();
+    let lastError = "";
 
-    const res = await fetch(url, {
-      method: "GET",
-      headers: this.getHeaders(),
-      cache: "no-store",
-    });
+    for (const url of candidateUrls) {
+      try {
+        console.log(`[CS-API] Trying attribute URL: ${url}`);
+        const res = await fetch(url, {
+          method: "GET",
+          headers,
+          cache: "no-store",
+        });
 
-    const responseText = await res.text().catch(() => "");
-    if (!res.ok) {
-      console.error(`[CS-API] getCategoryAttributes error (${res.status}):`, responseText);
-      throw new Error(`Çiçeksepeti (Kategori ID: ${categoryId}) nitelikleri alınamadı (${res.status}): ${responseText || res.statusText}`);
+        const responseText = await res.text().catch(() => "");
+        if (!res.ok) {
+          console.warn(`[CS-API] Attribute URL ${url} returned ${res.status}:`, responseText);
+          lastError = responseText || res.statusText;
+          continue;
+        }
+
+        console.log(`[CS-API] Attribute URL ${url} SUCCESS response:`, responseText.substring(0, 500));
+
+        let data: any = {};
+        try {
+          data = JSON.parse(responseText);
+        } catch {}
+
+        let attrs: any[] = [];
+        if (Array.isArray(data)) attrs = data;
+        else if (data && Array.isArray(data.attributes)) attrs = data.attributes;
+        else if (data && Array.isArray(data.categoryAttributes)) attrs = data.categoryAttributes;
+        else if (data && Array.isArray(data.categoryAttributeList)) attrs = data.categoryAttributeList;
+        else if (data && Array.isArray(data.attributeList)) attrs = data.attributeList;
+        else if (data && Array.isArray(data.data)) attrs = data.data;
+        else if (data?.data && Array.isArray(data.data.attributes)) attrs = data.data.attributes;
+
+        if (attrs && attrs.length > 0) {
+          return attrs.map((a: any) => ({
+            id: a.id || a.attributeId || a.code,
+            name: a.name || a.attributeName || a.displayName || "Nitelik",
+            required: Boolean(a.required || a.isRequired || a.mandatory),
+            isRequired: Boolean(a.required || a.isRequired || a.mandatory),
+            attributeValues: (a.attributeValues || a.values || a.options || []).map((v: any) => ({
+              id: v.id || v.valueId || v.code,
+              name: v.name || v.valueName || v.displayName || String(v),
+            })),
+          }));
+        }
+      } catch (err: any) {
+        console.warn(`[CS-API] Error fetching ${url}:`, err.message);
+      }
     }
 
-    let data: any = {};
-    try {
-      data = JSON.parse(responseText);
-    } catch {}
+    if (lastError) {
+      console.error(`[CS-API] All category attribute endpoints failed for cat ${categoryId}: ${lastError}`);
+    }
 
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.attributes)) return data.attributes;
-    if (data && Array.isArray(data.categoryAttributes)) return data.categoryAttributes;
     return [];
   }
 
