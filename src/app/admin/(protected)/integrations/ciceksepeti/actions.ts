@@ -353,17 +353,6 @@ export async function syncProductsToCiceksepeti(
           }
         }
 
-        if (p.brand?.name) {
-          // Eğer kaydedilmiş niteliklerde Marka (attrId: 1) yoksa ekle
-          const hasBrandAttr = attributes.some((a) => Number(a.attributeId) === 1);
-          if (!hasBrandAttr) {
-            attributes.push({
-              attributeId: 1,
-              customAttributeValue: p.brand.name,
-            });
-          }
-        }
-
         productInputs.push({
           productName: p.name,
           productCode: p.sku || p.barcode || p.id,
