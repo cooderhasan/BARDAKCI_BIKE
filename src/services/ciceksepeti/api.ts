@@ -198,93 +198,56 @@ export class CiceksepetiClient {
 
     const url = `${this.baseUrl}/Products`;
     const headers = this.getHeaders();
+    const payload = { items: formattedProducts };
 
-    // Çiçeksepeti API için olası istek formatları (items, products ve doğrudan dizi)
-    const payloadVariants = [
-      { name: "items", body: { items: formattedProducts } },
-      { name: "products", body: { products: formattedProducts } },
-      { name: "direct_array", body: formattedProducts },
-    ];
+    console.log("[CS-API] POST /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
 
-    let lastErrorText = "";
-    let lastStatusCode = 400;
+    let res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
 
-    for (const variant of payloadVariants) {
-      console.log(`[CS-API] POST /api/v1/Products (Format: ${variant.name}) Payload:`, JSON.stringify(variant.body, null, 2));
+    let responseText = await res.text().catch(() => "");
 
-      const res = await fetch(url, {
+    // Eğer Çiçeksepeti 5 saniye limit aşımı hatası verirse 5.5 saniye bekleyip 1 kez otomatik tekrar dene
+    if (!res.ok && responseText.includes("Limit aşımı")) {
+      console.log("[CS-API] Rate limit alındı (5s). 5.5 saniye bekleniyor ve tekrar deneniyor...");
+      await new Promise((resolve) => setTimeout(resolve, 5500));
+      res = await fetch(url, {
         method: "POST",
         headers,
-        body: JSON.stringify(variant.body),
+        body: JSON.stringify(payload),
         cache: "no-store",
       });
-
-      const responseText = await res.text().catch(() => "");
-      lastStatusCode = res.status;
-
-      if (res.ok) {
-        console.log(`[CS-API] SUCCESS with payload format: ${variant.name}`);
-        try {
-          const data = JSON.parse(responseText);
-          return {
-            batchId: data.batchId || data.batchRequestId || data.id || "SUCCESS",
-            status: data.status || "PENDING",
-            itemCount: products.length,
-          };
-        } catch {
-          return {
-            batchId: responseText || "SUCCESS",
-            status: "PENDING",
-            itemCount: products.length,
-          };
-        }
-      }
-
-      console.error(`[CS-API] ${variant.name} format returned status ${res.status}:`, responseText);
-      lastErrorText = responseText;
+      responseText = await res.text().catch(() => "");
     }
 
-    // Eğer nitelikler gönderilmişse ve hepsi 400 veriyorsa, niteliksiz temiz istek deneyelim
-    const hasAttributes = formattedProducts.some((p) => p.attributes && p.attributes.length > 0);
-    if (hasAttributes) {
-      console.log("[CS-API] Nitelikli istekler reddedildi. Niteliksiz yedek deneme yapılıyor...");
-      const cleanProducts = formattedProducts.map(({ attributes, ...rest }) => rest);
-      for (const variant of payloadVariants) {
-        const fallbackBody = variant.name === "items" ? { items: cleanProducts } : variant.name === "products" ? { products: cleanProducts } : cleanProducts;
-        const resFb = await fetch(url, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(fallbackBody),
-          cache: "no-store",
-        });
-        const fbText = await resFb.text().catch(() => "");
-        if (resFb.ok) {
-          console.log(`[CS-API] SUCCESS without attributes (Format: ${variant.name})`);
-          try {
-            const data = JSON.parse(fbText);
-            return {
-              batchId: data.batchId || data.batchRequestId || data.id || "SUCCESS",
-              status: data.status || "PENDING",
-              itemCount: products.length,
-            };
-          } catch {
-            return {
-              batchId: fbText || "SUCCESS",
-              status: "PENDING",
-              itemCount: products.length,
-            };
-          }
-        }
-      }
+    if (!res.ok) {
+      console.error(`[CS-API] Error ${res.status}:`, responseText);
+      let detailMsg = responseText;
+      try {
+        const errJson = JSON.parse(responseText);
+        detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
+      } catch {}
+      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
     }
 
-    let detailMsg = lastErrorText;
     try {
-      const errJson = JSON.parse(lastErrorText);
-      detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
-    } catch {}
-
-    throw new Error(`Çiçeksepeti ürün yükleme hatası (${lastStatusCode}): ${detailMsg || "Geçersiz İstek (400)"}`);
+      const data = JSON.parse(responseText);
+      return {
+        batchId: data.batchId || data.batchRequestId || data.id || "SUCCESS",
+        status: data.status || "PENDING",
+        itemCount: products.length,
+      };
+    } catch {
+      return {
+        batchId: responseText || "SUCCESS",
+        status: "PENDING",
+        itemCount: products.length,
+      };
+    }
   }
 
   /**
