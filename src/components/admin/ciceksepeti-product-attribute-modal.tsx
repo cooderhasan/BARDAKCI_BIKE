@@ -148,17 +148,14 @@ export function CiceksepetiProductAttributeModal({
               <Loader2 className="w-5 h-5 animate-spin text-rose-600" />
               <span>Çiçeksepeti kategori özellikleri yükleniyor...</span>
             </div>
-          ) : attributes.length === 0 ? (
-            <div className="p-4 bg-gray-50 text-gray-600 rounded-lg text-sm text-center">
-              Bu kategori için ek zorunlu özellik bulunamadı. Doğrudan gönderebilirsiniz.
-            </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-rose-50/50 border border-rose-100 rounded-lg">
+              {/* Teslimat Ayarları - Her Zaman Görünür */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-rose-50/60 border border-rose-200 rounded-lg shadow-sm">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-rose-900">Teslimat Tipi <span className="text-red-500">*</span></Label>
                   <Select defaultValue="1">
-                    <SelectTrigger className="w-full text-xs bg-white h-8">
+                    <SelectTrigger className="w-full text-xs bg-white h-8 border-rose-200">
                       <SelectValue placeholder="Teslimat Tipi" />
                     </SelectTrigger>
                     <SelectContent>
@@ -170,7 +167,7 @@ export function CiceksepetiProductAttributeModal({
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-rose-900">Teslimat Aralığı <span className="text-red-500">*</span></Label>
                   <Select defaultValue="1">
-                    <SelectTrigger className="w-full text-xs bg-white h-8">
+                    <SelectTrigger className="w-full text-xs bg-white h-8 border-rose-200">
                       <SelectValue placeholder="Teslimat Aralığı" />
                     </SelectTrigger>
                     <SelectContent>
@@ -183,48 +180,56 @@ export function CiceksepetiProductAttributeModal({
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Kırmızı yıldızlı (<span className="text-red-500">*</span>) alanlar Çiçeksepeti tarafından zorunlu tutulmaktadır.
-              </p>
-              {attributes.map((attr) => {
-                const isReq = attr.required || attr.isRequired;
-                const currentVal = attributeValues[String(attr.id)] || {};
+              {attributes.length === 0 ? (
+                <div className="p-3 bg-gray-50 text-gray-600 rounded-lg text-xs text-center border">
+                  Bu kategori için ek zorunlu nitelik bulunmamaktadır.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Kategori Nitelikleri (<span className="text-red-500">*</span> zorunlu)
+                  </p>
+                  {attributes.map((attr) => {
+                    const isReq = attr.required || attr.isRequired;
+                    const currentVal = attributeValues[String(attr.id)] || {};
 
-                return (
-                  <div key={attr.id} className="space-y-1.5 bg-muted/40 p-3 rounded-lg border">
-                    <Label className="text-xs font-semibold flex items-center justify-between">
-                      <span>
-                        {attr.name} {isReq && <span className="text-red-500">*</span>}
-                      </span>
-                    </Label>
+                    return (
+                      <div key={attr.id} className="space-y-1.5 bg-muted/40 p-3 rounded-lg border">
+                        <Label className="text-xs font-semibold flex items-center justify-between">
+                          <span>
+                            {attr.name} {isReq && <span className="text-red-500">*</span>}
+                          </span>
+                        </Label>
 
-                    {attr.attributeValues && attr.attributeValues.length > 0 ? (
-                      <Select
-                        value={currentVal.attributeValueId || ""}
-                        onValueChange={(val) => handleValueChange(String(attr.id), val)}
-                      >
-                        <SelectTrigger className="w-full text-xs bg-white">
-                          <SelectValue placeholder={`${attr.name} seçiniz...`} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-56">
-                          {attr.attributeValues.map((v: any) => (
-                            <SelectItem key={v.id} value={String(v.id)} className="text-xs">
-                              {v.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        placeholder={`${attr.name} giriniz...`}
-                        value={currentVal.customValue || ""}
-                        onChange={(e) => handleCustomValueChange(String(attr.id), e.target.value)}
-                        className="text-xs bg-white"
-                      />
-                    )}
-                  </div>
-                );
-              })}
+                        {attr.attributeValues && attr.attributeValues.length > 0 ? (
+                          <Select
+                            value={currentVal.attributeValueId || ""}
+                            onValueChange={(val) => handleValueChange(String(attr.id), val)}
+                          >
+                            <SelectTrigger className="w-full text-xs bg-white">
+                              <SelectValue placeholder={`${attr.name} seçiniz...`} />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-56">
+                              {attr.attributeValues.map((v: any) => (
+                                <SelectItem key={v.id} value={String(v.id)} className="text-xs">
+                                  {v.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder={`${attr.name} giriniz...`}
+                            value={currentVal.customValue || ""}
+                            onChange={(e) => handleCustomValueChange(String(attr.id), e.target.value)}
+                            className="text-xs bg-white"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
