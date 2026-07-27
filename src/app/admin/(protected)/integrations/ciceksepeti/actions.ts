@@ -238,12 +238,23 @@ export async function syncProductsToCiceksepeti(
       const productInputs: any[] = [];
 
       for (const p of products) {
-        const rawCatId =
+        let rawCatId =
           p.category?.ciceksepetiCategoryId ||
           p.category?.parent?.ciceksepetiCategoryId ||
           p.categories?.[0]?.ciceksepetiCategoryId ||
           p.categories?.[0]?.parent?.ciceksepetiCategoryId ||
           (p as any).ciceksepetiCategoryId;
+
+        if (!rawCatId && (p.categoryId || p.category?.id)) {
+          const catId = p.categoryId || p.category?.id;
+          const childCat = await prisma.category.findFirst({
+            where: { parentId: catId, ciceksepetiCategoryId: { not: null } },
+            select: { ciceksepetiCategoryId: true },
+          });
+          if (childCat?.ciceksepetiCategoryId) {
+            rawCatId = childCat.ciceksepetiCategoryId;
+          }
+        }
 
         if (!rawCatId) {
           throw new Error(`'${p.name}' ürünü için Çiçeksepeti Kategori ID tanımlanmamış. Lütfen önce Kategoriler sayfasından eşleştirme yapın.`);

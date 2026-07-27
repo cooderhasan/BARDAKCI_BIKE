@@ -54,10 +54,10 @@ export async function updateCategory(id: string, data: { name?: string; slug?: s
             data: {
                 ...data,
                 store: data.store || undefined,
-                hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : (data.hbCategoryId === null ? null : undefined),
-                idefixCategoryId: data.idefixCategoryId ? String(data.idefixCategoryId) : (data.idefixCategoryId === null ? null : undefined),
-                pazaramaCategoryId: data.pazaramaCategoryId ? String(data.pazaramaCategoryId) : (data.pazaramaCategoryId === null ? null : undefined),
-                ciceksepetiCategoryId: data.ciceksepetiCategoryId ? String(data.ciceksepetiCategoryId) : (data.ciceksepetiCategoryId === null ? null : undefined),
+                hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId).trim() : null,
+                idefixCategoryId: data.idefixCategoryId ? String(data.idefixCategoryId).trim() : null,
+                pazaramaCategoryId: data.pazaramaCategoryId ? String(data.pazaramaCategoryId).trim() : null,
+                ciceksepetiCategoryId: data.ciceksepetiCategoryId ? String(data.ciceksepetiCategoryId).trim() : null,
                 parentId: data.parentId === undefined ? undefined : (data.parentId || null),
             },
         });
