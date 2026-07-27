@@ -335,28 +335,15 @@ export async function syncProductsToCiceksepeti(
         }
 
         if (p.brand?.name) {
-          attributes.push({
-            attributeName: "Marka",
-            customAttributeValue: p.brand.name,
-          });
-        }
-        if (p.gender && p.gender !== "none") {
-          attributes.push({
-            attributeName: "Cinsiyet",
-            customAttributeValue: p.gender,
-          });
-        }
-        if (p.brakeType && p.brakeType !== "none") {
-          attributes.push({
-            attributeName: "Fren Tipi",
-            customAttributeValue: p.brakeType,
-          });
-        }
-        if (p.origin) {
-          attributes.push({
-            attributeName: "Menşei",
-            customAttributeValue: p.origin,
-          });
+          // Eğer kaydedilmiş niteliklerde Marka yoksa ekle
+          const hasBrandAttr = attributes.some((a) => a.attributeName === "Marka" || a.attributeId === 1 || a.attributeId === "1");
+          if (!hasBrandAttr) {
+            attributes.push({
+              attributeId: 1,
+              attributeName: "Marka",
+              customAttributeValue: p.brand.name,
+            });
+          }
         }
 
         productInputs.push({

@@ -181,25 +181,48 @@ export class CiceksepetiClient {
       attributes: p.attributes || [],
     }));
 
-    const payload = {
-      items: formattedProducts,
-    };
-
     const url = `${this.baseUrl}/Products`;
+
+    // Çiçeksepeti API dokümanı: { "products": [ ... ] } veya doğrudan [ ... ] array
+    const payload = {
+      products: formattedProducts,
+    };
 
     console.log("[CS-API] POST /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
 
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
       cache: "no-store",
     });
 
-    const responseText = await res.text().catch(() => "");
+    let responseText = await res.text().catch(() => "");
+
+    // Eğer 400 dönerse doğrudan dizi olarak dene
+    if (!res.ok && res.status === 400) {
+      console.log("[CS-API] Retry with raw array payload...");
+      const retryRes = await fetch(url, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify(formattedProducts),
+        cache: "no-store",
+      });
+      const retryText = await retryRes.text().catch(() => "");
+      if (retryRes.ok) {
+        res = retryRes;
+        responseText = retryText;
+      }
+    }
+
     if (!res.ok) {
       console.error(`[CS-API] Error ${res.status}:`, responseText);
-      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${responseText || "Geçersiz İstek (400)"}`);
+      let detailMsg = responseText;
+      try {
+        const errJson = JSON.parse(responseText);
+        detailMsg = errJson.message || errJson.Message || errJson.errors?.join(", ") || JSON.stringify(errJson);
+      } catch {}
+      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg}`);
     }
 
     try {
