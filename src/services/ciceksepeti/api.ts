@@ -197,40 +197,7 @@ export class CiceksepetiClient {
       cache: "no-store",
     });
 
-    let responseText = await res.text().catch(() => "");
-
-    // Eğer 400 dönerse sırasıyla items nesnesi ve ham dizi olarak dene
-    if (!res.ok && res.status === 400) {
-      console.log("[CS-API] Retry 1: { items: [...] } payload...");
-      const retryRes1 = await fetch(url, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ items: formattedProducts }),
-        cache: "no-store",
-      });
-      const retryText1 = await retryRes1.text().catch(() => "");
-      if (retryRes1.ok) {
-        res = retryRes1;
-        responseText = retryText1;
-      } else {
-        console.log("[CS-API] Retry 2: raw array [...] payload...");
-        const retryRes2 = await fetch(url, {
-          method: "POST",
-          headers: this.getHeaders(),
-          body: JSON.stringify(formattedProducts),
-          cache: "no-store",
-        });
-        const retryText2 = await retryRes2.text().catch(() => "");
-        if (retryRes2.ok) {
-          res = retryRes2;
-          responseText = retryText2;
-        } else {
-          // Saklanan son hata metnini tut
-          responseText = retryText1 || retryText2 || responseText;
-        }
-      }
-    }
-
+    const responseText = await res.text().catch(() => "");
     if (!res.ok) {
       console.error(`[CS-API] Error ${res.status}:`, responseText);
       let detailMsg = responseText;
