@@ -274,10 +274,10 @@ export class CiceksepetiClient {
 
     let responseText = await res.text().catch(() => "");
 
-    // Eğer Çiçeksepeti 5 saniye limit aşımı hatası verirse 5.5 saniye bekleyip 1 kez otomatik tekrar dene
-    if (!res.ok && responseText.includes("Limit aşımı")) {
-      console.log("[CS-API] Rate limit alındı (5s). 5.5 saniye bekleniyor ve tekrar deneniyor...");
-      await new Promise((resolve) => setTimeout(resolve, 5500));
+    // Eğer Çiçeksepeti 5 saniye limit aşımı hatası veya 502 verirse 6.5 saniye bekleyip 1 kez otomatik tekrar dene
+    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("Limit aşımı") || responseText.includes("502 Bad Gateway"))) {
+      console.log("[CS-API] Rate limit / 502 alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
+      await new Promise((resolve) => setTimeout(resolve, 6500));
       res = await fetch(url, {
         method: "POST",
         headers,
@@ -372,13 +372,31 @@ export class CiceksepetiClient {
     });
 
     let responseText = await res.text().catch(() => "");
+
+    // Eğer Çiçeksepeti 5 saniye limit aşımı hatası veya 502 verirse 6.5 saniye bekleyip 1 kez otomatik tekrar dene
+    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("Limit aşımı") || responseText.includes("502 Bad Gateway"))) {
+      console.log("[CS-API] PUT update rate limit / 502 alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
+      await new Promise((resolve) => setTimeout(resolve, 6500));
+      res = await fetch(url, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
+      responseText = await res.text().catch(() => "");
+    }
+
     if (!res.ok) {
       console.error(`[CS-API] Error ${res.status}:`, responseText);
       let detailMsg = responseText;
-      try {
-        const errJson = JSON.parse(responseText);
-        detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
-      } catch {}
+      if (responseText.includes("<html>") || responseText.includes("502 Bad Gateway")) {
+        detailMsg = "Çiçeksepeti sunucuları geçici olarak yanıt vermiyor (Cloudflare 502 Bad Gateway). Lütfen birkaç saniye sonra tekrar deneyin.";
+      } else {
+        try {
+          const errJson = JSON.parse(responseText);
+          detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
+        } catch {}
+      }
       throw new Error(`Çiçeksepeti ürün güncelleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
     }
 
@@ -425,10 +443,10 @@ export class CiceksepetiClient {
 
     let responseText = await res.text().catch(() => "");
 
-    // 502 Bad Gateway veya 503/504 geçici sunucu hatasında 3 sn bekleyip tekrar dene
-    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("502 Bad Gateway"))) {
-      console.warn("[CS-API] 502/503 Sunucu geçici yanıt vermedi. 3 saniye sonra tekrar deneniyor...");
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+    // 502 Bad Gateway veya 503/504/Rate Limit geçici sunucu hatasında 6.5 sn bekleyip tekrar dene
+    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("502 Bad Gateway") || responseText.includes("Limit aşımı"))) {
+      console.warn("[CS-API] 502/503/Rate-limit alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
+      await new Promise((resolve) => setTimeout(resolve, 6500));
       res = await fetch(url, {
         method: "PUT",
         headers: this.getHeaders(),
