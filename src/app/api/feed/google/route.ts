@@ -65,7 +65,7 @@ export async function GET(request: Request) {
       };
 
       const imageUrl = getAbsoluteUrl(product.images?.[0] || "");
-      const productUrl = `${baseUrl}/urun/${escapeXml(product.slug)}`;
+      const productUrl = `${baseUrl}/products/${escapeXml(product.slug)}`;
       const availability = product.stock > 0 ? "in_stock" : "out_of_stock";
 
       // GTIN: önce product.gtin, yoksa product.barcode
