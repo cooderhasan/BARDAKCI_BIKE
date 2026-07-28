@@ -416,16 +416,34 @@ export class CiceksepetiClient {
       })),
     };
 
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method: "PUT",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
       cache: "no-store",
     });
 
-    const responseText = await res.text().catch(() => "");
+    let responseText = await res.text().catch(() => "");
+
+    // 502 Bad Gateway veya 503/504 geçici sunucu hatasında 3 sn bekleyip tekrar dene
+    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("502 Bad Gateway"))) {
+      console.warn("[CS-API] 502/503 Sunucu geçici yanıt vermedi. 3 saniye sonra tekrar deneniyor...");
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      res = await fetch(url, {
+        method: "PUT",
+        headers: this.getHeaders(),
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
+      responseText = await res.text().catch(() => "");
+    }
+
     if (!res.ok) {
-      throw new Error(`Çiçeksepeti fiyat/stok güncelleme hatası (${res.status}): ${responseText}`);
+      let cleanMessage = responseText;
+      if (responseText.includes("<html>") || responseText.includes("502 Bad Gateway")) {
+        cleanMessage = "Çiçeksepeti sunucuları geçici olarak yanıt vermiyor (Cloudflare 502 Bad Gateway). Lütfen birkaç saniye sonra tekrar deneyin.";
+      }
+      throw new Error(`Çiçeksepeti fiyat/stok güncelleme hatası (${res.status}): ${cleanMessage}`);
     }
 
     try {
