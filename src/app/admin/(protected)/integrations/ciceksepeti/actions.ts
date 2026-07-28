@@ -370,6 +370,8 @@ export async function syncProductsToCiceksepeti(
         // Çiçeksepeti canlı kategorisinde tanımlı olan attributeId'leri kesin olarak süz.
         // Eğer o kategoride hiç nitelik yoksa veya süzme sonrası kalmıyorsa [] gönderilir.
         const attributes = rawAttributes.filter((attr) => validAttributeIds.has(Number(attr.attributeId)));
+        console.log(`[CS-SYNC] Valid attribute IDs for cat ${categoryId}:`, Array.from(validAttributeIds));
+        console.log(`[CS-SYNC] Final filtered attributes for ${p.name}:`, JSON.stringify(attributes));
 
         productInputs.push({
           productName: p.name,

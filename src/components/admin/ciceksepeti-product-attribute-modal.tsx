@@ -63,6 +63,7 @@ export function CiceksepetiProductAttributeModal({
 
   useEffect(() => {
     if (isOpen) {
+      setAttributeValues({});
       if (product?.brand?.name) {
         setBrandName(product.brand.name);
       } else {
