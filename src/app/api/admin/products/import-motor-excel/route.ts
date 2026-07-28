@@ -27,15 +27,40 @@ function slugify(text: string): string {
 export async function GET() {
   try {
     console.log("=== STARTING MOTOVITRIN EXCEL IMPORT VIA API ROUTE ===");
-    let filePath = path.join(process.cwd(), "public", "tum_urunler.xlsx");
-    if (!require("fs").existsSync(filePath)) {
-      filePath = path.join(process.cwd(), "tum_urunler.xlsx");
-    }
-    if (!require("fs").existsSync(filePath)) {
-      filePath = path.join(__dirname, "..", "..", "..", "..", "..", "..", "public", "tum_urunler.xlsx");
+    let buffer: Buffer | null = null;
+    const candidatePaths = [
+      path.join(process.cwd(), "public", "tum_urunler.xlsx"),
+      path.join(process.cwd(), "tum_urunler.xlsx"),
+      path.join(process.cwd(), ".next", "standalone", "public", "tum_urunler.xlsx"),
+      path.join(process.cwd(), ".next", "standalone", "tum_urunler.xlsx"),
+    ];
+
+    for (const p of candidatePaths) {
+      try {
+        if (require("fs").existsSync(p)) {
+          buffer = require("fs").readFileSync(p);
+          console.log("[IMPORT-EXCEL] Found Excel file at path:", p);
+          break;
+        }
+      } catch {}
     }
 
-    const workbook = XLSX.readFile(filePath);
+    if (!buffer) {
+      const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+      const fetchUrl = `${siteUrl}/tum_urunler.xlsx`;
+      console.log("[IMPORT-EXCEL] Attempting HTTP fetch fallback for Excel:", fetchUrl);
+      const res = await fetch(fetchUrl);
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        buffer = Buffer.from(ab);
+      }
+    }
+
+    if (!buffer) {
+      return NextResponse.json({ success: false, error: "tum_urunler.xlsx dosyasına ulaşılamadı. Lütfen sunucu dizinini kontrol edin." }, { status: 404 });
+    }
+
+    const workbook = XLSX.read(buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: any[] = XLSX.utils.sheet_to_json(sheet);
 
