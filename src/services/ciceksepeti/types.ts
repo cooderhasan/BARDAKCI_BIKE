@@ -39,8 +39,9 @@ export interface CiceksepetiProductInput {
   mainCategoryId: number | string;
   subCategoryId?: number | string;
   description: string;
-  deliveryType?: number; // 1 = Kargo, 2 = Özel Teslimat
-  deliveryDays?: number;
+  deliveryType?: number; // 2 = Kargo ile teslimat
+  deliveryMessageType?: number; // 5 = 1-3 iş günü teslimat
+  deliveryDays?: number; // Eski uyumluluk için
   listPrice: number;
   salesPrice: number;
   stockQuantity: number;

@@ -224,12 +224,12 @@ export class CiceksepetiClient {
 
     const formattedProducts = products.map((p) => ({
       productName: p.productName,
-      productCode: p.productCode || p.stockCode,
+      mainProductCode: p.productCode || p.stockCode,
       stockCode: p.stockCode,
       categoryId: Number(p.subCategoryId || p.mainCategoryId) || 0,
       description: p.description,
-      deliveryType: Number(p.deliveryType || 1),
-      deliveryDays: Number(p.deliveryDays || 2),
+      deliveryType: Number(p.deliveryType || 2),
+      deliveryMessageType: Number(p.deliveryMessageType || p.deliveryDays || 5),
       listPrice: Number(p.listPrice),
       salesPrice: Number(p.salesPrice),
       stockQuantity: Number(p.stockQuantity),
@@ -242,7 +242,7 @@ export class CiceksepetiClient {
           }
           rawUrl = `${siteUrl}${rawUrl}`;
         }
-        return { url: rawUrl };
+        return rawUrl;
       }),
       attributes: (p.attributes || [])
         .map((attr: any) => {
@@ -261,7 +261,7 @@ export class CiceksepetiClient {
 
     const url = `${this.baseUrl}/Products`;
     const headers = this.getHeaders();
-    const payload = { items: formattedProducts };
+    const payload = { products: formattedProducts };
 
     console.log("[CS-API] POST /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
 
