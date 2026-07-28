@@ -27,7 +27,14 @@ function slugify(text: string): string {
 export async function GET() {
   try {
     console.log("=== STARTING MOTOVITRIN EXCEL IMPORT VIA API ROUTE ===");
-    const filePath = path.join(process.cwd(), "tum_urunler.xlsx");
+    let filePath = path.join(process.cwd(), "public", "tum_urunler.xlsx");
+    if (!require("fs").existsSync(filePath)) {
+      filePath = path.join(process.cwd(), "tum_urunler.xlsx");
+    }
+    if (!require("fs").existsSync(filePath)) {
+      filePath = path.join(__dirname, "..", "..", "..", "..", "..", "..", "public", "tum_urunler.xlsx");
+    }
+
     const workbook = XLSX.readFile(filePath);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: any[] = XLSX.utils.sheet_to_json(sheet);
