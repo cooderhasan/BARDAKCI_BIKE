@@ -74,13 +74,21 @@ export async function generateMetadata(): Promise<Metadata> {
       icon: [
         {
           url: faviconUrl,
-          sizes: "32x32",
+          sizes: "48x48",
           type: faviconUrl.endsWith(".png") ? "image/png" : "image/x-icon",
         },
         {
           url: faviconUrl,
-          sizes: "16x16",
+          sizes: "96x96",
           type: faviconUrl.endsWith(".png") ? "image/png" : "image/x-icon",
+        },
+        {
+          url: faviconUrl,
+          sizes: "192x192",
+          type: faviconUrl.endsWith(".png") ? "image/png" : "image/x-icon",
+        },
+        {
+          url: faviconUrl,
         },
       ],
       shortcut: {
