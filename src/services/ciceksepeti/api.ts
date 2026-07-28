@@ -332,7 +332,7 @@ export class CiceksepetiClient {
     };
 
     const res = await fetch(url, {
-      method: "POST",
+      method: "PUT",
       headers: this.getHeaders(),
       body: JSON.stringify(payload),
       cache: "no-store",
