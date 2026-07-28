@@ -314,6 +314,91 @@ export class CiceksepetiClient {
   }
 
   /**
+   * Var Olan Ürün Bilgilerini Güncelle (Ad, Açıklama, Resim, Nitelik vb.)
+   * PUT /api/v1/Products
+   */
+  async updateProducts(products: CiceksepetiProductInput[]): Promise<CiceksepetiBatchResult> {
+    await this.loadConfig();
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr";
+
+    const formattedProducts = products.map((p) => ({
+      productName: p.productName,
+      mainProductCode: p.productCode || p.stockCode,
+      stockCode: p.stockCode,
+      categoryId: Number(p.subCategoryId || p.mainCategoryId) || 0,
+      description: p.description,
+      deliveryType: Number(p.deliveryType || 2),
+      deliveryMessageType: Number(p.deliveryMessageType || p.deliveryDays || 5),
+      listPrice: Number(p.listPrice),
+      salesPrice: Number(p.salesPrice),
+      stockQuantity: Number(p.stockQuantity),
+      barcode: p.barcode,
+      images: p.images.map((img) => {
+        let rawUrl = typeof img === "string" ? img : (img as any)?.url || "";
+        if (rawUrl && !rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
+          if (!rawUrl.startsWith("/")) {
+            rawUrl = `/${rawUrl}`;
+          }
+          rawUrl = `${siteUrl}${rawUrl}`;
+        }
+        return rawUrl;
+      }),
+      attributes: (p.attributes || [])
+        .map((attr: any) => {
+          const item: any = {
+            attributeId: Number(attr.attributeId),
+          };
+          if (attr.attributeValueId !== undefined && attr.attributeValueId !== null && attr.attributeValueId !== "") {
+            item.attributeValueId = Number(attr.attributeValueId);
+          } else if (attr.customAttributeValue) {
+            item.customAttributeValue = String(attr.customAttributeValue);
+          }
+          return item;
+        })
+        .filter((attr: any) => Boolean(attr.attributeId) && (Boolean(attr.attributeValueId) || Boolean(attr.customAttributeValue))),
+    }));
+
+    const url = `${this.baseUrl}/Products`;
+    const headers = this.getHeaders();
+    const payload = { products: formattedProducts };
+
+    console.log("[CS-API] PUT /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
+
+    let res = await fetch(url, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+
+    let responseText = await res.text().catch(() => "");
+    if (!res.ok) {
+      console.error(`[CS-API] Error ${res.status}:`, responseText);
+      let detailMsg = responseText;
+      try {
+        const errJson = JSON.parse(responseText);
+        detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
+      } catch {}
+      throw new Error(`Çiçeksepeti ürün güncelleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
+    }
+
+    try {
+      const data = JSON.parse(responseText);
+      return {
+        batchId: data.batchId || data.batchRequestId || data.id || "SUCCESS",
+        status: data.status || "PENDING",
+        itemCount: products.length,
+      };
+    } catch {
+      return {
+        batchId: responseText || "SUCCESS",
+        status: "PENDING",
+        itemCount: products.length,
+      };
+    }
+  }
+
+  /**
    * Stok ve Fiyat Güncelleme
    * PUT /api/v1/Products/price-and-stock
    */

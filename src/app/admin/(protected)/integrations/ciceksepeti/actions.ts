@@ -391,7 +391,17 @@ export async function syncProductsToCiceksepeti(
         });
       }
 
-      const result = await client.createOrUpdateProducts(productInputs);
+      let result;
+      if (syncType === "update") {
+        result = await client.updateProducts(productInputs);
+      } else {
+        try {
+          result = await client.createOrUpdateProducts(productInputs);
+        } catch (e: any) {
+          console.warn("[CS-SYNC] POST create failed, trying PUT update:", e.message);
+          result = await client.updateProducts(productInputs);
+        }
+      }
 
       for (const p of products) {
         await (prisma as any).ciceksepetiProduct.upsert({
