@@ -338,10 +338,13 @@ export async function syncProductsToCiceksepeti(
           const liveAttrs = await client.getCategoryAttributes(categoryId);
           if (Array.isArray(liveAttrs)) {
             liveAttrs.forEach((a: any) => {
-              if (a.id) validAttributeIds.add(Number(a.id));
+              const attrId = Number(a.id || a.attributeId);
+              if (attrId) validAttributeIds.add(attrId);
             });
           }
-        } catch {}
+        } catch (e: any) {
+          console.warn("[CS-SYNC] liveAttrs error:", e.message);
+        }
 
         // Ürün Nitelikleri (Attributes)
         let rawAttributes: any[] = [];
@@ -364,10 +367,9 @@ export async function syncProductsToCiceksepeti(
           }
         }
 
-        // Eğer canlı kategoride nitelik tanımı varsa, sadece o kategoriye ait geçerli attributeId'leri filtrele
-        const attributes = validAttributeIds.size > 0
-          ? rawAttributes.filter((attr) => validAttributeIds.has(Number(attr.attributeId)))
-          : rawAttributes;
+        // Çiçeksepeti canlı kategorisinde tanımlı olan attributeId'leri kesin olarak süz.
+        // Eğer o kategoride hiç nitelik yoksa veya süzme sonrası kalmıyorsa [] gönderilir.
+        const attributes = rawAttributes.filter((attr) => validAttributeIds.has(Number(attr.attributeId)));
 
         productInputs.push({
           productName: p.name,
