@@ -315,7 +315,7 @@ export class CiceksepetiClient {
 
   /**
    * Stok ve Fiyat Güncelleme
-   * POST /api/v1/Products/price-and-stock
+   * PUT /api/v1/Products/price-and-stock
    */
   async updatePricesAndStocks(items: CiceksepetiPriceAndStockItem[]): Promise<CiceksepetiBatchResult> {
     await this.loadConfig();
