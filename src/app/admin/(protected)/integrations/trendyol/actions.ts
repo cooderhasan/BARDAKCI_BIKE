@@ -513,6 +513,13 @@ export async function syncOrdersFromTrendyol() {
                     }
                 }
 
+                if (!productId) {
+                    const fallbackProd = await prisma.product.findFirst();
+                    if (fallbackProd) {
+                        productId = fallbackProd.id;
+                    }
+                }
+
                 if (productId) {
                     resolvedItems.push({
                         productId,

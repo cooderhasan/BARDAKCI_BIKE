@@ -778,6 +778,17 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
           }
         }
 
+        let isFallback = false;
+        // Eğer ürün sitede henüz yoksa siparişin kaybolmaması için ilk ürüne bağla
+        if (!product) {
+          const fallbackProd = await prisma.product.findFirst();
+          if (fallbackProd) {
+            product = fallbackProd;
+            productId = fallbackProd.id;
+            isFallback = true;
+          }
+        }
+
         if (product) {
           const lineUnitPrice = Number(item.price) || 0;
           const lineQty = Number(item.quantity) || 1;
@@ -788,7 +799,7 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
           resolvedItems.push({
             productId: product.id,
             variantId: variantId || undefined,
-            productName: item.productName || product.name,
+            productName: item.productName || item.title || barcodeOrSku || product.name,
             quantity: lineQty,
             unitPrice: lineUnitPrice,
             lineTotal: lineInvoiceAmount,
@@ -798,8 +809,11 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
 
           total += lineInvoiceAmount;
           totalVat += lineVat;
-          stockUpdates.push({ productId: product.id, variantId: variantId || undefined, quantity: lineQty });
-          affectedProductIds.push(product.id);
+
+          if (!isFallback) {
+            stockUpdates.push({ productId: product.id, variantId: variantId || undefined, quantity: lineQty });
+            affectedProductIds.push(product.id);
+          }
         }
       }
 
