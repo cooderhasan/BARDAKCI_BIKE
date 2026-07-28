@@ -332,8 +332,9 @@ export async function syncProductsToCiceksepeti(
           },
         });
 
-        // Çiçeksepeti canlı kategorisindeki geçerli attributeId'leri al
-        let validAttributeIds = new Set<number>();
+        // Çiçeksepeti genel ve canlı kategorisindeki geçerli attributeId'leri al.
+        // Marka (10) ve Renk (147) Çiçeksepeti varyantsız ürünler için genel standart niteliklerdir.
+        let validAttributeIds = new Set<number>([10, 147]);
         try {
           const liveAttrs = await client.getCategoryAttributes(categoryId);
           if (Array.isArray(liveAttrs)) {
