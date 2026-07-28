@@ -1,11 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import * as path from "path";
 import { prisma } from "@/lib/db";
 
-export const maxDuration = 300; // 5 minutes timeout for Next.js route
+export const maxDuration = 300;
 
 const USD_RATE = 47.0;
+let isImporting = false;
+let globalStatus = {
+  status: "IDLE",
+  importedCount: 0,
+  skippedBikeCount: 0,
+  skippedNoNameCount: 0,
+  error: null as string | null,
+};
 
 function slugify(text: string): string {
   if (!text) return "";
@@ -24,9 +32,14 @@ function slugify(text: string): string {
   return cleaned || "item-" + Math.floor(Math.random() * 1000000);
 }
 
-export async function GET() {
+async function processImportInBackground() {
+  if (isImporting) return;
+  isImporting = true;
+  globalStatus.status = "RUNNING";
+  globalStatus.error = null;
+
   try {
-    console.log("=== STARTING MOTOVITRIN EXCEL IMPORT VIA API ROUTE ===");
+    console.log("=== STARTING MOTOVITRIN EXCEL IMPORT IN BACKGROUND ===");
     let buffer: Buffer | null = null;
     const candidatePaths = [
       path.join(process.cwd(), "public", "tum_urunler.xlsx"),
@@ -57,16 +70,13 @@ export async function GET() {
     }
 
     if (!buffer) {
-      return NextResponse.json({ success: false, error: "tum_urunler.xlsx dosyasına ulaşılamadı. Lütfen sunucu dizinini kontrol edin." }, { status: 404 });
+      throw new Error("tum_urunler.xlsx dosyasına ulaşılamadı.");
     }
 
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: any[] = XLSX.utils.sheet_to_json(sheet);
 
-    let importedCount = 0;
-    let skippedBikeCount = 0;
-    let skippedNoNameCount = 0;
     let categoryMap = new Map<string, string>();
     let brandMap = new Map<string, string>();
 
@@ -84,7 +94,7 @@ export async function GET() {
       const r = rows[i];
       const rawName = String(r["UrunAdi"] || "").trim();
       if (!rawName) {
-        skippedNoNameCount++;
+        globalStatus.skippedNoNameCount++;
         continue;
       }
 
@@ -95,7 +105,7 @@ export async function GET() {
         rawName.toLowerCase().startsWith("bisiklet");
 
       if (isBikeCategory) {
-        skippedBikeCount++;
+        globalStatus.skippedBikeCount++;
         continue;
       }
 
@@ -281,18 +291,45 @@ export async function GET() {
         },
       });
 
-      importedCount++;
+      globalStatus.importedCount++;
     }
 
+    globalStatus.status = "COMPLETED";
+    console.log("=== EXCEL IMPORT FINISHED IN BACKGROUND SUCCESSFULLY ===");
+  } catch (err: any) {
+    console.error("BACKGROUND IMPORT ERROR:", err);
+    globalStatus.status = "ERROR";
+    globalStatus.error = err.message || "Bilinmeyen hata";
+  } finally {
+    isImporting = false;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const isStatusCheck = searchParams.get("status") === "true";
+
+  // Real-time DB count of Motor products
+  const dbMotorProductCount = await prisma.product.count({ where: { store: "MOTOR" } });
+
+  if (isStatusCheck) {
     return NextResponse.json({
       success: true,
-      message: `Aktarım başarıyla tamamlandı! ${importedCount} Motor ürünü eklendi.`,
-      importedCount,
-      skippedBikeCount,
-      skippedNoNameCount,
+      status: globalStatus.status,
+      dbMotorProductCount,
+      importedInCurrentRun: globalStatus.importedCount,
+      skippedBikeCount: globalStatus.skippedBikeCount,
+      error: globalStatus.error,
     });
-  } catch (error: any) {
-    console.error("API Import Error:", error);
-    return NextResponse.json({ success: false, error: error.message || "Aktarım hatası" }, { status: 500 });
   }
+
+  // Trigger background process without blocking HTTP response
+  processImportInBackground().catch((err) => console.error("Process error:", err));
+
+  return NextResponse.json({
+    success: true,
+    message: "Motor ürünlerinin aktarımı arka planda başlatıldı! İlerleme durumunu ?status=true ekleyerek takip edebilirsiniz.",
+    dbMotorProductCount,
+    statusUrl: `${req.nextUrl.pathname}?status=true`,
+  });
 }
