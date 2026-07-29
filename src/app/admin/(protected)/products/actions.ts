@@ -146,6 +146,7 @@ export async function createProduct(formData: FormData) {
                     })),
                 });
             }
+            await syncBundleProductStock(product.id);
         }
 
         await prisma.adminLog.create({
@@ -329,6 +330,7 @@ export async function updateProduct(productId: string, formData: FormData) {
                     })),
                 });
             }
+            await syncBundleProductStock(productId);
         } else {
             // If product was a bundle but is no longer, remove bundle items
             await prisma.bundleItem.deleteMany({
@@ -689,4 +691,28 @@ export async function toggleProductFeature(
     revalidatePath("/products");
     revalidatePath("/");
     return { success: true };
+}
+
+export async function syncBundleProductStock(bundleProductId: string) {
+    const bundleItems = await prisma.bundleItem.findMany({
+        where: { bundleProductId },
+        include: { childProduct: { select: { id: true, stock: true } } },
+    });
+
+    if (bundleItems.length === 0) return 0;
+
+    let minStock = Infinity;
+    for (const bi of bundleItems) {
+        const cpStock = bi.childProduct?.stock || 0;
+        const avail = Math.floor(cpStock / (bi.quantity || 1));
+        if (avail < minStock) minStock = avail;
+    }
+    const finalStock = minStock === Infinity ? 0 : Math.max(0, minStock);
+
+    await prisma.product.update({
+        where: { id: bundleProductId },
+        data: { stock: finalStock },
+    });
+
+    return finalStock;
 }

@@ -358,6 +358,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
 
         // Append bundle items if this is a bundle product
         if (formData.isBundle) {
+            data.set('stock', String(bundleStock));
             data.append('bundleItems', JSON.stringify(bundleItems.map(bi => ({
                 childProductId: bi.childProductId,
                 quantity: bi.quantity,
@@ -795,9 +796,15 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     <Input
                                         id="stock"
                                         type="number"
-                                        value={formData.stock}
+                                        value={formData.isBundle ? bundleStock : formData.stock}
                                         onChange={(e) => handleChange("stock", e.target.value)}
+                                        disabled={formData.isBundle}
                                     />
+                                    {formData.isBundle && (
+                                        <p className="text-xs text-emerald-600 font-medium">
+                                            📦 Paket stoğu içeriğe göre otomatik ({bundleStock} adet) hesaplanmaktadır.
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="criticalStock">Kritik Stok Seviyesi</Label>
