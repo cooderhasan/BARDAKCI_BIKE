@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Send, AlertCircle, Plus, Trash2, Tag } from "lucide-react";
+import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search } from "lucide-react";
 import { getCiceksepetiCategoryAttributes, syncProductsToCiceksepeti } from "@/app/admin/(protected)/integrations/ciceksepeti/actions";
 import { toast } from "sonner";
 
@@ -28,6 +28,72 @@ interface Props {
   onClose: () => void;
   product: any;
   onSuccess: () => void;
+}
+
+// Kategoriye özel niteliklerin istemci tarafında bellekte tutulması (Önbellekleme / Caching)
+const attributeCacheMap = new Map<string, any[]>();
+
+function SearchableAttributeSelect({
+  attr,
+  value,
+  onChange,
+}: {
+  attr: any;
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredValues = useMemo(() => {
+    const vals = attr.attributeValues || [];
+    if (!searchTerm.trim()) return vals;
+    const norm = searchTerm.toLowerCase().trim();
+    return vals.filter((v: any) => v.name?.toLowerCase().includes(norm));
+  }, [attr.attributeValues, searchTerm]);
+
+  const selectedItem = (attr.attributeValues || []).find(
+    (v: any) => String(v.id) === String(value)
+  );
+
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="w-full h-8 text-xs bg-white border-amber-200 focus:ring-rose-500">
+        <SelectValue placeholder={`${attr.name} seçiniz...`}>
+          {selectedItem ? selectedItem.name : `${attr.name} seçiniz...`}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-72 p-1">
+        {attr.attributeValues?.length > 5 && (
+          <div className="p-1.5 sticky top-0 bg-white z-20 border-b shadow-sm mb-1">
+            <div className="relative">
+              <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder={`${attr.name} içinde ara...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-7 text-xs pl-7 bg-muted/30"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+        )}
+        <div className="max-h-56 overflow-y-auto">
+          {filteredValues.length === 0 ? (
+            <div className="p-3 text-center text-xs text-muted-foreground">
+              "{searchTerm}" ile eşleşen seçenek bulunamadı.
+            </div>
+          ) : (
+            filteredValues.slice(0, 300).map((v: any) => (
+              <SelectItem key={v.id} value={String(v.id)} className="text-xs cursor-pointer py-1.5">
+                {v.name}
+              </SelectItem>
+            ))
+          )}
+        </div>
+      </SelectContent>
+    </Select>
+  );
 }
 
 export function CiceksepetiProductAttributeModal({
@@ -45,13 +111,6 @@ export function CiceksepetiProductAttributeModal({
   const [deliveryType, setDeliveryType] = useState<string>("1");
   const [deliveryDays, setDeliveryDays] = useState<string>("1");
 
-  // Sık Kullanılan Nitelikler
-  const [brandName, setBrandName] = useState<string>("");
-  const [colorName, setColorName] = useState<string>("");
-  const [sizeName, setSizeName] = useState<string>("");
-  const [materialName, setMaterialName] = useState<string>("");
-  const [genderName, setGenderName] = useState<string>("");
-
   // Dinamik Eklenen Özel Nitelikler
   const [customFields, setCustomFields] = useState<{ id: string; name: string; value: string }[]>([]);
 
@@ -64,15 +123,6 @@ export function CiceksepetiProductAttributeModal({
   useEffect(() => {
     if (isOpen) {
       setAttributeValues({});
-      if (product?.brand?.name) {
-        setBrandName(product.brand.name);
-      } else {
-        setBrandName("");
-      }
-      setColorName("");
-      setSizeName("");
-      setMaterialName("");
-      setGenderName("");
       setCustomFields([]);
 
       if (categoryId) {
@@ -82,10 +132,30 @@ export function CiceksepetiProductAttributeModal({
   }, [isOpen, product, categoryId]);
 
   async function loadAttributes() {
+    const cacheKey = String(categoryId);
+
+    // 1) Bellek Önbelleği (Client Cache) Kontrolü - Anında gösterim!
+    if (attributeCacheMap.has(cacheKey)) {
+      const cachedAttrs = attributeCacheMap.get(cacheKey)!;
+      setApiAttributes(cachedAttrs);
+      const initialValues: Record<string, any> = {};
+      cachedAttrs.forEach((attr: any) => {
+        if (attr.selectedAttributeValueId) {
+          initialValues[String(attr.id)] = { attributeValueId: String(attr.selectedAttributeValueId) };
+        } else if (attr.customValue) {
+          initialValues[String(attr.id)] = { customValue: attr.customValue };
+        }
+      });
+      setAttributeValues(initialValues);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await getCiceksepetiCategoryAttributes("product_modal", String(categoryId));
+      const res = await getCiceksepetiCategoryAttributes("product_modal", cacheKey);
       if (res.success && res.attributes) {
+        attributeCacheMap.set(cacheKey, res.attributes);
         setApiAttributes(res.attributes);
         const initialValues: Record<string, any> = {};
         res.attributes.forEach((attr: any) => {
@@ -136,7 +206,6 @@ export function CiceksepetiProductAttributeModal({
   }
 
   async function handleSubmit() {
-    // Check required API attributes
     const missingRequired = apiAttributes.filter(
       (attr) => (attr.required || attr.isRequired) && !attributeValues[String(attr.id)]?.attributeValueId && !attributeValues[String(attr.id)]?.customValue
     );
@@ -148,7 +217,6 @@ export function CiceksepetiProductAttributeModal({
 
     const selectedAttributes: any[] = [];
 
-    // 1) API'den gelen nitelikler
     Object.entries(attributeValues).forEach(([attrId, val]) => {
       if (val.attributeValueId) {
         selectedAttributes.push({
@@ -162,8 +230,6 @@ export function CiceksepetiProductAttributeModal({
         });
       }
     });
-
-    // Sadece Çiçeksepeti API'sinden gelen geçerli kategori nitelikleri gönderilir
 
     setSubmitting(true);
     try {
@@ -246,8 +312,6 @@ export function CiceksepetiProductAttributeModal({
                 </div>
               </div>
 
-
-
               {/* Çiçeksepeti Canlı Kategori Nitelikleri */}
               {loading ? (
                 <div className="flex items-center justify-center py-6 text-muted-foreground gap-2">
@@ -273,21 +337,11 @@ export function CiceksepetiProductAttributeModal({
                           </Label>
 
                           {attr.attributeValues && attr.attributeValues.length > 0 ? (
-                            <Select
+                            <SearchableAttributeSelect
+                              attr={attr}
                               value={currentVal.attributeValueId || ""}
-                              onValueChange={(val) => handleValueChange(String(attr.id), val)}
-                            >
-                              <SelectTrigger className="w-full h-8 text-xs bg-white">
-                                <SelectValue placeholder={`${attr.name} seçiniz...`} />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-56">
-                                {attr.attributeValues.map((v: any) => (
-                                  <SelectItem key={v.id} value={String(v.id)} className="text-xs">
-                                    {v.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              onChange={(val) => handleValueChange(String(attr.id), val)}
+                            />
                           ) : (
                             <Input
                               placeholder={`${attr.name} giriniz...`}
