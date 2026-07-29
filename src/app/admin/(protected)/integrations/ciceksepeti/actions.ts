@@ -374,14 +374,16 @@ export async function syncProductsToCiceksepeti(
         console.log(`[CS-SYNC] Valid attribute IDs for cat ${categoryId}:`, Array.from(validAttributeIds));
         console.log(`[CS-SYNC] Final filtered attributes for ${p.name}:`, JSON.stringify(attributes));
 
+        const productCode = p.sku || p.barcode || p.id;
+
         productInputs.push({
           productName: p.name,
-          productCode: p.sku || p.barcode || p.id,
-          stockCode: p.barcode || p.sku || p.id,
+          productCode: productCode,
+          stockCode: productCode,
           mainCategoryId: categoryId,
           description: p.marketplaceDescription || p.description || p.name,
-          deliveryType: Number(customOptions?.deliveryType || 1), // 1 = Kargo ile Teslimat
-          deliveryDays: Number(customOptions?.deliveryDays || 1), // 1 Gün İçinde Kargo
+          deliveryType: Number(customOptions?.deliveryType || 2), // 2 = Kargo ile Teslimat
+          deliveryDays: Number(customOptions?.deliveryDays || 5), // 5 = 1-3 İş Günü
           listPrice,
           salesPrice,
           stockQuantity: p.stock,
@@ -393,13 +395,34 @@ export async function syncProductsToCiceksepeti(
 
       let result;
       if (syncType === "update") {
-        result = await client.updateProducts(productInputs);
+        try {
+          result = await client.updateProducts(productInputs);
+        } catch (updateErr: any) {
+          if (updateErr.message?.includes("Varyant bulunamadı") || updateErr.message?.includes("Bulunamadı") || updateErr.message?.includes("400")) {
+            console.log("[CS-SYNC] PUT update with SKU returned 'Varyant bulunamadı', trying with Barcode...");
+            // 2. Deneme: Barkod kodları ile PUT gönder
+            const barcodeProductInputs = productInputs.map((pi, idx) => {
+              const p = products[idx];
+              const barcodeCode = p.barcode || p.sku || p.id;
+              return { ...pi, mainProductCode: barcodeCode, productCode: barcodeCode, stockCode: barcodeCode };
+            });
+            try {
+              result = await client.updateProducts(barcodeProductInputs);
+            } catch (barcodeErr: any) {
+              console.log("[CS-SYNC] PUT update with Barcode also returned 'Varyant bulunamadı', fallback to POST create...");
+              // 3. Deneme: Ürün henüz Çiçeksepeti'de açılmamış, POST (Yeni Ürün Yükleme) ile taslak oluştur
+              result = await client.createOrUpdateProducts(productInputs);
+            }
+          } else {
+            throw updateErr;
+          }
+        }
       } else {
         try {
           // POST: Çiçeksepeti taslak ürün kaydı oluştur
           result = await client.createOrUpdateProducts(productInputs);
 
-          // Çiçeksepeti Onay Süreci: Ürünün Onay Bekleyenler aşamasına geçmesi için PUT (Ürün Bilgilerini Güncelleme Metodu) çağrılır
+          // Çiçeksepeti Onay Süreci: Ürünün Onay Bekleyenler aşamasına geçmesi için PUT çağrılır
           try {
             await new Promise((r) => setTimeout(r, 1200));
             const updateRes = await client.updateProducts(productInputs);
