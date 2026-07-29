@@ -398,42 +398,19 @@ export async function syncProductsToCiceksepeti(
         try {
           result = await client.updateProducts(productInputs);
         } catch (updateErr: any) {
-          if (updateErr.message?.includes("Varyant bulunamadı") || updateErr.message?.includes("Bulunamadı") || updateErr.message?.includes("400")) {
-            console.log("[CS-SYNC] PUT update with SKU returned 'Varyant bulunamadı', trying with Barcode...");
-            // 2. Deneme: Barkod kodları ile PUT gönder
-            const barcodeProductInputs = productInputs.map((pi, idx) => {
-              const p = products[idx];
-              const barcodeCode = p.barcode || p.sku || p.id;
-              return { ...pi, mainProductCode: barcodeCode, productCode: barcodeCode, stockCode: barcodeCode };
-            });
-            try {
-              result = await client.updateProducts(barcodeProductInputs);
-            } catch (barcodeErr: any) {
-              console.log("[CS-SYNC] PUT update with Barcode also returned 'Varyant bulunamadı', fallback to POST create...");
-              // 3. Deneme: Ürün henüz Çiçeksepeti'de açılmamış, POST (Yeni Ürün Yükleme) ile taslak oluştur
-              result = await client.createOrUpdateProducts(productInputs);
-            }
-          } else {
-            throw updateErr;
+          console.log("[CS-SYNC] PUT update returned error, attempting POST create/update fallback:", updateErr.message);
+          try {
+            result = await client.createOrUpdateProducts(productInputs);
+          } catch (postErr: any) {
+            throw new Error(`Çiçeksepeti ürün güncelleme hatası: ${updateErr.message || postErr.message}`);
           }
         }
       } else {
         try {
-          // POST: Çiçeksepeti taslak ürün kaydı oluştur
+          // POST: Çiçeksepeti yeni ürün & nitelik kaydı oluştur ve onaya gönder
           result = await client.createOrUpdateProducts(productInputs);
-
-          // Çiçeksepeti Onay Süreci: Ürünün Onay Bekleyenler aşamasına geçmesi için PUT çağrılır
-          try {
-            await new Promise((r) => setTimeout(r, 1200));
-            const updateRes = await client.updateProducts(productInputs);
-            if (updateRes.batchId) {
-              result.batchId = `${result.batchId} (Onay Talebi: ${updateRes.batchId})`;
-            }
-          } catch (updateErr: any) {
-            console.warn("[CS-SYNC] Sequential PUT update notice:", updateErr.message);
-          }
-        } catch (e: any) {
-          console.warn("[CS-SYNC] POST create failed, trying PUT update:", e.message);
+        } catch (postErr: any) {
+          console.warn("[CS-SYNC] POST create failed, trying PUT update fallback:", postErr.message);
           result = await client.updateProducts(productInputs);
         }
       }
