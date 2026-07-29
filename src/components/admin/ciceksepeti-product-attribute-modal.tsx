@@ -24,7 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search, ChevronDown, Check } from "lucide-react";
+import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search, ChevronDown, Check, Building2 } from "lucide-react";
 import { getCiceksepetiCategoryAttributes, syncProductsToCiceksepeti } from "@/app/admin/(protected)/integrations/ciceksepeti/actions";
 import { toast } from "sonner";
 
@@ -146,6 +146,25 @@ export function CiceksepetiProductAttributeModal({
   // Dinamik Eklenen Özel Nitelikler
   const [customFields, setCustomFields] = useState<{ id: string; name: string; value: string }[]>([]);
 
+  // İktisadi İşletmeci Alanları
+  const [showOperatorContacts, setShowOperatorContacts] = useState(false);
+  const [operatorContacts, setOperatorContacts] = useState<Record<number, { name: string; email: string; address: string }>>({
+    1: { name: "", email: "", address: "" }, // İmalatçı
+    2: { name: "", email: "", address: "" }, // İthalatçı
+    3: { name: "", email: "", address: "" }, // Yetkili Temsilci
+    4: { name: "", email: "", address: "" }, // İfa Hizmet Sağlayıcısı
+  });
+
+  function updateOperatorContact(type: number, field: "name" | "email" | "address", val: string) {
+    setOperatorContacts((prev) => ({
+      ...prev,
+      [type]: {
+        ...(prev as any)[type],
+        [field]: val,
+      },
+    }));
+  }
+
   const categoryId =
     product?.ciceksepetiProduct?.ciceksepetiCategoryId ||
     product?.category?.ciceksepetiCategoryId ||
@@ -263,12 +282,26 @@ export function CiceksepetiProductAttributeModal({
       }
     });
 
+    const formattedOperatorContacts: any[] = [];
+    [1, 2, 3, 4].forEach((type) => {
+      const oc = (operatorContacts as any)[type];
+      if (oc?.name?.trim() && oc?.address?.trim() && oc?.email?.trim()) {
+        formattedOperatorContacts.push({
+          type,
+          name: oc.name.trim(),
+          address: oc.address.trim(),
+          email: oc.email.trim(),
+        });
+      }
+    });
+
     setSubmitting(true);
     try {
       const res = await syncProductsToCiceksepeti([product.id], "all", {
         attributes: selectedAttributes,
         deliveryType: Number(deliveryType),
         deliveryDays: Number(deliveryDays),
+        operatorContacts: formattedOperatorContacts.length > 0 ? formattedOperatorContacts : undefined,
       });
 
       if (res.success) {
@@ -342,6 +375,75 @@ export function CiceksepetiProductAttributeModal({
                     </Select>
                   </div>
                 </div>
+              </div>
+
+              {/* Çiçeksepeti İktisadi İşletmeci Alanları */}
+              <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-lg shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-blue-900 flex items-center gap-1.5 text-xs">
+                    <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                    Çiçeksepeti Ürün İktisadi İşletmeci Alanları (Opsiyonel)
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowOperatorContacts(!showOperatorContacts)}
+                    className="h-6 text-[11px] text-blue-700 hover:bg-blue-100/50"
+                  >
+                    {showOperatorContacts ? "Gizle" : "Düzenle / Ekle"}
+                  </Button>
+                </div>
+
+                {showOperatorContacts && (
+                  <div className="space-y-3 pt-1">
+                    {[
+                      { type: 1, title: "İmalatçı" },
+                      { type: 2, title: "İthalatçı" },
+                      { type: 3, title: "Yetkili Temsilci" },
+                      { type: 4, title: "İfa Hizmet Sağlayıcısı" },
+                    ].map((item) => {
+                      const oc = (operatorContacts as any)[item.type] || { name: "", email: "", address: "" };
+
+                      return (
+                        <div key={item.type} className="p-2.5 bg-white border border-blue-200 rounded-md space-y-2">
+                          <p className="font-semibold text-blue-800 text-[11px] border-b pb-1">
+                            {item.title} Bilgileri
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">İsim / Ünvan</Label>
+                              <Input
+                                placeholder="Firma Ünvanı"
+                                value={oc.name}
+                                onChange={(e) => updateOperatorContact(item.type, "name", e.target.value)}
+                                className="h-7 text-xs bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Email</Label>
+                              <Input
+                                placeholder="Email adresi"
+                                value={oc.email}
+                                onChange={(e) => updateOperatorContact(item.type, "email", e.target.value)}
+                                className="h-7 text-xs bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Adres</Label>
+                              <Input
+                                placeholder="Adres bilgisi"
+                                value={oc.address}
+                                onChange={(e) => updateOperatorContact(item.type, "address", e.target.value)}
+                                className="h-7 text-xs bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Çiçeksepeti Canlı Kategori Nitelikleri */}

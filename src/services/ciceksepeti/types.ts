@@ -32,6 +32,13 @@ export interface CiceksepetiProductAttributeInput {
   customAttributeValue?: string;
 }
 
+export interface CiceksepetiOperatorContact {
+  type: number; // 1: İmalatçı, 2: İthalatçı, 3: Yetkili Temsilci, 4: İfa Hizmet Sağlayıcı
+  name: string;
+  address: string;
+  email: string;
+}
+
 export interface CiceksepetiProductInput {
   productName: string;
   productCode?: string; // Satıcı stok kodu (SKU)
@@ -48,6 +55,7 @@ export interface CiceksepetiProductInput {
   barcode: string;
   images: string[];
   attributes?: CiceksepetiProductAttributeInput[];
+  operatorContacts?: CiceksepetiOperatorContact[];
 }
 
 export interface CiceksepetiPriceAndStockItem {

@@ -14,7 +14,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { saveCiceksepetiConfig, testCiceksepetiConnection } from "./actions";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Building2 } from "lucide-react";
 
 interface Props {
   initialData?: any;
@@ -28,6 +28,38 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
   const [isActive, setIsActive] = useState(initialData?.isActive ?? false);
   const [isTestMode, setIsTestMode] = useState(initialData?.isTestMode ?? true);
 
+  const initialOperatorContacts = initialData?.operatorContacts || [];
+  const contactsMap: Record<number, { name: string; email: string; address: string }> = {
+    1: { name: "", email: "", address: "" },
+    2: { name: "", email: "", address: "" },
+    3: { name: "", email: "", address: "" },
+    4: { name: "", email: "", address: "" },
+  };
+
+  if (Array.isArray(initialOperatorContacts)) {
+    initialOperatorContacts.forEach((oc: any) => {
+      if (oc.type) {
+        contactsMap[oc.type] = {
+          name: oc.name || "",
+          email: oc.email || "",
+          address: oc.address || "",
+        };
+      }
+    });
+  }
+
+  const [operatorContacts, setOperatorContacts] = useState(contactsMap);
+
+  function updateOperatorContact(type: number, field: "name" | "email" | "address", val: string) {
+    setOperatorContacts((prev) => ({
+      ...prev,
+      [type]: {
+        ...(prev as any)[type],
+        [field]: val,
+      },
+    }));
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -36,6 +68,25 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
     const formData = new FormData(e.currentTarget);
     formData.set("isActive", String(isActive));
     formData.set("isTestMode", String(isTestMode));
+
+    const formattedContacts: any[] = [];
+    [1, 2, 3, 4].forEach((type) => {
+      const oc = (operatorContacts as any)[type];
+      if (oc?.name?.trim() && oc?.address?.trim() && oc?.email?.trim()) {
+        formattedContacts.push({
+          type,
+          name: oc.name.trim(),
+          address: oc.address.trim(),
+          email: oc.email.trim(),
+        });
+      }
+    });
+
+    if (formattedContacts.length > 0) {
+      formData.set("operatorContacts", JSON.stringify(formattedContacts));
+    } else {
+      formData.set("operatorContacts", "");
+    }
 
     const res = await saveCiceksepetiConfig(formData);
     setLoading(false);
@@ -126,6 +177,67 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
             </p>
           </div>
 
+          {/* Çiçeksepeti İktisadi İşletmeci Varsayılan Bilgileri */}
+          <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-blue-600 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-sm text-blue-900">Çiçeksepeti Ürün İktisadi İşletmeci Alanları (Varsayılan Firma Bilgileri)</h4>
+                <p className="text-xs text-blue-700">
+                  Çiçeksepeti ürün yüklemelerinde otomatik olarak gönderilecek olan üretici, ithalatçı veya yetkili temsilci bilgilerinizi buraya girebilirsiniz.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+              {[
+                { type: 1, title: "İmalatçı" },
+                { type: 2, title: "İthalatçı" },
+                { type: 3, title: "Yetkili Temsilci" },
+                { type: 4, title: "İfa Hizmet Sağlayıcısı" },
+              ].map((item) => {
+                const oc = (operatorContacts as any)[item.type] || { name: "", email: "", address: "" };
+
+                return (
+                  <div key={item.type} className="p-3 bg-white border border-blue-200 rounded-lg space-y-2">
+                    <h5 className="font-semibold text-xs text-blue-900 border-b pb-1">
+                      {item.title} Bilgileri
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">İsim/Ünvan</Label>
+                        <Input
+                          placeholder="Firma Ünvanı"
+                          value={oc.name}
+                          onChange={(e) => updateOperatorContact(item.type, "name", e.target.value)}
+                          className="h-8 text-xs bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Email</Label>
+                        <Input
+                          placeholder="Email adresi"
+                          value={oc.email}
+                          onChange={(e) => updateOperatorContact(item.type, "email", e.target.value)}
+                          className="h-8 text-xs bg-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Adres</Label>
+                        <Input
+                          placeholder="Adres bilgisi"
+                          value={oc.address}
+                          onChange={(e) => updateOperatorContact(item.type, "address", e.target.value)}
+                          className="h-8 text-xs bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
             <div className="flex items-center justify-between p-3 rounded-lg border bg-rose-50/30 dark:bg-rose-950/10">
               <div className="space-y-0.5">
@@ -178,7 +290,7 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
               {testing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Test Ediliyor...
+                  Bağlantı Test Ediliyor...
                 </>
               ) : (
                 "Bağlantıyı Test Et"
@@ -188,7 +300,7 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
             <Button
               type="submit"
               disabled={loading || testing}
-              className="sm:w-1/2 bg-rose-600 hover:bg-rose-700 text-white"
+              className="sm:w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold"
             >
               {loading ? (
                 <>

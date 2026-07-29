@@ -22,6 +22,14 @@ export async function saveCiceksepetiConfig(formData: FormData) {
     const isActive = formData.get("isActive") === "true";
     const isTestMode = formData.get("isTestMode") === "true";
 
+    const operatorContactsRaw = formData.get("operatorContacts") as string;
+    let operatorContacts = null;
+    if (operatorContactsRaw) {
+      try {
+        operatorContacts = JSON.parse(operatorContactsRaw);
+      } catch {}
+    }
+
     if (!apiKey) {
       return { success: false, error: "API Key boş olamaz." };
     }
@@ -37,6 +45,7 @@ export async function saveCiceksepetiConfig(formData: FormData) {
           profitMargin,
           isActive,
           isTestMode,
+          operatorContacts,
         },
       });
     } else {
@@ -47,6 +56,7 @@ export async function saveCiceksepetiConfig(formData: FormData) {
           profitMargin,
           isActive,
           isTestMode,
+          operatorContacts,
         },
       });
     }
@@ -128,6 +138,7 @@ export async function syncProductsToCiceksepeti(
     attributes?: any[];
     deliveryType?: number;
     deliveryDays?: number;
+    operatorContacts?: any[];
   }
 ) {
   try {
@@ -375,6 +386,7 @@ export async function syncProductsToCiceksepeti(
         console.log(`[CS-SYNC] Final filtered attributes for ${p.name}:`, JSON.stringify(attributes));
 
         const productCode = p.sku || p.barcode || p.id;
+        const operatorContacts = customOptions?.operatorContacts || config.operatorContacts || undefined;
 
         productInputs.push({
           productName: p.name,
@@ -390,6 +402,7 @@ export async function syncProductsToCiceksepeti(
           barcode: p.barcode || p.sku || p.id,
           images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500"],
           attributes,
+          operatorContacts,
         });
       }
 

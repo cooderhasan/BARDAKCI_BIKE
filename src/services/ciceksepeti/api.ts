@@ -257,7 +257,7 @@ export class CiceksepetiClient {
         ? rawDesc 
         : `${rawDesc} - Orijinal ve kaliteli yedek parça & aksesuar. Bardakçı Bike & Motovitrin güvencesiyle hızlı kargo.`;
 
-      return {
+      const item: any = {
         productName: p.productName,
         mainProductCode: p.productCode || p.stockCode,
         stockCode: p.stockCode,
@@ -285,6 +285,23 @@ export class CiceksepetiClient {
         Attributes: formattedAttrs,
         attributes: formattedAttrs,
       };
+
+      if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
+        const validContacts = p.operatorContacts
+          .map((oc: any) => ({
+            type: Number(oc.type),
+            name: String(oc.name || "").trim(),
+            address: String(oc.address || "").trim(),
+            email: String(oc.email || "").trim(),
+          }))
+          .filter((oc: any) => Boolean(oc.type && oc.name && oc.address && oc.email));
+
+        if (validContacts.length > 0) {
+          item.operatorContacts = validContacts;
+        }
+      }
+
+      return item;
     });
 
     const url = `${this.baseUrl}/Products`;
@@ -384,7 +401,7 @@ export class CiceksepetiClient {
         ? rawDesc 
         : `${rawDesc} - Orijinal ve kaliteli yedek parça & aksesuar. Bardakçı Bike & Motovitrin güvencesiyle hızlı kargo.`;
 
-      return {
+      const item: any = {
         productName: p.productName,
         mainProductCode: p.productCode || p.stockCode,
         stockCode: p.stockCode,
@@ -412,6 +429,23 @@ export class CiceksepetiClient {
         Attributes: formattedAttrs,
         attributes: formattedAttrs,
       };
+
+      if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
+        const validContacts = p.operatorContacts
+          .map((oc: any) => ({
+            type: Number(oc.type),
+            name: String(oc.name || "").trim(),
+            address: String(oc.address || "").trim(),
+            email: String(oc.email || "").trim(),
+          }))
+          .filter((oc: any) => Boolean(oc.type && oc.name && oc.address && oc.email));
+
+        if (validContacts.length > 0) {
+          item.operatorContacts = validContacts;
+        }
+      }
+
+      return item;
     });
 
     const url = `${this.baseUrl}/Products`;

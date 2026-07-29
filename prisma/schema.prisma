@@ -1041,6 +1041,7 @@ model CiceksepetiConfig {
   profitMargin Float?   @default(0) // Çiçeksepeti kâr marjı %
   isActive     Boolean  @default(false)
   isTestMode   Boolean  @default(true) // true = sandbox, false = production
+  operatorContacts Json? // Çiçeksepeti İktisadi İşletmeci Bilgileri [{ type, name, address, email }]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
