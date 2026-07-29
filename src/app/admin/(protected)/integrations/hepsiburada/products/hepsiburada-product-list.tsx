@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
 import { 
     Table, 
     TableBody, 
