@@ -224,13 +224,6 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku?.toLowerCase().includes(search.toLowerCase()) ||
-      p.brand?.name?.toLowerCase().includes(search.toLowerCase())
-  );
-
   const activeCount = products.filter((p) => p.isIdefixActive).length;
   const syncedCount = products.filter((p) => p.idefixProduct?.isSynced).length;
 

@@ -76,12 +76,6 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
     const [attrLoading, setAttrLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState<{ [key: string]: string }>({});
 
-    const filteredProducts = products.filter(p => 
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase()) ||
-        p.barcode?.toLowerCase().includes(search.toLowerCase())
-    );
-
     const handleOpenWizard = async (product: any) => {
         // Find N11 Category ID from product's categories
         const mappedCat = product.categories?.find((c: any) => c.n11CategoryId !== null);

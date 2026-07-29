@@ -133,7 +133,7 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
 
-    const filteredProducts = products.filter(p => 
+    const filteredProducts = pagination ? products : products.filter(p => 
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.sku?.toLowerCase().includes(search.toLowerCase()) ||
         p.barcode?.toLowerCase().includes(search.toLowerCase())
