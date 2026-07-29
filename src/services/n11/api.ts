@@ -174,10 +174,11 @@ export class N11Client {
 
     // --- Order Service ---
 
-    async getOrders(status: "Created" | "Picking" | "Shipped" | "Delivered" | "Cancelled" = "Created") {
+    async getOrders(status?: string) {
         try {
             // Updated to official endpoint: /rest/delivery/v1/shipmentPackages
-            const data = await this.callRest(`/rest/delivery/v1/shipmentPackages?status=${status}&size=100&orderByDirection=DESC`);
+            const statusParam = status ? `status=${status}&` : "";
+            const data = await this.callRest(`/rest/delivery/v1/shipmentPackages?${statusParam}size=100&orderByDirection=DESC`);
             return { success: true, ...data };
         } catch (error: any) {
             return { success: false, message: error.message };
