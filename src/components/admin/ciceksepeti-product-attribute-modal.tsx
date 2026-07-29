@@ -19,7 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search, ChevronDown, Check } from "lucide-react";
 import { getCiceksepetiCategoryAttributes, syncProductsToCiceksepeti } from "@/app/admin/(protected)/integrations/ciceksepeti/actions";
 import { toast } from "sonner";
 
@@ -42,7 +47,12 @@ function SearchableAttributeSelect({
   value: string;
   onChange: (val: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const selectedItem = (attr.attributeValues || []).find(
+    (v: any) => String(v.id) === String(value)
+  );
 
   const filteredValues = useMemo(() => {
     const vals = attr.attributeValues || [];
@@ -51,48 +61,70 @@ function SearchableAttributeSelect({
     return vals.filter((v: any) => v.name?.toLowerCase().includes(norm));
   }, [attr.attributeValues, searchTerm]);
 
-  const selectedItem = (attr.attributeValues || []).find(
-    (v: any) => String(v.id) === String(value)
-  );
-
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-full h-8 text-xs bg-white border-amber-200 focus:ring-rose-500">
-        <SelectValue placeholder={`${attr.name} seçiniz...`}>
-          {selectedItem ? selectedItem.name : `${attr.name} seçiniz...`}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent className="max-h-72 p-1">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full h-8 text-xs justify-between bg-white border-amber-200 text-left font-normal px-2.5 hover:bg-amber-50/50"
+        >
+          <span className="truncate">
+            {selectedItem ? selectedItem.name : `${attr.name} seçiniz...`}
+          </span>
+          <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50 text-amber-700" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] min-w-[240px] p-1.5 shadow-xl border border-amber-200 bg-white z-[99999]"
+        align="start"
+        sideOffset={4}
+      >
         {attr.attributeValues?.length > 5 && (
-          <div className="p-1.5 sticky top-0 bg-white z-20 border-b shadow-sm mb-1">
-            <div className="relative">
-              <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder={`${attr.name} içinde ara...`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-7 text-xs pl-7 bg-muted/30"
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              />
-            </div>
+          <div className="relative mb-1.5">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder={`${attr.name} içinde ara...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-7 text-xs pl-8 bg-slate-50 border-slate-200 focus:bg-white"
+              autoFocus
+            />
           </div>
         )}
-        <div className="max-h-56 overflow-y-auto">
+        <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5">
           {filteredValues.length === 0 ? (
             <div className="p-3 text-center text-xs text-muted-foreground">
               "{searchTerm}" ile eşleşen seçenek bulunamadı.
             </div>
           ) : (
-            filteredValues.slice(0, 300).map((v: any) => (
-              <SelectItem key={v.id} value={String(v.id)} className="text-xs cursor-pointer py-1.5">
-                {v.name}
-              </SelectItem>
-            ))
+            filteredValues.slice(0, 300).map((v: any) => {
+              const isSelected = String(v.id) === String(value);
+              return (
+                <div
+                  key={v.id}
+                  onClick={() => {
+                    onChange(String(v.id));
+                    setOpen(false);
+                    setSearchTerm("");
+                  }}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded text-xs cursor-pointer transition-colors ${
+                    isSelected
+                      ? "bg-rose-50 text-rose-700 font-semibold"
+                      : "hover:bg-amber-50 text-slate-700"
+                  }`}
+                >
+                  <span className="truncate">{v.name}</span>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-rose-600 flex-shrink-0 ml-1" />}
+                </div>
+              );
+            })
           )}
         </div>
-      </SelectContent>
-    </Select>
+      </PopoverContent>
+    </Popover>
   );
 }
 
