@@ -123,7 +123,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             </div>
 
             <ProductsTable
-                key={`${page}-${search}-${brand}-${store}`}
+                key={`${page}-${search}-${brandFilter}-${stockStatus}`}
                 products={serializedProducts}
                 brands={brands}
                 pagination={{
