@@ -237,7 +237,7 @@ async function processImportInBackground() {
         uniqueSlug = `${baseSlug}-${sku ? slugify(sku) : slugCounter++}`;
       }
 
-      await prisma.product.upsert({
+      const product = await prisma.product.upsert({
         where: { sku: sku },
         create: {
           name: rawName,
@@ -290,6 +290,24 @@ async function processImportInBackground() {
           isActive: true,
         },
       });
+
+      const hbSku = String(r["HB Sku"] || "").trim();
+      if (hbSku) {
+        await prisma.hepsiburadaProduct.upsert({
+          where: { productId: product.id },
+          create: {
+            productId: product.id,
+            hbSku: hbSku,
+            merchantSku: sku || barcode,
+            isSynced: true,
+          },
+          update: {
+            hbSku: hbSku,
+            merchantSku: sku || barcode,
+            isSynced: true,
+          },
+        });
+      }
 
       globalStatus.importedCount++;
     }

@@ -257,10 +257,26 @@ async function runImport() {
         stock: stock,
         desi: desi > 0 ? desi : undefined,
         images: images.length > 0 ? images : undefined,
-        store: "MOTOR",
-        isActive: true,
       },
     });
+
+    const hbSku = String(r["HB Sku"] || "").trim();
+    if (hbSku) {
+      await prisma.hepsiburadaProduct.upsert({
+        where: { productId: product.id },
+        create: {
+          productId: product.id,
+          hbSku: hbSku,
+          merchantSku: sku || barcode,
+          isSynced: true,
+        },
+        update: {
+          hbSku: hbSku,
+          merchantSku: sku || barcode,
+          isSynced: true,
+        },
+      });
+    }
 
     importedCount++;
     if (importedCount % 500 === 0) {
