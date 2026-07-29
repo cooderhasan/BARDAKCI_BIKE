@@ -117,9 +117,15 @@ function DynamicAttributeField({ attr, categoryId, onChange, product }: { attr: 
 
 interface HepsiburadaProductListProps {
     initialProducts: any[];
+    pagination?: {
+        currentPage: number;
+        totalPages: number;
+        totalCount: number;
+        limit: number;
+    };
 }
 
-export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductListProps) {
+export function HepsiburadaProductList({ initialProducts, pagination }: HepsiburadaProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
