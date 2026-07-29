@@ -34,12 +34,19 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
 
 interface TrendyolProductListProps {
     initialProducts: any[];
+    pagination?: {
+        currentPage: number;
+        totalPages: number;
+        totalCount: number;
+        limit: number;
+    };
 }
 
-export function TrendyolProductList({ initialProducts }: TrendyolProductListProps) {
+export function TrendyolProductList({ initialProducts, pagination }: TrendyolProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
@@ -148,7 +155,7 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
         }
     };
 
-    const filteredProducts = products.filter(p => 
+    const filteredProducts = pagination ? products : products.filter(p => 
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.sku?.toLowerCase().includes(search.toLowerCase()) ||
         p.barcode?.toLowerCase().includes(search.toLowerCase())
@@ -156,17 +163,28 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
 
     return (
         <div className="space-y-4">
+            {pagination ? (
+                <MarketplacePagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalCount={pagination.totalCount}
+                    limit={pagination.limit}
+                />
+            ) : null}
+
             <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Ürün adı, barkod veya SKU ara..." 
-                        className="pl-10 border-none bg-gray-50 dark:bg-gray-800/50 focus-visible:ring-orange-500"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-                <div className="flex items-center gap-3">
+                {!pagination && (
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Ürün adı, barkod veya SKU ara..." 
+                            className="pl-10 border-none bg-gray-50 dark:bg-gray-800/50 focus-visible:ring-orange-500"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                )}
+                <div className="flex items-center gap-3 ml-auto">
                     <Button 
                         onClick={handleBulkSync} 
                         disabled={syncing}
@@ -178,9 +196,15 @@ export function TrendyolProductList({ initialProducts }: TrendyolProductListProp
                         <span className="sm:hidden">Toplu Güncelle</span>
                     </Button>
 
-                    <Badge variant="outline" className="h-10 px-4 rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400 border-orange-100 dark:border-orange-900 font-bold">
-                        {initialProducts.length} ÜRÜN
-                    </Badge>
+                    {pagination ? (
+                        <Badge variant="outline" className="h-10 px-4 rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400 border-orange-100 dark:border-orange-900 font-bold">
+                            TOPLAM {pagination.totalCount.toLocaleString("tr-TR")} ÜRÜN
+                        </Badge>
+                    ) : (
+                        <Badge variant="outline" className="h-10 px-4 rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400 border-orange-100 dark:border-orange-900 font-bold">
+                            {initialProducts.length} ÜRÜN
+                        </Badge>
+                    )}
                 </div>
             </div>
 

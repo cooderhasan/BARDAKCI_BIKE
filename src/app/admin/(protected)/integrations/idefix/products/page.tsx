@@ -1,17 +1,52 @@
-
 import { prisma } from "@/lib/db";
 import { IdefixProductList } from "./idefix-product-list";
 
-export default async function IdefixProductsPage() {
-  const products = await prisma.product.findMany({
-    include: {
-      brand: true,
-      categories: true,
-      idefixProduct: true,
-      variants: true,
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+interface IdefixProductsPageProps {
+  searchParams: Promise<{
+    page?: string;
+    search?: string;
+    store?: string;
+  }>;
+}
+
+export default async function IdefixProductsPage({ searchParams }: IdefixProductsPageProps) {
+  const params = await searchParams;
+  const page = Math.max(Number(params.page) || 1, 1);
+  const limit = 50;
+  const skip = (page - 1) * limit;
+
+  const search = params.search || "";
+  const store = params.store || "ALL";
+
+  const where: any = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { sku: { contains: search, mode: "insensitive" } },
+      { barcode: { contains: search, mode: "insensitive" } },
+    ];
+  }
+  if (store && store !== "ALL") {
+    where.store = store;
+  }
+
+  const [products, totalCount] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        brand: true,
+        categories: true,
+        idefixProduct: true,
+        variants: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / limit);
 
   return (
     <div className="p-6 space-y-6">
@@ -27,7 +62,15 @@ export default async function IdefixProductsPage() {
         </p>
       </div>
 
-      <IdefixProductList initialProducts={JSON.parse(JSON.stringify(products))} />
+      <IdefixProductList
+        initialProducts={JSON.parse(JSON.stringify(products))}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalCount,
+          limit,
+        }}
+      />
     </div>
   );
 }

@@ -45,11 +45,19 @@ interface Product {
   brand?: { name: string } | null;
 }
 
+import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
+
 interface PazaramaProductListProps {
   initialProducts: Product[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+  };
 }
 
-export function PazaramaProductList({ initialProducts }: PazaramaProductListProps) {
+export function PazaramaProductList({ initialProducts, pagination }: PazaramaProductListProps) {
   const [products, setProducts] = useState(initialProducts);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -183,6 +191,15 @@ export function PazaramaProductList({ initialProducts }: PazaramaProductListProp
 
   return (
     <div className="space-y-6">
+      {pagination ? (
+        <MarketplacePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={pagination.limit}
+        />
+      ) : null}
+
       <Card className="border-pink-200/60 dark:border-pink-900/40">
         <CardHeader className="bg-pink-50/40 dark:bg-pink-950/20 pb-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

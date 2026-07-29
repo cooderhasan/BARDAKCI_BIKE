@@ -45,15 +45,29 @@ import {
 import { Check, ChevronsUpDown, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
+
 interface N11ProductListProps {
     initialProducts: any[];
+    pagination?: {
+        currentPage: number;
+        totalPages: number;
+        totalCount: number;
+        limit: number;
+    };
 }
 
-export function N11ProductList({ initialProducts }: N11ProductListProps) {
+export function N11ProductList({ initialProducts, pagination }: N11ProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
+
+    const filteredProducts = pagination ? products : products.filter(p => 
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.sku?.toLowerCase().includes(search.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(search.toLowerCase())
+    );
     
     const [showAttrModal, setShowAttrModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -195,32 +209,36 @@ export function N11ProductList({ initialProducts }: N11ProductListProps) {
             </TabsList>
 
             <TabsContent value="products" className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="N11 ürünlerini ara..." 
-                            className="pl-10 border-none bg-gray-50 dark:bg-gray-800/50 focus-visible:ring-purple-500"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button 
-                            onClick={handleBulkSync} 
-                            disabled={syncing}
-                            variant="outline"
-                            className="border-purple-200 text-purple-600 hover:bg-purple-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
-                        >
-                            {syncing ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
-                            <span className="hidden sm:inline">Tümünü Kuyrukta Güncelle</span>
-                            <span className="sm:hidden">Toplu Güncelle</span>
-                        </Button>
+                {pagination ? (
+                    <MarketplacePagination
+                        currentPage={pagination.currentPage}
+                        totalPages={pagination.totalPages}
+                        totalCount={pagination.totalCount}
+                        limit={pagination.limit}
+                    />
+                ) : null}
 
+                <div className="flex justify-end gap-3">
+                    <Button 
+                        onClick={handleBulkSync} 
+                        disabled={syncing}
+                        variant="outline"
+                        className="border-purple-200 text-purple-600 hover:bg-purple-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"
+                    >
+                        {syncing ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
+                        <span className="hidden sm:inline">Tümünü Kuyrukta Güncelle</span>
+                        <span className="sm:hidden">Toplu Güncelle</span>
+                    </Button>
+
+                    {pagination ? (
+                        <Badge variant="outline" className="h-10 px-4 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/20 dark:text-purple-400 border-purple-100 dark:border-purple-900 font-bold">
+                            TOPLAM {pagination.totalCount.toLocaleString("tr-TR")} ÜRÜN
+                        </Badge>
+                    ) : (
                         <Badge variant="outline" className="h-10 px-4 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/20 dark:text-purple-400 border-purple-100 dark:border-purple-900 font-bold">
                             {initialProducts.length} ÜRÜN
                         </Badge>
-                    </div>
+                    )}
                 </div>
 
             <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">

@@ -485,33 +485,64 @@ export async function syncOrdersFromPttavm() {
 
 // ==================== ÜRÜN LİSTELEME VE TOGGLE ====================
 
-export async function getPttavmProducts() {
+export async function getPttavmProducts({
+  page = 1,
+  limit = 50,
+  search = "",
+  store = "ALL",
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  store?: string;
+} = {}) {
   try {
-    const products = await prisma.product.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        sku: true,
-        barcode: true,
-        listPrice: true,
-        salePrice: true,
-        pttavmPrice: true,
-        stock: true,
-        images: true,
-        isPttavmActive: true,
-        pttavmProduct: true,
-        brand: {
-          select: { name: true },
-        },
-        categories: {
-          select: {
-            pttavmCategoryId: true,
+    const skip = (page - 1) * limit;
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+        { barcode: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    if (store && store !== "ALL") {
+      where.store = store;
+    }
+
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          sku: true,
+          barcode: true,
+          listPrice: true,
+          salePrice: true,
+          pttavmPrice: true,
+          stock: true,
+          images: true,
+          isPttavmActive: true,
+          pttavmProduct: true,
+          brand: {
+            select: { name: true },
+          },
+          categories: {
+            select: {
+              pttavmCategoryId: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
 
     return {
       success: true,
@@ -524,9 +555,15 @@ export async function getPttavmProducts() {
         pttavmStatus: p.pttavmProduct?.batchStatus || (p.isPttavmActive ? "ACTIVE" : "INACTIVE"),
         trackingId: p.pttavmProduct?.trackingId || null,
       })),
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
+      },
     };
   } catch (error) {
-    return { success: false, error: "ePttAVM ürünleri çekilemedi." };
+    return { success: false, error: "Ürünler çekilemedi." };
   }
 }
 

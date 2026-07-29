@@ -462,21 +462,60 @@ export async function syncProductsToCiceksepeti(
   }
 }
 
-export async function getCiceksepetiProducts() {
+export async function getCiceksepetiProducts({
+  page = 1,
+  limit = 50,
+  search = "",
+  store = "ALL",
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  store?: string;
+} = {}) {
   try {
-    const products = await prisma.product.findMany({
-      where: { isCiceksepetiActive: true },
-      include: {
-        ciceksepetiProduct: true,
-        category: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
-        categories: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
+    const skip = (page - 1) * limit;
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+        { barcode: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    if (store && store !== "ALL") {
+      where.store = store;
+    }
+
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          ciceksepetiProduct: true,
+          category: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
+          categories: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return {
+      products: JSON.parse(JSON.stringify(products)),
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
       },
-      orderBy: { updatedAt: "desc" },
-    });
-    return products;
+    };
   } catch (error) {
     console.error("getCiceksepetiProducts error:", error);
-    return [];
+    return { products: [], pagination: { currentPage: 1, totalPages: 0, totalCount: 0, limit: 50 } };
   }
 }
 

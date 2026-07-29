@@ -42,17 +42,32 @@ import {
   checkIdefixBatchStatus,
 } from "../actions";
 
+import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
+
 interface IdefixProductListProps {
   initialProducts: any[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+  };
 }
 
-export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
+export function IdefixProductList({ initialProducts, pagination }: IdefixProductListProps) {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState(initialProducts);
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
   const [checkingBatchId, setCheckingBatchId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
+
+  const filteredProducts = pagination ? products : products.filter(
+    (p) =>
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(search.toLowerCase()) ||
+      p.brand?.name?.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleCheckBatchStatus = async (productId: string) => {
     setCheckingBatchId(productId);
@@ -275,11 +290,20 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
 
   return (
     <div className="space-y-4">
+      {pagination ? (
+        <MarketplacePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={pagination.limit}
+        />
+      ) : null}
+
       {/* Ozet */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border bg-card p-4">
           <p className="text-sm text-muted-foreground">Toplam Urun</p>
-          <p className="text-2xl font-bold">{products.length}</p>
+          <p className="text-2xl font-bold">{pagination ? pagination.totalCount.toLocaleString("tr-TR") : products.length}</p>
         </div>
         <div className="rounded-lg border bg-purple-50 p-4">
           <p className="text-sm text-purple-600">Idefix Aktif</p>
@@ -291,21 +315,12 @@ export function IdefixProductList({ initialProducts }: IdefixProductListProps) {
         </div>
       </div>
 
-      {/* Arama ve Toplu Sync */}
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Urun adi, SKU veya marka ile ara..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      {/* Toplu Sync */}
+      <div className="flex justify-end gap-3">
         <Button
           onClick={handleBulkSync}
           disabled={syncing}
-          className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
+          className="bg-purple-600 hover:bg-purple-700 text-white gap-2 ml-auto"
         >
           {syncing ? (
             <>

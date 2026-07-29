@@ -236,6 +236,15 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
 
     return (
         <div className="space-y-4">
+            {pagination ? (
+                <MarketplacePagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalCount={pagination.totalCount}
+                    limit={pagination.limit}
+                />
+            ) : null}
+
             <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -258,9 +267,16 @@ export function HepsiburadaProductList({ initialProducts }: HepsiburadaProductLi
                         <span className="sm:hidden">Toplu Güncelle</span>
                     </Button>
 
-                    <Badge variant="outline" className="h-10 px-4 rounded-xl bg-blue-50 text-[#17457C] dark:bg-blue-950/20 dark:text-[#17457C] border-blue-100 dark:border-blue-900 font-bold">
-                        {initialProducts.length} ÜRÜN
-                    </Badge>
+                    {!pagination && (
+                        <Badge variant="outline" className="h-10 px-4 rounded-xl bg-blue-50 text-[#17457C] dark:bg-blue-950/20 dark:text-[#17457C] border-blue-100 dark:border-blue-900 font-bold">
+                            {initialProducts.length} ÜRÜN
+                        </Badge>
+                    )}
+                    {pagination && (
+                        <Badge variant="outline" className="h-10 px-4 rounded-xl bg-blue-50 text-[#17457C] dark:bg-blue-950/20 dark:text-[#17457C] border-blue-100 dark:border-blue-900 font-bold">
+                            TOPLAM {pagination.totalCount.toLocaleString("tr-TR")} ÜRÜN
+                        </Badge>
+                    )}
                 </div>
             </div>
 

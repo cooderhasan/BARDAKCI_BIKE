@@ -41,18 +41,26 @@ interface Product {
   brand?: { name: string } | null;
 }
 
+import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
+
 interface PttavmProductListProps {
   initialProducts: Product[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+  };
 }
 
-export function PttavmProductList({ initialProducts }: PttavmProductListProps) {
+export function PttavmProductList({ initialProducts, pagination }: PttavmProductListProps) {
   const [products, setProducts] = useState(initialProducts);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");
   const [isPending, startTransition] = useTransition();
 
-  const filteredProducts = products.filter((p) => {
+  const filteredProducts = pagination ? products : products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -135,6 +143,15 @@ export function PttavmProductList({ initialProducts }: PttavmProductListProps) {
 
   return (
     <div className="space-y-6">
+      {pagination ? (
+        <MarketplacePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={pagination.limit}
+        />
+      ) : null}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm">
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-72">

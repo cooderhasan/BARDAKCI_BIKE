@@ -4,8 +4,21 @@ import { ArrowLeft, Box } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default async function PttavmProductsPage() {
-  const { data: products } = await getPttavmProducts();
+interface PttavmProductsPageProps {
+  searchParams: Promise<{
+    page?: string;
+    search?: string;
+    store?: string;
+  }>;
+}
+
+export default async function PttavmProductsPage({ searchParams }: PttavmProductsPageProps) {
+  const params = await searchParams;
+  const page = Math.max(Number(params.page) || 1, 1);
+  const search = params.search || "";
+  const store = params.store || "ALL";
+
+  const res = await getPttavmProducts({ page, limit: 50, search, store });
 
   return (
     <div className="space-y-6">
@@ -28,7 +41,7 @@ export default async function PttavmProductsPage() {
         </div>
       </div>
 
-      <PttavmProductList initialProducts={products || []} />
+      <PttavmProductList initialProducts={res.data || []} pagination={res.pagination} />
     </div>
   );
 }

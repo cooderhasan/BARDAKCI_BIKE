@@ -19,11 +19,19 @@ import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, T
 import Image from "next/image";
 import { CiceksepetiProductAttributeModal } from "@/components/admin/ciceksepeti-product-attribute-modal";
 
+import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
+
 interface Props {
   initialProducts: any[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+  };
 }
 
-export function CiceksepetiProductList({ initialProducts }: Props) {
+export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
   const [products, setProducts] = useState(initialProducts);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,7 +44,7 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
   const [selectedModalProduct, setSelectedModalProduct] = useState<any | null>(null);
   const catInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredProducts = products.filter((p) => {
+  const filteredProducts = pagination ? products : products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -141,6 +149,15 @@ export function CiceksepetiProductList({ initialProducts }: Props) {
 
   return (
     <div className="space-y-4">
+      {pagination ? (
+        <MarketplacePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalCount}
+          limit={pagination.limit}
+        />
+      ) : null}
+
       {/* Top Filter and Action Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-4 rounded-xl border">
         <div className="flex flex-1 items-center gap-2 w-full sm:w-auto">

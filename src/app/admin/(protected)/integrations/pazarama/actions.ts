@@ -426,34 +426,65 @@ export async function syncPazaramaCategoriesAndBrandsFromApi() {
 
 // ==================== PRODUCT ACTIONS ====================
 
-export async function getPazaramaProducts() {
+export async function getPazaramaProducts({
+  page = 1,
+  limit = 50,
+  search = "",
+  store = "ALL",
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  store?: string;
+} = {}) {
   try {
-    const products = await prisma.product.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        sku: true,
-        barcode: true,
-        listPrice: true,
-        salePrice: true,
-        pazaramaPrice: true,
-        stock: true,
-        images: true,
-        isPazaramaActive: true,
-        pazaramaStatus: true,
-        pazaramaBatchId: true,
-        brand: {
-          select: { name: true },
-        },
-        categories: {
-          select: {
-            pazaramaCategoryId: true,
+    const skip = (page - 1) * limit;
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+        { barcode: { contains: search, mode: "insensitive" } },
+      ];
+    }
+    if (store && store !== "ALL") {
+      where.store = store;
+    }
+
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          sku: true,
+          barcode: true,
+          listPrice: true,
+          salePrice: true,
+          pazaramaPrice: true,
+          stock: true,
+          images: true,
+          isPazaramaActive: true,
+          pazaramaStatus: true,
+          pazaramaBatchId: true,
+          brand: {
+            select: { name: true },
+          },
+          categories: {
+            select: {
+              pazaramaCategoryId: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limit);
 
     return {
       success: true,
@@ -464,6 +495,12 @@ export async function getPazaramaProducts() {
         pazaramaPrice: p.pazaramaPrice ? Number(p.pazaramaPrice) : null,
         pazaramaCategoryId: p.categories.find((c) => c.pazaramaCategoryId)?.pazaramaCategoryId || null,
       })),
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
+      },
     };
   } catch (error) {
     return { success: false, error: "Ürünler çekilemedi." };
