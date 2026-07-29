@@ -222,42 +222,70 @@ export class CiceksepetiClient {
     await this.loadConfig();
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr";
 
-    const formattedProducts = products.map((p) => ({
-      productName: p.productName,
-      mainProductCode: p.productCode || p.stockCode,
-      stockCode: p.stockCode,
-      categoryId: Number(p.subCategoryId || p.mainCategoryId) || 0,
-      description: p.description,
-      deliveryType: Number(p.deliveryType || 2),
-      deliveryMessageType: Number(p.deliveryMessageType || p.deliveryDays || 5),
-      listPrice: Number(p.listPrice),
-      salesPrice: Number(p.salesPrice),
-      stockQuantity: Number(p.stockQuantity),
-      barcode: p.barcode,
-      images: p.images.map((img) => {
-        let rawUrl = typeof img === "string" ? img : (img as any)?.url || "";
-        if (rawUrl && !rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
-          if (!rawUrl.startsWith("/")) {
-            rawUrl = `/${rawUrl}`;
-          }
-          rawUrl = `${siteUrl}${rawUrl}`;
-        }
-        return rawUrl;
-      }),
-      attributes: (p.attributes || [])
+    const formattedProducts = products.map((p) => {
+      const formattedAttrs = (p.attributes || [])
         .map((attr: any) => {
+          const attrId = Number(attr.attributeId || attr.Id || attr.id);
+          const valId = (attr.attributeValueId !== undefined && attr.attributeValueId !== null && attr.attributeValueId !== "")
+            ? Number(attr.attributeValueId || attr.ValueId || attr.valueId)
+            : undefined;
+
+          if (!attrId) return null;
+
           const item: any = {
-            attributeId: Number(attr.attributeId),
+            Id: attrId,
+            id: attrId,
+            attributeId: attrId,
+            TextLength: Number(attr.textLength || attr.TextLength || 0),
+            textLength: Number(attr.textLength || attr.TextLength || 0),
           };
-          if (attr.attributeValueId !== undefined && attr.attributeValueId !== null && attr.attributeValueId !== "") {
-            item.attributeValueId = Number(attr.attributeValueId);
+
+          if (valId !== undefined && !isNaN(valId)) {
+            item.ValueId = valId;
+            item.valueId = valId;
+            item.attributeValueId = valId;
           } else if (attr.customAttributeValue) {
             item.customAttributeValue = String(attr.customAttributeValue);
           }
+
           return item;
         })
-        .filter((attr: any) => Boolean(attr.attributeId) && (Boolean(attr.attributeValueId) || Boolean(attr.customAttributeValue))),
-    }));
+        .filter((attr: any) => Boolean(attr));
+
+      const rawDesc = p.description || p.productName || "";
+      const cleanDesc = rawDesc.length >= 30 
+        ? rawDesc 
+        : `${rawDesc} - Orijinal ve kaliteli yedek parça & aksesuar. Bardakçı Bike & Motovitrin güvencesiyle hızlı kargo.`;
+
+      return {
+        productName: p.productName,
+        mainProductCode: p.productCode || p.stockCode,
+        stockCode: p.stockCode,
+        categoryId: Number(p.subCategoryId || p.mainCategoryId) || 0,
+        description: cleanDesc,
+        supplierDescription: "",
+        mediaLink: "",
+        deliveryType: Number(p.deliveryType || 2), // 2: Kargo İle Gönderim
+        deliveryMessageType: Number(p.deliveryMessageType || p.deliveryDays || 5), // 5: Hediye Kargo 1-3 İş Günü
+        stockQuantity: Number(p.stockQuantity),
+        salesPrice: Number(p.salesPrice),
+        listPrice: Number(p.listPrice),
+        barcode: p.barcode || p.stockCode,
+        isActive: true,
+        images: p.images.map((img) => {
+          let rawUrl = typeof img === "string" ? img : (img as any)?.url || "";
+          if (rawUrl && !rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
+            if (!rawUrl.startsWith("/")) {
+              rawUrl = `/${rawUrl}`;
+            }
+            rawUrl = `${siteUrl}${rawUrl}`;
+          }
+          return rawUrl;
+        }),
+        Attributes: formattedAttrs,
+        attributes: formattedAttrs,
+      };
+    });
 
     const url = `${this.baseUrl}/Products`;
     const headers = this.getHeaders();
@@ -321,42 +349,70 @@ export class CiceksepetiClient {
     await this.loadConfig();
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://bardakcibike.com.tr";
 
-    const formattedProducts = products.map((p) => ({
-      productName: p.productName,
-      mainProductCode: p.productCode || p.stockCode,
-      stockCode: p.stockCode,
-      categoryId: Number(p.subCategoryId || p.mainCategoryId) || 0,
-      description: p.description,
-      deliveryType: Number(p.deliveryType || 2),
-      deliveryMessageType: Number(p.deliveryMessageType || p.deliveryDays || 5),
-      listPrice: Number(p.listPrice),
-      salesPrice: Number(p.salesPrice),
-      stockQuantity: Number(p.stockQuantity),
-      barcode: p.barcode,
-      images: p.images.map((img) => {
-        let rawUrl = typeof img === "string" ? img : (img as any)?.url || "";
-        if (rawUrl && !rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
-          if (!rawUrl.startsWith("/")) {
-            rawUrl = `/${rawUrl}`;
-          }
-          rawUrl = `${siteUrl}${rawUrl}`;
-        }
-        return rawUrl;
-      }),
-      attributes: (p.attributes || [])
+    const formattedProducts = products.map((p) => {
+      const formattedAttrs = (p.attributes || [])
         .map((attr: any) => {
+          const attrId = Number(attr.attributeId || attr.Id || attr.id);
+          const valId = (attr.attributeValueId !== undefined && attr.attributeValueId !== null && attr.attributeValueId !== "")
+            ? Number(attr.attributeValueId || attr.ValueId || attr.valueId)
+            : undefined;
+
+          if (!attrId) return null;
+
           const item: any = {
-            attributeId: Number(attr.attributeId),
+            Id: attrId,
+            id: attrId,
+            attributeId: attrId,
+            TextLength: Number(attr.textLength || attr.TextLength || 0),
+            textLength: Number(attr.textLength || attr.TextLength || 0),
           };
-          if (attr.attributeValueId !== undefined && attr.attributeValueId !== null && attr.attributeValueId !== "") {
-            item.attributeValueId = Number(attr.attributeValueId);
+
+          if (valId !== undefined && !isNaN(valId)) {
+            item.ValueId = valId;
+            item.valueId = valId;
+            item.attributeValueId = valId;
           } else if (attr.customAttributeValue) {
             item.customAttributeValue = String(attr.customAttributeValue);
           }
+
           return item;
         })
-        .filter((attr: any) => Boolean(attr.attributeId) && (Boolean(attr.attributeValueId) || Boolean(attr.customAttributeValue))),
-    }));
+        .filter((attr: any) => Boolean(attr));
+
+      const rawDesc = p.description || p.productName || "";
+      const cleanDesc = rawDesc.length >= 30 
+        ? rawDesc 
+        : `${rawDesc} - Orijinal ve kaliteli yedek parça & aksesuar. Bardakçı Bike & Motovitrin güvencesiyle hızlı kargo.`;
+
+      return {
+        productName: p.productName,
+        mainProductCode: p.productCode || p.stockCode,
+        stockCode: p.stockCode,
+        categoryId: Number(p.subCategoryId || p.mainCategoryId) || 0,
+        description: cleanDesc,
+        supplierDescription: "",
+        mediaLink: "",
+        deliveryType: Number(p.deliveryType || 2), // 2: Kargo İle Gönderim
+        deliveryMessageType: Number(p.deliveryMessageType || p.deliveryDays || 5), // 5: Hediye Kargo 1-3 İş Günü
+        stockQuantity: Number(p.stockQuantity),
+        salesPrice: Number(p.salesPrice),
+        listPrice: Number(p.listPrice),
+        barcode: p.barcode || p.stockCode,
+        isActive: true,
+        images: p.images.map((img) => {
+          let rawUrl = typeof img === "string" ? img : (img as any)?.url || "";
+          if (rawUrl && !rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
+            if (!rawUrl.startsWith("/")) {
+              rawUrl = `/${rawUrl}`;
+            }
+            rawUrl = `${siteUrl}${rawUrl}`;
+          }
+          return rawUrl;
+        }),
+        Attributes: formattedAttrs,
+        attributes: formattedAttrs,
+      };
+    });
 
     const url = `${this.baseUrl}/Products`;
     const headers = this.getHeaders();

@@ -77,14 +77,20 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
     );
   };
 
-  async function handleSyncSelected(syncType: "all" | "prices") {
+  async function handleSyncSelected(syncType: "all" | "prices" | "update") {
     if (selectedIds.length === 0) {
       toast.warning("Lütfen işlem yapılacak ürünleri seçin.");
       return;
     }
 
     setLoading(true);
-    toast.info(`${selectedIds.length} ürün Çiçeksepeti'ye aktarılıyor...`);
+    const actionText = syncType === "prices" 
+      ? "Fiyat/Stok" 
+      : syncType === "update" 
+      ? "Ürün Bilgileri Güncelleme (PUT / Onaya Gönder)" 
+      : "Ürün Kayıt & Onay Talebi (POST + PUT)";
+
+    toast.info(`${selectedIds.length} ürün için Çiçeksepeti ${actionText} işlemi başlatılıyor...`);
 
     const res = await syncProductsToCiceksepeti(selectedIds, syncType);
     setLoading(false);
@@ -227,13 +233,25 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
           </Button>
 
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleSyncSelected("update")}
+            disabled={loading || selectedIds.length === 0}
+            className="border-amber-300 text-amber-800 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300"
+            title="Çiçeksepeti PUT /api/v1/Products servisini çağırarak ürün bilgilerini ve onay talebini tetikler."
+          >
+            <Edit3 className="mr-1.5 h-3.5 w-3.5" />
+            Bilgileri Güncelle & Onaya Gönder ({selectedIds.length})
+          </Button>
+
+          <Button
             size="sm"
             onClick={() => handleSyncSelected("all")}
             disabled={loading || selectedIds.length === 0}
             className="bg-rose-600 hover:bg-rose-700 text-white"
           >
             <Send className="mr-1.5 h-3.5 w-3.5" />
-            Seçilenleri Aktar ({selectedIds.length})
+            Seçilenleri Aktar & Onaya Gönder ({selectedIds.length})
           </Button>
         </div>
       </div>

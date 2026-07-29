@@ -396,7 +396,19 @@ export async function syncProductsToCiceksepeti(
         result = await client.updateProducts(productInputs);
       } else {
         try {
+          // POST: Çiçeksepeti taslak ürün kaydı oluştur
           result = await client.createOrUpdateProducts(productInputs);
+
+          // Çiçeksepeti Onay Süreci: Ürünün Onay Bekleyenler aşamasına geçmesi için PUT (Ürün Bilgilerini Güncelleme Metodu) çağrılır
+          try {
+            await new Promise((r) => setTimeout(r, 1200));
+            const updateRes = await client.updateProducts(productInputs);
+            if (updateRes.batchId) {
+              result.batchId = `${result.batchId} (Onay Talebi: ${updateRes.batchId})`;
+            }
+          } catch (updateErr: any) {
+            console.warn("[CS-SYNC] Sequential PUT update notice:", updateErr.message);
+          }
         } catch (e: any) {
           console.warn("[CS-SYNC] POST create failed, trying PUT update:", e.message);
           result = await client.updateProducts(productInputs);
