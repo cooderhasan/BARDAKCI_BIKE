@@ -55,6 +55,10 @@ interface PttavmProductListProps {
 
 export function PttavmProductList({ initialProducts, pagination }: PttavmProductListProps) {
   const [products, setProducts] = useState(initialProducts);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");

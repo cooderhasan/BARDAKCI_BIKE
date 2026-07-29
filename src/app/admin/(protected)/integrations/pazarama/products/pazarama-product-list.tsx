@@ -59,6 +59,10 @@ interface PazaramaProductListProps {
 
 export function PazaramaProductList({ initialProducts, pagination }: PazaramaProductListProps) {
   const [products, setProducts] = useState(initialProducts);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");

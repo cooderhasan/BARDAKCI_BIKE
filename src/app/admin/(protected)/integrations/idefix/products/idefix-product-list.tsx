@@ -57,6 +57,10 @@ interface IdefixProductListProps {
 export function IdefixProductList({ initialProducts, pagination }: IdefixProductListProps) {
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState(initialProducts);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
   const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
   const [checkingBatchId, setCheckingBatchId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);

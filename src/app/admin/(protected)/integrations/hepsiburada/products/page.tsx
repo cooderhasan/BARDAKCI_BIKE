@@ -63,6 +63,7 @@ export default async function HepsiburadaProductsPage({ searchParams }: Hepsibur
       </div>
 
       <HepsiburadaProductList
+        key={`${page}-${search}-${store}`}
         initialProducts={JSON.parse(JSON.stringify(products))}
         pagination={{
           currentPage: page,

@@ -109,6 +109,10 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
     const [featureFilter, setFeatureFilter] = useState(searchParams.get("feature") || "ALL");
 
     const [products, setProducts] = useState(initialProducts);
+
+    useEffect(() => {
+        setProducts(initialProducts);
+    }, [initialProducts]);
     const [loading, setLoading] = useState<string | null>(null);
     const [loadingFeature, setLoadingFeature] = useState<string | null>(null);
     const [hbSyncing, setHbSyncing] = useState<string | null>(null);

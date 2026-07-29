@@ -60,6 +60,10 @@ interface N11ProductListProps {
 export function N11ProductList({ initialProducts, pagination }: N11ProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
+
+    useEffect(() => {
+        setProducts(initialProducts);
+    }, [initialProducts]);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
 

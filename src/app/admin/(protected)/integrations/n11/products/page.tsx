@@ -63,6 +63,7 @@ export default async function N11ProductsPage({ searchParams }: N11ProductsPageP
       </div>
 
       <N11ProductList
+        key={`${page}-${search}-${store}`}
         initialProducts={JSON.parse(JSON.stringify(products))}
         pagination={{
           currentPage: page,

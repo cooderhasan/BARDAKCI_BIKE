@@ -63,6 +63,7 @@ export default async function IdefixProductsPage({ searchParams }: IdefixProduct
       </div>
 
       <IdefixProductList
+        key={`${page}-${search}-${store}`}
         initialProducts={JSON.parse(JSON.stringify(products))}
         pagination={{
           currentPage: page,

@@ -129,6 +129,10 @@ interface HepsiburadaProductListProps {
 export function HepsiburadaProductList({ initialProducts, pagination }: HepsiburadaProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
+
+    useEffect(() => {
+        setProducts(initialProducts);
+    }, [initialProducts]);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
     

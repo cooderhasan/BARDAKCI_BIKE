@@ -33,6 +33,10 @@ interface Props {
 
 export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
   const [products, setProducts] = useState(initialProducts);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "SYNCED" | "ERROR" | "PENDING">("ALL");

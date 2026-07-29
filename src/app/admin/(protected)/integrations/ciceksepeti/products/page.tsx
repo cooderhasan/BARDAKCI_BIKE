@@ -41,7 +41,7 @@ export default async function CiceksepetiProductsPage({ searchParams }: Ciceksep
         </div>
       </div>
 
-      <CiceksepetiProductList initialProducts={products || []} pagination={pagination} />
+      <CiceksepetiProductList key={`${page}-${search}-${store}`} initialProducts={products || []} pagination={pagination} />
     </div>
   );
 }

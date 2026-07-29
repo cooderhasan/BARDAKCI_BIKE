@@ -41,7 +41,7 @@ export default async function PazaramaProductsPage({ searchParams }: PazaramaPro
         </div>
       </div>
 
-      <PazaramaProductList initialProducts={res.data || []} pagination={res.pagination} />
+      <PazaramaProductList key={`${page}-${search}-${store}`} initialProducts={res.data || []} pagination={res.pagination} />
     </div>
   );
 }

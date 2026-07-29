@@ -63,6 +63,7 @@ export default async function TrendyolProductsPage({ searchParams }: TrendyolPro
       </div>
 
       <TrendyolProductList
+        key={`${page}-${search}-${store}`}
         initialProducts={JSON.parse(JSON.stringify(products))}
         pagination={{
           currentPage: page,

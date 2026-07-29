@@ -49,6 +49,10 @@ interface TrendyolProductListProps {
 export function TrendyolProductList({ initialProducts, pagination }: TrendyolProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
+
+    useEffect(() => {
+        setProducts(initialProducts);
+    }, [initialProducts]);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
     

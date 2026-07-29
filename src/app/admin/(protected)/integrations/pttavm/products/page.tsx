@@ -41,7 +41,7 @@ export default async function PttavmProductsPage({ searchParams }: PttavmProduct
         </div>
       </div>
 
-      <PttavmProductList initialProducts={res.data || []} pagination={res.pagination} />
+      <PttavmProductList key={`${page}-${search}-${store}`} initialProducts={res.data || []} pagination={res.pagination} />
     </div>
   );
 }
