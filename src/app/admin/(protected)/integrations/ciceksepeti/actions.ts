@@ -567,10 +567,10 @@ export async function syncCiceksepetiOrders() {
   try {
     const client = new CiceksepetiClient();
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const orders = await client.getOrders({
-      startDate: thirtyDaysAgo.toISOString(),
+      startDate: sevenDaysAgo.toISOString(),
       endDate: now.toISOString(),
       pageSize: 100
     });

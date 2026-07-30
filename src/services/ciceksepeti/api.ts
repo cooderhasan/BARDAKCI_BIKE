@@ -613,10 +613,10 @@ export class CiceksepetiClient {
     const url = `${this.baseUrl}/Order/GetOrders`;
 
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const bodyPayload: any = {
-      startDate: params?.startDate || thirtyDaysAgo.toISOString(),
+      startDate: params?.startDate || sevenDaysAgo.toISOString(),
       endDate: params?.endDate || now.toISOString(),
       pageSize: params?.pageSize || 100,
       page: params?.page || 1,
