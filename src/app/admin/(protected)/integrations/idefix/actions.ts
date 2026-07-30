@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { IdefixClient } from "@/services/idefix/api";
+import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
 // ==================== CONFIG ====================
 
@@ -289,6 +290,9 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
       }
     }
 
+    const generalSettings = await getSiteSettings("general");
+    const defaultCritical = Number(generalSettings?.defaultCriticalStock || 1);
+
     let totalSynced = 0;
     let totalFailed = 0;
 
@@ -299,20 +303,27 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
         const rawListPrice = Number(p.listPrice);
         const comparePrice = rawListPrice >= price ? rawListPrice : price;
         const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+
+        const criticalStock = p.criticalStock ?? defaultCritical;
+        const availableStock = Math.max(0, (p.stock ?? 0) - criticalStock);
+
         if (validVariants.length > 0) {
-          return validVariants.map((v: any) => ({
-            barcode: v.barcode,
-            price,
-            comparePrice,
-            inventoryQuantity: v.stock ?? 0,
-          }));
+          return validVariants.map((v: any) => {
+            const varAvailableStock = Math.max(0, (v.stock ?? 0) - criticalStock);
+            return {
+              barcode: v.barcode,
+              price,
+              comparePrice,
+              inventoryQuantity: varAvailableStock,
+            };
+          });
         }
         if (p.barcode) {
           return [{
             barcode: p.barcode,
             price,
             comparePrice,
-            inventoryQuantity: p.stock ?? 0,
+            inventoryQuantity: availableStock,
           }];
         }
         return [];
@@ -344,15 +355,22 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
         const rawListPrice = Number(p.listPrice);
         const comparePrice = rawListPrice >= price ? rawListPrice : price;
         const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+
+        const criticalStock = p.criticalStock ?? defaultCritical;
+        const availableStock = Math.max(0, (p.stock ?? 0) - criticalStock);
+
         if (validVariants.length > 0) {
-          return validVariants.map((v: any) => ({
-            barcode: v.barcode,
-            title: p.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
-            vendorStockCode: v.sku || v.barcode,
-            price,
-            comparePrice,
-            inventoryQuantity: v.stock ?? 0,
-          }));
+          return validVariants.map((v: any) => {
+            const varAvailableStock = Math.max(0, (v.stock ?? 0) - criticalStock);
+            return {
+              barcode: v.barcode,
+              title: p.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
+              vendorStockCode: v.sku || v.barcode,
+              price,
+              comparePrice,
+              inventoryQuantity: varAvailableStock,
+            };
+          });
         }
         if (p.barcode) {
           return [{
@@ -361,7 +379,7 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
             vendorStockCode: p.sku || p.barcode,
             price,
             comparePrice,
-            inventoryQuantity: p.stock ?? 0,
+            inventoryQuantity: availableStock,
           }];
         }
         return [];
@@ -549,29 +567,37 @@ export async function createProductOnIdefix(productId: string, payload: {
 
     console.log("[IDEFIX-CREATE] mainBarcode:", mainBarcode, "validVariants count:", validVariants.length);
 
+    const generalSettings = await getSiteSettings("general");
+    const defaultCritical = Number(generalSettings?.defaultCriticalStock || 1);
+    const criticalStock = (product as any).criticalStock ?? defaultCritical;
+    const availableStock = Math.max(0, (product.stock ?? 0) - criticalStock);
+
     const productsPayload = validVariants.length > 0
-      ? validVariants.map((v: any) => ({
-          barcode: v.barcode || mainBarcode,
-          title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
-          productMainId: (product as any).sku || v.barcode || mainBarcode,
-          brandId: brandId,
-          categoryId: catId,
-          inventoryQuantity: v.stock ?? 0,
-          vendorStockCode: v.sku || v.barcode || mainBarcode,
-          desi: Number((product as any).desi ?? 0),
-          weight: Number((product as any).weight ?? 0),
-          description: (product as any).marketplaceDescription || (product as any).description || product.name,
-          price,
-          comparePrice,
-          vatRate: (product as any).vatRate ?? 20,
-          deliveryType: "regular",
-          cargoCompanyId,
-          shipmentAddressId,
-          returnAddressId,
-          manufacturer,
-          importer,
-          images: formattedImages,
-        }))
+      ? validVariants.map((v: any) => {
+          const varAvailableStock = Math.max(0, (v.stock ?? 0) - criticalStock);
+          return {
+            barcode: v.barcode || mainBarcode,
+            title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
+            productMainId: (product as any).sku || v.barcode || mainBarcode,
+            brandId: brandId,
+            categoryId: catId,
+            inventoryQuantity: varAvailableStock,
+            vendorStockCode: v.sku || v.barcode || mainBarcode,
+            desi: Number((product as any).desi ?? 0),
+            weight: Number((product as any).weight ?? 0),
+            description: (product as any).marketplaceDescription || (product as any).description || product.name,
+            price,
+            comparePrice,
+            vatRate: (product as any).vatRate ?? 20,
+            deliveryType: "regular",
+            cargoCompanyId,
+            shipmentAddressId,
+            returnAddressId,
+            manufacturer,
+            importer,
+            images: formattedImages,
+          };
+        })
       : mainBarcode
       ? [{
           barcode: mainBarcode,
@@ -579,7 +605,7 @@ export async function createProductOnIdefix(productId: string, payload: {
           productMainId: (product as any).sku || mainBarcode,
           brandId: brandId,
           categoryId: catId,
-          inventoryQuantity: product.stock ?? 0,
+          inventoryQuantity: availableStock,
           vendorStockCode: (product as any).sku || mainBarcode,
           desi: Number((product as any).desi ?? 0),
           weight: Number((product as any).weight ?? 0),

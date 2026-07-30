@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { CiceksepetiClient } from "@/services/ciceksepeti/api";
+import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
 export async function getCiceksepetiConfig() {
   try {
@@ -194,17 +195,21 @@ export async function syncProductsToCiceksepeti(
 
         // Çiçeksepeti kuralı: listPrice (piyasa/üretici fiyatı), salesPrice (satış fiyatı)'dan küçük olamaz.
         const listPrice = rawListPrice >= salesPrice ? rawListPrice : salesPrice;
+        
+        const criticalStock = p.criticalStock ?? defaultCritical;
+        const availableStock = Math.max(0, p.stock - criticalStock);
 
         const validVariants = p.variants?.filter((v) => v.barcode || v.sku) || [];
         if (validVariants.length > 0) {
           for (const v of validVariants) {
             const stockCode = v.barcode || v.sku;
+            const varAvailableStock = Math.max(0, v.stock - criticalStock);
             if (stockCode) {
               priceStockItems.push({
                 stockCode,
                 salesPrice,
                 listPrice,
-                stockQuantity: v.stock,
+                stockQuantity: varAvailableStock,
               });
             }
           }
@@ -215,7 +220,7 @@ export async function syncProductsToCiceksepeti(
               stockCode,
               salesPrice,
               listPrice,
-              stockQuantity: p.stock,
+              stockQuantity: availableStock,
             });
           }
         }
@@ -398,7 +403,7 @@ export async function syncProductsToCiceksepeti(
           deliveryDays: Number(customOptions?.deliveryDays || 5), // 5 = 1-3 İş Günü
           listPrice,
           salesPrice,
-          stockQuantity: p.stock,
+          stockQuantity: Math.max(0, p.stock - (p.criticalStock ?? defaultCritical)),
           barcode: p.barcode || p.sku || p.id,
           images: p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500"],
           attributes,
