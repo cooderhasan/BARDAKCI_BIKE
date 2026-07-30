@@ -566,45 +566,31 @@ export async function toggleCiceksepetiProductStatus(productId: string, isCiceks
 export async function syncCiceksepetiOrders() {
   try {
     const client = new CiceksepetiClient();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const formatDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const startDate = formatDate(sevenDaysAgo);
-    const endDate = formatDate(now);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const [allRes, newRes, prepRes, shippedRes] = await Promise.all([
-      client.getOrders({ startDate, endDate, pageSize: 100 }).catch(() => []),
-      client.getOrders({ startDate, endDate, statusId: 1, pageSize: 100 }).catch(() => []),
-      client.getOrders({ startDate, endDate, statusId: 2, pageSize: 100 }).catch(() => []),
-      client.getOrders({ startDate, endDate, statusId: 3, pageSize: 100 }).catch(() => []),
-    ]);
+    const orders = await client.getOrders({
+      startDate: fourteenDaysAgo.toISOString(),
+      endDate: now.toISOString(),
+      page: 0,
+      pageSize: 100,
+    });
 
-    const orderMap = new Map<string, any>();
-    for (const list of [allRes, newRes, prepRes, shippedRes]) {
-      if (Array.isArray(list)) {
-        for (const o of list) {
-          const key = String((o as any).orderId || (o as any).id || (o as any).orderNumber || (o as any).supplierOrderNumber || "");
-          if (key && !orderMap.has(key)) {
-            orderMap.set(key, o);
-          }
-        }
-      }
-    }
-
-    const orders = Array.from(orderMap.values());
     let newOrdersCount = 0;
 
     for (const order of orders) {
-      const orderId = String((order as any).orderId || (order as any).id || (order as any).orderNumber || (order as any).supplierOrderNumber || "");
-      if (!orderId) continue;
+      const orderItemId = (order as any).orderItemId;
+      const orderId = String((order as any).orderId || (order as any).orderNo || orderItemId || (order as any).id || "");
+      if (!orderId && !orderItemId) continue;
+
+      const uniqueKey = orderItemId ? String(orderItemId) : orderId;
 
       const existing = await (prisma as any).ciceksepetiOrder.findFirst({
         where: {
           OR: [
-            { ciceksepetiOrderId: orderId },
-            { orderNumber: String((order as any).orderNumber || orderId) }
+            { ciceksepetiOrderId: uniqueKey },
+            { ciceksepetiOrderId: String(orderId) },
+            { orderNumber: String((order as any).orderNo || (order as any).orderNumber || orderId) }
           ]
         },
       });
@@ -612,9 +598,9 @@ export async function syncCiceksepetiOrders() {
       if (!existing) {
         await (prisma as any).ciceksepetiOrder.create({
           data: {
-            ciceksepetiOrderId: orderId,
-            orderNumber: String((order as any).orderNumber || (order as any).supplierOrderNumber || orderId),
-            state: (order as any).orderStatus || (order as any).status || "APPROVED",
+            ciceksepetiOrderId: uniqueKey,
+            orderNumber: String((order as any).orderNo || (order as any).orderNumber || (order as any).supplierOrderNumber || orderId),
+            state: (order as any).orderProductStatus || (order as any).orderStatus || "APPROVED",
             rawData: order as any,
           },
         });
