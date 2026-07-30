@@ -550,6 +550,8 @@ export class CiceksepetiClient {
       items: items.map((item) => ({
         stockCode: item.stockCode,
         productCode: item.productCode || item.stockCode,
+        mainProductCode: item.productCode || item.stockCode,
+        barcode: item.stockCode,
         salesPrice: item.salesPrice,
         listPrice: item.listPrice ?? item.salesPrice,
         stockQuantity: item.stockQuantity,
