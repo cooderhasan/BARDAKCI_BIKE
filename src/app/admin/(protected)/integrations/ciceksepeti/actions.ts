@@ -577,6 +577,7 @@ export async function syncCiceksepetiOrders() {
     });
 
     let newOrdersCount = 0;
+    let updatedOrdersCount = 0;
 
     for (const order of orders) {
       const orderItemId = (order as any).orderItemId;
@@ -584,25 +585,157 @@ export async function syncCiceksepetiOrders() {
       if (!orderId && !orderItemId) continue;
 
       const uniqueKey = orderItemId ? String(orderItemId) : orderId;
+      const orderNumberStr = String((order as any).orderNo || (order as any).orderNumber || (order as any).supplierOrderNumber || orderId);
 
-      const existing = await (prisma as any).ciceksepetiOrder.findFirst({
+      // 1. Update or Create ciceksepetiOrder in DB
+      const existingCs = await (prisma as any).ciceksepetiOrder.findFirst({
         where: {
           OR: [
             { ciceksepetiOrderId: uniqueKey },
             { ciceksepetiOrderId: String(orderId) },
-            { orderNumber: String((order as any).orderNo || (order as any).orderNumber || orderId) }
+            { orderNumber: orderNumberStr }
           ]
         },
       });
 
-      if (!existing) {
+      const csState = (order as any).orderProductStatus || (order as any).orderStatus || "APPROVED";
+
+      if (existingCs) {
+        await (prisma as any).ciceksepetiOrder.update({
+          where: { id: existingCs.id },
+          data: {
+            state: csState,
+            rawData: order as any,
+          }
+        });
+      } else {
         await (prisma as any).ciceksepetiOrder.create({
           data: {
             ciceksepetiOrderId: uniqueKey,
-            orderNumber: String((order as any).orderNo || (order as any).orderNumber || (order as any).supplierOrderNumber || orderId),
-            state: (order as any).orderProductStatus || (order as any).orderStatus || "APPROVED",
+            orderNumber: orderNumberStr,
+            state: csState,
             rawData: order as any,
           },
+        });
+      }
+
+      // 2. Also Sync to main Order table (for /admin/orders)
+      const existingMainOrder = await prisma.order.findFirst({
+        where: {
+          OR: [
+            { orderNumber: `CS-${orderNumberStr}` },
+            { orderNumber: orderNumberStr },
+            { shipmentPackageId: uniqueKey }
+          ]
+        }
+      });
+
+      // Map Çiçeksepeti status to main OrderStatus
+      let mappedStatus: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED" = "PAID";
+      const statusStr = (csState || "").toLowerCase();
+      if (statusStr.includes("teslim") || (order as any).orderItemStatusId === 7) {
+        mappedStatus = "DELIVERED";
+      } else if (statusStr.includes("kargo") || (order as any).orderItemStatusId === 5 || (order as any).orderItemStatusId === 11) {
+        mappedStatus = "SHIPPED";
+      } else if (statusStr.includes("iptal") || statusStr.includes("iade")) {
+        mappedStatus = "CANCELLED";
+      }
+
+      if (existingMainOrder) {
+        await prisma.order.update({
+          where: { id: existingMainOrder.id },
+          data: {
+            status: mappedStatus as any,
+            cargoCompany: (order as any).cargoCompany ? String((order as any).cargoCompany) : existingMainOrder.cargoCompany,
+            cargoTrackingNumber: (order as any).cargoNumber ? String((order as any).cargoNumber) : existingMainOrder.cargoTrackingNumber,
+            trackingUrl: (order as any).shipmentTrackingUrl || existingMainOrder.trackingUrl,
+          }
+        });
+        updatedOrdersCount++;
+      } else {
+        // Match product in DB for OrderItem
+        const searchCodes = [
+          (order as any).barcode,
+          (order as any).code,
+          (order as any).productCode,
+          (order as any).productId
+        ].filter(Boolean).map((s) => String(s).trim());
+
+        let product: any = null;
+        if (searchCodes.length > 0) {
+          product = await prisma.product.findFirst({
+            where: {
+              OR: searchCodes.flatMap((code) => [
+                { barcode: code },
+                { sku: code },
+                { id: code }
+              ])
+            }
+          });
+        }
+
+        if (!product && (order as any).name) {
+          const subTitle = String((order as any).name).trim().substring(0, 15);
+          if (subTitle.length >= 3) {
+            product = await prisma.product.findFirst({
+              where: { name: { contains: subTitle, mode: "insensitive" } }
+            });
+          }
+        }
+
+        if (!product) {
+          product = await prisma.product.findFirst();
+        }
+
+        const qty = Number((order as any).quantity) || 1;
+        const price = Number((order as any).totalPrice || (order as any).itemPrice || 0);
+
+        const customerName = (order as any).receiverName || (order as any).senderName || "Çiçeksepeti Müşterisi";
+        const customerPhone = (order as any).receiverPhone || "";
+        const customerAddress = (order as any).receiverAddress || "";
+
+        const shippingAddrJson = {
+          fullName: customerName,
+          phone: customerPhone,
+          address: customerAddress,
+          city: (order as any).receiverCity || "",
+          district: (order as any).receiverDistrict || "",
+        };
+
+        const orderNumFormatted = `CS-${orderNumberStr}`;
+
+        await prisma.order.create({
+          data: {
+            orderNumber: orderNumFormatted,
+            subtotal: price,
+            discountAmount: Number((order as any).discount || 0),
+            appliedDiscountRate: 0,
+            vatAmount: Number((order as any).tax || 0),
+            total: price,
+            status: mappedStatus as any,
+            shippingAddress: shippingAddrJson as any,
+            shippingCost: Number((order as any).deliveryCharge || 0),
+            cargoCompany: (order as any).cargoCompany ? String((order as any).cargoCompany) : null,
+            cargoTrackingNumber: (order as any).cargoNumber ? String((order as any).cargoNumber) : null,
+            shipmentPackageId: uniqueKey,
+            trackingUrl: (order as any).shipmentTrackingUrl || null,
+            source: "CICEKSEPETI",
+            store: "BIKE",
+            notes: `Çiçeksepeti Sipariş No: ${orderNumberStr} | Ödeme: ${(order as any).orderPaymentType || 'Kredi Kartı'}`,
+            items: {
+              create: [
+                {
+                  productId: product?.id || "",
+                  quantity: qty,
+                  unitPrice: price / (qty || 1),
+                  productName: (order as any).name || "Çiçeksepeti Ürünü",
+                  lineTotal: price,
+                  vatRate: Number((order as any).tax || 20),
+                  discountRate: 0
+                }
+              ]
+            }
+          }
         });
         newOrdersCount++;
       }
@@ -613,7 +746,7 @@ export async function syncCiceksepetiOrders() {
 
     return {
       success: true,
-      message: `${orders.length} sipariş kontrol edildi. ${newOrdersCount} yeni sipariş aktarıldı.`,
+      message: `Çiçeksepeti'nden ${orders.length} sipariş kontrol edildi (${newOrdersCount} yeni sipariş "Tüm Siparişler" listesine aktarıldı, ${updatedOrdersCount} sipariş güncellendi).`,
     };
   } catch (error: any) {
     console.error("syncCiceksepetiOrders error:", error);
