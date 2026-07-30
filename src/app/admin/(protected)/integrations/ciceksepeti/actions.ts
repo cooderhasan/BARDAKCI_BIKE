@@ -413,6 +413,41 @@ export async function syncProductsToCiceksepeti(
         });
       }
 
+      // KRİTİK: Çiçeksepeti'nde olan ürünlerin stok ve fiyatını ANINDA güncelleyip (0 stoktan çıkarıp satışa açmak için)
+      // PUT /api/v1/Products/price-and-stock servisini de çağırıyoruz.
+      try {
+        const instantPriceStockItems: any[] = [];
+        for (const p of products) {
+          const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice || 0);
+          let salesPrice = profitMargin > 0 ? Math.round(basePrice * (1 + profitMargin / 100) * 100) / 100 : basePrice;
+          salesPrice = Math.round(salesPrice * 100) / 100;
+
+          let rawListPrice = Number(p.listPrice) || salesPrice;
+          rawListPrice = Math.round(rawListPrice * 100) / 100;
+          const listPrice = rawListPrice >= salesPrice ? rawListPrice : salesPrice;
+
+          const criticalStock = p.criticalStock ?? defaultCritical;
+          const availableStock = Math.max(0, p.stock - criticalStock);
+
+          const stockCode = p.sku || p.barcode || p.id;
+          if (stockCode) {
+            instantPriceStockItems.push({
+              stockCode,
+              salesPrice,
+              listPrice,
+              stockQuantity: availableStock,
+            });
+          }
+        }
+
+        if (instantPriceStockItems.length > 0) {
+          const psRes = await client.updatePricesAndStocks(instantPriceStockItems);
+          console.log("[CS-SYNC] Live stock & price updated instantly:", psRes);
+        }
+      } catch (psErr: any) {
+        console.warn("[CS-SYNC] Live stock/price instant update warning:", psErr.message);
+      }
+
       let result;
       if (syncType === "update") {
         try {
