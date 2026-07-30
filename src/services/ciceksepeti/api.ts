@@ -612,13 +612,22 @@ export class CiceksepetiClient {
     await this.loadConfig();
     const url = `${this.baseUrl}/Order/GetOrders`;
 
-    const bodyPayload = {
-      startDate: params?.startDate,
-      endDate: params?.endDate,
-      pageSize: params?.pageSize || 50,
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const bodyPayload: any = {
+      startDate: params?.startDate || thirtyDaysAgo.toISOString(),
+      endDate: params?.endDate || now.toISOString(),
+      pageSize: params?.pageSize || 100,
       page: params?.page || 1,
-      statusId: params?.statusId,
     };
+
+    if (params?.statusId) {
+      bodyPayload.statusId = params.statusId;
+      bodyPayload.orderStatusId = params.statusId;
+    }
+
+    console.log(`🧾 [CS-ORDERS] Requesting ${url} with payload:`, JSON.stringify(bodyPayload));
 
     const res = await fetch(url, {
       method: "POST",
@@ -633,9 +642,14 @@ export class CiceksepetiClient {
     }
 
     const data = await res.json();
+    console.log("🧾 [CS-ORDERS] Raw response:", JSON.stringify(data).substring(0, 300));
+
     if (Array.isArray(data)) return data;
     if (data && Array.isArray(data.orders)) return data.orders;
     if (data && Array.isArray(data.supplierOrders)) return data.supplierOrders;
+    if (data && Array.isArray(data.orderList)) return data.orderList;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.content)) return data.content;
     return [];
   }
 }

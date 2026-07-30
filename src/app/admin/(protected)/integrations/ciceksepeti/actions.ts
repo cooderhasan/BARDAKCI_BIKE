@@ -566,21 +566,36 @@ export async function toggleCiceksepetiProductStatus(productId: string, isCiceks
 export async function syncCiceksepetiOrders() {
   try {
     const client = new CiceksepetiClient();
-    const orders = await client.getOrders({ pageSize: 50 });
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const orders = await client.getOrders({
+      startDate: thirtyDaysAgo.toISOString(),
+      endDate: now.toISOString(),
+      pageSize: 100
+    });
 
     let newOrdersCount = 0;
 
     for (const order of orders) {
-      const existing = await (prisma as any).ciceksepetiOrder.findUnique({
-        where: { ciceksepetiOrderId: String(order.orderId) },
+      const orderId = String((order as any).orderId || (order as any).id || (order as any).orderNumber || (order as any).supplierOrderNumber || "");
+      if (!orderId) continue;
+
+      const existing = await (prisma as any).ciceksepetiOrder.findFirst({
+        where: {
+          OR: [
+            { ciceksepetiOrderId: orderId },
+            { orderNumber: String((order as any).orderNumber || orderId) }
+          ]
+        },
       });
 
       if (!existing) {
         await (prisma as any).ciceksepetiOrder.create({
           data: {
-            ciceksepetiOrderId: String(order.orderId),
-            orderNumber: String(order.orderNumber || order.orderId),
-            state: order.orderStatus || "APPROVED",
+            ciceksepetiOrderId: orderId,
+            orderNumber: String((order as any).orderNumber || (order as any).supplierOrderNumber || orderId),
+            state: (order as any).orderStatus || (order as any).status || "APPROVED",
             rawData: order as any,
           },
         });
