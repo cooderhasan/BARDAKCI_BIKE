@@ -100,10 +100,10 @@ export async function syncProductsToN11(productIds?: string[]) {
             whereClause.id = { in: productIds };
         }
 
-        // Fetch products with variants
+        // Fetch products with variants and n11Product
         const products = await prisma.product.findMany({
             where: whereClause,
-            include: { variants: true, categories: true }
+            include: { variants: true, categories: true, n11Product: true }
         });
 
         if (products.length === 0) return { success: false, message: "Ürün bulunamadı." };
@@ -126,6 +126,7 @@ export async function syncProductsToN11(productIds?: string[]) {
         for (const p of products) {
             const basePrice = Number((p as any).n11Price) || Number(p.listPrice);
             const criticalStock = p.criticalStock ?? defaultCritical;
+            const matchedSellerCode = (p as any).n11Product?.sellerCode || p.sku || p.barcode;
 
             if ((p as any).variants?.length > 0) {
                 for (const v of (p as any).variants) {
@@ -136,7 +137,7 @@ export async function syncProductsToN11(productIds?: string[]) {
                         const finalListPrice = Math.max(finalSalePrice, Number(p.listPrice) + Number(v.priceAdjustment || 0));
 
                         allItemsToSync.push({
-                            stockCode: v.sku || v.barcode,
+                            stockCode: v.sku || v.barcode || matchedSellerCode,
                             quantity: availableStock,
                             salePrice: finalSalePrice,
                             listPrice: finalListPrice,
@@ -144,13 +145,13 @@ export async function syncProductsToN11(productIds?: string[]) {
                         });
                     }
                 }
-            } else if ((p as any).barcode) {
+            } else if ((p as any).barcode || p.sku || matchedSellerCode) {
                 const availableStock = Math.max(0, p.stock - criticalStock);
                 const finalSalePrice = Number(p.n11Price || p.listPrice);
                 const finalListPrice = Math.max(finalSalePrice, Number(p.listPrice));
 
                 allItemsToSync.push({
-                    stockCode: p.sku || p.barcode,
+                    stockCode: matchedSellerCode,
                     quantity: availableStock,
                     salePrice: finalSalePrice,
                     listPrice: finalListPrice,
@@ -842,4 +843,119 @@ export async function getN11Tasks() {
     }
 
     return tasks;
+}
+
+export async function autoMatchN11ProductsAction() {
+    try {
+        const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Aktif N11 entegrasyonu bulunamadı." };
+
+        const client = new N11Client({
+            apiKey: config.apiKey,
+            apiSecret: config.apiSecret
+        });
+
+        const allLocalProducts = await prisma.product.findMany({
+            select: { id: true, sku: true, barcode: true, name: true, isN11Active: true }
+        });
+
+        const exactSkuMap = new Map<string, typeof allLocalProducts[0]>();
+        const exactBarcodeMap = new Map<string, typeof allLocalProducts[0]>();
+
+        for (const lp of allLocalProducts) {
+            if (lp.sku) exactSkuMap.set(lp.sku.toLowerCase().trim(), lp);
+            if (lp.barcode) exactBarcodeMap.set(lp.barcode.toLowerCase().trim(), lp);
+        }
+
+        let currentPage = 0;
+        const pageSize = 100;
+        let matchedCount = 0;
+        let processedN11Count = 0;
+        let totalCount = 1;
+
+        while (currentPage * pageSize < totalCount) {
+            const res = await client.getProductList(currentPage, pageSize);
+            if (!res.success || !res.products || res.products.length === 0) break;
+
+            totalCount = res.totalCount || res.products.length;
+            processedN11Count += res.products.length;
+
+            for (const n11Item of res.products) {
+                const n11SellerCode = (n11Item.sellerCode || "").trim();
+                const n11SellerCodeLower = n11SellerCode.toLowerCase();
+                const n11Id = String(n11Item.id || "");
+
+                if (!n11SellerCodeLower) continue;
+
+                let match = exactSkuMap.get(n11SellerCodeLower) || exactBarcodeMap.get(n11SellerCodeLower);
+
+                if (!match) {
+                    const parts = n11SellerCodeLower.split("-");
+                    if (parts.length > 2) {
+                        const baseSku = parts.slice(0, -1).join("-");
+                        match = exactSkuMap.get(baseSku) || exactBarcodeMap.get(baseSku);
+                    }
+                }
+
+                if (!match) {
+                    for (const lp of allLocalProducts) {
+                        if (lp.sku && n11SellerCodeLower.startsWith(lp.sku.toLowerCase())) {
+                            match = lp;
+                            break;
+                        }
+                    }
+                }
+
+                if (match) {
+                    const existingLink = await (prisma as any).n11Product.findFirst({
+                        where: { productId: match.id }
+                    });
+
+                    if (existingLink) {
+                        await (prisma as any).n11Product.update({
+                            where: { id: existingLink.id },
+                            data: {
+                                sellerCode: n11SellerCode,
+                                n11Id: n11Id,
+                                isSynced: true,
+                                lastSyncedAt: new Date()
+                            }
+                        });
+                    } else {
+                        await (prisma as any).n11Product.create({
+                            data: {
+                                productId: match.id,
+                                sellerCode: n11SellerCode,
+                                n11Id: n11Id,
+                                isSynced: true,
+                                lastSyncedAt: new Date()
+                            }
+                        });
+                    }
+
+                    if (!match.isN11Active) {
+                        await prisma.product.update({
+                            where: { id: match.id },
+                            data: { isN11Active: true }
+                        });
+                    }
+
+                    matchedCount++;
+                }
+            }
+
+            currentPage++;
+            if (res.products.length < pageSize) break;
+        }
+
+        revalidatePath("/admin/integrations/n11");
+        revalidatePath("/admin/products");
+
+        return {
+            success: true,
+            message: `N11 Mağaza eşleştirmesi tamamlandı! N11'deki ${processedN11Count} üründen ${matchedCount} tanesi sitenizdeki ürünlerle otomatik eşleştirildi ve N11 satışı aktif edildi.`
+        };
+    } catch (error: any) {
+        return { success: false, message: "Eşleştirme hatası: " + error.message };
+    }
 }

@@ -552,6 +552,67 @@ export class N11Client {
             return { success: false, message: `N11 Fatura Bağlantı Hatası: ${error.message}` };
         }
     }
+
+    async getProductList(page = 0, pageSize = 100) {
+        if (!this.creds) await this.init();
+
+        const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="http://www.n11.com/ws/schemas">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <sch:GetProductListRequest>
+         <auth>
+            <appKey>${this.creds!.apiKey}</appKey>
+            <appSecret>${this.creds!.apiSecret}</appSecret>
+         </auth>
+         <pagingData>
+            <currentPage>${page}</currentPage>
+            <pageSize>${pageSize}</pageSize>
+         </pagingData>
+      </sch:GetProductListRequest>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+        try {
+            const response = await fetch("https://api.n11.com/ws/productService/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/xml;charset=UTF-8",
+                    "SOAPAction": ""
+                },
+                body: soapEnvelope
+            });
+
+            const text = await response.text();
+            const products: any[] = [];
+            const productMatches = text.match(/<product>([\s\S]*?)<\/product>/g) || [];
+
+            for (const pXml of productMatches) {
+                const idMatch = pXml.match(/<id>(.*?)<\/id>/);
+                const sellerCodeMatch = pXml.match(/<productSellerCode>(.*?)<\/productSellerCode>/);
+                const titleMatch = pXml.match(/<title>(.*?)<\/title>/);
+                const stockMatch = pXml.match(/<quantity>(.*?)<\/quantity>/);
+                const priceMatch = pXml.match(/<price>(.*?)<\/price>/);
+
+                if (idMatch || sellerCodeMatch) {
+                    products.push({
+                        id: idMatch?.[1] || "",
+                        sellerCode: sellerCodeMatch?.[1] || "",
+                        title: titleMatch?.[1] || "",
+                        stock: stockMatch?.[1] ? Number(stockMatch[1]) : 0,
+                        price: priceMatch?.[1] ? Number(priceMatch[1]) : 0,
+                    });
+                }
+            }
+
+            const totalCountMatch = text.match(/<totalCount>(.*?)<\/totalCount>/);
+            const totalCount = totalCountMatch?.[1] ? Number(totalCountMatch[1]) : products.length;
+
+            return { success: true, products, totalCount, raw: text };
+        } catch (error: any) {
+            return { success: false, message: error.message, products: [] };
+        }
+    }
 }
 
 
