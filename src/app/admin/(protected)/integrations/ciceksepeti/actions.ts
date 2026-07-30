@@ -630,8 +630,8 @@ export async function syncCiceksepetiOrders() {
         }
       });
 
-      // Map Çiçeksepeti status to main OrderStatus
-      let mappedStatus: "PENDING" | "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED" = "PAID";
+      // Map Çiçeksepeti status to main OrderStatus enum (PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED)
+      let mappedStatus: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" = "CONFIRMED";
       const statusStr = (csState || "").toLowerCase();
       if (statusStr.includes("teslim") || (order as any).orderItemStatusId === 7) {
         mappedStatus = "DELIVERED";
@@ -639,6 +639,10 @@ export async function syncCiceksepetiOrders() {
         mappedStatus = "SHIPPED";
       } else if (statusStr.includes("iptal") || statusStr.includes("iade")) {
         mappedStatus = "CANCELLED";
+      } else if (statusStr.includes("hazırlan") || (order as any).orderItemStatusId === 2) {
+        mappedStatus = "PROCESSING";
+      } else {
+        mappedStatus = "CONFIRMED";
       }
 
       if (existingMainOrder) {
