@@ -612,17 +612,20 @@ export class CiceksepetiClient {
     await this.loadConfig();
     const url = `${this.baseUrl}/Order/GetOrders`;
 
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const formatDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const bodyPayload: any = {
-      startDate: params?.startDate || sevenDaysAgo.toISOString(),
-      endDate: params?.endDate || now.toISOString(),
+      startDate: params?.startDate || formatDate(sevenDaysAgo),
+      endDate: params?.endDate || formatDate(now),
       pageSize: params?.pageSize || 100,
       page: params?.page || 1,
     };
 
-    if (params?.statusId) {
+    if (params?.statusId != null) {
       bodyPayload.statusId = params.statusId;
       bodyPayload.orderStatusId = params.statusId;
     }

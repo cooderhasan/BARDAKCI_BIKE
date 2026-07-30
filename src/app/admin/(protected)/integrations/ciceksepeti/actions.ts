@@ -566,15 +566,34 @@ export async function toggleCiceksepetiProductStatus(productId: string, isCiceks
 export async function syncCiceksepetiOrders() {
   try {
     const client = new CiceksepetiClient();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const formatDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startDate = formatDate(sevenDaysAgo);
+    const endDate = formatDate(now);
 
-    const orders = await client.getOrders({
-      startDate: sevenDaysAgo.toISOString(),
-      endDate: now.toISOString(),
-      pageSize: 100
-    });
+    const [allRes, newRes, prepRes, shippedRes] = await Promise.all([
+      client.getOrders({ startDate, endDate, pageSize: 100 }).catch(() => []),
+      client.getOrders({ startDate, endDate, statusId: 1, pageSize: 100 }).catch(() => []),
+      client.getOrders({ startDate, endDate, statusId: 2, pageSize: 100 }).catch(() => []),
+      client.getOrders({ startDate, endDate, statusId: 3, pageSize: 100 }).catch(() => []),
+    ]);
 
+    const orderMap = new Map<string, any>();
+    for (const list of [allRes, newRes, prepRes, shippedRes]) {
+      if (Array.isArray(list)) {
+        for (const o of list) {
+          const key = String((o as any).orderId || (o as any).id || (o as any).orderNumber || (o as any).supplierOrderNumber || "");
+          if (key && !orderMap.has(key)) {
+            orderMap.set(key, o);
+          }
+        }
+      }
+    }
+
+    const orders = Array.from(orderMap.values());
     let newOrdersCount = 0;
 
     for (const order of orders) {
