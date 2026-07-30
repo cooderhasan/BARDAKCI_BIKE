@@ -56,6 +56,15 @@ export async function setupRepeatableJobs() {
         jobId: 'pazarama-order-sync-cron'
     });
     console.log("⏰ Pazarama Order Sync Cron (15m) registered.");
+
+    // Her 15 dakikada bir Çiçeksepeti siparişlerini çek
+    await queue.add("ciceksepeti-order-sync", {}, {
+        repeat: {
+            pattern: '*/15 * * * *' // Every 15 minutes
+        },
+        jobId: 'ciceksepeti-order-sync-cron'
+    });
+    console.log("⏰ Çiçeksepeti Order Sync Cron (15m) registered.");
 }
 
 export function initializeWorker() {
@@ -71,6 +80,13 @@ export function initializeWorker() {
             
             try {
                 // Cron Jobs
+                if (job.name === "ciceksepeti-order-sync") {
+                    console.log("🔄 Otomatik Çiçeksepeti Sipariş Senkronizasyonu başlatıldı...");
+                    const { syncCiceksepetiOrders } = await import("@/app/admin/(protected)/integrations/ciceksepeti/actions");
+                    const result = await syncCiceksepetiOrders();
+                    console.log(`✅ Cron Sonucu: ${result.message}`);
+                    return;
+                }
                 if (job.name === "trendyol-order-sync") {
                     console.log("🔄 Otomatik Trendyol Sipariş Senkronizasyonu başlatıldı...");
                     const result = await syncOrdersFromTrendyol();
