@@ -747,8 +747,12 @@ export async function syncCiceksepetiOrders() {
       }
     }
 
-    revalidatePath("/admin/integrations/ciceksepeti");
-    revalidatePath("/admin/orders");
+    try {
+      revalidatePath("/admin/integrations/ciceksepeti");
+      revalidatePath("/admin/orders");
+    } catch (e) {
+      // Safe to ignore when executing inside BullMQ background worker
+    }
 
     return {
       success: true,
