@@ -1395,6 +1395,8 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                             <SelectItem value="hb">Hepsiburada Eksik</SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+
                 <div className="flex items-center gap-2">
                     <Button
                         type="button"
@@ -1711,6 +1713,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     </DialogContent>
                 </Dialog>
             </div>
+        </div>
 
             <DndContext
                 sensors={sensors}
