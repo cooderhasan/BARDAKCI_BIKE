@@ -322,56 +322,72 @@ export class CiceksepetiClient {
 
     const url = `${this.baseUrl}/Products`;
     const headers = this.getHeaders();
-    const payload = { products: formattedProducts };
 
-    console.log("[CS-API] POST /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
+    const CHUNK_SIZE = 150;
+    const chunks: any[][] = [];
+    for (let i = 0; i < formattedProducts.length; i += CHUNK_SIZE) {
+      chunks.push(formattedProducts.slice(i, i + CHUNK_SIZE));
+    }
 
-    let res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    });
+    let lastBatchId = "SUCCESS";
+    let totalProcessed = 0;
 
-    let responseText = await res.text().catch(() => "");
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      const payload = { products: chunk };
 
-    // Eğer Çiçeksepeti 5 saniye limit aşımı hatası veya 502 verirse 6.5 saniye bekleyip 1 kez otomatik tekrar dene
-    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("Limit aşımı") || responseText.includes("502 Bad Gateway"))) {
-      console.log("[CS-API] Rate limit / 502 alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
-      await new Promise((resolve) => setTimeout(resolve, 6500));
-      res = await fetch(url, {
+      if (index > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+
+      console.log(`[CS-API] POST /api/v1/Products Payload Chunk (${index + 1}/${chunks.length}): ${chunk.length} items`);
+
+      let res = await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
         cache: "no-store",
       });
-      responseText = await res.text().catch(() => "");
-    }
 
-    if (!res.ok) {
-      console.error(`[CS-API] Error ${res.status}:`, responseText);
-      let detailMsg = responseText;
+      let responseText = await res.text().catch(() => "");
+
+      if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("Limit aşımı") || responseText.includes("502 Bad Gateway"))) {
+        console.log("[CS-API] Rate limit / 502 alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
+        await new Promise((resolve) => setTimeout(resolve, 6500));
+        res = await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+          cache: "no-store",
+        });
+        responseText = await res.text().catch(() => "");
+      }
+
+      if (!res.ok) {
+        console.error(`[CS-API] Error ${res.status}:`, responseText);
+        let detailMsg = responseText;
+        try {
+          const errJson = JSON.parse(responseText);
+          detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
+        } catch {}
+        throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
+      }
+
       try {
-        const errJson = JSON.parse(responseText);
-        detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
-      } catch {}
-      throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
+        const data = JSON.parse(responseText);
+        lastBatchId = data.batchId || data.batchRequestId || data.id || lastBatchId;
+        totalProcessed += chunk.length;
+      } catch {
+        lastBatchId = responseText || lastBatchId;
+        totalProcessed += chunk.length;
+      }
     }
 
-    try {
-      const data = JSON.parse(responseText);
-      return {
-        batchId: data.batchId || data.batchRequestId || data.id || "SUCCESS",
-        status: data.status || "PENDING",
-        itemCount: products.length,
-      };
-    } catch {
-      return {
-        batchId: responseText || "SUCCESS",
-        status: "PENDING",
-        itemCount: products.length,
-      };
-    }
+    return {
+      batchId: lastBatchId,
+      status: "PENDING",
+      itemCount: totalProcessed,
+    };
   }
 
   /**
@@ -482,60 +498,76 @@ export class CiceksepetiClient {
 
     const url = `${this.baseUrl}/Products`;
     const headers = this.getHeaders();
-    const payload = { products: formattedProducts };
 
-    console.log("[CS-API] PUT /api/v1/Products Payload:", JSON.stringify(payload, null, 2));
+    const CHUNK_SIZE = 150;
+    const chunks: any[][] = [];
+    for (let i = 0; i < formattedProducts.length; i += CHUNK_SIZE) {
+      chunks.push(formattedProducts.slice(i, i + CHUNK_SIZE));
+    }
 
-    let res = await fetch(url, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    });
+    let lastBatchId = "SUCCESS";
+    let totalProcessed = 0;
 
-    let responseText = await res.text().catch(() => "");
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      const payload = { products: chunk };
 
-    // Eğer Çiçeksepeti 5 saniye limit aşımı hatası veya 502 verirse 6.5 saniye bekleyip 1 kez otomatik tekrar dene
-    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("Limit aşımı") || responseText.includes("502 Bad Gateway"))) {
-      console.log("[CS-API] PUT update rate limit / 502 alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
-      await new Promise((resolve) => setTimeout(resolve, 6500));
-      res = await fetch(url, {
+      if (index > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+
+      console.log(`[CS-API] PUT /api/v1/Products Payload Chunk (${index + 1}/${chunks.length}): ${chunk.length} items`);
+
+      let res = await fetch(url, {
         method: "PUT",
         headers,
         body: JSON.stringify(payload),
         cache: "no-store",
       });
-      responseText = await res.text().catch(() => "");
-    }
 
-    if (!res.ok) {
-      console.error(`[CS-API] Error ${res.status}:`, responseText);
-      let detailMsg = responseText;
-      if (responseText.includes("<html>") || responseText.includes("502 Bad Gateway")) {
-        detailMsg = "Çiçeksepeti sunucuları geçici olarak yanıt vermiyor (Cloudflare 502 Bad Gateway). Lütfen birkaç saniye sonra tekrar deneyin.";
-      } else {
-        try {
-          const errJson = JSON.parse(responseText);
-          detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
-        } catch {}
+      let responseText = await res.text().catch(() => "");
+
+      if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("Limit aşımı") || responseText.includes("502 Bad Gateway"))) {
+        console.log("[CS-API] PUT update rate limit / 502 alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
+        await new Promise((resolve) => setTimeout(resolve, 6500));
+        res = await fetch(url, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify(payload),
+          cache: "no-store",
+        });
+        responseText = await res.text().catch(() => "");
       }
-      throw new Error(`Çiçeksepeti ürün güncelleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
+
+      if (!res.ok) {
+        console.error(`[CS-API] Error ${res.status}:`, responseText);
+        let detailMsg = responseText;
+        if (responseText.includes("<html>") || responseText.includes("502 Bad Gateway")) {
+          detailMsg = "Çiçeksepeti sunucuları geçici olarak yanıt vermiyor (Cloudflare 502 Bad Gateway). Lütfen birkaç saniye sonra tekrar deneyin.";
+        } else {
+          try {
+            const errJson = JSON.parse(responseText);
+            detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
+          } catch {}
+        }
+        throw new Error(`Çiçeksepeti ürün güncelleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
+      }
+
+      try {
+        const data = JSON.parse(responseText);
+        lastBatchId = data.batchId || data.batchRequestId || data.id || lastBatchId;
+        totalProcessed += chunk.length;
+      } catch {
+        lastBatchId = responseText || lastBatchId;
+        totalProcessed += chunk.length;
+      }
     }
 
-    try {
-      const data = JSON.parse(responseText);
-      return {
-        batchId: data.batchId || data.batchRequestId || data.id || "SUCCESS",
-        status: data.status || "PENDING",
-        itemCount: products.length,
-      };
-    } catch {
-      return {
-        batchId: responseText || "SUCCESS",
-        status: "PENDING",
-        itemCount: products.length,
-      };
-    }
+    return {
+      batchId: lastBatchId,
+      status: "PENDING",
+      itemCount: totalProcessed,
+    };
   }
 
   /**
@@ -546,62 +578,80 @@ export class CiceksepetiClient {
     await this.loadConfig();
     const url = `${this.baseUrl}/Products/price-and-stock`;
 
-    const payload = {
-      items: items.map((item) => ({
-        stockCode: item.stockCode,
-        productCode: item.productCode || item.stockCode,
-        mainProductCode: item.productCode || item.stockCode,
-        barcode: item.stockCode,
-        salesPrice: item.salesPrice,
-        listPrice: item.listPrice ?? item.salesPrice,
-        stockQuantity: item.stockQuantity,
-      })),
-    };
+    // Çiçeksepeti Kuralı: Tek istekte maksimum 200 ürün gönderilebilir (Güvenlik için 150'lik paketlere bölüyoruz).
+    const CHUNK_SIZE = 150;
+    const chunks: CiceksepetiPriceAndStockItem[][] = [];
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      chunks.push(items.slice(i, i + CHUNK_SIZE));
+    }
 
-    let res = await fetch(url, {
-      method: "PUT",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    });
+    let lastBatchId = "SUCCESS";
+    let totalProcessed = 0;
 
-    let responseText = await res.text().catch(() => "");
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      const payload = {
+        items: chunk.map((item) => ({
+          stockCode: item.stockCode,
+          productCode: item.productCode || item.stockCode,
+          mainProductCode: item.productCode || item.stockCode,
+          barcode: item.stockCode,
+          salesPrice: item.salesPrice,
+          listPrice: item.listPrice ?? item.salesPrice,
+          stockQuantity: item.stockQuantity,
+        })),
+      };
 
-    // 502 Bad Gateway veya 503/504/Rate Limit geçici sunucu hatasında 6.5 sn bekleyip tekrar dene
-    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("502 Bad Gateway") || responseText.includes("Limit aşımı"))) {
-      console.warn("[CS-API] 502/503/Rate-limit alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
-      await new Promise((resolve) => setTimeout(resolve, 6500));
-      res = await fetch(url, {
+      // Dakikada / saniyede istek limitini aşmamak için paketler arasında 1.2 saniye bekle
+      if (index > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+
+      let res = await fetch(url, {
         method: "PUT",
         headers: this.getHeaders(),
         body: JSON.stringify(payload),
         cache: "no-store",
       });
-      responseText = await res.text().catch(() => "");
-    }
 
-    if (!res.ok) {
-      let cleanMessage = responseText;
-      if (responseText.includes("<html>") || responseText.includes("502 Bad Gateway")) {
-        cleanMessage = "Çiçeksepeti sunucuları geçici olarak yanıt vermiyor (Cloudflare 502 Bad Gateway). Lütfen birkaç saniye sonra tekrar deneyin.";
+      let responseText = await res.text().catch(() => "");
+
+      // 502 Bad Gateway veya 503/504/Rate Limit geçici sunucu hatasında 6.5 sn bekleyip tekrar dene
+      if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504 || responseText.includes("502 Bad Gateway") || responseText.includes("Limit aşımı"))) {
+        console.warn("[CS-API] 502/503/Rate-limit alındı. 6.5 saniye bekleniyor ve tekrar deneniyor...");
+        await new Promise((resolve) => setTimeout(resolve, 6500));
+        res = await fetch(url, {
+          method: "PUT",
+          headers: this.getHeaders(),
+          body: JSON.stringify(payload),
+          cache: "no-store",
+        });
+        responseText = await res.text().catch(() => "");
       }
-      throw new Error(`Çiçeksepeti fiyat/stok güncelleme hatası (${res.status}): ${cleanMessage}`);
+
+      if (!res.ok) {
+        let cleanMessage = responseText;
+        if (responseText.includes("<html>") || responseText.includes("502 Bad Gateway")) {
+          cleanMessage = "Çiçeksepeti sunucuları geçici olarak yanıt vermiyor (Cloudflare 502 Bad Gateway). Lütfen birkaç saniye sonra tekrar deneyin.";
+        }
+        throw new Error(`Çiçeksepeti fiyat/stok güncelleme hatası (${res.status}): ${cleanMessage}`);
+      }
+
+      try {
+        const data = JSON.parse(responseText);
+        lastBatchId = data.batchId || data.batchRequestId || data.id || lastBatchId;
+        totalProcessed += chunk.length;
+      } catch {
+        lastBatchId = responseText || lastBatchId;
+        totalProcessed += chunk.length;
+      }
     }
 
-    try {
-      const data = JSON.parse(responseText);
-      return {
-        batchId: data.batchId || data.batchRequestId || data.id || "",
-        status: data.status || "SUCCESS",
-        itemCount: items.length,
-      };
-    } catch {
-      return {
-        batchId: responseText,
-        status: "SUCCESS",
-        itemCount: items.length,
-      };
-    }
+    return {
+      batchId: lastBatchId,
+      status: "SUCCESS",
+      itemCount: totalProcessed,
+    };
   }
 
   /**
