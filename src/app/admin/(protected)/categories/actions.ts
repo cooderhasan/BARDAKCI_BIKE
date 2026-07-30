@@ -130,3 +130,105 @@ export async function updateCategoriesHeaderOrder(updates: { id: string; headerO
     revalidatePath("/admin/categories");
     revalidatePath("/");
 }
+
+export async function mergeTireCategoriesAction() {
+    try {
+        const mainParent = await prisma.category.findFirst({
+            where: { slug: { in: ["motosiklet-yedek-parca-1", "motosiklet-yedek-parca"] } }
+        });
+        const parentId = mainParent?.id || null;
+
+        // 1. Target Motosiklet Dış Lastikler
+        let targetDis = await prisma.category.findFirst({
+            where: { OR: [{ slug: "motosiklet-dis-lastikler" }, { name: "Motosiklet Dış Lastikler" }] }
+        });
+        if (!targetDis) {
+            targetDis = await prisma.category.create({
+                data: {
+                    name: "Motosiklet Dış Lastikler",
+                    slug: "motosiklet-dis-lastikler",
+                    store: "MOTOR",
+                    parentId,
+                    isActive: true,
+                }
+            });
+        }
+
+        // 2. Target Motosiklet İç Lastikler
+        let targetIc = await prisma.category.findFirst({
+            where: { OR: [{ slug: "motosiklet-i-c-lastikler" }, { slug: "motosiklet-ic-lastikler" }, { name: "Motosiklet İç Lastikler" }] }
+        });
+        if (!targetIc) {
+            targetIc = await prisma.category.create({
+                data: {
+                    name: "Motosiklet İç Lastikler",
+                    slug: "motosiklet-i-c-lastikler",
+                    store: "MOTOR",
+                    parentId,
+                    isActive: true,
+                }
+            });
+        }
+
+        // 3. Move Dış Lastik products (from "lastik" and "lastik-1")
+        const sourceDisCats = await prisma.category.findMany({
+            where: { slug: { in: ["lastik", "lastik-1"] } }
+        });
+        const sourceDisIds = sourceDisCats.map(c => c.id).filter(id => id !== targetDis!.id);
+
+        if (sourceDisIds.length > 0) {
+            await prisma.product.updateMany({
+                where: { categoryId: { in: sourceDisIds } },
+                data: { categoryId: targetDis.id }
+            });
+
+            for (const sId of sourceDisIds) {
+                await prisma.$executeRawUnsafe(
+                    `UPDATE "_CategoryToProduct" SET "A" = $1 WHERE "A" = $2 AND "B" NOT IN (SELECT "B" FROM "_CategoryToProduct" WHERE "A" = $1)`,
+                    targetDis.id, sId
+                );
+                await prisma.$executeRawUnsafe(`DELETE FROM "_CategoryToProduct" WHERE "A" = $1`, sId);
+            }
+        }
+
+        // 4. Move İç Lastik products (from "ic-lastik")
+        const sourceIcCats = await prisma.category.findMany({
+            where: { slug: { in: ["ic-lastik"] } }
+        });
+        const sourceIcIds = sourceIcCats.map(c => c.id).filter(id => id !== targetIc!.id);
+
+        if (sourceIcIds.length > 0) {
+            await prisma.product.updateMany({
+                where: { categoryId: { in: sourceIcIds } },
+                data: { categoryId: targetIc.id }
+            });
+
+            for (const sId of sourceIcIds) {
+                await prisma.$executeRawUnsafe(
+                    `UPDATE "_CategoryToProduct" SET "A" = $1 WHERE "A" = $2 AND "B" NOT IN (SELECT "B" FROM "_CategoryToProduct" WHERE "A" = $1)`,
+                    targetIc.id, sId
+                );
+                await prisma.$executeRawUnsafe(`DELETE FROM "_CategoryToProduct" WHERE "A" = $1`, sId);
+            }
+        }
+
+        // 5. Delete empty duplicates
+        const allDeleteIds = [...sourceDisIds, ...sourceIcIds];
+        if (allDeleteIds.length > 0) {
+            await prisma.category.deleteMany({
+                where: { id: { in: allDeleteIds } }
+            });
+        }
+
+        revalidatePath("/admin/categories");
+        revalidatePath("/admin/products");
+        revalidatePath("/");
+
+        return {
+            success: true,
+            message: `Lastik kategorileri birleştirildi. "Motosiklet Dış Lastikler" ve "Motosiklet İç Lastikler" altında toplandı.`
+        };
+    } catch (err: any) {
+        return { success: false, message: err.message };
+    }
+}
