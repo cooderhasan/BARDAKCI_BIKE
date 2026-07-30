@@ -56,7 +56,7 @@ export async function createProduct(formData: FormData) {
             vatRate: Number(formData.get("vatRate")),
             minQuantity: Number(formData.get("minQuantity")) || 1,
             stock: Number(formData.get("stock")) || 0,
-            criticalStock: Number(formData.get("criticalStock")) || 10,
+            criticalStock: formData.get("criticalStock") !== null && formData.get("criticalStock") !== "" ? Number(formData.get("criticalStock")) : 1,
             isBundle: formData.get("isBundle") === "true",
 
             // categoryId: (formData.get("categoryId") as string) === "none" ? undefined : (formData.get("categoryId") as string) || undefined,
@@ -218,7 +218,7 @@ export async function updateProduct(productId: string, formData: FormData) {
             vatRate: Number(formData.get("vatRate")),
             minQuantity: Number(formData.get("minQuantity")) || 1,
             stock: Number(formData.get("stock")) || 0,
-            criticalStock: Number(formData.get("criticalStock")) || 10,
+            criticalStock: formData.get("criticalStock") !== null && formData.get("criticalStock") !== "" ? Number(formData.get("criticalStock")) : 1,
             isBundle: formData.get("isBundle") === "true",
 
             // categoryId: (formData.get("categoryId") as string) === "none" ? undefined : (formData.get("categoryId") as string) || undefined,

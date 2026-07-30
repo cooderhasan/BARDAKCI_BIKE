@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { updateSiteSettings } from "@/app/admin/(protected)/settings/actions";
+import { updateSiteSettings, bulkUpdateAllProductsCriticalStockAction } from "@/app/admin/(protected)/settings/actions";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,25 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
     const [loading, setLoading] = useState(false);
     const [settings, setSettings] = useState(initialSettings);
     const [mounted, setMounted] = useState(false);
+    const [updatingBulkStock, setUpdatingBulkStock] = useState(false);
+
+    const handleBulkUpdateCriticalStock = async () => {
+        const val = Number(settings.defaultCriticalStock || "1") || 1;
+        if (!confirm(`Sistemdeki TÜM ürünlerin kritik stok değerini ${val} olarak güncellemek istediğinize emin misiniz?`)) return;
+        setUpdatingBulkStock(true);
+        try {
+            const res = await bulkUpdateAllProductsCriticalStockAction(val);
+            if (res.success) {
+                toast.success(res.message);
+            } else {
+                toast.error(res.message || "Güncelleme başarısız.");
+            }
+        } catch {
+            toast.error("İşlem sırasında hata oluştu.");
+        } finally {
+            setUpdatingBulkStock(false);
+        }
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -604,16 +623,27 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="defaultCriticalStock">Varsayılan Kritik Stok Seviyesi</Label>
-                                    <Input
-                                        id="defaultCriticalStock"
-                                        type="number"
-                                        value={settings.defaultCriticalStock || "10"}
-                                        onChange={(e) => updateField("defaultCriticalStock", e.target.value)}
-                                        className="max-w-xs"
-                                    />
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                        <Input
+                                            id="defaultCriticalStock"
+                                            type="number"
+                                            value={settings.defaultCriticalStock || "1"}
+                                            onChange={(e) => updateField("defaultCriticalStock", e.target.value)}
+                                            className="max-w-xs bg-white dark:bg-gray-800"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleBulkUpdateCriticalStock}
+                                            disabled={updatingBulkStock}
+                                            className="border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium"
+                                        >
+                                            {updatingBulkStock ? "Güncelleniyor..." : `Tüm Ürünlerin Kritik Stok Değerini ${settings.defaultCriticalStock || "1"} Yap`}
+                                        </Button>
+                                    </div>
                                     <p className="text-xs text-gray-500">
                                         Pazaryerlerine (Trendyol vb.) gönderilen stok miktarı hesaplanırken bu değer gerçek stoktan düşülür. 
-                                        Örn: Stok 15, Kritik 10 ise pazaryerine 5 stok bildirilir. 
+                                        Örn: Stok 15, Kritik 1 ise pazaryerine 14 stok bildirilir. 
                                         <b>0</b> yaparsanız tüm stoklar olduğu gibi gönderilir.
                                     </p>
                                 </div>

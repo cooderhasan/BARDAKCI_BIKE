@@ -26,3 +26,22 @@ export async function getSiteSettings(key: string) {
     });
     return settings?.value as Record<string, unknown> | null;
 }
+
+export async function bulkUpdateAllProductsCriticalStockAction(criticalStock: number) {
+    try {
+        const val = Number(criticalStock) || 1;
+        const result = await prisma.product.updateMany({
+            data: {
+                criticalStock: val
+            }
+        });
+        revalidatePath("/admin/products");
+        revalidatePath("/admin/settings");
+        return {
+            success: true,
+            message: `Toplam ${result.count} ürünün kritik stok seviyesi ${val} olarak güncellendi.`
+        };
+    } catch (error: any) {
+        return { success: false, message: error.message };
+    }
+}
