@@ -286,19 +286,45 @@ export class CiceksepetiClient {
         attributes: formattedAttrs,
       };
 
-      if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
-        const validContacts = p.operatorContacts
-          .map((oc: any) => ({
-            type: Number(oc.type),
-            name: String(oc.name || "").trim(),
-            address: String(oc.address || "").trim(),
-            email: String(oc.email || "").trim(),
-          }))
-          .filter((oc: any) => Boolean(oc.type && oc.name && oc.address && oc.email));
+      const rawContacts = (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0)
+        ? p.operatorContacts
+        : [
+            {
+              type: 2,
+              name: "BARDAKCI BİKE - HASAN BARDAKCI",
+              address: "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye",
+              email: "info@bardakcibike.com.tr"
+            }
+          ];
 
-        if (validContacts.length > 0) {
-          item.operatorContacts = validContacts;
-        }
+      const validContacts = rawContacts
+        .map((oc: any) => {
+          const nameStr = String(oc.name || "").trim() || "BARDAKCI BİKE - HASAN BARDAKCI";
+          let addrStr = String(oc.address || "").trim() || "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
+          if (addrStr.length < 3) addrStr = "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
+          let emailStr = String(oc.email || "").trim() || "info@bardakcibike.com.tr";
+          if (!emailStr.includes("@")) emailStr = "info@bardakcibike.com.tr";
+          return {
+            type: Number(oc.type || 2),
+            name: nameStr,
+            address: addrStr,
+            email: emailStr,
+          };
+        })
+        .filter((oc: any) => Boolean(oc.type && oc.name));
+
+      if (validContacts.length > 0) {
+        item.operatorContacts = validContacts;
+      }
+
+      if (p.safetyInfo) {
+        item.safetyInfo = {
+          warningDescription: String((p.safetyInfo as any).warningDescription || "Ustanıza danışınız.").trim(),
+          ceSymbolValueId: Number((p.safetyInfo as any).ceSymbolValueId || 2),
+          origin: String((p.safetyInfo as any).origin || "TR").trim(),
+          ...((p.safetyInfo as any).frontImage ? { frontImage: String((p.safetyInfo as any).frontImage) } : {}),
+          ...((p.safetyInfo as any).backImage ? { backImage: String((p.safetyInfo as any).backImage) } : {})
+        };
       }
 
       return item;
@@ -430,19 +456,45 @@ export class CiceksepetiClient {
         attributes: formattedAttrs,
       };
 
-      if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
-        const validContacts = p.operatorContacts
-          .map((oc: any) => ({
-            type: Number(oc.type),
-            name: String(oc.name || "").trim(),
-            address: String(oc.address || "").trim(),
-            email: String(oc.email || "").trim(),
-          }))
-          .filter((oc: any) => Boolean(oc.type && oc.name && oc.address && oc.email));
+      const rawContacts = (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0)
+        ? p.operatorContacts
+        : [
+            {
+              type: 2,
+              name: "BARDAKCI BİKE - HASAN BARDAKCI",
+              address: "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye",
+              email: "info@bardakcibike.com.tr"
+            }
+          ];
 
-        if (validContacts.length > 0) {
-          item.operatorContacts = validContacts;
-        }
+      const validContacts = rawContacts
+        .map((oc: any) => {
+          const nameStr = String(oc.name || "").trim() || "BARDAKCI BİKE - HASAN BARDAKCI";
+          let addrStr = String(oc.address || "").trim() || "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
+          if (addrStr.length < 3) addrStr = "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
+          let emailStr = String(oc.email || "").trim() || "info@bardakcibike.com.tr";
+          if (!emailStr.includes("@")) emailStr = "info@bardakcibike.com.tr";
+          return {
+            type: Number(oc.type || 2),
+            name: nameStr,
+            address: addrStr,
+            email: emailStr,
+          };
+        })
+        .filter((oc: any) => Boolean(oc.type && oc.name));
+
+      if (validContacts.length > 0) {
+        item.operatorContacts = validContacts;
+      }
+
+      if (p.safetyInfo) {
+        item.safetyInfo = {
+          warningDescription: String((p.safetyInfo as any).warningDescription || "Ustanıza danışınız.").trim(),
+          ceSymbolValueId: Number((p.safetyInfo as any).ceSymbolValueId || 2),
+          origin: String((p.safetyInfo as any).origin || "TR").trim(),
+          ...((p.safetyInfo as any).frontImage ? { frontImage: String((p.safetyInfo as any).frontImage) } : {}),
+          ...((p.safetyInfo as any).backImage ? { backImage: String((p.safetyInfo as any).backImage) } : {})
+        };
       }
 
       return item;
