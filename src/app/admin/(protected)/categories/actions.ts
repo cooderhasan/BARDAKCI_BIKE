@@ -232,3 +232,100 @@ export async function mergeTireCategoriesAction() {
         return { success: false, message: err.message };
     }
 }
+
+export async function getCategoryProductsAction(categoryId: string) {
+    try {
+        const products = await prisma.product.findMany({
+            where: {
+                OR: [
+                    { categoryId },
+                    { categories: { some: { id: categoryId } } }
+                ]
+            },
+            select: {
+                id: true,
+                name: true,
+                sku: true,
+                barcode: true,
+                stock: true,
+                listPrice: true,
+                images: true,
+                categoryId: true,
+                categories: {
+                    select: { id: true, name: true }
+                }
+            },
+            orderBy: { name: "asc" },
+            take: 100
+        });
+
+        return {
+            success: true,
+            products: products.map(p => ({
+                ...p,
+                listPrice: p.listPrice.toNumber(),
+            }))
+        };
+    } catch (err: any) {
+        return { success: false, error: err.message, products: [] };
+    }
+}
+
+export async function moveProductToCategoryAction(productId: string, targetCategoryId: string) {
+    try {
+        await prisma.product.update({
+            where: { id: productId },
+            data: {
+                categoryId: targetCategoryId,
+                categories: {
+                    set: [{ id: targetCategoryId }]
+                }
+            }
+        });
+
+        revalidatePath("/admin/categories");
+        revalidatePath("/admin/products");
+        revalidatePath("/");
+        return { success: true, message: "Ürün yeni kategoriye taşındı." };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}
+
+export async function moveAllProductsAndMergeCategoryAction(sourceCategoryId: string, targetCategoryId: string, deleteSource: boolean = false) {
+    try {
+        const updateLegacy = await prisma.product.updateMany({
+            where: { categoryId: sourceCategoryId },
+            data: { categoryId: targetCategoryId }
+        });
+
+        await prisma.$executeRawUnsafe(
+            `UPDATE "_CategoryToProduct" SET "A" = $1 WHERE "A" = $2 AND "B" NOT IN (SELECT "B" FROM "_CategoryToProduct" WHERE "A" = $1)`,
+            targetCategoryId,
+            sourceCategoryId
+        );
+        await prisma.$executeRawUnsafe(
+            `DELETE FROM "_CategoryToProduct" WHERE "A" = $1`,
+            sourceCategoryId
+        );
+
+        if (deleteSource) {
+            await prisma.category.delete({
+                where: { id: sourceCategoryId }
+            });
+        }
+
+        revalidatePath("/admin/categories");
+        revalidatePath("/admin/products");
+        revalidatePath("/");
+
+        return {
+            success: true,
+            message: deleteSource
+                ? "Tüm ürünler aktarıldı ve eski kategori silindi."
+                : "Tüm ürünler başarıyla yeni kategoriye aktarıldı."
+        };
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+}

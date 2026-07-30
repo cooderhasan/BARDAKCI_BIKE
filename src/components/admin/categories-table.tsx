@@ -22,7 +22,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { X, Plus, Pencil, Trash2, Search, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { X, Plus, Pencil, Trash2, Search, Loader2, Check, ChevronsUpDown, Eye, ExternalLink, ArrowRight, FolderSync } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { getTrendyolCategories } from "@/app/admin/(protected)/integrations/trendyol/actions";
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder } from "@/app/admin/(protected)/categories/actions";
+import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder, getCategoryProductsAction, moveProductToCategoryAction, moveAllProductsAndMergeCategoryAction } from "@/app/admin/(protected)/categories/actions";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { searchHepsiburadaCategories } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
 import { CiceksepetiAttributeMappingModal } from "@/components/admin/ciceksepeti-attribute-mapping-modal";
@@ -96,10 +96,11 @@ interface SortableRowProps {
     onEdit: (category: Category) => void;
     onDelete: (id: string) => void;
     onToggleStatus: (id: string, isActive: boolean) => void;
+    onInspectProducts?: (category: Category) => void;
     reorderMode: "none" | "sidebar" | "header";
 }
 
-function SortableRow({ category, onEdit, onDelete, onToggleStatus, reorderMode }: SortableRowProps) {
+function SortableRow({ category, onEdit, onDelete, onToggleStatus, onInspectProducts, reorderMode }: SortableRowProps) {
     const {
         attributes,
         listeners,
@@ -154,9 +155,20 @@ function SortableRow({ category, onEdit, onDelete, onToggleStatus, reorderMode }
                         {category.isInHeader ? "Üst Menüde" : "Değil"}
                     </Badge>
                 ) : (
-                    <Badge variant="secondary">
-                        {category._count.products} ürün
-                    </Badge>
+                    <button
+                        type="button"
+                        onClick={() => onInspectProducts?.(category)}
+                        className="group focus:outline-none"
+                        title="Bağlı ürünleri görüntüle ve düzenle"
+                    >
+                        <Badge
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-blue-100 hover:text-blue-800 dark:hover:bg-blue-900/40 dark:hover:text-blue-200 transition-all font-medium py-1 px-2.5 flex items-center gap-1.5 shadow-sm border border-gray-200 dark:border-gray-700"
+                        >
+                            <Eye className="w-3.5 h-3.5 text-gray-500 group-hover:text-blue-600" />
+                            <span>{category._count.products} ürün</span>
+                        </Badge>
+                    </button>
                 )}
             </TableCell>
             <TableCell>
@@ -1039,24 +1051,97 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const [reorderMode, setReorderMode] = useState<"none" | "sidebar" | "header">("none");
     const [localCategories, setLocalCategories] = useState<Category[]>(categories);
-    const [mergingTires, setMergingTires] = useState(false);
+    // Category Products Inspection & Movement state
+    const [inspectCategory, setInspectCategory] = useState<Category | null>(null);
+    const [inspectProducts, setInspectProducts] = useState<any[]>([]);
+    const [loadingInspectProducts, setLoadingInspectProducts] = useState(false);
+    const [targetCategoryId, setTargetCategoryId] = useState<string>("");
+    const [movingProductId, setMovingProductId] = useState<string | null>(null);
+    const [bulkMoving, setBulkMoving] = useState(false);
 
-    const handleMergeTires = async () => {
-        if (!confirm("Lastik ve İç Lastik mükerrer kategorilerini 'Motosiklet Dış Lastikler' ve 'Motosiklet İç Lastikler' altına birleştirmek istediğinize emin misiniz?")) return;
-        setMergingTires(true);
+    const handleOpenInspectProducts = async (category: Category) => {
+        setInspectCategory(category);
+        setInspectProducts([]);
+        setLoadingInspectProducts(true);
+        setTargetCategoryId("");
         try {
-            const res = await fetch("/api/admin/categories/merge-tires", { method: "POST" });
-            const data = await res.json();
-            if (data.success) {
-                toast.success(data.message || "Lastik kategorileri başarıyla birleştirildi!");
-                window.location.reload();
+            const res = await getCategoryProductsAction(category.id);
+            if (res.success && res.products) {
+                setInspectProducts(res.products);
             } else {
-                toast.error(data.message || "Birleştirme başarısız.");
+                toast.error("Ürünler yüklenemedi: " + (res.error || "Bilinmeyen hata"));
             }
         } catch {
-            toast.error("Birleştirme sırasında hata oluştu.");
+            toast.error("Ürünler yüklenirken bir hata oluştu.");
         } finally {
-            setMergingTires(false);
+            setLoadingInspectProducts(false);
+        }
+    };
+
+    const handleMoveSingleProduct = async (productId: string, destinationCatId: string) => {
+        if (!destinationCatId) {
+            toast.error("Lütfen hedef bir kategori seçiniz.");
+            return;
+        }
+        setMovingProductId(productId);
+        try {
+            const res = await moveProductToCategoryAction(productId, destinationCatId);
+            if (res.success) {
+                toast.success("Ürün başarıyla taşındı.");
+                setInspectProducts(prev => prev.filter(p => p.id !== productId));
+                setLocalCategories(prev => prev.map(c => {
+                    if (c.id === inspectCategory?.id) {
+                        return { ...c, _count: { products: Math.max(0, c._count.products - 1) } };
+                    }
+                    if (c.id === destinationCatId) {
+                        return { ...c, _count: { products: c._count.products + 1 } };
+                    }
+                    return c;
+                }));
+                if (inspectCategory) {
+                    setInspectCategory(prev => prev ? {
+                        ...prev,
+                        _count: { products: Math.max(0, prev._count.products - 1) }
+                    } : null);
+                }
+            } else {
+                toast.error(res.error || "Taşıma başarısız.");
+            }
+        } catch {
+            toast.error("Taşıma sırasında hata oluştu.");
+        } finally {
+            setMovingProductId(null);
+        }
+    };
+
+    const handleBulkMoveProducts = async (deleteSourceAfterMove: boolean = false) => {
+        if (!inspectCategory) return;
+        if (!targetCategoryId) {
+            toast.error("Lütfen aktarmak istediğiniz hedef kategoriyi seçiniz.");
+            return;
+        }
+
+        const targetCatName = localCategories.find(c => c.id === targetCategoryId)?.name || "seçilen kategoriye";
+        const confirmMsg = deleteSourceAfterMove
+            ? `"${inspectCategory.name}" kategorisindeki TÜM ürünler "${targetCatName}" kategorisine taşınacak ve "${inspectCategory.name}" kategorisi SİLİNECEKTİR. Onaylıyor musunuz?`
+            : `"${inspectCategory.name}" kategorisindeki TÜM ürünler "${targetCatName}" kategorisine taşınacaktır. Onaylıyor musunuz?`;
+
+        if (!confirm(confirmMsg)) return;
+
+        setBulkMoving(true);
+        try {
+            const res = await moveAllProductsAndMergeCategoryAction(inspectCategory.id, targetCategoryId, deleteSourceAfterMove);
+            if (res.success) {
+                toast.success(res.message);
+                setInspectCategory(null);
+                window.location.reload();
+            } else {
+                toast.error(res.error || "Toplu taşıma başarısız.");
+            }
+        } catch {
+            toast.error("Toplu taşıma sırasında bir hata oluştu.");
+        } finally {
+            setBulkMoving(false);
         }
     };
 
@@ -1398,23 +1483,6 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleMergeTires}
-                        disabled={mergingTires}
-                        className="border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium"
-                    >
-                        {mergingTires ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Birleştiriliyor...
-                            </>
-                        ) : (
-                            "Lastik Kategorilerini Otomatik Birleştir"
-                        )}
-                    </Button>
-
                     <Dialog open={isOpen} onOpenChange={setIsOpen}>
                         <DialogTrigger asChild>
                             <Button onClick={openNewDialog}>
@@ -1752,6 +1820,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                             onEdit={openEditDialog}
                                             onDelete={handleDelete}
                                             onToggleStatus={handleToggleStatus}
+                                            onInspectProducts={handleOpenInspectProducts}
                                             reorderMode={reorderMode}
                                         />
                                     ))}
@@ -1761,6 +1830,158 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     </Table>
                 </div>
             </DndContext>
+
+            {/* Category Products Inspection & Migration Modal */}
+            <Dialog open={!!inspectCategory} onOpenChange={(open) => !open && setInspectCategory(null)}>
+                <DialogContent className="sm:max-w-[850px] max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-lg">
+                            <span>📂</span>
+                            <span>"{inspectCategory?.name}" Kategorisine Bağlı Ürünler</span>
+                            <Badge variant="secondary" className="ml-auto font-mono text-xs">
+                                {inspectCategory?._count.products || inspectProducts.length} Ürün
+                            </Badge>
+                        </DialogTitle>
+                        <DialogDescription>
+                            Bu kategorideki ürünleri inceleyebilir, ürün bazında veya toplu olarak başka bir kategoriye taşıyabilirsiniz.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Bulk Actions Panel */}
+                    {inspectCategory && inspectCategory._count.products > 0 && (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg space-y-3">
+                            <div className="text-sm font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-2">
+                                <FolderSync className="w-4 h-4 text-amber-600" />
+                                <span>Kategori Birleştirme & Toplu Ürün Taşıma</span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                <Select value={targetCategoryId} onValueChange={setTargetCategoryId}>
+                                    <SelectTrigger className="flex-1 bg-white dark:bg-gray-800">
+                                        <SelectValue placeholder="Aktarılacak Hedef Kategoriyi Seçiniz..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-60 overflow-y-auto">
+                                        {localCategories
+                                            .filter(c => c.id !== inspectCategory.id)
+                                            .map(c => (
+                                                <SelectItem key={c.id} value={c.id}>
+                                                    {c.name} {c.parent ? `(${c.parent.name})` : ""}
+                                                </SelectItem>
+                                            ))
+                                        }
+                                    </SelectContent>
+                                </Select>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => handleBulkMoveProducts(false)}
+                                        disabled={bulkMoving || !targetCategoryId}
+                                        className="bg-amber-200 hover:bg-amber-300 text-amber-900 font-medium"
+                                    >
+                                        {bulkMoving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <ArrowRight className="w-3.5 h-3.5 mr-1" />}
+                                        Tüm Ürünleri Taşı
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => handleBulkMoveProducts(true)}
+                                        disabled={bulkMoving || !targetCategoryId}
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                        Taşı ve Kategoriyi Sil
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Products List */}
+                    <div className="space-y-3 my-2">
+                        {loadingInspectProducts ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
+                                <span className="text-sm">Kategoriye bağlı ürünler yükleniyor...</span>
+                            </div>
+                        ) : inspectProducts.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500 border border-dashed rounded-lg">
+                                Bu kategoride bağlı ürün bulunmuyor.
+                            </div>
+                        ) : (
+                            <div className="divide-y border rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                                {inspectProducts.map((product) => {
+                                    const firstImg = product.images?.[0];
+                                    return (
+                                        <div key={product.id} className="p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <div className="w-12 h-12 rounded border bg-gray-100 dark:bg-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                                    {firstImg ? (
+                                                        <img src={firstImg} alt={product.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400">Görsel Yok</span>
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <a
+                                                        href={`/admin/products?search=${encodeURIComponent(product.sku || product.name)}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="font-medium text-sm text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1.5 group"
+                                                    >
+                                                        <span className="truncate">{product.name}</span>
+                                                        <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 shrink-0" />
+                                                    </a>
+                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-0.5 font-mono">
+                                                        <span>SKU: {product.sku || "-"}</span>
+                                                        <span>•</span>
+                                                        <span>Stok: {product.stock} adet</span>
+                                                        <span>•</span>
+                                                        <span className="text-emerald-600 font-bold">{product.listPrice} ₺</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Single Product Category Transfer Form */}
+                                            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                                                <Select
+                                                    onValueChange={(val) => handleMoveSingleProduct(product.id, val)}
+                                                    disabled={movingProductId === product.id}
+                                                >
+                                                    <SelectTrigger className="w-[190px] h-8 text-xs bg-gray-50 dark:bg-gray-900">
+                                                        <SelectValue placeholder="Başka Kategoriye Taşı..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-h-60 overflow-y-auto">
+                                                        {localCategories
+                                                            .filter(c => c.id !== inspectCategory?.id)
+                                                            .map(c => (
+                                                                <SelectItem key={c.id} value={c.id} className="text-xs">
+                                                                    {c.name}
+                                                                </SelectItem>
+                                                            ))
+                                                        }
+                                                    </SelectContent>
+                                                </Select>
+                                                {movingProductId === product.id && (
+                                                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setInspectCategory(null)}>
+                            Kapat
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
