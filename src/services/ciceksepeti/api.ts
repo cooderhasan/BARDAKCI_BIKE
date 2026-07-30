@@ -286,35 +286,25 @@ export class CiceksepetiClient {
         attributes: formattedAttrs,
       };
 
-      const rawContacts = (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0)
-        ? p.operatorContacts
-        : [
-            {
-              type: 2,
-              name: "BARDAKCI BİKE - HASAN BARDAKCI",
-              address: "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye",
-              email: "info@bardakcibike.com.tr"
-            }
-          ];
+      if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
+        const validContacts = p.operatorContacts
+          .map((oc: any) => {
+            const nameStr = String(oc.name || "").trim();
+            const addrStr = String(oc.address || "").trim();
+            const emailStr = String(oc.email || "").trim();
+            if (!nameStr) return null;
+            return {
+              type: Number(oc.type || 2),
+              name: nameStr,
+              ...(addrStr ? { address: addrStr } : {}),
+              ...(emailStr ? { email: emailStr } : {}),
+            };
+          })
+          .filter((oc: any) => Boolean(oc));
 
-      const validContacts = rawContacts
-        .map((oc: any) => {
-          const nameStr = String(oc.name || "").trim() || "BARDAKCI BİKE - HASAN BARDAKCI";
-          let addrStr = String(oc.address || "").trim() || "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
-          if (addrStr.length < 3) addrStr = "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
-          let emailStr = String(oc.email || "").trim() || "info@bardakcibike.com.tr";
-          if (!emailStr.includes("@")) emailStr = "info@bardakcibike.com.tr";
-          return {
-            type: Number(oc.type || 2),
-            name: nameStr,
-            address: addrStr,
-            email: emailStr,
-          };
-        })
-        .filter((oc: any) => Boolean(oc.type && oc.name));
-
-      if (validContacts.length > 0) {
-        item.operatorContacts = validContacts;
+        if (validContacts.length > 0) {
+          item.operatorContacts = validContacts;
+        }
       }
 
       if (p.safetyInfo) {
@@ -456,35 +446,25 @@ export class CiceksepetiClient {
         attributes: formattedAttrs,
       };
 
-      const rawContacts = (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0)
-        ? p.operatorContacts
-        : [
-            {
-              type: 2,
-              name: "BARDAKCI BİKE - HASAN BARDAKCI",
-              address: "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye",
-              email: "info@bardakcibike.com.tr"
-            }
-          ];
+      if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
+        const validContacts = p.operatorContacts
+          .map((oc: any) => {
+            const nameStr = String(oc.name || "").trim();
+            const addrStr = String(oc.address || "").trim();
+            const emailStr = String(oc.email || "").trim();
+            if (!nameStr) return null;
+            return {
+              type: Number(oc.type || 2),
+              name: nameStr,
+              ...(addrStr ? { address: addrStr } : {}),
+              ...(emailStr ? { email: emailStr } : {}),
+            };
+          })
+          .filter((oc: any) => Boolean(oc));
 
-      const validContacts = rawContacts
-        .map((oc: any) => {
-          const nameStr = String(oc.name || "").trim() || "BARDAKCI BİKE - HASAN BARDAKCI";
-          let addrStr = String(oc.address || "").trim() || "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
-          if (addrStr.length < 3) addrStr = "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye";
-          let emailStr = String(oc.email || "").trim() || "info@bardakcibike.com.tr";
-          if (!emailStr.includes("@")) emailStr = "info@bardakcibike.com.tr";
-          return {
-            type: Number(oc.type || 2),
-            name: nameStr,
-            address: addrStr,
-            email: emailStr,
-          };
-        })
-        .filter((oc: any) => Boolean(oc.type && oc.name));
-
-      if (validContacts.length > 0) {
-        item.operatorContacts = validContacts;
+        if (validContacts.length > 0) {
+          item.operatorContacts = validContacts;
+        }
       }
 
       if (p.safetyInfo) {

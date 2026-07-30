@@ -391,15 +391,9 @@ export async function syncProductsToCiceksepeti(
         console.log(`[CS-SYNC] Final filtered attributes for ${p.name}:`, JSON.stringify(attributes));
 
         const productCode = p.sku || p.barcode || p.id;
-        const defaultOperatorContacts = [
-          {
-            type: 2,
-            name: "BARDAKCI BİKE - HASAN BARDAKCI",
-            address: "Sanayi Mah. 123 Sk. No:4 Düzce / Türkiye",
-            email: "info@bardakcibike.com.tr"
-          }
-        ];
-        const operatorContacts = customOptions?.operatorContacts || config.operatorContacts || defaultOperatorContacts;
+        const operatorContacts = (customOptions?.operatorContacts && customOptions.operatorContacts.length > 0)
+          ? customOptions.operatorContacts
+          : (config.operatorContacts && config.operatorContacts.length > 0 ? config.operatorContacts : undefined);
 
         productInputs.push({
           productName: p.name,
