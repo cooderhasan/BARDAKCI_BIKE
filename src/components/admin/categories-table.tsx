@@ -1039,6 +1039,26 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const [reorderMode, setReorderMode] = useState<"none" | "sidebar" | "header">("none");
     const [localCategories, setLocalCategories] = useState<Category[]>(categories);
+    const [mergingTires, setMergingTires] = useState(false);
+
+    const handleMergeTires = async () => {
+        if (!confirm("Lastik ve İç Lastik mükerrer kategorilerini 'Motosiklet Dış Lastikler' ve 'Motosiklet İç Lastikler' altına birleştirmek istediğinize emin misiniz?")) return;
+        setMergingTires(true);
+        try {
+            const res = await fetch("/api/admin/categories/merge-tires", { method: "POST" });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(data.message || "Lastik kategorileri başarıyla birleştirildi!");
+                window.location.reload();
+            } else {
+                toast.error(data.message || "Birleştirme başarısız.");
+            }
+        } catch {
+            toast.error("Birleştirme sırasında hata oluştu.");
+        } finally {
+            setMergingTires(false);
+        }
+    };
 
     // Sync local state when server data updates
     useEffect(() => {
@@ -1375,14 +1395,30 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                             <SelectItem value="hb">Hepsiburada Eksik</SelectItem>
                         </SelectContent>
                     </Select>
-                </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleMergeTires}
+                        disabled={mergingTires}
+                        className="border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 font-medium"
+                    >
+                        {mergingTires ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Birleştiriliyor...
+                            </>
+                        ) : (
+                            "Lastik Kategorilerini Otomatik Birleştir"
+                        )}
+                    </Button>
 
-                <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={openNewDialog}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Yeni Kategori
-                        </Button>
+                    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                        <DialogTrigger asChild>
+                            <Button onClick={openNewDialog}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Yeni Kategori
+                            </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
