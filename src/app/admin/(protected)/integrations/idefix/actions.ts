@@ -261,13 +261,17 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
         data: { isIdefixActive: true },
       });
     } else {
+      // Toplu gonderimde tum aktif urunlerin isIdefixActive alanini true yap
+      await prisma.product.updateMany({
+        where: { isActive: true },
+        data: { isIdefixActive: true },
+      });
       where.isIdefixActive = true;
     }
 
     const products = await prisma.product.findMany({
       where,
       include: { brand: true, variants: true, idefixProduct: true },
-      take: 50,
     });
 
     if (products.length === 0) {
