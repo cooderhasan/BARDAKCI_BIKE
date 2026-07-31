@@ -220,13 +220,16 @@ export async function syncProductsToPttavm(productIds?: string[]) {
         data: { isPttavmActive: true },
       });
     } else {
+      await prisma.product.updateMany({
+        where: { isActive: true },
+        data: { isPttavmActive: true },
+      });
       where.isPttavmActive = true;
     }
 
     const products = await prisma.product.findMany({
       where,
       include: { brand: true, categories: true, variants: true, pttavmProduct: true },
-      take: 100,
     });
 
     if (products.length === 0) {
