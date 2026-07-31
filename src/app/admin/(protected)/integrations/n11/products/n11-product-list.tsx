@@ -264,7 +264,19 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                     <TableCell>
                                         <div className="flex flex-col">
                                             <span className="font-medium text-sm line-clamp-1">{product.name}</span>
-                                            <span className="text-[10px] text-muted-foreground font-mono">{product.sku || product.barcode}</span>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-[10px] text-muted-foreground font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{product.sku || product.barcode}</span>
+                                                {product.n11Product?.sellerCode && (
+                                                    <span className="text-[10px] font-mono text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-1.5 py-0.5 rounded font-semibold border border-purple-100 dark:border-purple-900" title="Entegra / N11 Stok Kodu">
+                                                        N11: {product.n11Product.sellerCode}
+                                                    </span>
+                                                )}
+                                                {product.n11Product?.n11Id && (
+                                                    <span className="text-[10px] font-mono text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded" title="N11 İlan ID">
+                                                        İlan #{product.n11Product.n11Id}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
