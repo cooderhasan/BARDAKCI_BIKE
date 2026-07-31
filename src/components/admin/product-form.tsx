@@ -20,7 +20,14 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { Plus, X, ImageIcon, Trash2, Loader2, RefreshCcw, Package, RefreshCw, Brain, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import dynamic from "next/dynamic";
+const RichTextEditor = dynamic(
+    () => import("@/components/admin/rich-text-editor").then((mod) => mod.RichTextEditor),
+    {
+        ssr: false,
+        loading: () => <div className="h-48 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center text-sm text-gray-400">Editör yükleniyor...</div>
+    }
+);
 import { calculateDesi } from "@/lib/shipping";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";

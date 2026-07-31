@@ -45,6 +45,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         prisma.brand.findMany({
             where: { isActive: true },
             orderBy: { name: "asc" },
+            select: { id: true, name: true }
         }),
         prisma.siteSettings.findUnique({ where: { key: "general" } })
     ]);
