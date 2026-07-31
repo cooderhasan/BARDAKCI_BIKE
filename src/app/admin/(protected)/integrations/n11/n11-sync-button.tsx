@@ -54,7 +54,7 @@ export function N11SyncButton() {
     );
 }
 
-import { syncOrdersFromN11, autoMatchN11ProductsAction, importN11ExcelAction } from "./actions";
+import { syncOrdersFromN11, autoMatchN11ProductsAction, importN11ExcelAction, importN11MappingsAction } from "./actions";
 import { Download, Link2, FileSpreadsheet } from "lucide-react";
 
 function N11ExcelImportButton() {
@@ -66,24 +66,47 @@ function N11ExcelImportButton() {
 
         setLoading(true);
         try {
+            const XLSX = await import("xlsx");
             const reader = new FileReader();
             reader.onload = async (evt) => {
-                const base64 = evt.target?.result?.toString().split(",")[1];
-                if (!base64) {
-                    toast.error("Dosya okunamadı.");
+                try {
+                    const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+                    const wb = XLSX.read(data, { type: "array" });
+                    const sheet = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet) as any[];
+
+                    if (!rows || rows.length === 0) {
+                        toast.error("Excel dosyası boş veya okunamadı.");
+                        setLoading(false);
+                        return;
+                    }
+
+                    const mappings = rows.map((row: any) => ({
+                        sku: (row["Urun-Kodu"] || row["Ürün Kodu"] || row["Stok Kodu"] || "").toString().trim(),
+                        sellerCode: (row["N11-Entegrasyon-Kodu"] || row["Entegrasyon Kodu"] || row["Magaza Ürün Kodu"] || "").toString().trim(),
+                        n11Id: row["N11-ilan-id"] || row["N11 İlan ID"] || row["IlanId"] ? String(row["N11-ilan-id"] || row["N11 İlan ID"] || row["IlanId"]).trim() : null
+                    })).filter(item => item.sku && item.sellerCode);
+
+                    if (mappings.length === 0) {
+                        toast.error("Excel dosyasında geçerli Stok Kodu ve Entegrasyon Kodu sütunları bulunamadı.");
+                        setLoading(false);
+                        return;
+                    }
+
+                    const res = await importN11MappingsAction(mappings);
+                    if (res.success) {
+                        toast.success(res.message);
+                        window.location.reload();
+                    } else {
+                        toast.error(res.message || "Eşleştirme başarısız.");
+                    }
+                } catch (err: any) {
+                    toast.error("İşleme hatası: " + err.message);
+                } finally {
                     setLoading(false);
-                    return;
                 }
-                const res = await importN11ExcelAction(base64);
-                if (res.success) {
-                    toast.success(res.message);
-                    window.location.reload();
-                } else {
-                    toast.error(res.message || "Eşleştirme başarısız.");
-                }
-                setLoading(false);
             };
-            reader.readAsDataURL(file);
+            reader.readAsArrayBuffer(file);
         } catch (error: any) {
             toast.error("Hata: " + error.message);
             setLoading(false);

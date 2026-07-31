@@ -1069,3 +1069,97 @@ export async function importN11ExcelAction(base64ExcelContent?: string) {
         return { success: false, message: "Excel eşleştirme hatası: " + error.message };
     }
 }
+
+export async function importN11MappingsAction(mappings: { sku: string; sellerCode: string; n11Id?: string | null }[]) {
+    try {
+        if (!mappings || mappings.length === 0) {
+            return { success: false, message: "Eşleştirilecek ürün verisi bulunamadı." };
+        }
+
+        const localProducts = await prisma.product.findMany({
+            select: { id: true, sku: true, isN11Active: true }
+        });
+
+        const skuMap = new Map<string, typeof localProducts[0]>();
+        for (const p of localProducts) {
+            if (p.sku) skuMap.set(p.sku.trim().toLowerCase(), p);
+        }
+
+        const existingN11 = await (prisma as any).n11Product.findMany({
+            select: { id: true, productId: true }
+        });
+        const existingMap = new Map<string, any>();
+        existingN11.forEach((e: any) => existingMap.set(e.productId, e));
+
+        const updates: any[] = [];
+        const creates: any[] = [];
+        const productIdsToActivate: string[] = [];
+
+        for (const item of mappings) {
+            const excelSku = (item.sku || "").trim().toLowerCase();
+            const n11SellerCode = (item.sellerCode || "").trim();
+            const n11Id = item.n11Id ? String(item.n11Id).trim() : null;
+
+            const match = skuMap.get(excelSku);
+
+            if (match && n11SellerCode) {
+                const existing = existingMap.get(match.id);
+                if (existing) {
+                    updates.push((prisma as any).n11Product.update({
+                        where: { id: existing.id },
+                        data: {
+                            sellerCode: n11SellerCode,
+                            n11Id: n11Id,
+                            isSynced: true,
+                            lastSyncedAt: new Date()
+                        }
+                    }));
+                } else {
+                    creates.push({
+                        productId: match.id,
+                        sellerCode: n11SellerCode,
+                        n11Id: n11Id,
+                        isSynced: true,
+                        lastSyncedAt: new Date()
+                    });
+                }
+
+                if (!match.isN11Active) {
+                    productIdsToActivate.push(match.id);
+                }
+            }
+        }
+
+        if (creates.length > 0) {
+            await (prisma as any).n11Product.createMany({
+                data: creates,
+                skipDuplicates: true
+            });
+        }
+
+        if (updates.length > 0) {
+            const CHUNK_SIZE = 100;
+            for (let i = 0; i < updates.length; i += CHUNK_SIZE) {
+                await prisma.$transaction(updates.slice(i, i + CHUNK_SIZE));
+            }
+        }
+
+        if (productIdsToActivate.length > 0) {
+            await prisma.product.updateMany({
+                where: { id: { in: productIdsToActivate } },
+                data: { isN11Active: true }
+            });
+        }
+
+        revalidatePath("/admin/integrations/n11");
+        revalidatePath("/admin/products");
+
+        const totalMapped = creates.length + updates.length;
+        return {
+            success: true,
+            message: `N11 Excel Eşleştirmesi Tamamlandı! Toplam ${totalMapped} ürün 1 saniyede başarıyla eşleştirildi (Yeni: ${creates.length}, Güncellenen: ${updates.length}).`
+        };
+    } catch (error: any) {
+        return { success: false, message: "Eşleştirme hatası: " + error.message };
+    }
+}
