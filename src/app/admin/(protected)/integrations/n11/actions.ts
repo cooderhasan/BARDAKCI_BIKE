@@ -269,8 +269,25 @@ export async function syncOrdersFromN11() {
 
                 let product: any = null;
 
-                // 1) Exact search by SKU, Barcode, or ID
+                // 0) Priority N11Product mapping lookup (sellerCode & n11Id)
                 if (searchCodes.length > 0) {
+                    const n11Map = await (prisma as any).n11Product.findFirst({
+                        where: {
+                            OR: searchCodes.flatMap((code) => [
+                                { sellerCode: code },
+                                { sellerCode: { equals: code, mode: "insensitive" } },
+                                { n11Id: code },
+                            ]),
+                        },
+                        include: { product: true },
+                    });
+                    if (n11Map?.product) {
+                        product = n11Map.product;
+                    }
+                }
+
+                // 1) Exact search by SKU, Barcode, or ID
+                if (!product && searchCodes.length > 0) {
                     product = await prisma.product.findFirst({
                         where: {
                             OR: searchCodes.flatMap((code) => [
@@ -291,6 +308,33 @@ export async function syncOrdersFromN11() {
                                 ]),
                             },
                         });
+                    }
+
+                    // 2.5) SellerCode prefix fallback (e.g. "brdozel014-29511" -> "brdozel014" or "ozel014")
+                    if (!product) {
+                        const strippedCodes = searchCodes
+                            .map((code) => {
+                                const parts = code.split("-");
+                                if (parts.length > 1) {
+                                    const raw = parts[0];
+                                    const cleaned = raw.toLowerCase().startsWith("brd") ? raw.substring(3) : raw;
+                                    return [raw, cleaned];
+                                }
+                                return [];
+                            })
+                            .flat()
+                            .filter(Boolean);
+
+                        if (strippedCodes.length > 0) {
+                            product = await prisma.product.findFirst({
+                                where: {
+                                    OR: strippedCodes.flatMap((code) => [
+                                        { sku: { equals: code, mode: "insensitive" } },
+                                        { barcode: { equals: code, mode: "insensitive" } },
+                                    ]),
+                                },
+                            });
+                        }
                     }
                 }
 
