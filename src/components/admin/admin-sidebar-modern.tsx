@@ -246,7 +246,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 custom-scrollbar">
                     {filteredGroups.map((group, groupIndex) => (
-                        <div key={groupIndex} className="animate-in fade-in duration-500" style={{ animationDelay: `${groupIndex * 50}ms` }}>
+                        <div key={groupIndex}>
                             {!collapsed && group.title && (
                                 <h3 className="px-4 mb-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                                     {group.title}
@@ -262,10 +262,11 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                                         <Link
                                             key={item.href}
                                             href={item.href}
+                                            prefetch={true}
                                             onClick={() => setMobileOpen(false)}
                                             title={collapsed ? item.title : undefined}
                                             className={cn(
-                                                "flex items-center gap-3 px-3 py-2.5 mx-1 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                                                "flex items-center gap-3 px-3 py-2.5 mx-1 rounded-xl text-sm font-medium transition-all duration-150 group relative overflow-hidden",
                                                 isActive
                                                     ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25 ring-1 ring-blue-400/20"
                                                     : "text-gray-600 hover:text-[#17457C] hover:bg-blue-50/80 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/10"
