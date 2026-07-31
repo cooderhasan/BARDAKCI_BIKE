@@ -354,69 +354,78 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
 
     // --- 2. Yeni urunler: fast-listing ile dene ---
     if (newProducts.length > 0) {
-      const fastListingItems = newProducts.flatMap((p: any) => {
-        const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
-        const rawListPrice = Number(p.listPrice);
-        const comparePrice = rawListPrice >= price ? rawListPrice : price;
-        const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < newProducts.length; i += BATCH_SIZE) {
+        const chunkProducts = newProducts.slice(i, i + BATCH_SIZE);
+        const batchListingItems = chunkProducts.flatMap((p: any) => {
+          const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
+          const rawListPrice = Number(p.listPrice);
+          const comparePrice = rawListPrice >= price ? rawListPrice : price;
+          const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
 
-        const criticalStock = p.criticalStock ?? defaultCritical;
-        const availableStock = Math.max(0, (p.stock ?? 0) - criticalStock);
+          const criticalStock = p.criticalStock ?? defaultCritical;
+          const availableStock = Math.max(0, (p.stock ?? 0) - criticalStock);
 
-        if (validVariants.length > 0) {
-          return validVariants.map((v: any) => {
-            const varAvailableStock = Math.max(0, (v.stock ?? 0) - criticalStock);
-            return {
-              barcode: v.barcode,
-              title: p.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
-              vendorStockCode: v.sku || v.barcode,
+          if (validVariants.length > 0) {
+            return validVariants.map((v: any) => {
+              const varAvailableStock = Math.max(0, (v.stock ?? 0) - criticalStock);
+              return {
+                barcode: v.barcode,
+                title: p.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
+                vendorStockCode: v.sku || v.barcode,
+                price,
+                comparePrice,
+                inventoryQuantity: varAvailableStock,
+              };
+            });
+          }
+          if (p.barcode) {
+            return [{
+              barcode: p.barcode,
+              title: p.name,
+              vendorStockCode: p.sku || p.barcode,
               price,
               comparePrice,
-              inventoryQuantity: varAvailableStock,
-            };
-          });
-        }
-        if (p.barcode) {
-          return [{
-            barcode: p.barcode,
-            title: p.name,
-            vendorStockCode: p.sku || p.barcode,
-            price,
-            comparePrice,
-            inventoryQuantity: availableStock,
-          }];
-        }
-        return [];
-      });
+              inventoryQuantity: availableStock,
+            }];
+          }
+          return [];
+        });
 
-      if (fastListingItems.length > 0) {
-        const BATCH_SIZE = 50;
-        for (let i = 0; i < fastListingItems.length; i += BATCH_SIZE) {
-          const batch = fastListingItems.slice(i, i + BATCH_SIZE);
+        if (batchListingItems.length > 0) {
           try {
-            const result = await client.quickAddProducts(batch);
+            const result = await client.quickAddProducts(batchListingItems);
             const batchId = result?.batchRequestId;
-            for (const p of newProducts) {
-              await (prisma as any).idefixProduct.upsert({
-                where: { productId: p.id },
-                update: { batchId, batchStatus: "PENDING", matchStatus: null, lastSyncedAt: new Date(), lastSyncError: null },
-                create: { productId: p.id, batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
-              });
-            }
-            totalSynced += batch.length;
-            console.log(`Idefix fast-listing: ${batch.length} urun, batchId=${batchId}`);
+            const pIds = chunkProducts.map((p: any) => p.id);
+
+            await prisma.$transaction(
+              pIds.map((pid: string) =>
+                (prisma as any).idefixProduct.upsert({
+                  where: { productId: pid },
+                  update: { batchId, batchStatus: "PENDING", matchStatus: null, lastSyncedAt: new Date(), lastSyncError: null },
+                  create: { productId: pid, batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
+                })
+              )
+            );
+            totalSynced += batchListingItems.length;
+            console.log(`Idefix fast-listing batch: ${batchListingItems.length} urun, batchId=${batchId}`);
           } catch (err: any) {
             console.error("Idefix fast-listing error:", err.message);
-            totalFailed += batch.length;
-            for (const p of newProducts) {
-              await (prisma as any).idefixProduct.upsert({
-                where: { productId: p.id },
-                update: { lastSyncError: err.message, batchStatus: "FAILED" },
-                create: { productId: p.id, lastSyncError: err.message, batchStatus: "FAILED" },
-              });
-            }
+            totalFailed += batchListingItems.length;
+            const pIds = chunkProducts.map((p: any) => p.id);
+            await prisma.$transaction(
+              pIds.map((pid: string) =>
+                (prisma as any).idefixProduct.upsert({
+                  where: { productId: pid },
+                  update: { lastSyncError: err.message, batchStatus: "FAILED" },
+                  create: { productId: pid, lastSyncError: err.message, batchStatus: "FAILED" },
+                })
+              )
+            );
           }
         }
+        // Micro pause to ensure smooth background execution
+        await new Promise((res) => setTimeout(res, 200));
       }
     }
 
