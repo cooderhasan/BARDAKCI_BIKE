@@ -817,6 +817,143 @@ export async function getN11Tasks() {
                 }
             } catch (e: any) {
                 console.error(`Task poll error for ${task.taskId}:`, e);
+                await (prisma as any).n11Task.update({
+                    where: { id: task.id },
+                    data: { errorMessage: `Sistem Hatası: ${e.message}` }
+                });
+            }
+        }
+
+        return await (prisma as any).n11Task.findMany({
+            include: {
+                n11Product: {
+                    include: {
+                        product: {
+                            select: { name: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: "desc" },
+            take: 50
+        });
+    }
+
+    return tasks;
+}
+
+export async function getN11Tasks() {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        throw new Error("Unauthorized");
+    }
+
+    // Get tasks from DB
+    const tasks = await (prisma as any).n11Task.findMany({
+        include: {
+            n11Product: {
+                include: {
+                    product: {
+                        select: { name: true, sku: true, id: true }
+                    }
+                }
+            }
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50
+    });
+
+    // Check if any task is still PENDING and try to update it from N11
+    const pendingTasks = tasks.filter((t: any) => t.status === "PENDING" || t.status === "IN_PROGRESS");
+    
+    if (pendingTasks.length > 0) {
+        const { N11Client } = await import("@/services/n11/api");
+        const client = new N11Client();
+        await client.init(); // CRITICAL: Initialize with credentials
+
+        for (const task of pendingTasks) {
+            try {
+                // Add a small delay between requests to avoid overloading N11 server
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const res = await client.getTaskDetails(task.taskId);
+                if (res.success && res.data) {
+                    const rawStatus = String(res.data.status || res.data.state || res.data.result || "").toUpperCase();
+                    
+                    // Normalize status
+                    let n11Status = "PENDING";
+                    const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED", "DONE"];
+                    const failedStates = ["FAILED", "ERROR", "REJECTED", "FAIL", "CANCELLED"];
+                    const processingStates = ["IN_PROGRESS", "PROCESSING", "WORKING", "RUNNING"];
+
+                    if (successStates.includes(rawStatus)) {
+                        n11Status = "COMPLETED";
+                    } else if (failedStates.includes(rawStatus)) {
+                        n11Status = "FAILED";
+                    } else if (processingStates.includes(rawStatus)) {
+                        n11Status = "IN_PROGRESS";
+                    }
+
+                    // Check individual items for detailed status/errors
+                    const items = res.data.items || res.data.skus?.content || res.data.content || [];
+                    let detailedError = null;
+
+                    if (items.length > 0) {
+                        const anyItemFailed = items.some((item: any) => 
+                            failedStates.includes(String(item.status || "").toUpperCase())
+                        );
+                        const allItemsSuccess = items.every((item: any) => 
+                            successStates.includes(String(item.status || "").toUpperCase())
+                        );
+
+                        if (anyItemFailed) {
+                            n11Status = "FAILED";
+                            const firstFail = items.find((item: any) => failedStates.includes(String(item.status || "").toUpperCase()));
+                            detailedError = firstFail?.reasons ? (Array.isArray(firstFail.reasons) ? firstFail.reasons.join(", ") : String(firstFail.reasons)) : (firstFail?.errorDescription || firstFail?.errorMessage || "Ürün hatası");
+                        } else if (allItemsSuccess) {
+                            n11Status = "COMPLETED";
+                        }
+                    }
+
+                    if (n11Status !== task.status || detailedError) {
+                        await (prisma as any).n11Task.update({
+                            where: { id: task.id },
+                            data: { 
+                                status: n11Status,
+                                errorMessage: detailedError || (n11Status === "PENDING" ? `N11 Durumu: ${rawStatus}` : null)
+                            }
+                        });
+
+                        // If completed, update product status too
+                        if (n11Status === "COMPLETED") {
+                            await (prisma as any).n11Product.update({
+                                where: { id: task.n11ProductId },
+                                data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
+                            });
+                        }
+                    }
+                } else if (!res.success) {
+                    // Plan B: Check if product exists via SOAP using sellerCode
+                    // This is useful when REST polling is down but product was actually created
+                    const sku = task.n11Product?.sellerCode || task.n11Product?.product?.sku || task.n11Product?.product?.id;
+                    if (sku) {
+                        console.log(`Polling failed for ${task.taskId}, trying Plan B (SOAP) for SKU: ${sku}`);
+                        const soapRes = await client.getProductBySellerCode(sku);
+                        if (soapRes.success && soapRes.exists) {
+                            console.log(`Product ${sku} found via SOAP fallback! Marking task ${task.taskId} as COMPLETED.`);
+                            await (prisma as any).n11Task.update({
+                                where: { id: task.id },
+                                data: { status: "COMPLETED", errorMessage: null }
+                            });
+                            await (prisma as any).n11Product.update({
+                                where: { id: task.n11ProductId },
+                                data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
+                            });
+                        }
+                    }
+                }
+            } catch (e: any) {
+                console.error(`Task poll error for ${task.taskId}:`, e);
                 // Also log catch-all errors
                 await (prisma as any).n11Task.update({
                     where: { id: task.id },
@@ -891,7 +1028,7 @@ export async function autoMatchN11ProductsAction() {
 
                 if (!match) {
                     const parts = n11SellerCodeLower.split("-");
-                    if (parts.length > 2) {
+                    if (parts.length >= 2) {
                         const baseSku = parts.slice(0, -1).join("-");
                         match = exactSkuMap.get(baseSku) || exactBarcodeMap.get(baseSku);
                     }
@@ -957,5 +1094,99 @@ export async function autoMatchN11ProductsAction() {
         };
     } catch (error: any) {
         return { success: false, message: "Eşleştirme hatası: " + error.message };
+    }
+}
+
+export async function importN11ExcelAction(base64ExcelContent?: string) {
+    try {
+        const path = await import("path");
+        const fs = await import("fs");
+        const XLSX = await import("xlsx");
+
+        let buffer: Buffer;
+        if (base64ExcelContent) {
+            buffer = Buffer.from(base64ExcelContent, "base64");
+        } else {
+            const filePath = path.join(process.cwd(), "n11.xlsx");
+            if (!fs.existsSync(filePath)) {
+                return { success: false, message: "n11.xlsx dosyası ana dizinde bulunamadı." };
+            }
+            buffer = fs.readFileSync(filePath);
+        }
+
+        const wb = XLSX.read(buffer, { type: "buffer" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet) as any[];
+
+        if (!rows || rows.length === 0) {
+            return { success: false, message: "Excel dosyası boş veya okunamadı." };
+        }
+
+        const localProducts = await prisma.product.findMany({
+            select: { id: true, sku: true, barcode: true, name: true, isN11Active: true }
+        });
+
+        const skuMap = new Map<string, typeof localProducts[0]>();
+        for (const p of localProducts) {
+            if (p.sku) skuMap.set(p.sku.trim().toLowerCase(), p);
+        }
+
+        let createdCount = 0;
+        let updatedCount = 0;
+
+        for (const row of rows) {
+            const excelSku = (row["Urun-Kodu"] || row["Ürün Kodu"] || row["Stok Kodu"] || "").toString().trim().toLowerCase();
+            const n11SellerCode = (row["N11-Entegrasyon-Kodu"] || row["Entegrasyon Kodu"] || row["Magaza Ürün Kodu"] || "").toString().trim();
+            const n11Id = row["N11-ilan-id"] || row["N11 İlan ID"] || row["IlanId"] ? String(row["N11-ilan-id"] || row["N11 İlan ID"] || row["IlanId"]).trim() : null;
+
+            const match = skuMap.get(excelSku);
+
+            if (match && n11SellerCode) {
+                const existing = await (prisma as any).n11Product.findFirst({
+                    where: { productId: match.id }
+                });
+
+                if (existing) {
+                    await (prisma as any).n11Product.update({
+                        where: { id: existing.id },
+                        data: {
+                            sellerCode: n11SellerCode,
+                            n11Id: n11Id,
+                            isSynced: true,
+                            lastSyncedAt: new Date()
+                        }
+                    });
+                    updatedCount++;
+                } else {
+                    await (prisma as any).n11Product.create({
+                        data: {
+                            productId: match.id,
+                            sellerCode: n11SellerCode,
+                            n11Id: n11Id,
+                            isSynced: true,
+                            lastSyncedAt: new Date()
+                        }
+                    });
+                    createdCount++;
+                }
+
+                if (!match.isN11Active) {
+                    await prisma.product.update({
+                        where: { id: match.id },
+                        data: { isN11Active: true }
+                    });
+                }
+            }
+        }
+
+        revalidatePath("/admin/integrations/n11");
+        revalidatePath("/admin/products");
+
+        return {
+            success: true,
+            message: `N11 Excel Eşleştirmesi Tamamlandı! Toplam ${createdCount + updatedCount} ürün başarıyla eşleştirildi (Yeni: ${createdCount}, Güncellenen: ${updatedCount}).`
+        };
+    } catch (error: any) {
+        return { success: false, message: "Excel eşleştirme hatası: " + error.message };
     }
 }

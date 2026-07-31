@@ -214,7 +214,13 @@ async function pushZeroStockToN11(productIds: string[]): Promise<void> {
             isActive: true,
             isN11Active: true,
         },
-        select: { id: true, sku: true, barcode: true, variants: { select: { sku: true, barcode: true } } },
+        select: { 
+            id: true, 
+            sku: true, 
+            barcode: true, 
+            n11Product: { select: { sellerCode: true } },
+            variants: { select: { sku: true, barcode: true } } 
+        },
     });
 
     const items: { stockCode: string; quantity: number }[] = [];
@@ -228,7 +234,7 @@ async function pushZeroStockToN11(productIds: string[]): Promise<void> {
                 }
             }
         } else {
-            const stockCode = p.sku || p.barcode;
+            const stockCode = (p as any).n11Product?.sellerCode || p.sku || p.barcode;
             if (stockCode) {
                 items.push({ stockCode, quantity: 0 });
             }
