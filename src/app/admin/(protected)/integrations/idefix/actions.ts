@@ -814,15 +814,15 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
     } else {
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const formatDate = (d: Date) =>
-        `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} 00:00:00`;
+      const formatDate = (d: Date, isEnd = false) =>
+        `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${isEnd ? "23:59:59" : "00:00:00"}`;
 
       let page = 1;
       let hasMore = true;
       while (hasMore) {
         const res = await client.getOrders({
-          startDate: formatDate(thirtyDaysAgo),
-          endDate: formatDate(now),
+          startDate: formatDate(thirtyDaysAgo, false),
+          endDate: formatDate(now, true),
           page,
           limit: 100,
         });
