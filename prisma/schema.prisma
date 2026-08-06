@@ -865,6 +865,7 @@ model NesEInvoiceConfig {
   senderDistrict String?  // Gönderici İlçe
   taxOffice      String?  // Vergi Dairesi
   sourceApp      String?  @default("BardakciBike") // Kaynak Uygulama Adı
+  defaultProfile String?  @default("TEMELFATURA")  // TEMELFATURA veya TICARIFATURA
   isActive       Boolean  @default(false)
   isTestMode     Boolean  @default(true)
   createdAt      DateTime @default(now())

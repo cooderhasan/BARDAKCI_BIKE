@@ -27,6 +27,7 @@ export async function saveNesConfig(prevState: any, formData: FormData) {
         const senderDistrict = (formData.get("senderDistrict") as string) || "";
         const taxOffice = (formData.get("taxOffice") as string) || "";
         const sourceApp = (formData.get("sourceApp") as string) || "BardakciBike";
+        const defaultProfile = (formData.get("defaultProfile") as string) || "TEMELFATURA";
         const isActive = formData.get("isActive") === "on";
         const isTestMode = formData.get("isTestMode") === "on";
 
@@ -50,6 +51,7 @@ export async function saveNesConfig(prevState: any, formData: FormData) {
             senderDistrict,
             taxOffice,
             sourceApp,
+            defaultProfile,
             isActive,
             isTestMode,
         };
@@ -240,8 +242,10 @@ export async function sendOrderInvoiceNes(orderId: string) {
         }
 
         const purchaseUrl = purchaseUrlMap[source] || "https://www.bardakcibike.com.tr";
+        const profileId = useEInvoice ? ((config.defaultProfile as any) || "TEMELFATURA") : "EARSIVFATURA";
 
         const invoiceOptions: Partial<UblInvoiceOptions> = {
+            profileId,
             invoiceTypeCode: "SATIS",
             orderNumber: order.orderNumber,
             carrier: cargoInfo,

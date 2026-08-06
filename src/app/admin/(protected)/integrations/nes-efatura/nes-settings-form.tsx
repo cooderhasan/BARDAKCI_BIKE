@@ -147,13 +147,17 @@ export function NesSettingsForm({ initialData }: Props) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="sourceApp">Kaynak Uygulama Adı</Label>
-                        <Input
-                            id="sourceApp"
-                            name="sourceApp"
-                            defaultValue={initialData?.sourceApp || "BardakciBike"}
-                            placeholder="BardakciBike"
-                        />
+                        <Label htmlFor="defaultProfile">Varsayılan E-Fatura Senaryosu (Profil)</Label>
+                        <select
+                            id="defaultProfile"
+                            name="defaultProfile"
+                            defaultValue={initialData?.defaultProfile || "TEMELFATURA"}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="TEMELFATURA">TEMELFATURA (Temel Fatura - Doğrudan Onaylanır)</option>
+                            <option value="TICARIFATURA">TICARIFATURA (Ticari Fatura - Alıcı 8 Gün İçinde Reddedebilir)</option>
+                        </select>
+                        <p className="text-xs text-muted-foreground">E-ticaret ve hızlı teslimat siparişleri için genelde <strong>TEMELFATURA</strong> tercih edilir.</p>
                     </div>
 
                     <div className="flex flex-col gap-4 p-4 bg-muted/30 rounded-lg border border-dashed">
