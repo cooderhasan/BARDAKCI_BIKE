@@ -215,6 +215,14 @@ export function buildUblInvoiceXml(
             <cac:PartyName>
                 <cbc:Name>${escapeXml(options.carrier.name)}</cbc:Name>
             </cac:PartyName>
+            <cac:PostalAddress>
+                <cbc:StreetName>.</cbc:StreetName>
+                <cbc:CitySubdivisionName>Merkez</cbc:CitySubdivisionName>
+                <cbc:CityName>ISTANBUL</cbc:CityName>
+                <cac:Country>
+                    <cbc:Name>Turkiye</cbc:Name>
+                </cac:Country>
+            </cac:PostalAddress>
         </cac:CarrierParty>
     </cac:Delivery>` : "";
 
