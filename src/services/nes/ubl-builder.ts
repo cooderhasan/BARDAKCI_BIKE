@@ -268,7 +268,12 @@ ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:Documen
                 <cac:Country>
                     <cbc:Name>Turkiye</cbc:Name>
                 </cac:Country>
-            </cac:PostalAddress>${senderPersonXml}
+            </cac:PostalAddress>
+            <cac:PartyTaxScheme>
+                <cac:TaxScheme>
+                    <cbc:Name>${escapeXml(sender.taxOffice || "Meram")}</cbc:Name>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>${senderPersonXml}
         </cac:Party>
     </cac:AccountingSupplierParty>
     <cac:AccountingCustomerParty>
@@ -284,6 +289,11 @@ ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:Documen
                     <cbc:Name>Turkiye</cbc:Name>
                 </cac:Country>
             </cac:PostalAddress>
+            <cac:PartyTaxScheme>
+                <cac:TaxScheme>
+                    <cbc:Name>${escapeXml(receiver.taxOffice || "Vergi Dairesi")}</cbc:Name>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>
             <cac:Contact>
                 <cbc:ElectronicMail>${escapeXml(receiver.email || "")}</cbc:ElectronicMail>
             </cac:Contact>${receiverPersonXml}
