@@ -225,9 +225,6 @@ export async function sendOrderInvoiceNes(orderId: string) {
             invoiceTypeCode: "SATIS",
             orderNumber: order.orderNumber,
             notes: [`Sipariş No: ${order.orderNumber}`],
-            carrier: cargoInfo,
-            purchaseUrl,
-            paymentMeans: "CREDIT_CARD",
         };
 
         const invoiceType = useEInvoice ? "e-Fatura" : "e-Arşiv";
@@ -389,15 +386,15 @@ function buildReceiverInfo(order: any): UblReceiverInfo {
     }
 
     return {
-        vkn,
-        name,
-        surname,
-        title: title || undefined,
-        address: shippingAddress?.address || user?.address || undefined,
-        city: shippingAddress?.city || user?.city || undefined,
-        district: shippingAddress?.district || user?.district || undefined,
-        country: "Türkiye",
-        email: user?.email || order.guestEmail || undefined,
+        vkn: (vkn && vkn.trim().length >= 10) ? vkn.trim() : "11111111111",
+        name: name || "Müşteri",
+        surname: surname || ".",
+        title: title || `${name} ${surname}`.trim() || "Müşteri",
+        address: shippingAddress?.address || user?.address || ".",
+        city: shippingAddress?.city || user?.city || "ISTANBUL",
+        district: shippingAddress?.district || user?.district || "Merkez",
+        country: "Turkiye",
+        email: user?.email || order.guestEmail || "",
         taxOffice: taxOffice || undefined,
     };
 }

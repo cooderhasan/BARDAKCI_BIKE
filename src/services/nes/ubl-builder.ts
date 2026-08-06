@@ -1,10 +1,7 @@
 /**
  * NES E-Fatura / E-Arşiv - UBL-TR 2.1 XML Builder
- * GİB UBL-TR standartlarına uygun fatura XML'i oluşturur.
  * 
- * Referans: motovitrinfinans projesindeki UBL yapısı
- * NES API: POST /earchive/v1/uploads/document (multipart/form-data)
- * NES API: POST /einvoice/v1/uploads/document (multipart/form-data)
+ * Motovitrin Finans projesinde sorunsuz çalışan UBL-TR XML şablonuna dayanmaktadır.
  */
 
 import { v4 as uuidv4 } from "uuid";
@@ -34,42 +31,31 @@ export interface UblReceiverInfo {
     taxOffice?: string;
     email?: string;
     phone?: string;
-    receiverAlias?: string; // E-Fatura için alıcı etiketi
+    receiverAlias?: string;
 }
 
 export interface UblInvoiceLine {
     name: string;
     quantity: number;
-    unitCode: string;       // "C62" (Adet), "KGM" (Kg), "MTR" (Metre) vb.
+    unitCode: string;       // "C62" (Adet)
     unitPrice: number;      // KDV hariç birim fiyat
     taxRate: number;        // KDV oranı (20, 10, 1, 0)
-    discountAmount?: number; // İndirim tutarı
+    discountAmount?: number;
 }
 
 export interface UblInvoiceOptions {
-    /** "EARSIVFATURA" veya "TEMELFATURA" veya "TICARIFATURA" */
+    /** "EARSIVFATURA" veya "TICARIFATURA" veya "TEMELFATURA" */
     profileId: "EARSIVFATURA" | "TEMELFATURA" | "TICARIFATURA";
-    /** "SATIS" veya "IADE" */
-    invoiceTypeCode: "SATIS" | "IADE";
+    /** Fatura tipi */
+    invoiceTypeCode?: "SATIS" | "IADE";
     /** Fatura tarihi (YYYY-MM-DD) */
     issueDate?: string;
     /** Fatura saati (HH:MM:SS) */
     issueTime?: string;
-    /** Para birimi */
-    currencyCode?: string;
-    /** Sipariş numarası (not olarak eklenir) */
+    /** Fatura 3 haneli seri ön eki (örn: MTV, MFB) */
+    prefix?: string;
     orderNumber?: string;
-    /** Fatura notları */
     notes?: string[];
-    /** Kargo bilgileri */
-    carrier?: {
-        taxId: string;
-        name: string;
-    };
-    /** İnternet satışı URL */
-    purchaseUrl?: string;
-    /** Ödeme yöntemi */
-    paymentMeans?: string;
 }
 
 export interface GeneratedInvoiceXml {
@@ -94,39 +80,16 @@ function toFixed2(num: number): string {
     return Number(num).toFixed(2);
 }
 
-/** UUID'den tire işaretlerini kaldırarak büyük harfle ETTN formatı oluşturur */
-function formatUuid(uuid: string): string {
-    return uuid.toLowerCase();
-}
-
-/** Bugünün tarihini YYYY-MM-DD formatında döner */
 function todayDate(): string {
-    const now = new Date();
-    return now.toISOString().split("T")[0];
+    return new Date().toISOString().split("T")[0];
 }
 
-/** Şu anki saati HH:MM:SS formatında döner */
 function currentTime(): string {
-    const now = new Date();
-    return now.toTimeString().split(" ")[0];
-}
-
-/**
- * Fatura numarası üretir: PREFIX + YIL + 9 haneli sıra
- * Örnek: BRD2026000000001
- */
-function generateInvoiceNumber(prefix: string = "BRD"): string {
-    const year = new Date().getFullYear();
-    // Rastgele 9 haneli sıra numarası (gerçek uygulamada DB'den alınmalı)
-    const seq = Math.floor(Math.random() * 999999999).toString().padStart(9, "0");
-    return `${prefix}${year}${seq}`;
+    return new Date().toTimeString().split(" ")[0];
 }
 
 // ============= MAIN BUILDER =============
 
-/**
- * GİB UBL-TR 2.1 standartlarına uygun e-Fatura / e-Arşiv XML'i oluşturur
- */
 export function buildUblInvoiceXml(
     sender: UblSenderInfo,
     receiver: UblReceiverInfo,
@@ -136,284 +99,187 @@ export function buildUblInvoiceXml(
     const uuid = uuidv4();
     const issueDate = options.issueDate || todayDate();
     const issueTime = options.issueTime || currentTime();
-    const currencyCode = options.currencyCode || "TRY";
     const profileId = options.profileId;
-    const invoiceTypeCode = options.invoiceTypeCode || "SATIS";
+    
+    // Prefix: E-Arşiv için MTV/TAS, E-Fatura için MFB/DIP vb.
+    const prefix = options.prefix || (profileId === "EARSIVFATURA" ? "MTV" : "MFB");
 
-    // Fatura numarası prefix'i profil tipine göre ayarla
-    const invoicePrefix = profileId === "EARSIVFATURA" ? "BRD" : "BRE";
-    const invoiceNumber = generateInvoiceNumber(invoicePrefix);
-
-    // ============= HESAPLAMALAR =============
-    // KDV oranlarına göre gruplama
-    const taxGroups: Record<number, { taxableAmount: number; taxAmount: number }> = {};
-
+    // Satır hesaplamaları
     let lineExtensionAmount = 0;
     let totalTaxAmount = 0;
-    let totalAllowance = 0;
 
-    const invoiceLinesXml = lines.map((line, index) => {
+    const linesXml = lines.map((line, index) => {
         const qty = line.quantity;
         const price = line.unitPrice;
         const vatRate = line.taxRate;
-        const discount = line.discountAmount || 0;
-
-        const lineTotal = qty * price - discount;
+        const lineTotal = qty * price;
         const vatAmount = lineTotal * (vatRate / 100);
 
         lineExtensionAmount += lineTotal;
         totalTaxAmount += vatAmount;
-        totalAllowance += discount;
-
-        // KDV gruplama
-        if (!taxGroups[vatRate]) {
-            taxGroups[vatRate] = { taxableAmount: 0, taxAmount: 0 };
-        }
-        taxGroups[vatRate].taxableAmount += lineTotal;
-        taxGroups[vatRate].taxAmount += vatAmount;
-
-        // İndirim XML'i
-        const discountXml = discount > 0 ? `
-            <cac:AllowanceCharge>
-                <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
-                <cbc:Amount currencyID="${currencyCode}">${toFixed2(discount)}</cbc:Amount>
-            </cac:AllowanceCharge>` : "";
 
         return `
-    <cac:InvoiceLine>
-        <cbc:ID>${index + 1}</cbc:ID>
-        <cbc:InvoicedQuantity unitCode="${escapeXml(line.unitCode)}">${qty}</cbc:InvoicedQuantity>
-        <cbc:LineExtensionAmount currencyID="${currencyCode}">${toFixed2(lineTotal)}</cbc:LineExtensionAmount>${discountXml}
-        <cac:TaxTotal>
-            <cbc:TaxAmount currencyID="${currencyCode}">${toFixed2(vatAmount)}</cbc:TaxAmount>
-            <cac:TaxSubtotal>
-                <cbc:TaxableAmount currencyID="${currencyCode}">${toFixed2(lineTotal)}</cbc:TaxableAmount>
-                <cbc:TaxAmount currencyID="${currencyCode}">${toFixed2(vatAmount)}</cbc:TaxAmount>
-                <cbc:Percent>${vatRate}</cbc:Percent>
-                <cac:TaxCategory>
-                    <cac:TaxScheme>
-                        <cbc:Name>KDV</cbc:Name>
-                        <cbc:TaxTypeCode>0015</cbc:TaxTypeCode>
-                    </cac:TaxScheme>
-                </cac:TaxCategory>
-            </cac:TaxSubtotal>
-        </cac:TaxTotal>
-        <cac:Item>
-            <cbc:Name>${escapeXml(line.name)}</cbc:Name>
-        </cac:Item>
-        <cac:Price>
-            <cbc:PriceAmount currencyID="${currencyCode}">${toFixed2(price)}</cbc:PriceAmount>
-        </cac:Price>
-    </cac:InvoiceLine>`;
+        <cac:InvoiceLine>
+            <cbc:ID>${index + 1}</cbc:ID>
+            <cbc:InvoicedQuantity unitCode="${escapeXml(line.unitCode || "C62")}">${qty}</cbc:InvoicedQuantity>
+            <cbc:LineExtensionAmount currencyID="TRY">${toFixed2(lineTotal)}</cbc:LineExtensionAmount>
+            <cac:TaxTotal>
+                <cbc:TaxAmount currencyID="TRY">${toFixed2(vatAmount)}</cbc:TaxAmount>
+                <cac:TaxSubtotal>
+                    <cbc:TaxableAmount currencyID="TRY">${toFixed2(lineTotal)}</cbc:TaxableAmount>
+                    <cbc:TaxAmount currencyID="TRY">${toFixed2(vatAmount)}</cbc:TaxAmount>
+                    <cbc:Percent>${vatRate}</cbc:Percent>
+                    <cac:TaxCategory>
+                        <cac:TaxScheme>
+                            <cbc:Name>KDV</cbc:Name>
+                            <cbc:TaxTypeCode>0015</cbc:TaxTypeCode>
+                        </cac:TaxScheme>
+                    </cac:TaxCategory>
+                </cac:TaxSubtotal>
+            </cac:TaxTotal>
+            <cac:Item>
+                <cbc:Name>${escapeXml(line.name)}</cbc:Name>
+            </cac:Item>
+            <cac:Price>
+                <cbc:PriceAmount currencyID="TRY">${toFixed2(price)}</cbc:PriceAmount>
+            </cac:Price>
+        </cac:InvoiceLine>`;
     }).join("\n");
 
-    // Toplam vergi subtotal'ları
-    const taxSubtotalsXml = Object.entries(taxGroups).map(([rate, group]) => `
+    const taxExclusiveAmount = lineExtensionAmount;
+    const taxInclusiveAmount = lineExtensionAmount + totalTaxAmount;
+
+    // Gönderici (Supplier) isim/şahıs ayrımı
+    const senderVkn = sender.vkn.replace(/\D/g, "");
+    const isSenderTckn = senderVkn.length === 11;
+    let senderPersonXml = "";
+    let senderPartyNameXml = "";
+
+    if (isSenderTckn) {
+        const parts = sender.title.trim().split(" ");
+        const lastName = parts.pop() || "";
+        const firstName = parts.join(" ") || ".";
+        senderPersonXml = `
+            <cac:Person>
+                <cbc:FirstName>${escapeXml(firstName)}</cbc:FirstName>
+                <cbc:FamilyName>${escapeXml(lastName)}</cbc:FamilyName>
+            </cac:Person>`;
+    } else {
+        senderPartyNameXml = `
+            <cac:PartyName>
+                <cbc:Name>${escapeXml(sender.title)}</cbc:Name>
+            </cac:PartyName>`;
+    }
+
+    // Alıcı (Customer) isim/şahıs ayrımı
+    const receiverVkn = receiver.vkn.replace(/\D/g, "");
+    const isReceiverTckn = receiverVkn.length === 11;
+    let receiverPersonXml = "";
+    let receiverPartyNameXml = "";
+
+    const receiverTitleStr = receiver.title || `${receiver.name} ${receiver.surname || ""}`.trim();
+
+    if (isReceiverTckn) {
+        const parts = receiverTitleStr.split(" ");
+        const lastName = receiver.surname || (parts.length > 1 ? parts.pop() || "" : "");
+        const firstName = receiver.name || parts.join(" ") || ".";
+        receiverPersonXml = `
+            <cac:Person>
+                <cbc:FirstName>${escapeXml(firstName)}</cbc:FirstName>
+                <cbc:FamilyName>${escapeXml(lastName)}</cbc:FamilyName>
+            </cac:Person>`;
+    } else {
+        receiverPartyNameXml = `
+            <cac:PartyName>
+                <cbc:Name>${escapeXml(receiverTitleStr)}</cbc:Name>
+            </cac:PartyName>`;
+    }
+
+    // E-Arşiv ek referansı
+    const eArchiveReferenceXml = profileId === "EARSIVFATURA" ? `
+    <cac:AdditionalDocumentReference>
+        <cbc:ID>ELEKTRONIK</cbc:ID>
+        <cbc:IssueDate>${issueDate}</cbc:IssueDate>
+        <cbc:DocumentTypeCode>SEND_TYPE</cbc:DocumentTypeCode>
+    </cac:AdditionalDocumentReference>` : "";
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" 
+ xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" 
+ xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" 
+ xmlns:ds="http://www.w3.org/2000/09/xmldsig#" 
+ xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2" 
+ xmlns:xades="http://uri.etsi.org/01903/v1.3.2#" 
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
+    <cbc:CustomizationID>TR1.2</cbc:CustomizationID>
+    <cbc:ProfileID>${profileId}</cbc:ProfileID>
+    <cbc:ID>${prefix}</cbc:ID>
+    <cbc:CopyIndicator>false</cbc:CopyIndicator>
+    <cbc:UUID>${uuid}</cbc:UUID>
+    <cbc:IssueDate>${issueDate}</cbc:IssueDate>
+    <cbc:IssueTime>${issueTime}</cbc:IssueTime>
+    <cbc:InvoiceTypeCode>SATIS</cbc:InvoiceTypeCode>
+    <cbc:DocumentCurrencyCode>TRY</cbc:DocumentCurrencyCode>
+    <cbc:LineCountNumeric>${lines.length}</cbc:LineCountNumeric>${eArchiveReferenceXml}
+    <cac:AccountingSupplierParty>
+        <cac:Party>
+            <cac:PartyIdentification>
+                <cbc:ID schemeID="${isSenderTckn ? "TCKN" : "VKN"}">${senderVkn}</cbc:ID>
+            </cac:PartyIdentification>${senderPartyNameXml}
+            <cac:PostalAddress>
+                <cbc:StreetName>${escapeXml(sender.address || ".")}</cbc:StreetName>
+                <cbc:CitySubdivisionName>${escapeXml(sender.district || "Merkez")}</cbc:CitySubdivisionName>
+                <cbc:CityName>${escapeXml(sender.city || "ISTANBUL")}</cbc:CityName>
+                <cac:Country>
+                    <cbc:Name>Turkiye</cbc:Name>
+                </cac:Country>
+            </cac:PostalAddress>${senderPersonXml}
+        </cac:Party>
+    </cac:AccountingSupplierParty>
+    <cac:AccountingCustomerParty>
+        <cac:Party>
+            <cac:PartyIdentification>
+                <cbc:ID schemeID="${isReceiverTckn ? "TCKN" : "VKN"}">${receiverVkn}</cbc:ID>
+            </cac:PartyIdentification>${receiverPartyNameXml}
+            <cac:PostalAddress>
+                <cbc:StreetName>${escapeXml(receiver.address || ".")}</cbc:StreetName>
+                <cbc:CitySubdivisionName>${escapeXml(receiver.district || "Merkez")}</cbc:CitySubdivisionName>
+                <cbc:CityName>${escapeXml(receiver.city || "ISTANBUL")}</cbc:CityName>
+                <cac:Country>
+                    <cbc:Name>Turkiye</cbc:Name>
+                </cac:Country>
+            </cac:PostalAddress>
+            <cac:Contact>
+                <cbc:ElectronicMail>${escapeXml(receiver.email || "")}</cbc:ElectronicMail>
+            </cac:Contact>${receiverPersonXml}
+        </cac:Party>
+    </cac:AccountingCustomerParty>
+    <cac:TaxTotal>
+        <cbc:TaxAmount currencyID="TRY">${toFixed2(totalTaxAmount)}</cbc:TaxAmount>
         <cac:TaxSubtotal>
-            <cbc:TaxableAmount currencyID="${currencyCode}">${toFixed2(group.taxableAmount)}</cbc:TaxableAmount>
-            <cbc:TaxAmount currencyID="${currencyCode}">${toFixed2(group.taxAmount)}</cbc:TaxAmount>
-            <cbc:Percent>${rate}</cbc:Percent>
+            <cbc:TaxableAmount currencyID="TRY">${toFixed2(taxExclusiveAmount)}</cbc:TaxableAmount>
+            <cbc:TaxAmount currencyID="TRY">${toFixed2(totalTaxAmount)}</cbc:TaxAmount>
             <cac:TaxCategory>
-                <cac:TaxScheme>
+                 <cac:TaxScheme>
                     <cbc:Name>KDV</cbc:Name>
                     <cbc:TaxTypeCode>0015</cbc:TaxTypeCode>
                 </cac:TaxScheme>
             </cac:TaxCategory>
-        </cac:TaxSubtotal>`).join("\n");
-
-    const taxExclusiveAmount = lineExtensionAmount;
-    const taxInclusiveAmount = lineExtensionAmount + totalTaxAmount;
-    const payableAmount = taxInclusiveAmount;
-
-    // ============= NOTLAR =============
-    const notesXml = (options.notes || []).map(note =>
-        `    <cbc:Note>${escapeXml(note)}</cbc:Note>`
-    ).join("\n");
-
-    // E-Arşiv için internet satış bilgisi notu
-    const internetSalesNote = profileId === "EARSIVFATURA" && options.purchaseUrl
-        ? `    <cbc:Note>İNTERNET SATIŞI - ${escapeXml(options.purchaseUrl)}</cbc:Note>\n` : "";
-
-    // Sipariş notu
-    const orderNote = options.orderNumber
-        ? `    <cbc:Note>Sipariş No: ${escapeXml(options.orderNumber)}</cbc:Note>\n` : "";
-
-    // ============= ALICI BİLGİLERİ =============
-    // VKN 10 haneli → Tüzel kişi, 11 haneli → Gerçek kişi
-    const isCompany = receiver.vkn.length === 10;
-
-    const receiverPartyId = `
-        <cac:PartyIdentification>
-            <cbc:ID schemeID="${isCompany ? "VKN" : "TCKN"}">${escapeXml(receiver.vkn)}</cbc:ID>
-        </cac:PartyIdentification>`;
-
-    const receiverPartyName = receiver.title
-        ? `<cac:PartyName><cbc:Name>${escapeXml(receiver.title)}</cbc:Name></cac:PartyName>`
-        : "";
-
-    const receiverPersonXml = !isCompany ? `
-        <cac:Person>
-            <cbc:FirstName>${escapeXml(receiver.name)}</cbc:FirstName>
-            <cbc:FamilyName>${escapeXml(receiver.surname || "")}</cbc:FamilyName>
-        </cac:Person>` : "";
-
-    // ============= TAŞıMA (KARGO) BİLGİLERİ =============
-    const deliveryXml = options.carrier ? `
-    <cac:Delivery>
-        <cac:CarrierParty>
-            <cac:PartyIdentification>
-                <cbc:ID schemeID="VKN">${escapeXml(options.carrier.taxId)}</cbc:ID>
-            </cac:PartyIdentification>
-            <cac:PartyName>
-                <cbc:Name>${escapeXml(options.carrier.name)}</cbc:Name>
-            </cac:PartyName>
-        </cac:CarrierParty>
-    </cac:Delivery>` : "";
-
-    // ============= ÖDEME BİLGİLERİ =============
-    const paymentMeansXml = options.paymentMeans ? `
-    <cac:PaymentMeans>
-        <cbc:PaymentMeansCode>${options.paymentMeans === "CREDIT_CARD" ? "48" : "1"}</cbc:PaymentMeansCode>
-        <cbc:PaymentDueDate>${issueDate}</cbc:PaymentDueDate>
-    </cac:PaymentMeans>` : "";
-
-    // ============= E-ARŞİV İNTERNET SATIŞ BİLGİLERİ =============
-    const internetSalesXml = profileId === "EARSIVFATURA" && options.purchaseUrl ? `
-    <cac:AdditionalDocumentReference>
-        <cbc:ID>ELEKTRONIK</cbc:ID>
-        <cbc:IssueDate>${issueDate}</cbc:IssueDate>
-        <cbc:DocumentType>SEND_TYPE</cbc:DocumentType>
-    </cac:AdditionalDocumentReference>
-    <cac:AdditionalDocumentReference>
-        <cbc:ID>${escapeXml(options.purchaseUrl)}</cbc:ID>
-        <cbc:IssueDate>${issueDate}</cbc:IssueDate>
-        <cbc:DocumentType>INT_WEBSITE</cbc:DocumentType>
-    </cac:AdditionalDocumentReference>
-    <cac:AdditionalDocumentReference>
-        <cbc:ID>${options.paymentMeans === "CREDIT_CARD" ? "KREDIKARTI/BANKAKARTI" : "EFT/HAVALE"}</cbc:ID>
-        <cbc:IssueDate>${issueDate}</cbc:IssueDate>
-        <cbc:DocumentType>INT_PAYMENTMETHOD</cbc:DocumentType>
-    </cac:AdditionalDocumentReference>
-    <cac:AdditionalDocumentReference>
-        <cbc:ID>${issueDate}</cbc:ID>
-        <cbc:IssueDate>${issueDate}</cbc:IssueDate>
-        <cbc:DocumentType>INT_PAYMENTDATE</cbc:DocumentType>
-    </cac:AdditionalDocumentReference>` : "";
-
-    // ============= TOPLAM İNDİRİM =============
-    const allowanceXml = totalAllowance > 0 ? `
-    <cac:AllowanceCharge>
-        <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
-        <cbc:Amount currencyID="${currencyCode}">${toFixed2(totalAllowance)}</cbc:Amount>
-    </cac:AllowanceCharge>` : "";
-
-    // ============= ANA XML =============
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
- xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
- xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
- xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
-    <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
-    <cbc:CustomizationID>TR1.2</cbc:CustomizationID>
-    <cbc:ProfileID>${profileId}</cbc:ProfileID>
-    <cbc:ID>${invoiceNumber}</cbc:ID>
-    <cbc:CopyIndicator>false</cbc:CopyIndicator>
-    <cbc:UUID>${formatUuid(uuid)}</cbc:UUID>
-    <cbc:IssueDate>${issueDate}</cbc:IssueDate>
-    <cbc:IssueTime>${issueTime}</cbc:IssueTime>
-    <cbc:InvoiceTypeCode>${invoiceTypeCode}</cbc:InvoiceTypeCode>
-${orderNote}${internetSalesNote}${notesXml}
-    <cbc:DocumentCurrencyCode>${currencyCode}</cbc:DocumentCurrencyCode>
-    <cbc:LineCountNumeric>${lines.length}</cbc:LineCountNumeric>
-${internetSalesXml}
-    <cac:Signature>
-        <cbc:ID schemeID="VKN_TCKN" schemeAgencyName="NES">${escapeXml(sender.vkn)}</cbc:ID>
-        <cac:SignatoryParty>
-            <cac:PartyIdentification>
-                <cbc:ID schemeID="VKN">${escapeXml(sender.vkn)}</cbc:ID>
-            </cac:PartyIdentification>
-            <cac:PostalAddress>
-                <cbc:Room>.</cbc:Room>
-                <cbc:CitySubdivisionName>${escapeXml(sender.district || "MERKEZ")}</cbc:CitySubdivisionName>
-                <cbc:CityName>${escapeXml(sender.city || "İSTANBUL")}</cbc:CityName>
-                <cac:Country>
-                    <cbc:Name>${escapeXml(sender.country || "Türkiye")}</cbc:Name>
-                </cac:Country>
-            </cac:PostalAddress>
-        </cac:SignatoryParty>
-        <cac:DigitalSignatureAttachment>
-            <cac:ExternalReference>
-                <cbc:URI>#Signature</cbc:URI>
-            </cac:ExternalReference>
-        </cac:DigitalSignatureAttachment>
-    </cac:Signature>
-
-    <cac:AccountingSupplierParty>
-        <cac:Party>
-            <cbc:WebsiteURI>https://www.bardakcibike.com.tr</cbc:WebsiteURI>
-            <cac:PartyIdentification>
-                <cbc:ID schemeID="VKN">${escapeXml(sender.vkn)}</cbc:ID>
-            </cac:PartyIdentification>
-            <cac:PartyName>
-                <cbc:Name>${escapeXml(sender.title)}</cbc:Name>
-            </cac:PartyName>
-            <cac:PostalAddress>
-                <cbc:StreetName>${escapeXml(sender.address || ".")}</cbc:StreetName>
-                <cbc:CitySubdivisionName>${escapeXml(sender.district || "MERKEZ")}</cbc:CitySubdivisionName>
-                <cbc:CityName>${escapeXml(sender.city || "İSTANBUL")}</cbc:CityName>
-                <cac:Country>
-                    <cbc:Name>${escapeXml(sender.country || "Türkiye")}</cbc:Name>
-                </cac:Country>
-            </cac:PostalAddress>
-            <cac:PartyTaxScheme>
-                <cac:TaxScheme>
-                    <cbc:Name>${escapeXml(sender.taxOffice || "VERGİ DAİRESİ")}</cbc:Name>
-                </cac:TaxScheme>
-            </cac:PartyTaxScheme>
-        </cac:Party>
-    </cac:AccountingSupplierParty>
-
-    <cac:AccountingCustomerParty>
-        <cac:Party>
-            ${receiverPartyId}
-            ${receiverPartyName}
-            <cac:PostalAddress>
-                <cbc:StreetName>${escapeXml(receiver.address || ".")}</cbc:StreetName>
-                <cbc:CitySubdivisionName>${escapeXml(receiver.district || "MERKEZ")}</cbc:CitySubdivisionName>
-                <cbc:CityName>${escapeXml(receiver.city || "İSTANBUL")}</cbc:CityName>
-                <cac:Country>
-                    <cbc:Name>${escapeXml(receiver.country || "Türkiye")}</cbc:Name>
-                </cac:Country>
-            </cac:PostalAddress>
-            <cac:PartyTaxScheme>
-                <cac:TaxScheme>
-                    <cbc:Name>${escapeXml(receiver.taxOffice || "VERGİ DAİRESİ")}</cbc:Name>
-                </cac:TaxScheme>
-            </cac:PartyTaxScheme>
-            ${receiverPersonXml}
-        </cac:Party>
-    </cac:AccountingCustomerParty>
-${deliveryXml}
-${paymentMeansXml}
-${allowanceXml}
-    <cac:TaxTotal>
-        <cbc:TaxAmount currencyID="${currencyCode}">${toFixed2(totalTaxAmount)}</cbc:TaxAmount>
-${taxSubtotalsXml}
+        </cac:TaxSubtotal>
     </cac:TaxTotal>
-
     <cac:LegalMonetaryTotal>
-        <cbc:LineExtensionAmount currencyID="${currencyCode}">${toFixed2(lineExtensionAmount)}</cbc:LineExtensionAmount>
-        <cbc:TaxExclusiveAmount currencyID="${currencyCode}">${toFixed2(taxExclusiveAmount)}</cbc:TaxExclusiveAmount>
-        <cbc:TaxInclusiveAmount currencyID="${currencyCode}">${toFixed2(taxInclusiveAmount)}</cbc:TaxInclusiveAmount>
-        <cbc:AllowanceTotalAmount currencyID="${currencyCode}">${toFixed2(totalAllowance)}</cbc:AllowanceTotalAmount>
-        <cbc:PayableAmount currencyID="${currencyCode}">${toFixed2(payableAmount)}</cbc:PayableAmount>
+        <cbc:LineExtensionAmount currencyID="TRY">${toFixed2(lineExtensionAmount)}</cbc:LineExtensionAmount>
+        <cbc:TaxExclusiveAmount currencyID="TRY">${toFixed2(taxExclusiveAmount)}</cbc:TaxExclusiveAmount>
+        <cbc:TaxInclusiveAmount currencyID="TRY">${toFixed2(taxInclusiveAmount)}</cbc:TaxInclusiveAmount>
+        <cbc:PayableAmount currencyID="TRY">${toFixed2(taxInclusiveAmount)}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
-${invoiceLinesXml}
+${linesXml}
 </Invoice>`;
 
     return {
         xml,
-        uuid: formatUuid(uuid),
-        invoiceNumber,
+        uuid,
+        invoiceNumber: prefix,
     };
 }

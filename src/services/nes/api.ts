@@ -247,13 +247,11 @@ export class NesClient {
         const formData = new FormData();
         const xmlBlob = new Blob([generated.xml], { type: "application/xml" });
         formData.append("File", xmlBlob, `${generated.uuid}.xml`);
-        if (this.config.senderAlias) {
-            formData.append("SenderAlias", this.config.senderAlias);
-        }
-        formData.append("IsDirectSend", "true");
-        formData.append("PreviewType", "Pdf");
+        formData.append("PreviewType", "Html");
         formData.append("SourceApp", this.config.sourceApp || "BardakciBike");
-        formData.append("AutoSaveCompany", "true");
+        formData.append("IsDirectSend", "true");
+        formData.append("SenderAlias", this.config.senderAlias || "urn:mail:defaultgb@nes.com.tr");
+        formData.append("ReceiverAlias", "urn:mail:defaultpk@gib.gov.tr");
 
         // Pazaryeri bilgileri (opsiyonel)
         if (invoiceOptions.orderNumber) {
@@ -298,7 +296,7 @@ export class NesClient {
                 ...generated,
                 ...responseData,
                 uuid: responseData.uuid || generated.uuid,
-                invoiceNumber: responseData.invoiceNumber || generated.invoiceNumber,
+                invoiceNumber: responseData.documentNumber || responseData.invoiceNumber || generated.invoiceNumber,
                 status: "SUCCESS",
             };
         } catch (error: any) {
@@ -332,14 +330,11 @@ export class NesClient {
         const formData = new FormData();
         const xmlBlob = new Blob([generated.xml], { type: "application/xml" });
         formData.append("File", xmlBlob, `${generated.uuid}.xml`);
-        if (this.config.senderAlias) {
-            formData.append("SenderAlias", this.config.senderAlias);
-        }
-        formData.append("ReceiverAlias", receiver.receiverAlias || "urn:mail:defaultpk@nes.com.tr");
-        formData.append("IsDirectSend", "true");
-        formData.append("PreviewType", "Pdf");
+        formData.append("PreviewType", "Html");
         formData.append("SourceApp", this.config.sourceApp || "BardakciBike");
-        formData.append("AutoSaveCompany", "true");
+        formData.append("IsDirectSend", "true");
+        formData.append("SenderAlias", this.config.senderAlias || "urn:mail:defaultgb@nes.com.tr");
+        formData.append("ReceiverAlias", receiver.receiverAlias || "urn:mail:defaultpk@nes.com.tr");
 
         if (invoiceOptions.orderNumber) {
             formData.append("SourceAppRecordId", invoiceOptions.orderNumber);
