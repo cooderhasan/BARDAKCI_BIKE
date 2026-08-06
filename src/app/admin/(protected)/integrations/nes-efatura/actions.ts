@@ -226,7 +226,12 @@ export async function sendOrderInvoiceNes(orderId: string) {
             orderNumber: order.orderNumber,
             carrier: cargoInfo,
             purchaseUrl,
-            notes: [`Sipariş No: ${order.orderNumber}`, `Kaynak: ${source}`],
+            notes: [
+                `Sipariş No: ${order.orderNumber}`,
+                `Kaynak: ${source}`,
+                cargoInfo?.name ? `Kargo Taşıyıcı: ${cargoInfo.name} (VKN: ${cargoInfo.taxId})` : "",
+                "İRSALİYE YERİNE GEÇER",
+            ].filter(Boolean),
         };
 
         const invoiceType = useEInvoice ? "e-Fatura" : "e-Arşiv";
