@@ -205,20 +205,40 @@ export async function sendOrderInvoiceNes(orderId: string) {
             "HEPSIBURADA": "https://www.hepsiburada.com",
         };
         const cargoInfoMap: Record<string, { taxId: string; name: string }> = {
-            "Yurtiçi Kargo": { taxId: "3130557323", name: "YURTİÇİ KARGO SERVİSİ A.Ş." },
-            "DHL ecommerce": { taxId: "6080712084", name: "DHL WORLDWIDE EXPRESS TAŞ. VE TİC. A.Ş." },
-            "DHL": { taxId: "6080712084", name: "DHL WORLDWIDE EXPRESS TAŞ. VE TİC. A.Ş." },
             "Aras Kargo": { taxId: "7200007379", name: "ARAS KARGO YURTİÇİ YURTDİŞI TAŞ. A.Ş." },
-            "MNG Kargo": { taxId: "6530413903", name: "MNG KARGO YURTİÇİ VE YURTDIŞI TAŞ. A.Ş." },
+            "Aras": { taxId: "7200007379", name: "ARAS KARGO YURTİÇİ YURTDİŞI TAŞ. A.Ş." },
             "Sürat Kargo": { taxId: "7870233582", name: "SÜRAT KARGO TAŞ. VE DAĞ. HİZ. A.Ş." },
+            "Sürat": { taxId: "7870233582", name: "SÜRAT KARGO TAŞ. VE DAĞ. HİZ. A.Ş." },
             "PTT Kargo": { taxId: "7320068060", name: "PTT A.Ş." },
+            "PTT": { taxId: "7320068060", name: "PTT A.Ş." },
             "Trendyol Express": { taxId: "8590921777", name: "TRENDYOL LOJİSTİK A.Ş." },
             "HepsiJet": { taxId: "9060578745", name: "HEPSİJET LOJİSTİK A.Ş." },
+            "MNG Kargo": { taxId: "6530413903", name: "MNG KARGO YURTİÇİ VE YURTDIŞI TAŞ. A.Ş." },
         };
 
         const source = order.source || "WEB";
         const cargoName = order.cargoCompany || "";
-        const cargoInfo = cargoInfoMap[cargoName] || { taxId: "3130557323", name: "YURTİÇİ KARGO SERVİSİ A.Ş." };
+
+        // Pazaryeri ve sipariş verisine göre kargo firmasını dinamik belirle
+        let cargoInfo = cargoName ? (cargoInfoMap[cargoName] || null) : null;
+        if (!cargoInfo && cargoName) {
+            const normalizedCargo = cargoName.toLowerCase();
+            if (normalizedCargo.includes("aras")) cargoInfo = cargoInfoMap["Aras Kargo"];
+            else if (normalizedCargo.includes("sürat") || normalizedCargo.includes("surat")) cargoInfo = cargoInfoMap["Sürat Kargo"];
+            else if (normalizedCargo.includes("ptt")) cargoInfo = cargoInfoMap["PTT Kargo"];
+            else if (normalizedCargo.includes("hepsi") || normalizedCargo.includes("jet")) cargoInfo = cargoInfoMap["HepsiJet"];
+            else if (normalizedCargo.includes("trendyol") || normalizedCargo.includes("tex")) cargoInfo = cargoInfoMap["Trendyol Express"];
+        }
+
+        // Kargo ismi girilmemişse pazaryerine göre dinamik varsayılan seç
+        if (!cargoInfo) {
+            if (source === "PTTAVM" || source === "PTT") {
+                cargoInfo = cargoInfoMap["PTT Kargo"];
+            } else {
+                cargoInfo = cargoInfoMap["Aras Kargo"];
+            }
+        }
+
         const purchaseUrl = purchaseUrlMap[source] || "https://www.bardakcibike.com.tr";
 
         const invoiceOptions: Partial<UblInvoiceOptions> = {
