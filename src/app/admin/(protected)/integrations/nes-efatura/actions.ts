@@ -310,6 +310,12 @@ export async function sendOrderInvoiceNes(orderId: string) {
                         await hb.uploadInvoiceLink(packageId, pdfProxyUrl, order.orderNumber);
                         marketplaceMessage = " | HB'ye fatura linki iletildi ✅";
                     }
+                } else if (order.source === "TRENDYOL") {
+                    const { TrendyolClient } = await import("@/services/trendyol/api");
+                    const ty = new TrendyolClient();
+                    const packageId = order.shipmentPackageId || order.orderNumber;
+                    await ty.uploadInvoiceLink(packageId, pdfProxyUrl);
+                    marketplaceMessage = " | Trendyol'a fatura linki iletildi ✅";
                 }
             } catch (mpError: any) {
                 console.error(`⚠️ Pazaryeri fatura link hatası (${order.source}):`, mpError.message);

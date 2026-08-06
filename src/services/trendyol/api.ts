@@ -465,4 +465,30 @@ export class TrendyolClient {
 
         return await response.json();
     }
+
+    /**
+     * Send Invoice Link to Trendyol
+     * POST /integration/seller-order/send-invoice-link
+     */
+    async uploadInvoiceLink(shipmentPackageId: string | number, invoiceLink: string) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/seller-order/send-invoice-link`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                invoiceLink,
+                shipmentPackageId: Number(shipmentPackageId) || shipmentPackageId
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Trendyol Fatura Linki Gönderim Hatası (${response.status}): ${errText}`);
+        }
+
+        return await response.json();
+    }
 }
