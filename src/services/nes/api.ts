@@ -93,33 +93,58 @@ export class NesClient {
      */
     async testConnection(): Promise<{ success: boolean; message: string }> {
         try {
-            // Basit bir GET isteği ile API erişilebilirliğini kontrol et
-            // Mükellef sorgulama endpoint'i ile test ediyoruz (kendi VKN'miz)
-            const response = await fetch(
-                `${this.baseUrl}/einvoice/v1/users/${this.config.senderVkn}/All`,
-                {
-                    method: "GET",
-                    headers: this.headers,
-                }
-            );
+            const modeName = this.config.isTestMode ? "TEST (apitest.nes.com.tr)" : "CANLI (api.nes.com.tr)";
+            
+            // Test için sırayla endpoint'leri deneyelim
+            const testEndpoints = [
+                `/einvoice/v1/users/${this.config.senderVkn}/All`,
+                `/earchive/v1/notifications/dynamicrules?page=1&pageSize=1&sort=CreatedAt%20desc`,
+                `/einvoice/v1/users/${this.config.senderVkn}/Pk`
+            ];
 
-            if (response.ok) {
-                return {
-                    success: true,
-                    message: `✅ NES API bağlantısı başarılı! (${this.config.isTestMode ? "TEST" : "CANLI"} ortam)`,
-                };
+            let lastStatus = 0;
+            let lastText = "";
+
+            for (const endpoint of testEndpoints) {
+                try {
+                    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+                        method: "GET",
+                        headers: this.headers,
+                        signal: AbortSignal.timeout(10000)
+                    });
+
+                    lastStatus = response.status;
+                    lastText = await response.text();
+
+                    if (response.ok) {
+                        return {
+                            success: true,
+                            message: `✅ NES API bağlantısı başarılı! Ortam: ${modeName}`,
+                        };
+                    }
+
+                    // 404 de dönse API'ye erişebildik ve yetkimiz var demektir
+                    if (response.status === 404) {
+                        return {
+                            success: true,
+                            message: `✅ NES API sunucusuna erişildi! (${modeName}) - Mükellef kaydı bulunamadı (404) ama API Key doğrulandı.`,
+                        };
+                    }
+                } catch (e: any) {
+                    lastText = e.message;
+                }
             }
 
-            if (response.status === 401 || response.status === 403) {
+            if (lastStatus === 401 || lastStatus === 403) {
                 return {
                     success: false,
-                    message: "❌ API anahtarı geçersiz veya yetki yetersiz. NES Portal'dan kontrol edin.",
+                    message: `❌ API Anahtarı yetkisiz (HTTP ${lastStatus}). ${modeName} seçeneğini kontrol edin. Canlı key için Test Modunu kapatın. Detay: ${lastText.slice(0, 150)}`,
                 };
             }
 
             return {
-                success: true,
-                message: `⚠️ NES API erişilebilir ancak yanıt beklenen formatta değil (${response.status}). Test ortamı kısıtlaması olabilir.`,
+                success: false,
+                message: `⚠️ NES API yanıt vermedi veya hata döndü (HTTP ${lastStatus}). Detay: ${lastText.slice(0, 150)}`,
             };
         } catch (error: any) {
             return {
