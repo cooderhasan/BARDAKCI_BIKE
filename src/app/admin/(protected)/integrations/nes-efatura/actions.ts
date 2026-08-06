@@ -181,7 +181,7 @@ export async function sendOrderInvoiceNes(orderId: string) {
 
         // 7. Alıcının e-Fatura mükellefi olup olmadığını kontrol et
         const taxId = receiver.vkn;
-        const isRealTaxId = taxId && taxId !== "11111111111" && taxId.length === 10;
+        const isRealTaxId = taxId && taxId !== "11111111111" && taxId !== "1111111111" && (taxId.length === 10 || taxId.length === 11);
         let useEInvoice = false;
 
         if (isRealTaxId) {
