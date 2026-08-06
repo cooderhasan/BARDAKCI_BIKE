@@ -75,12 +75,12 @@ export function NesSettingsForm({ initialData }: Props) {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="senderVkn">Gönderici VKN/TCKN</Label>
+                            <Label htmlFor="senderVkn">Gönderici VKN / TCKN</Label>
                             <Input
                                 id="senderVkn"
                                 name="senderVkn"
                                 defaultValue={initialData?.senderVkn}
-                                placeholder="10 haneli VKN"
+                                placeholder="10 haneli VKN veya 11 haneli TCKN"
                                 required
                             />
                         </div>

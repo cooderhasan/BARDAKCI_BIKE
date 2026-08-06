@@ -31,11 +31,11 @@ export async function saveNesConfig(prevState: any, formData: FormData) {
         const isTestMode = formData.get("isTestMode") === "on";
 
         if (!apiKey || !senderVkn || !senderTitle) {
-            return { success: false, message: "API Anahtarı, VKN ve Ünvan zorunludur." };
+            return { success: false, message: "API Anahtarı, VKN/TCKN ve Ünvan zorunludur." };
         }
 
-        if (senderVkn.length !== 10) {
-            return { success: false, message: "VKN 10 haneli olmalıdır." };
+        if (senderVkn.length !== 10 && senderVkn.length !== 11) {
+            return { success: false, message: "VKN 10 haneli (Şirket) veya TCKN 11 haneli (Şahıs) olmalıdır." };
         }
 
         const existing = await (prisma as any).nesEInvoiceConfig.findFirst();
