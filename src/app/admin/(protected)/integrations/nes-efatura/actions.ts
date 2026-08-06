@@ -241,23 +241,11 @@ export async function sendOrderInvoiceNes(orderId: string) {
             ? await client.createEInvoice(receiver, invoiceLines, invoiceOptions)
             : await client.createEArchiveInvoice(receiver, invoiceLines, invoiceOptions);
 
-        // 10. PDF URL'i al (polling)
+        // 10. PDF Proxy URL'i oluştur
         const documentType = useEInvoice ? "einvoice" : "earchive";
-        let invoiceUrl: string | null = null;
+        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+        const pdfProxyUrl = `${siteUrl}/api/invoices/pdf/${result.uuid}?type=${documentType}`;
 
-        for (let attempt = 1; attempt <= 5; attempt++) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            invoiceUrl = await client.getInvoicePdfUrl(result.uuid, documentType as any);
-            if (invoiceUrl) {
-                console.log(`✅ PDF URL alındı (Deneme ${attempt}): ${invoiceUrl}`);
-                break;
-            }
-            console.log(`⏳ PDF henüz hazır değil (Deneme ${attempt})...`);
-        }
-
-        // NES PDF endpoint'i auth gerektirdiği için, proxy URL oluştur
-        // veya doğrudan NES URL'ini sakla
-        const pdfProxyUrl = invoiceUrl || null;
 
         // 11. DB'ye kaydet
         await prisma.order.update({
