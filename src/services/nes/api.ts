@@ -247,6 +247,9 @@ export class NesClient {
         const formData = new FormData();
         const xmlBlob = new Blob([generated.xml], { type: "application/xml" });
         formData.append("File", xmlBlob, `${generated.uuid}.xml`);
+        if (this.config.senderAlias) {
+            formData.append("SenderAlias", this.config.senderAlias);
+        }
         formData.append("IsDirectSend", "true");
         formData.append("PreviewType", "Pdf");
         formData.append("SourceApp", this.config.sourceApp || "BardakciBike");
@@ -264,7 +267,6 @@ export class NesClient {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${this.config.apiKey}`,
-                    // Content-Type multipart/form-data için browser otomatik set eder
                 },
                 body: formData,
                 signal: AbortSignal.timeout(60000),
@@ -281,8 +283,15 @@ export class NesClient {
             }
 
             if (!response.ok) {
-                const errorMsg = responseData.message || responseData.errors?.[0]?.description || responseText;
-                throw new Error(`NES E-Arşiv API Hatası (${response.status}): ${errorMsg}`);
+                let errorDetails = "";
+                if (Array.isArray(responseData.invalidFields) && responseData.invalidFields.length > 0) {
+                    errorDetails = responseData.invalidFields.map((f: any) => `${f.field}: ${f.description || ''}`).join(" | ");
+                } else if (Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+                    errorDetails = responseData.errors.map((e: any) => `[${e.code || ''}] ${e.description || ''} ${e.detail || ''}`).join(" | ");
+                } else {
+                    errorDetails = responseData.message || responseText;
+                }
+                throw new Error(`NES E-Arşiv API Hatası (${response.status}): ${errorDetails}`);
             }
 
             return {
@@ -323,7 +332,9 @@ export class NesClient {
         const formData = new FormData();
         const xmlBlob = new Blob([generated.xml], { type: "application/xml" });
         formData.append("File", xmlBlob, `${generated.uuid}.xml`);
-        formData.append("SenderAlias", this.config.senderAlias);
+        if (this.config.senderAlias) {
+            formData.append("SenderAlias", this.config.senderAlias);
+        }
         formData.append("ReceiverAlias", receiver.receiverAlias || "urn:mail:defaultpk@nes.com.tr");
         formData.append("IsDirectSend", "true");
         formData.append("PreviewType", "Pdf");
@@ -357,8 +368,15 @@ export class NesClient {
             }
 
             if (!response.ok) {
-                const errorMsg = responseData.message || responseData.errors?.[0]?.description || responseText;
-                throw new Error(`NES E-Fatura API Hatası (${response.status}): ${errorMsg}`);
+                let errorDetails = "";
+                if (Array.isArray(responseData.invalidFields) && responseData.invalidFields.length > 0) {
+                    errorDetails = responseData.invalidFields.map((f: any) => `${f.field}: ${f.description || ''}`).join(" | ");
+                } else if (Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+                    errorDetails = responseData.errors.map((e: any) => `[${e.code || ''}] ${e.description || ''} ${e.detail || ''}`).join(" | ");
+                } else {
+                    errorDetails = responseData.message || responseText;
+                }
+                throw new Error(`NES E-Fatura API Hatası (${response.status}): ${errorDetails}`);
             }
 
             return {
