@@ -91,6 +91,7 @@ const menuGroups: MenuGroup[] = [
             { title: "Gemini AI", href: "/admin/integrations/gemini", icon: Brain },
             { title: "Yurtiçi Kargo", href: "/admin/integrations/yurtici", icon: Truck },
             { title: "Trendyol e-Faturam", href: "/admin/integrations/trendyol-efaturam", icon: FileText },
+            { title: "NES E-Fatura", href: "/admin/integrations/nes-efatura", icon: FileText },
             { title: "Toplu İşlemler", href: "/admin/bulk-updates", icon: Zap },
         ],
     },

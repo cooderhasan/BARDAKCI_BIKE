@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { updateOrderStatus, updateOrderTracking, bulkUpdateOrderStatus, sendOrderToYurtici, cancelYKOrder, queryYKOrder, bulkSendOrdersToYurtici, syncAllYKOrders, markOrderAsPrinted, markOrdersAsPrinted } from "@/app/admin/(protected)/orders/actions";
 import { sendOrderInvoice } from "@/app/admin/(protected)/integrations/trendyol-efaturam/actions";
+import { sendOrderInvoiceNes } from "@/app/admin/(protected)/integrations/nes-efatura/actions";
 import { getYKStatusLabel, getYKStatusColor } from "@/services/yurtici/api";
 import { toast } from "sonner";
 import { OrderWithItems } from "@/types";
@@ -190,7 +191,27 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
         }
     };
 
+    // NES E-Fatura / E-Arşiv fatura gönderim handler'ı (Ana handler)
     const handleSendInvoice = async (orderId: string) => {
+        setLoadingId(orderId);
+        try {
+            const result = await sendOrderInvoiceNes(orderId);
+            if (result.success) {
+                toast.success(result.message, { duration: 8000 });
+                // Sipariş listesini güncelle
+                router.refresh();
+            } else {
+                toast.error(result.message, { duration: 8000 });
+            }
+        } catch (error) {
+            toast.error("Fatura gönderilirken bir hata oluştu.");
+        } finally {
+            setLoadingId(null);
+        }
+    };
+
+    // Trendyol e-Faturam handler'ı (yedek / referans)
+    const handleSendInvoiceLegacy = async (orderId: string) => {
         setLoadingId(orderId);
         try {
             const result = await sendOrderInvoice(orderId);
@@ -205,6 +226,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
             setLoadingId(null);
         }
     };
+
 
     // Bulk Handlers
     const toggleSelectAll = () => {

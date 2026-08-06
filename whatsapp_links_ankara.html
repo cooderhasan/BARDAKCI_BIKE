@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ankara Veteriner WhatsApp Toplu Mesaj Link Oluşturucu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --primary: #10b981;
+            --primary-hover: #059669;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #34d399, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        textarea, input, select {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 12px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus, input:focus {
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 220px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-blue {
+            background: var(--accent);
+        }
+
+        .btn-blue:hover {
+            background: #2563eb;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .clinic-list-container {
+            max-height: 450px;
+            overflow-y: auto;
+            margin-top: 12px;
+            padding-right: 4px;
+        }
+
+        .clinic-item {
+            background: #0f172a;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .clinic-info {
+            flex: 1;
+        }
+
+        .clinic-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #f1f5f9;
+        }
+
+        .clinic-phone {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-pending { background: rgba(234, 179, 8, 0.2); color: #fde047; }
+        .badge-sent { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+
+        .helper-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🐾 Ankara Veteriner Klinik - WhatsApp Toplu İletişim Portalı</h1>
+        <p>Hepsi Bir Arada (All-in-One) Dijital Karne, Otomatik Aşı & İlaç Takibi Tanıtım Metni</p>
+    </div>
+
+    <div class="container">
+        <!-- SOL KOLON: ŞABLON DÜZENLEME -->
+        <div class="card">
+            <div class="card-title">
+                📝 WhatsApp Mesaj Şablonu (Taslak 1 - Hepsi Bir Arada)
+            </div>
+            
+            <label for="template">Gönderilecek Mesaj Metni:</label>
+            <textarea id="template" oninput="updateAllLinks()"></textarea>
+
+            <div class="helper-text" style="margin-top: 10px;">
+                💡 <b>İpucu:</b> <code>{klinik_adi}</code> dinamik olarak klinik adıyla değişir. Eğer klinik adı yoksa otomatik olarak "Hocam" yazılır.
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 8px;">
+                <button class="btn btn-blue btn-sm" onclick="resetDefaultTemplate()">Şablonu Sıfırla (Taslak 1)</button>
+                <button class="btn btn-sm" style="background:#475569;" onclick="copyTemplate()">Metni Kopyala</button>
+            </div>
+        </div>
+
+        <!-- SAĞ KOLON: KLİNİK LİSTESİ VE GÖNDERİM -->
+        <div class="card">
+            <div class="card-title">
+                📋 Klinik Listesi & İletişim Linkleri
+            </div>
+
+            <label for="bulkInput">Klinik Ekle (Format: Telefon, Klinik Adı veya sadece Telefon):</label>
+            <textarea id="bulkInput" style="min-height: 100px;" placeholder="05418571873, Venüs Veteriner Muayenehanesi&#10;05346770753, Özgür Veteriner Klinigi&#10;05551112233"></textarea>
+            
+            <button class="btn btn-blue" style="width: 100%; margin-top: 10px;" onclick="processList()">⚡ Listeyi Oluştur</button>
+
+            <div class="clinic-list-container" id="clinicList">
+                <!-- Dinamik liste buraya gelecek -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultTemplate = `Merhaba {klinik_adi} / Hocam, iyi çalışmalar 👋
+
+Ankara'daki veteriner klinikleri için geliştirdiğimiz Hepsi Bir Arada (All-in-One) Bulut Klinik Yönetim Platformumuzu tanıtmaktan mutluluk duyarız:
+
+📲 Dijital Karne & Otomatik WhatsApp/SMS Aşı Hatırlatma
+💊 Reçete & İlaç / Stok Yönetimi
+📊 Klinik Kasa, Fatura & Hasta Geçmişi Takibi
+🌐 Kliniğinize Özel Web Sitesi & Online Randevu
+
+Klinik süreçlerinizi tek ekrandan hızlandıracak sistemimizin 1 dakikalık inceleme linkini iletmemi ister misiniz?
+
+Saygılarımla,
+Hasan Durmuş | 0541 857 18 73`;
+
+        let clinics = [
+            { phone: "05418571873", name: "Venüs Veteriner Muayenehanesi", status: "pending" },
+            { phone: "05346770753", name: "Ankara Veteriner Kliniği", status: "pending" }
+        ];
+
+        document.getElementById('template').value = defaultTemplate;
+
+        function resetDefaultTemplate() {
+            document.getElementById('template').value = defaultTemplate;
+            updateAllLinks();
+        }
+
+        function copyTemplate() {
+            const txt = document.getElementById('template').value;
+            navigator.clipboard.writeText(txt);
+            alert("Şablon metni kopyalandı!");
+        }
+
+        function formatPhone(phone) {
+            let cleaned = phone.replace(/\D/g, '');
+            if (cleaned.startsWith('0')) {
+                cleaned = '90' + cleaned.substring(1);
+            } else if (!cleaned.startsWith('90') && cleaned.length === 10) {
+                cleaned = '90' + cleaned;
+            }
+            return cleaned;
+        }
+
+        function processList() {
+            const raw = document.getElementById('bulkInput').value.trim();
+            if (!raw) return;
+
+            const lines = raw.split('\n');
+            clinics = [];
+
+            lines.forEach(line => {
+                const parts = line.split(',');
+                const phone = parts[0] ? parts[0].trim() : '';
+                const name = parts[1] ? parts[1].trim() : '';
+
+                if (phone) {
+                    clinics.push({
+                        phone: phone,
+                        name: name,
+                        status: 'pending'
+                    });
+                }
+            });
+
+            renderList();
+        }
+
+        function renderList() {
+            const container = document.getElementById('clinicList');
+            const templateText = document.getElementById('template').value;
+
+            if (clinics.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Henüz klinik eklenmedi.</p>';
+                return;
+            }
+
+            container.innerHTML = clinics.map((c, index) => {
+                const formattedPhone = formatPhone(c.phone);
+                
+                let message = templateText;
+                if (c.name) {
+                    message = message.replace('{klinik_adi}', c.name);
+                } else {
+                    message = message.replace('{klinik_adi} / ', '');
+                }
+
+                const encodedMessage = encodeURIComponent(message);
+                const waUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
+
+                return `
+                    <div class="clinic-item">
+                        <div class="clinic-info">
+                            <div class="clinic-name">${c.name || 'İsimsiz Klinik'}</div>
+                            <div class="clinic-phone">${c.phone}</div>
+                        </div>
+                        <div class="actions">
+                            <a href="${waUrl}" target="_blank" class="btn btn-sm" onclick="markSent(${index})">
+                                💬 WhatsApp Mesajı Gönder
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function markSent(index) {
+            clinics[index].status = 'sent';
+            renderList();
+        }
+
+        function updateAllLinks() {
+            renderList();
+        }
+
+        // Illk açılışta listeyi render et
+        renderList();
+    </script>
+</body>
+</html>

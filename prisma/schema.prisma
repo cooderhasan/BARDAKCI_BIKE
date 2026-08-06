@@ -852,6 +852,27 @@ model TrendyolEFaturamConfig {
   @@map("trendyol_efaturam_configs")
 }
 
+// ==================== NES E-FATURA / E-ARŞİV ENTEGRASYONU ====================
+
+model NesEInvoiceConfig {
+  id             String   @id @default(cuid())
+  apiKey         String   // NES Portal API Anahtarı
+  senderAlias    String   @default("urn:mail:defaultgb@nes.com.tr") // Gönderici Etiketi
+  senderVkn      String   // Gönderici VKN (10 haneli)
+  senderTitle    String   // Gönderici Ünvan (Firma Adı)
+  senderAddress  String?  // Gönderici Adres
+  senderCity     String?  @default("İSTANBUL") // Gönderici İl
+  senderDistrict String?  // Gönderici İlçe
+  taxOffice      String?  // Vergi Dairesi
+  sourceApp      String?  @default("BardakciBike") // Kaynak Uygulama Adı
+  isActive       Boolean  @default(false)
+  isTestMode     Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("nes_einvoice_configs")
+}
+
 // ==================== IDEFİX ENTEGRASYONU ====================
 
 model IdefixConfig {
