@@ -56,6 +56,15 @@ export interface UblInvoiceOptions {
     prefix?: string;
     orderNumber?: string;
     notes?: string[];
+    /** Kargo taşıyıcı firma bilgisi */
+    carrier?: {
+        taxId: string;
+        name: string;
+    };
+    /** İnternet satış adresi (örn: https://www.trendyol.com) */
+    purchaseUrl?: string;
+    /** Ödeme türü (örn: KREDIKARTI/BANKAKARTI, EFT/HAVALE) */
+    paymentMeans?: string;
 }
 
 export interface GeneratedInvoiceXml {
@@ -195,6 +204,23 @@ export function buildUblInvoiceXml(
             </cac:PartyName>`;
     }
 
+    // Taşıyıcı Kargo Firma Bilgisi (cac:Delivery)
+    const carrierVkn = options.carrier?.taxId ? options.carrier.taxId.replace(/\D/g, "") : "";
+    const deliveryXml = (options.carrier && carrierVkn) ? `
+    <cac:Delivery>
+        <cac:CarrierParty>
+            <cac:PartyIdentification>
+                <cbc:ID schemeID="${carrierVkn.length === 11 ? "TCKN" : "VKN"}">${carrierVkn}</cbc:ID>
+            </cac:PartyIdentification>
+            <cac:PartyName>
+                <cbc:Name>${escapeXml(options.carrier.name)}</cbc:Name>
+            </cac:PartyName>
+        </cac:CarrierParty>
+    </cac:Delivery>` : "";
+
+    // Notlar
+    const notesXml = (options.notes || []).map(n => `    <cbc:Note>${escapeXml(n)}</cbc:Note>`).join("\n");
+
     // E-Arşiv ek referansı
     const eArchiveReferenceXml = profileId === "EARSIVFATURA" ? `
     <cac:AdditionalDocumentReference>
@@ -220,7 +246,7 @@ export function buildUblInvoiceXml(
     <cbc:IssueDate>${issueDate}</cbc:IssueDate>
     <cbc:IssueTime>${issueTime}</cbc:IssueTime>
     <cbc:InvoiceTypeCode>SATIS</cbc:InvoiceTypeCode>
-    <cbc:DocumentCurrencyCode>TRY</cbc:DocumentCurrencyCode>
+${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:DocumentCurrencyCode>
     <cbc:LineCountNumeric>${lines.length}</cbc:LineCountNumeric>${eArchiveReferenceXml}
     <cac:AccountingSupplierParty>
         <cac:Party>
@@ -254,7 +280,7 @@ export function buildUblInvoiceXml(
                 <cbc:ElectronicMail>${escapeXml(receiver.email || "")}</cbc:ElectronicMail>
             </cac:Contact>${receiverPersonXml}
         </cac:Party>
-    </cac:AccountingCustomerParty>
+    </cac:AccountingCustomerParty>${deliveryXml}
     <cac:TaxTotal>
         <cbc:TaxAmount currencyID="TRY">${toFixed2(totalTaxAmount)}</cbc:TaxAmount>
         <cac:TaxSubtotal>

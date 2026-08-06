@@ -224,7 +224,9 @@ export async function sendOrderInvoiceNes(orderId: string) {
         const invoiceOptions: Partial<UblInvoiceOptions> = {
             invoiceTypeCode: "SATIS",
             orderNumber: order.orderNumber,
-            notes: [`Sipariş No: ${order.orderNumber}`],
+            carrier: cargoInfo,
+            purchaseUrl,
+            notes: [`Sipariş No: ${order.orderNumber}`, `Kaynak: ${source}`],
         };
 
         const invoiceType = useEInvoice ? "e-Fatura" : "e-Arşiv";
