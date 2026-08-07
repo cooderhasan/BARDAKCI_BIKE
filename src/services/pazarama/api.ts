@@ -753,32 +753,41 @@ export class PazaramaClient {
 
   /**
    * Upload / Send Invoice Link to Pazarama
-   * Endpoints: /order/sendInvoiceLink, /order/uploadInvoiceLink, /order/sendInvoice
+   * Official Doküman Endpoint: POST /order/invoice-link
+   * Request Payload: { invoiceLink, orderid, deliveryCompanyId: null, trackingNumber: null }
    */
   async uploadInvoiceLink(
-    orderNumber: string | number,
+    orderIdOrNumber: string | number,
     invoiceUrl: string
   ): Promise<{ success: boolean; message: string }> {
     try {
       const headers = await this.getHeaders();
-      const numOrderNumber = typeof orderNumber === "string" ? parseInt(orderNumber, 10) || orderNumber : orderNumber;
+      const strOrderId = String(orderIdOrNumber);
 
       const candidateRequests = [
+        // 1. Resmi Dokümantasyon Endpoint'i
+        {
+          url: `${this.baseUrl}/order/invoice-link`,
+          body: {
+            invoiceLink: invoiceUrl,
+            orderid: strOrderId,
+            deliveryCompanyId: null,
+            trackingNumber: null,
+          },
+        },
+        {
+          url: `${this.baseUrl}/order/invoice-link`,
+          body: {
+            invoiceLink: invoiceUrl,
+            orderId: strOrderId,
+            deliveryCompanyId: null,
+            trackingNumber: null,
+          },
+        },
+        // Fallbacks
         {
           url: `${this.baseUrl}/order/sendInvoiceLink`,
-          body: { orderNumber: numOrderNumber, invoiceUrl },
-        },
-        {
-          url: `${this.baseUrl}/order/sendInvoiceLink`,
-          body: { orderNumber: numOrderNumber, invoiceLink: invoiceUrl },
-        },
-        {
-          url: `${this.baseUrl}/order/uploadInvoiceLink`,
-          body: { orderNumber: numOrderNumber, invoiceUrl },
-        },
-        {
-          url: `${this.baseUrl}/order/sendInvoice`,
-          body: { orderNumber: numOrderNumber, invoiceUrl },
+          body: { orderNumber: strOrderId, invoiceUrl },
         },
       ];
 
