@@ -150,10 +150,7 @@ export function RegisterForm({ logoUrl, siteName, isMotor = false }: RegisterFor
                     
                     {/* Kurumsal Üyelik Checkbox (Sadece Motor Sitesinde veya type=corporate parametresinde görünür) */}
                     {(isMotor || isCorporateType) && (
-                        <div 
-                            className="flex items-center space-x-3 p-3.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100/80 transition-colors"
-                            onClick={() => setIsCorporate(!isCorporate)}
-                        >
+                        <div className="flex items-center space-x-3 p-3.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100/80 transition-colors">
                             <Checkbox
                                 id="isCorporateCheckbox"
                                 checked={isCorporate}
@@ -246,11 +243,11 @@ export function RegisterForm({ logoUrl, siteName, isMotor = false }: RegisterFor
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="password">Şifre *</Label>
-                            <Input id="password" name="password" type="password" minLength={6} required />
+                            <Input id="password" name="password" type="password" minLength={6} required autoComplete="new-password" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="confirmPassword">Şifre Tekrar *</Label>
-                            <Input id="confirmPassword" name="confirmPassword" type="password" minLength={6} required />
+                            <Input id="confirmPassword" name="confirmPassword" type="password" minLength={6} required autoComplete="new-password" />
                         </div>
                     </div>
 
