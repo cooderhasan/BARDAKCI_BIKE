@@ -1,41 +1,35 @@
+import { getPolicy } from "@/app/actions/policy";
+import { getStoreType } from "@/lib/store-helper";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+export async function generateMetadata(): Promise<Metadata> {
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("commercial-communication", activeStore);
+    const title = policy?.title || "Ticari Elektronik İleti Onayı";
+    return {
+        title,
+        description: `${title}. İletişim izinleri, SMS ve e-posta duyuruları hakkında bilgi edinin.`,
+        alternates: {
+            canonical: "/policies/commercial-communication",
+        },
+    };
+}
 
-export const metadata: Metadata = {
-    title: "Elektronik Ticaret İleti Onayı",
-    description: "Ticari Elektronik İleti Onay Metni. Kampanya ve bilgilendirme duyuruları hakkındaki onay ve ret haklarınız.",
-    alternates: {
-        canonical: "/policies/commercial-communication",
-    },
-};
+export default async function CommercialCommunicationPage() {
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("commercial-communication", activeStore);
+    if (!policy) return notFound();
 
-export default function CommercialCommunicationPage() {
     return (
         <div className="container mx-auto px-4 py-12 max-w-4xl">
             <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
-                Elektronik Ticaret İleti Onayı
+                {policy.title}
             </h1>
-
-            <div className="prose dark:prose-invert max-w-none space-y-6 text-gray-600 dark:text-gray-300">
-                <p>
-                    [Şirket Adı] olarak, sizlere daha iyi hizmet verebilmek, kampanyalarımızdan, indirimlerimizden ve yeni ürünlerimizden haberdar edebilmek amacıyla ticari elektronik iletiler göndermekteyiz.
-                </p>
-
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8">
-                    Onay Kapsamı
-                </h3>
-                <p>
-                    İşbu onay metnini kabul ederek; Şirketimizin tarafınıza SMS, e-posta, telefon ve benzeri araçlarla ticari elektronik ileti göndermesine, verilerinizin bu amaçla kullanılmasına ve saklanmasına izin vermiş olursunuz.
-                </p>
-
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-8">
-                    Ret Hakkı
-                </h3>
-                <p>
-                    Dilediğiniz zaman, hiçbir gerekçe göstermeksizin ticari elektronik ileti almayı reddedebilirsiniz. İleti alımını durdurmak için gönderilen iletilerdeki yönlendirmeleri takip edebilir veya müşteri hizmetlerimizle iletişime geçebilirsiniz.
-                </p>
-            </div>
+            <div
+                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: policy.content }}
+            />
         </div>
     );
 }

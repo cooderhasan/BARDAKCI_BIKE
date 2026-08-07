@@ -1,8 +1,7 @@
 import { getPolicy } from "@/app/actions/policy";
+import { getStoreType } from "@/lib/store-helper";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
 interface PolicyPageProps {
     params: Promise<{
@@ -12,11 +11,12 @@ interface PolicyPageProps {
 
 export async function generateMetadata({ params }: PolicyPageProps): Promise<Metadata> {
     const { slug } = await params;
-    const policy = await getPolicy(slug);
+    const activeStore = await getStoreType();
+    const policy = await getPolicy(slug, activeStore);
     if (!policy) return { title: "Sayfa Bulunamadı" };
 
     return {
-        title: policy.title, // Root layout will automatically append " | storeTitle"
+        title: policy.title,
         description: `${policy.title} sayfası. Haklarınız ve politikalarımız hakkında detaylı bilgi edinin.`,
         alternates: {
             canonical: `/policies/${slug}`,
@@ -30,7 +30,8 @@ export async function generateMetadata({ params }: PolicyPageProps): Promise<Met
 
 export default async function DynamicPolicyPage({ params }: PolicyPageProps) {
     const { slug } = await params;
-    const policy = await getPolicy(slug);
+    const activeStore = await getStoreType();
+    const policy = await getPolicy(slug, activeStore);
 
     if (!policy) {
         notFound();
@@ -42,7 +43,7 @@ export default async function DynamicPolicyPage({ params }: PolicyPageProps) {
                 {policy.title}
             </h1>
             <div
-                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300"
+                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: policy.content }}
             />
         </div>

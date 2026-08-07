@@ -1,19 +1,24 @@
 import { getPolicy } from "@/app/actions/policy";
+import { getStoreType } from "@/lib/store-helper";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-
-export const metadata: Metadata = {
-    title: "Gizlilik Politikası",
-    description: "Gizlilik politikası. Kişisel verilerinizin güvenliği ve gizliliğinizle ilgili aldığımız önlemler hakkında bilgi edinin.",
-    alternates: {
-        canonical: "/policies/privacy",
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("privacy", activeStore);
+    const title = policy?.title || "Gizlilik Politikası";
+    return {
+        title,
+        description: `${title}. Kişisel verilerinizin güvenliği ve gizliliğinizle ilgili aldığımız önlemler hakkında bilgi edinin.`,
+        alternates: {
+            canonical: "/policies/privacy",
+        },
+    };
+}
 
 export default async function PrivacyPage() {
-    const policy = await getPolicy("privacy");
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("privacy", activeStore);
     if (!policy) return notFound();
 
     return (
@@ -22,7 +27,7 @@ export default async function PrivacyPage() {
                 {policy.title}
             </h1>
             <div
-                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300"
+                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: policy.content }}
             />
         </div>

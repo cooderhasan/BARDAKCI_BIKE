@@ -1,19 +1,24 @@
 import { getPolicy } from "@/app/actions/policy";
+import { getStoreType } from "@/lib/store-helper";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-
-export const metadata: Metadata = {
-    title: "Çerez Politikası",
-    description: "Çerez politikası. Web sitemizde kullanılan çerez türleri ve çerez tercihlerinizi nasıl yöneteceğiniz hakkında bilgi edinin.",
-    alternates: {
-        canonical: "/policies/cookies",
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("cookies", activeStore);
+    const title = policy?.title || "Çerez Politikası";
+    return {
+        title,
+        description: `${title}. Sitemizde kullanılan çerezler ve çerez tercihleri hakkında bilgi edinin.`,
+        alternates: {
+            canonical: "/policies/cookies",
+        },
+    };
+}
 
 export default async function CookiesPage() {
-    const policy = await getPolicy("cookies");
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("cookies", activeStore);
     if (!policy) return notFound();
 
     return (
@@ -22,7 +27,7 @@ export default async function CookiesPage() {
                 {policy.title}
             </h1>
             <div
-                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300"
+                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: policy.content }}
             />
         </div>

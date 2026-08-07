@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { ActiveStore, getStoreType } from "@/lib/store-helper";
+import { getDefaultFAQs, adaptFAQForStore } from "@/lib/default-faqs";
 
 export async function getFAQ(id: string) {
     try {
@@ -14,18 +16,26 @@ export async function getFAQ(id: string) {
     }
 }
 
-export async function getAllFAQs(onlyActive: boolean = false) {
+export async function getAllFAQs(onlyActive: boolean = false, storeTypeOverride?: ActiveStore) {
+    const storeType = storeTypeOverride || (await getStoreType());
+
     try {
-        return await prisma.fAQ.findMany({
+        const faqs = await prisma.fAQ.findMany({
             where: onlyActive ? { isActive: true } : {},
             orderBy: [
                 { category: "asc" },
                 { order: "asc" }
             ],
         });
+
+        if (faqs.length > 0) {
+            return adaptFAQForStore(faqs as any, storeType);
+        }
+
+        return getDefaultFAQs(storeType);
     } catch (error) {
-        console.warn("Could not fetch FAQs, returning empty array.", error);
-        return [];
+        console.warn("Could not fetch FAQs, returning defaults.", error);
+        return getDefaultFAQs(storeType);
     }
 }
 
@@ -98,6 +108,6 @@ export async function toggleFAQStatus(id: string, isActive: boolean) {
         return { success: true };
     } catch (error) {
         console.error("Toggle FAQ status error:", error);
-        return { success: false, error: "Soru durumu güncellenemedi." };
+        return { success: false, error: "Durum güncellenemedi." };
     }
 }

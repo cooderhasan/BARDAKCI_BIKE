@@ -1,37 +1,42 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, MapPin, Phone, Clock, Building2, FileText, MessageCircle } from "lucide-react";
 import { getSiteSettings } from "@/lib/settings";
+import { getStoreType, getStoreSettings } from "@/lib/store-helper";
 import { ContactForm } from "@/components/storefront/contact-form";
 import type { Metadata } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+export async function generateMetadata(): Promise<Metadata> {
+    const activeStore = await getStoreType();
+    const isMotor = activeStore === "MOTOR";
+    const title = isMotor ? "İletişim | Motovitrin" : "İletişim | Bardakcı Bike";
+    const description = isMotor
+        ? "Motovitrin ile iletişime geçin. Motosiklet yedek parça, aksesuar talepleriniz ve bayi başvurusu için bize ulaşabilirsiniz."
+        : "Bardakcı Bike ile iletişime geçin. Sorularınız, talepleriniz ve bayi başvurusu için bize ulaşabilirsiniz.";
 
-export const metadata: Metadata = {
-    title: "İletişim",
-    description:
-        "Bizimle iletişime geçin. Sorularınız, talepleriniz ve bayi başvurusu için bize ulaşabilirsiniz. Telefon, e-posta veya formumuzu kullanabilirsiniz.",
-    alternates: {
-        canonical: "/contact",
-    },
-    openGraph: {
-        title: "İletişim",
-        description:
-            "Sorularınız ve talepleriniz için bizimle iletişime geçin.",
-        url: "/contact",
-        locale: "tr_TR",
-        type: "website",
-    },
-};
+    return {
+        title,
+        description,
+        alternates: {
+            canonical: "/contact",
+        },
+    };
+}
 
 export default async function ContactPage() {
-
+    const activeStore = await getStoreType();
+    const storeSettings = await getStoreSettings(activeStore);
     const settings = await getSiteSettings();
+    const isMotor = activeStore === "MOTOR";
+
+    const companyName = isMotor ? "Motovitrin Motosiklet - Mehmet Fatih Bardakcı" : (settings.companyName || "Bardakcı Bike - Mehmet Fatih Bardakcı");
+    const subtext = isMotor
+        ? "Motosiklet dünyasında ihtiyacınız olan orijinal yedek parça ve aksesuarlara ulaşmanız için her zaman yanınızdayız."
+        : "Hayalinizdeki bisiklet modeline ulaşmanız için her zaman yanınızdayız. Sorularınız için bize ulaşın.";
 
     return (
         <div className="min-h-screen">
             {/* Hero Banner */}
-            <section className="relative bg-gradient-to-br from-[#002838] via-[#004a6e] to-[#17457C] py-16 sm:py-20 overflow-hidden">
-                {/* Decorative circles */}
+            <section className={`relative bg-gradient-to-br ${isMotor ? 'from-[#800000] via-[#b71c1c] to-[#1a0000]' : 'from-[#002838] via-[#004a6e] to-[#17457C]'} py-16 sm:py-20 overflow-hidden`}>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
 
@@ -39,8 +44,8 @@ export default async function ContactPage() {
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 tracking-tight">
                         Bize Ulaşın
                     </h1>
-                    <p className="text-blue-100 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-                        Hayalinizdeki bisiklet modeline ulaşmanız için her zaman yanınızdayız. Sorularınız için bize ulaşın.
+                    <p className="text-white/90 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+                        {subtext}
                     </p>
                 </div>
             </section>
@@ -48,28 +53,28 @@ export default async function ContactPage() {
             {/* Quick Contact Badges */}
             <section className="container mx-auto px-4 -mt-8 relative z-20 mb-10">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05540144142'}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
+                    <a href={`tel:${storeSettings.phone.replace(/[^0-9+]/g, '')}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
                         <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-500 transition-colors">
                             <Phone className="w-5 h-5 text-green-600 group-hover:text-white transition-colors" />
                         </div>
                         <div>
                             <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Telefon</p>
-                            <p className="font-bold text-gray-900 dark:text-white text-sm">{settings.phone || "0554 014 41 42"}</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm">{storeSettings.phone}</p>
                         </div>
                     </a>
 
-                    <a href={`mailto:${settings.email || 'info@bardakcibike.com.tr'}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
+                    <a href={`mailto:${storeSettings.email}`} className="group flex items-center gap-4 bg-white dark:bg-gray-900 rounded-2xl shadow-lg hover:shadow-xl p-5 ring-1 ring-black/5 transition-all duration-300 hover:-translate-y-1">
                         <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-500 transition-colors">
                             <Mail className="w-5 h-5 text-purple-600 group-hover:text-white transition-colors" />
                         </div>
                         <div>
                             <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">E-posta</p>
-                            <p className="font-bold text-gray-900 dark:text-white text-sm">{settings.email || "info@bardakcibike.com.tr"}</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm">{storeSettings.email}</p>
                         </div>
                     </a>
 
                     {(() => {
-                        let cleanPhone = (settings.whatsappNumber || settings.phone || "05540144142").replace(/[^0-9]/g, "");
+                        let cleanPhone = (settings.whatsappNumber || storeSettings.phone).replace(/[^0-9]/g, "");
                         if (cleanPhone.startsWith('0')) cleanPhone = '90' + cleanPhone.substring(1);
                         else if (!cleanPhone.startsWith('90') && cleanPhone.length === 10) cleanPhone = '90' + cleanPhone;
 
@@ -95,7 +100,7 @@ export default async function ContactPage() {
                     <div className="lg:col-span-2 space-y-6">
                         {/* Company Info */}
                         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg ring-1 ring-black/5 overflow-hidden">
-                            <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-6 py-4">
+                            <div className={`bg-gradient-to-r ${isMotor ? 'from-[#990000] to-[#111111]' : 'from-[#17457C] to-[#0f3460]'} px-6 py-4`}>
                                 <h2 className="text-white font-bold text-lg flex items-center gap-2">
                                     <Building2 className="w-5 h-5" />
                                     Firma Bilgileri
@@ -106,19 +111,19 @@ export default async function ContactPage() {
                                 <div>
                                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Firma Ünvanı</p>
                                     <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                        {settings.companyName || "Bardakcı Bike - Mehmet Fatih Bardakcı"}
+                                        {companyName}
                                     </p>
                                 </div>
 
                                 {/* Address */}
                                 <div className="flex gap-3">
                                     <div className="w-9 h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <MapPin className="w-4 h-4 text-[#17457C]" />
+                                        <MapPin className={`w-4 h-4 ${isMotor ? 'text-red-600' : 'text-[#17457C]'}`} />
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Adres</p>
                                         <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                                            {settings.address || "Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA"}
+                                            {storeSettings.address || "Horozluhan Mah. Ayça Sk. No:62 Selçuklu / KONYA"}
                                         </p>
                                     </div>
                                 </div>
@@ -130,8 +135,8 @@ export default async function ContactPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Telefon</p>
-                                        <a href={`tel:${settings.phone?.replace(/[^0-9+]/g, '') || '05540144142'}`} className="block text-sm text-gray-700 dark:text-gray-300 hover:text-[#17457C] transition-colors font-medium">
-                                            {settings.phone || "0554 014 41 42"}
+                                        <a href={`tel:${storeSettings.phone.replace(/[^0-9+]/g, '')}`} className="block text-sm text-gray-700 dark:text-gray-300 hover:text-red-600 transition-colors font-medium">
+                                            {storeSettings.phone}
                                         </a>
                                     </div>
                                 </div>
@@ -182,7 +187,7 @@ export default async function ContactPage() {
                                 style={{ border: 0 }}
                                 allowFullScreen
                                 loading="lazy"
-                                title="Konya Bardakcı Bike Konum"
+                                title="Konya Konum"
                             ></iframe>
                         </div>
                     </div>
@@ -190,9 +195,9 @@ export default async function ContactPage() {
                     {/* Right: Contact Form */}
                     <div className="lg:col-span-3">
                         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg ring-1 ring-black/5 overflow-hidden h-full flex flex-col">
-                            <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-6 py-4">
+                            <div className={`bg-gradient-to-r ${isMotor ? 'from-[#990000] to-[#111111]' : 'from-[#17457C] to-[#0f3460]'} px-6 py-4`}>
                                 <h2 className="text-white font-bold text-lg">Mesaj Gönderin</h2>
-                                <p className="text-blue-100 text-sm mt-0.5">
+                                <p className="text-white/80 text-sm mt-0.5">
                                     Formu doldurarak bize mesaj gönderin, en kısa sürede dönüş yapacağız.
                                 </p>
                             </div>
@@ -203,15 +208,6 @@ export default async function ContactPage() {
                     </div>
                 </div>
             </section>
-
-            {/* Dynamic Intro Content */}
-            {settings.contactContent && (
-                <section className="container mx-auto px-4 pb-16">
-                    <div className="prose prose-lg dark:prose-invert max-w-none">
-                        <div dangerouslySetInnerHTML={{ __html: settings.contactContent }} />
-                    </div>
-                </section>
-            )}
         </div>
     );
 }

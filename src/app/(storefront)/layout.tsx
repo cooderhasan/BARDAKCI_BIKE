@@ -23,8 +23,9 @@ export default async function StorefrontLayout({
     const storeSettings = await getStoreSettings(activeStore);
     const storeFilter = getStoreFilter(activeStore);
 
-    const settings = {
-        ...(await getSiteSettings()),
+    const siteSettings = await getSiteSettings();
+    const settings: Record<string, any> = {
+        ...siteSettings,
         logoUrl: storeSettings.logoUrl,
         siteName: storeSettings.siteTitle,
         seoDescription: storeSettings.seoDescription,

@@ -1,19 +1,24 @@
 import { getPolicy } from "@/app/actions/policy";
+import { getStoreType } from "@/lib/store-helper";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-
-export const metadata: Metadata = {
-    title: "İptal ve İade Koşulları",
-    description: "İptal, iade ve garanti koşulları. Siparişinizi nasıl iptal edeceğiniz veya iade edeceğiniz hakkında detaylı bilgi edinin.",
-    alternates: {
-        canonical: "/policies/cancellation",
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("cancellation", activeStore);
+    const title = policy?.title || "İptal ve İade Koşulları";
+    return {
+        title,
+        description: `${title}. Sipariş iptali, iade koşulları ve süreçler hakkında bilgi edinin.`,
+        alternates: {
+            canonical: "/policies/cancellation",
+        },
+    };
+}
 
 export default async function CancellationPage() {
-    const policy = await getPolicy("cancellation");
+    const activeStore = await getStoreType();
+    const policy = await getPolicy("cancellation", activeStore);
     if (!policy) return notFound();
 
     return (
@@ -22,7 +27,7 @@ export default async function CancellationPage() {
                 {policy.title}
             </h1>
             <div
-                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300"
+                className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: policy.content }}
             />
         </div>
