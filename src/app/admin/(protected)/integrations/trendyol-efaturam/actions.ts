@@ -325,6 +325,18 @@ export async function sendOrderInvoice(orderId: string) {
                         } else {
                             return { success: false, message: `Bu sipariş için fatura zaten kesilmişti. N11'e gönderim hatası: ${n11Result.message}` };
                         }
+                    } else if (order.source === "PAZARAMA") {
+                        const pzConfig = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+                        if (pzConfig) {
+                            const { PazaramaClient } = await import("@/services/pazarama/api");
+                            const pz = new PazaramaClient(pzConfig);
+                            const pzResult = await pz.uploadInvoiceLink(order.orderNumber, invoiceUrl);
+                            if (pzResult.success) {
+                                return { success: true, message: "Mevcut fatura linki Pazarama'ya başarıyla yeniden gönderildi ve güncellendi! ✅" };
+                            } else {
+                                return { success: false, message: `Pazarama fatura hatası: ${pzResult.message}` };
+                            }
+                        }
                     }
                 } catch (mpError: any) {
                     return { success: false, message: `Fatura zaten kesilmişti. Pazaryerine yeniden gönderim sırasında hata oluştu: ${mpError.message}` };
@@ -489,6 +501,24 @@ export async function sendOrderInvoice(orderId: string) {
                         }
                     } else {
                         marketplaceMessage = " | HB'ye fatura linki gönderilemedi (PDF URL bulunamadı)";
+                    }
+                } else if (order.source === "PAZARAMA") {
+                    if (invoiceUrl) {
+                        const pzConfig = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+                        if (pzConfig) {
+                            const { PazaramaClient } = await import("@/services/pazarama/api");
+                            const pz = new PazaramaClient(pzConfig);
+                            const pzResult = await pz.uploadInvoiceLink(order.orderNumber, invoiceUrl);
+                            if (pzResult.success) {
+                                marketplaceMessage = " | Pazarama'ya fatura linki iletildi ✅";
+                            } else {
+                                marketplaceMessage = ` | Pazarama fatura hatası: ${pzResult.message}`;
+                            }
+                        } else {
+                            marketplaceMessage = " | Pazarama entegrasyon ayarı bulunamadı";
+                        }
+                    } else {
+                        marketplaceMessage = " | Pazarama'ya fatura linki gönderilemedi (PDF URL bulunamadı)";
                     }
                 }
             } catch (mpError: any) {

@@ -922,3 +922,45 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
   }
 }
 
+/**
+ * Siparişe ait kesilmiş faturanın linkini Pazarama'ya yükler / gönderir.
+ */
+export async function uploadPazaramaOrderInvoice(orderId: string) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif Pazarama konfigürasyonu bulunamadı." };
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      return { success: false, message: "Sipariş bulunamadı." };
+    }
+
+    const invoiceUrl = (order as any).invoiceUrl;
+    if (!invoiceUrl) {
+      return { success: false, message: "Bu sipariş için sisteme yüklenmiş / kesilmiş bir fatura PDF linki bulunamadı. Önce faturayı kesiniz." };
+    }
+
+    const client = new PazaramaClient(config);
+    const result = await client.uploadInvoiceLink(order.orderNumber, invoiceUrl);
+
+    if (result.success) {
+      try {
+        revalidatePath("/admin/orders");
+        revalidatePath("/admin/integrations/pazarama/orders");
+      } catch {}
+      return { success: true, message: `Fatura linki Pazarama'ya başarıyla iletildi! ✅ (Sipariş No: ${order.orderNumber})` };
+    } else {
+      return { success: false, message: result.message || "Pazarama'ya fatura gönderilemedi." };
+    }
+  } catch (error: any) {
+    console.error("uploadPazaramaOrderInvoice error:", error);
+    return { success: false, message: error.message || "Pazarama fatura gönderim hatası." };
+  }
+}
+
+

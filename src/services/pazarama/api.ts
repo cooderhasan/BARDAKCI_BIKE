@@ -744,10 +744,76 @@ export class PazaramaClient {
 
       return {
         success: false,
-        error: `Pazarama Sorgu Yanıtı (${lastStatus}): ${lastText ? lastText.substring(0, 200) : "Sunucu yanıt vermedi"}`,
+        error: `Pazarama batch kontrol yanıtı (${lastStatus}): ${lastText ? lastText.substring(0, 200) : "Sunucu yanıt vermedi"}`,
       };
     } catch (error: any) {
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Upload / Send Invoice Link to Pazarama
+   * Endpoints: /order/sendInvoiceLink, /order/uploadInvoiceLink, /order/sendInvoice
+   */
+  async uploadInvoiceLink(
+    orderNumber: string | number,
+    invoiceUrl: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const headers = await this.getHeaders();
+      const numOrderNumber = typeof orderNumber === "string" ? parseInt(orderNumber, 10) || orderNumber : orderNumber;
+
+      const candidateRequests = [
+        {
+          url: `${this.baseUrl}/order/sendInvoiceLink`,
+          body: { orderNumber: numOrderNumber, invoiceUrl },
+        },
+        {
+          url: `${this.baseUrl}/order/sendInvoiceLink`,
+          body: { orderNumber: numOrderNumber, invoiceLink: invoiceUrl },
+        },
+        {
+          url: `${this.baseUrl}/order/uploadInvoiceLink`,
+          body: { orderNumber: numOrderNumber, invoiceUrl },
+        },
+        {
+          url: `${this.baseUrl}/order/sendInvoice`,
+          body: { orderNumber: numOrderNumber, invoiceUrl },
+        },
+      ];
+
+      for (const req of candidateRequests) {
+        try {
+          console.log(`[Pazarama Invoice] POST ${req.url} - body:`, JSON.stringify(req.body));
+          const res = await fetch(req.url, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(req.body),
+            cache: "no-store",
+          });
+
+          const rawText = await res.text().catch(() => "");
+          console.log(`[Pazarama Invoice] HTTP ${res.status} (${req.url}):`, rawText.substring(0, 500));
+
+          if (res.status === 404) continue;
+
+          let data: any = {};
+          try { data = JSON.parse(rawText); } catch {}
+
+          if (res.ok && data?.isSuccess !== false && data?.success !== false) {
+            return {
+              success: true,
+              message: "Fatura linki Pazarama'ya başarıyla gönderildi.",
+            };
+          }
+        } catch (e: any) {
+          console.error(`[Pazarama Invoice] Error calling ${req.url}:`, e.message);
+        }
+      }
+
+      return { success: false, message: "Pazarama fatura gönderme isteği tamamlanamadı." };
+    } catch (error: any) {
+      return { success: false, message: `Pazarama Fatura Hatası: ${error.message}` };
     }
   }
 }

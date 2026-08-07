@@ -146,6 +146,16 @@ export async function sendOrderInvoiceNes(orderId: string) {
                         if (n11Result.success) {
                             return { success: true, message: "Mevcut fatura linki N11'e başarıyla yeniden gönderildi ✅" };
                         }
+                    } else if (order.source === "PAZARAMA") {
+                        const pzConfig = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+                        if (pzConfig) {
+                            const { PazaramaClient } = await import("@/services/pazarama/api");
+                            const pz = new PazaramaClient(pzConfig);
+                            const pzResult = await pz.uploadInvoiceLink(order.orderNumber, invoiceUrl);
+                            if (pzResult.success) {
+                                return { success: true, message: "Mevcut fatura linki Pazarama'ya başarıyla yeniden gönderildi ✅" };
+                            }
+                        }
                     }
                 } catch (mpError: any) {
                     return { success: false, message: `Fatura zaten kesilmişti. Pazaryerine yeniden gönderim hatası: ${mpError.message}` };
@@ -320,6 +330,18 @@ export async function sendOrderInvoiceNes(orderId: string) {
                     const packageId = order.shipmentPackageId || order.orderNumber;
                     await ty.uploadInvoiceLink(packageId, pdfProxyUrl);
                     marketplaceMessage = " | Trendyol'a fatura linki iletildi ✅";
+                } else if (order.source === "PAZARAMA") {
+                    const pzConfig = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+                    if (pzConfig) {
+                        const { PazaramaClient } = await import("@/services/pazarama/api");
+                        const pz = new PazaramaClient(pzConfig);
+                        const pzResult = await pz.uploadInvoiceLink(order.orderNumber, pdfProxyUrl);
+                        if (pzResult.success) {
+                            marketplaceMessage = " | Pazarama'ya fatura linki iletildi ✅";
+                        } else {
+                            marketplaceMessage = ` | Pazarama fatura hatası: ${pzResult.message}`;
+                        }
+                    }
                 }
             } catch (mpError: any) {
                 console.error(`⚠️ Pazaryeri fatura link hatası (${order.source}):`, mpError.message);
