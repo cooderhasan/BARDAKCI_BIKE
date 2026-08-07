@@ -586,7 +586,7 @@ export class PazaramaClient {
       const candidateBodies: any[] = [];
 
       if (params?.orderNumber) {
-        candidateBodies.push({ orderNumber: params.orderNumber });
+        candidateBodies.push({ orderNumber: Number(params.orderNumber) });
         candidateBodies.push({ orderNumber: String(params.orderNumber) });
       }
 
@@ -594,42 +594,30 @@ export class PazaramaClient {
         candidateBodies.push({
           startDate: params.startDate,
           endDate: params.endDate,
-          pageSize: params?.pageSize || 500,
+          pageSize: params?.pageSize || 100,
           pageNumber: params?.pageNumber || 1,
         });
       } else {
         const today = new Date();
-        const lastMonth = new Date(today);
-        lastMonth.setMonth(lastMonth.getMonth() - 1);
-        const startDateStr = lastMonth.toISOString().split("T")[0];
+        const past25Days = new Date(today.getTime() - 25 * 24 * 60 * 60 * 1000);
+        const startDateStr = past25Days.toISOString().split("T")[0];
         const endDateStr = today.toISOString().split("T")[0];
 
-        // 1. Standard date format YYYY-MM-DD 00:00:00
-        candidateBodies.push({
-          startDate: `${startDateStr} 00:00:00`,
-          endDate: `${endDateStr} 23:59:59`,
-          pageSize: 500,
-          pageNumber: 1,
-        });
-
-        // 2. Simple YYYY-MM-DD
-        candidateBodies.push({
-          startDate: startDateStr,
-          endDate: endDateStr,
-          pageSize: 500,
-          pageNumber: 1,
-        });
-
-        // 3. ISO format with T
+        // 1. ISO format with T (Max 25 days range) - Pazarama required format
         candidateBodies.push({
           startDate: `${startDateStr}T00:00:00`,
           endDate: `${endDateStr}T23:59:59`,
-          pageSize: 500,
+          pageSize: 100,
           pageNumber: 1,
         });
 
-        // 4. Empty payload
-        candidateBodies.push({});
+        // 2. Simple YYYY-MM-DD (Max 25 days range)
+        candidateBodies.push({
+          startDate: startDateStr,
+          endDate: endDateStr,
+          pageSize: 100,
+          pageNumber: 1,
+        });
       }
 
       for (const body of candidateBodies) {
@@ -651,28 +639,14 @@ export class PazaramaClient {
           let data: any = {};
           try { data = JSON.parse(rawText); } catch {}
 
-          let rawOrders =
-            data?.data?.orders ||
-            data?.data?.items ||
-            data?.data?.content ||
-            data?.data?.orderList ||
-            data?.data?.shipmentPackages ||
-            data?.data ||
-            data?.orders ||
-            data?.items ||
-            data?.content ||
-            data?.orderList ||
-            [];
+          if (data?.success === false) {
+            console.error(`[Pazarama] Order query message:`, data?.message || data?.userMessage);
+            continue;
+          }
 
+          let rawOrders = data?.data || data?.orders || data?.items || [];
           if (!Array.isArray(rawOrders) && typeof rawOrders === "object" && rawOrders !== null) {
-            rawOrders =
-              rawOrders.orders ||
-              rawOrders.items ||
-              rawOrders.content ||
-              rawOrders.list ||
-              rawOrders.orderList ||
-              rawOrders.shipmentPackages ||
-              [];
+            rawOrders = rawOrders.orders || rawOrders.items || rawOrders.content || rawOrders.list || [];
           }
 
           const orders = Array.isArray(rawOrders) ? rawOrders : [];
@@ -681,30 +655,30 @@ export class PazaramaClient {
             return orders.map((o: any) => ({
               id: String(o.orderId || o.id || o.orderNumber),
               orderNumber: String(o.orderNumber || o.orderId || o.id),
-              orderDate: o.orderDate || o.createdDate || o.orderDateStr || "",
+              orderDate: o.orderDate || o.createdDate || "",
               status: String(o.orderStatus != null ? o.orderStatus : o.status || ""),
-              totalAmount: Number(o.orderAmount || o.totalAmount || o.totalPrice || 0),
-              customerName: o.customerName || (o.shipmentAddress ? `${o.shipmentAddress.firstName || ""} ${o.shipmentAddress.lastName || ""}`.trim() : "") || "",
+              totalAmount: Number(o.orderAmount || o.totalAmount || 0),
+              customerName: o.customerName || o.shipmentAddress?.nameSurname || (o.shipmentAddress ? `${o.shipmentAddress.firstName || ""} ${o.shipmentAddress.lastName || ""}`.trim() : "") || "",
               customerPhone: o.shipmentAddress?.phoneNumber || o.customerPhone || "",
-              customerEmail: o.customerEmail || "",
+              customerEmail: o.customerEmail || o.shipmentAddress?.customerEmail || "",
               deliveryAddress: {
-                address: o.shipmentAddress?.addressDetail || o.shipmentAddress?.address || "",
+                address: o.shipmentAddress?.addressDetail || o.shipmentAddress?.displayAddressText || o.shipmentAddress?.address || "",
                 city: o.shipmentAddress?.cityName || o.shipmentAddress?.city || "",
                 district: o.shipmentAddress?.districtName || o.shipmentAddress?.district || "",
                 postalCode: o.shipmentAddress?.postalCode || "",
               },
-              items: (o.items || o.orderItems || o.lines || []).map((item: any) => {
-                const pObj = item.product || item.productVariant || item || {};
+              items: (o.items || o.orderItems || []).map((item: any) => {
+                const pObj = item.product || {};
                 const rawSku = pObj.stockCode || pObj.code || pObj.barcode || item.stockCode || item.code || item.sku || item.barcode || "";
-                const rawBarcode = pObj.barcode || pObj.code || pObj.stockCode || item.barcode || item.code || item.sku || item.stockCode || "";
+                const rawBarcode = pObj.code || pObj.barcode || pObj.stockCode || item.code || item.barcode || item.sku || item.stockCode || "";
                 return {
                   productId: String(item.orderItemId || item.productId || item.id || ""),
                   sku: String(rawSku).trim(),
                   barcode: String(rawBarcode).trim(),
                   productName: pObj.name || item.productName || item.title || "",
-                  quantity: Number(item.quantity || item.qty) || 1,
-                  price: item.salePrice?.value != null ? Number(item.salePrice.value) : (Number(item.price || item.unitPrice) || 0),
-                  totalAmount: item.totalPrice?.value != null ? Number(item.totalPrice.value) : (Number(item.totalAmount || item.lineTotal) || 0),
+                  quantity: Number(item.quantity) || 1,
+                  price: item.salePrice?.value != null ? Number(item.salePrice.value) : (Number(item.price) || 0),
+                  totalAmount: item.totalPrice?.value != null ? Number(item.totalPrice.value) : (Number(item.totalAmount) || 0),
                 };
               }),
             })) as PazaramaOrder[];
