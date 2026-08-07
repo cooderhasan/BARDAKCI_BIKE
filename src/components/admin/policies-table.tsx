@@ -64,7 +64,7 @@ export function PoliciesTable({ policies }: { policies: Policy[] }) {
                                 <TableCell className="font-medium">{policy.title}</TableCell>
                                 <TableCell className="text-gray-500">{policy.slug}</TableCell>
                                 <TableCell>
-                                    {format(new Date(policy.updatedAt), "d MMM yyyy HH:mm", { locale: tr })}
+                                    {policy.updatedAt ? format(new Date(policy.updatedAt), "d MMM yyyy HH:mm", { locale: tr }) : "Sistem Varsayılanı"}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
