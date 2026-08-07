@@ -276,11 +276,11 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                                     </>
                                                 )}
                                                 <DropdownMenuItem
-                                                    className="text-red-600"
+                                                    className="text-red-600 font-semibold"
                                                     onClick={() => {
                                                         const { logout } = useCartStore.getState();
                                                         logout();
-                                                        signOut({ callbackUrl: "/" });
+                                                        signOut({ callbackUrl: typeof window !== "undefined" ? window.location.origin : "/" });
                                                     }}
                                                 >
                                                     <LogOut className="mr-2 h-4 w-4" />

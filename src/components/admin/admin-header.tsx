@@ -274,7 +274,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                             onClick={() => {
                                 const { logout } = useCartStore.getState();
                                 logout();
-                                signOut({ callbackUrl: "/login" });
+                                signOut({ callbackUrl: typeof window !== "undefined" ? `${window.location.origin}/login` : "/login" });
                             }}
                         >
                             <LogOut className="mr-2 h-4 w-4" />
