@@ -67,6 +67,7 @@ export interface PazaramaOrder {
   items: Array<{
     productId: string;
     sku: string;
+    barcode?: string;
     productName: string;
     quantity: number;
     price: number;
