@@ -204,6 +204,7 @@ export default async function StorefrontLayout({
                 instagramUrl={settings.instagramUrl}
                 twitterUrl={settings.twitterUrl}
                 linkedinUrl={settings.linkedinUrl}
+                isMotor={activeStore === "MOTOR"}
             />
             <main className="flex-1">{children}</main>
             <StorefrontFooter settings={settings} policies={policies} categories={categories} />

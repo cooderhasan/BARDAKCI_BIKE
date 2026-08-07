@@ -55,9 +55,10 @@ interface StorefrontHeaderProps {
     twitterUrl?: string;
     linkedinUrl?: string;
     sidebarCategories?: Category[];
+    isMotor?: boolean;
 }
 
-export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sidebarCategories = [], phone, facebookUrl, instagramUrl, twitterUrl, linkedinUrl }: StorefrontHeaderProps) {
+export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sidebarCategories = [], phone, facebookUrl, instagramUrl, twitterUrl, linkedinUrl, isMotor = false }: StorefrontHeaderProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const items = useCartStore((state) => state.items);
@@ -213,17 +214,25 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
 
                                         {!user ? (
                                             <DropdownMenuContent align="end" className="w-[280px] p-4">
-                                                <div className="flex flex-col gap-3">
+                                                <div className="flex flex-col gap-2.5">
                                                     <Link href="/login" className="w-full">
-                                                        <Button variant="default" className="w-full">
+                                                        <Button variant="default" className="w-full font-bold">
                                                             Giriş Yap
                                                         </Button>
                                                     </Link>
                                                     <Link href="/register" className="w-full">
-                                                        <Button variant="outline" className="w-full">
+                                                        <Button variant="outline" className="w-full font-medium">
                                                             Üye Ol
                                                         </Button>
                                                     </Link>
+                                                    {isMotor && (
+                                                        <Link href="/register?type=corporate" className="w-full">
+                                                            <Button variant="secondary" className="w-full font-bold bg-[#990000] hover:bg-[#7a0000] text-white border-0">
+                                                                <Building2 className="h-4 w-4 mr-1.5" />
+                                                                Bayi Ol (Kurumsal Kayıt)
+                                                            </Button>
+                                                        </Link>
+                                                    )}
                                                 </div>
                                             </DropdownMenuContent>
                                         ) : (
@@ -465,6 +474,16 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 {user ? "Hesabım" : "Giriş Yap"}
                             </Link>
                         </div>
+                        {!user && isMotor && (
+                            <Link
+                                href="/register?type=corporate"
+                                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#990000] text-white font-bold text-sm shadow-sm"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <Building2 className="h-4 w-4" />
+                                Bayi Ol (Kurumsal Üyelik)
+                            </Link>
+                        )}
 
                         {/* Mobile Categories - Expandable Sidebar Style */}
                         <div className="space-y-1.5">

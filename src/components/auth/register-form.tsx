@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Building2 } from "lucide-react";
 import { registerUser } from "@/app/register/actions";
 import { SearchablePicker } from "@/components/ui/searchable-picker";
 import { getDistrictsOfCity, getCityNames } from "@/lib/cities";
@@ -19,14 +20,18 @@ import { getDistrictsOfCity, getCityNames } from "@/lib/cities";
 interface RegisterFormProps {
     logoUrl?: string;
     siteName?: string;
+    isMotor?: boolean;
 }
 
-export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
+export function RegisterForm({ logoUrl, siteName, isMotor = false }: RegisterFormProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get("callbackUrl");
+    const isCorporateType = searchParams.get("type") === "corporate" || searchParams.get("type") === "dealer";
+    
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [isCorporate, setIsCorporate] = useState(isCorporateType);
     const [selectedCity, setSelectedCity] = useState<string>("");
     const [selectedDistrict, setSelectedDistrict] = useState<string>("");
 
@@ -43,11 +48,26 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
             return;
         }
 
+        if (isCorporate) {
+            const companyName = String(formData.get("companyName") || "").trim();
+            const taxNumber = String(formData.get("taxNumber") || "").trim();
+
+            if (!companyName) {
+                toast.error("Kurumsal üyelik için Firma Ünvanı zorunludur.");
+                setLoading(false);
+                return;
+            }
+            if (!taxNumber) {
+                toast.error("Kurumsal üyelik için Vergi Numarası zorunludur.");
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             const result = await registerUser(formData);
 
             if (result.success) {
-                // Bireysel kayıtta otomatik giriş yap
                 toast.success("Kayıt başarılı! Giriş yapılıyor...");
                 const email = String(formData.get("email"));
                 const password = String(formData.get("password"));
@@ -59,7 +79,6 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                 if (loginResult?.ok) {
                     router.push(callbackUrl || "/account");
                 } else {
-                    // Otomatik giriş başarısız olursa login sayfasına yönlendir
                     router.push(callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login");
                 }
             } else {
@@ -129,6 +148,65 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     
+                    {/* Kurumsal Üyelik Checkbox (Sadece Motor Sitesinde veya type=corporate parametresinde görünür) */}
+                    {(isMotor || isCorporateType) && (
+                        <div 
+                            className="flex items-center space-x-3 p-3.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100/80 transition-colors"
+                            onClick={() => setIsCorporate(!isCorporate)}
+                        >
+                            <Checkbox
+                                id="isCorporateCheckbox"
+                                checked={isCorporate}
+                                onCheckedChange={(checked) => setIsCorporate(!!checked)}
+                                className="h-5 w-5 border-gray-400 data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
+                            />
+                            <Label htmlFor="isCorporateCheckbox" className="text-sm font-bold text-gray-800 dark:text-gray-200 cursor-pointer select-none">
+                                Kurumsal Üyelik Yapmak İstiyorum (Bayi)
+                            </Label>
+                        </div>
+                    )}
+
+                    {/* Kurumsal Alanlar */}
+                    {isCorporate && (
+                        <div className="space-y-4 p-4 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl animate-in fade-in-50 duration-200">
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 mb-1">
+                                <Building2 className="h-4 w-4 text-amber-600" />
+                                Bayi / Firma Bilgileri
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="companyName">Firma Ünvanı *</Label>
+                                <Input 
+                                    id="companyName" 
+                                    name="companyName" 
+                                    type="text" 
+                                    placeholder="Örn: Özkan Motor Ltd. Şti." 
+                                    required={isCorporate} 
+                                />
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="taxNumber">Vergi Numarası / T.C. *</Label>
+                                    <Input 
+                                        id="taxNumber" 
+                                        name="taxNumber" 
+                                        type="text" 
+                                        placeholder="Vergi No veya T.C." 
+                                        required={isCorporate} 
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="taxOffice">Vergi Dairesi</Label>
+                                    <Input 
+                                        id="taxOffice" 
+                                        name="taxOffice" 
+                                        type="text" 
+                                        placeholder="Vergi Dairesi" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-2">
                         <Label htmlFor="name">Ad Soyad *</Label>
                         <Input id="name" name="name" type="text" placeholder="Örn: Ahmet Yılmaz" required />
@@ -220,8 +298,8 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                         />
                     </div>
 
-                    <Button type="submit" className="w-full h-12 text-lg" disabled={loading}>
-                        {loading ? "Kayıt yapılıyor..." : "Kayıt Ol"}
+                    <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading}>
+                        {loading ? "Kayıt yapılıyor..." : (isCorporate ? "Bayi Kaydı Oluştur" : "Kayıt Ol")}
                     </Button>
                 </form>
 
@@ -229,7 +307,7 @@ export function RegisterForm({ logoUrl, siteName }: RegisterFormProps) {
                     <span className="text-gray-500">Zaten hesabınız var mı? </span>
                     <Link
                         href={callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login"}
-                        className="text-[#17457C] hover:underline"
+                        className="text-[#17457C] font-semibold hover:underline"
                     >
                         Giriş Yap
                     </Link>
