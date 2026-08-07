@@ -947,7 +947,8 @@ export async function uploadPazaramaOrderInvoice(orderId: string) {
 
     const client = new PazaramaClient(config);
     const targetOrderId = order.shipmentPackageId || order.orderNumber;
-    const result = await client.uploadInvoiceLink(targetOrderId, invoiceUrl);
+    const fallbackOrderNumber = order.shipmentPackageId ? order.orderNumber : undefined;
+    const result = await client.uploadInvoiceLink(targetOrderId, invoiceUrl, fallbackOrderNumber);
 
     if (result.success) {
       try {

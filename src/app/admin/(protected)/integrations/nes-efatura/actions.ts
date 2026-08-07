@@ -151,7 +151,9 @@ export async function sendOrderInvoiceNes(orderId: string) {
                         if (pzConfig) {
                             const { PazaramaClient } = await import("@/services/pazarama/api");
                             const pz = new PazaramaClient(pzConfig);
-                            const pzResult = await pz.uploadInvoiceLink(order.orderNumber, invoiceUrl);
+                            const pzOrderId = order.shipmentPackageId || order.orderNumber;
+                            const pzFallback = order.shipmentPackageId ? order.orderNumber : undefined;
+                            const pzResult = await pz.uploadInvoiceLink(pzOrderId, invoiceUrl, pzFallback);
                             if (pzResult.success) {
                                 return { success: true, message: "Mevcut fatura linki Pazarama'ya başarıyla yeniden gönderildi ✅" };
                             }
@@ -335,7 +337,9 @@ export async function sendOrderInvoiceNes(orderId: string) {
                     if (pzConfig) {
                         const { PazaramaClient } = await import("@/services/pazarama/api");
                         const pz = new PazaramaClient(pzConfig);
-                        const pzResult = await pz.uploadInvoiceLink(order.orderNumber, pdfProxyUrl);
+                        const pzOrderId = order.shipmentPackageId || order.orderNumber;
+                        const pzFallback = order.shipmentPackageId ? order.orderNumber : undefined;
+                        const pzResult = await pz.uploadInvoiceLink(pzOrderId, pdfProxyUrl, pzFallback);
                         if (pzResult.success) {
                             marketplaceMessage = " | Pazarama'ya fatura linki iletildi ✅";
                         } else {

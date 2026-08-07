@@ -755,74 +755,88 @@ export class PazaramaClient {
    * Upload / Send Invoice Link to Pazarama
    * Official Doküman Endpoint: POST /order/invoice-link
    * Request Payload: { invoiceLink, orderid, deliveryCompanyId: null, trackingNumber: null }
+   * 
+   * orderid = Pazarama'nın UUID formatındaki kendi sipariş ID'si (shipmentPackageId olarak DB'de saklanır)
    */
   async uploadInvoiceLink(
     orderIdOrNumber: string | number,
-    invoiceUrl: string
+    invoiceUrl: string,
+    fallbackOrderNumber?: string | number
   ): Promise<{ success: boolean; message: string }> {
     try {
       const headers = await this.getHeaders();
-      const strOrderId = String(orderIdOrNumber);
+      const primaryId = String(orderIdOrNumber);
+      
+      // Build candidate IDs: primary first, then fallback if different
+      const candidateIds = [primaryId];
+      if (fallbackOrderNumber && String(fallbackOrderNumber) !== primaryId) {
+        candidateIds.push(String(fallbackOrderNumber));
+      }
 
-      const candidateRequests = [
-        // 1. Resmi Dokümantasyon Endpoint'i
-        {
-          url: `${this.baseUrl}/order/invoice-link`,
-          body: {
-            invoiceLink: invoiceUrl,
-            orderid: strOrderId,
-            deliveryCompanyId: null,
-            trackingNumber: null,
+      let lastErrorMessage = "";
+
+      for (const orderId of candidateIds) {
+        const candidateRequests = [
+          // 1. Resmi Dokümantasyon Endpoint'i (küçük 'i' ile orderid)
+          {
+            url: `${this.baseUrl}/order/invoice-link`,
+            body: {
+              invoiceLink: invoiceUrl,
+              orderid: orderId,
+              deliveryCompanyId: null,
+              trackingNumber: null,
+            },
           },
-        },
-        {
-          url: `${this.baseUrl}/order/invoice-link`,
-          body: {
-            invoiceLink: invoiceUrl,
-            orderId: strOrderId,
-            deliveryCompanyId: null,
-            trackingNumber: null,
+          // 2. Büyük 'I' ile orderId denemeleri
+          {
+            url: `${this.baseUrl}/order/invoice-link`,
+            body: {
+              invoiceLink: invoiceUrl,
+              orderId: orderId,
+              deliveryCompanyId: null,
+              trackingNumber: null,
+            },
           },
-        },
-        // Fallbacks
-        {
-          url: `${this.baseUrl}/order/sendInvoiceLink`,
-          body: { orderNumber: strOrderId, invoiceUrl },
-        },
-      ];
+        ];
 
-      for (const req of candidateRequests) {
-        try {
-          console.log(`[Pazarama Invoice] POST ${req.url} - body:`, JSON.stringify(req.body));
-          const res = await fetch(req.url, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(req.body),
-            cache: "no-store",
-          });
+        for (const req of candidateRequests) {
+          try {
+            console.log(`[Pazarama Invoice] POST ${req.url} - body:`, JSON.stringify(req.body));
+            const res = await fetch(req.url, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(req.body),
+              cache: "no-store",
+            });
 
-          const rawText = await res.text().catch(() => "");
-          console.log(`[Pazarama Invoice] HTTP ${res.status} (${req.url}):`, rawText.substring(0, 500));
+            const rawText = await res.text().catch(() => "");
+            console.log(`[Pazarama Invoice] HTTP ${res.status} (${req.url}):`, rawText.substring(0, 500));
 
-          if (res.status === 404) continue;
+            if (res.status === 404) continue;
 
-          let data: any = {};
-          try { data = JSON.parse(rawText); } catch {}
+            let data: any = {};
+            try { data = JSON.parse(rawText); } catch {}
 
-          if (res.ok && data?.isSuccess !== false && data?.success !== false) {
-            return {
-              success: true,
-              message: "Fatura linki Pazarama'ya başarıyla gönderildi.",
-            };
+            if (res.ok && data?.isSuccess !== false && data?.success !== false) {
+              return {
+                success: true,
+                message: `Fatura linki Pazarama'ya başarıyla gönderildi. (orderId: ${orderId})`,
+              };
+            }
+
+            // Capture the error message for reporting
+            lastErrorMessage = data?.message || data?.userMessage || rawText.substring(0, 200) || `HTTP ${res.status}`;
+          } catch (e: any) {
+            console.error(`[Pazarama Invoice] Error calling ${req.url}:`, e.message);
+            lastErrorMessage = e.message;
           }
-        } catch (e: any) {
-          console.error(`[Pazarama Invoice] Error calling ${req.url}:`, e.message);
         }
       }
 
-      return { success: false, message: "Pazarama fatura gönderme isteği tamamlanamadı." };
+      return { success: false, message: `Pazarama fatura gönderme isteği tamamlanamadı. Son hata: ${lastErrorMessage}` };
     } catch (error: any) {
       return { success: false, message: `Pazarama Fatura Hatası: ${error.message}` };
     }
   }
 }
+
