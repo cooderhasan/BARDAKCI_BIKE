@@ -97,12 +97,15 @@ export default function AccountLayout({
                                 );
                             })}
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     const { logout } = useCartStore.getState();
                                     logout();
-                                    signOut({ callbackUrl: typeof window !== "undefined" ? window.location.origin : "/" });
+                                    await signOut({ redirect: false });
+                                    if (typeof window !== "undefined") {
+                                        window.location.href = window.location.origin;
+                                    }
                                 }}
-                                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors mt-4"
+                                className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors mt-4 cursor-pointer"
                             >
                                 <LogOut className="h-4 w-4" />
                                 Çıkış Yap

@@ -125,6 +125,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }),
     ],
     callbacks: {
+        async redirect({ url, baseUrl }) {
+            if (url.startsWith("/")) return `${baseUrl}${url}`;
+            try {
+                const targetUrl = new URL(url);
+                if (
+                    targetUrl.hostname.endsWith("bardakcibike.com.tr") ||
+                    targetUrl.hostname.endsWith("motovitrin.com") ||
+                    targetUrl.hostname === "localhost" ||
+                    targetUrl.hostname === "127.0.0.1"
+                ) {
+                    return url;
+                }
+            } catch {}
+            return baseUrl;
+        },
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
