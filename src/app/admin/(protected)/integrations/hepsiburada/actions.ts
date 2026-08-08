@@ -357,6 +357,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
 
                 for (const item of items) {
                     let product = null;
+                    let isFallback = false;
                     const merchantSkuVal = item.merchantSku || item.merchantSKU;
 
                     // 1. Önce HepsiburadaProduct tablosundaki özel sihirbaz eşleşmelerine bakalım
@@ -389,8 +390,36 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                         }
                     }
 
+                    // 3. ProductVariant tablosuna bakalım
                     if (!product) {
-                        console.warn(`⚠️ HB Sipariş ${orderNumber}: Ürün eşleşmedi (SKU: ${merchantSkuVal})`);
+                        const searchConditions: any[] = [];
+                        if (merchantSkuVal) searchConditions.push({ sku: String(merchantSkuVal) });
+                        if (item.sku) searchConditions.push({ sku: String(item.sku) });
+                        if (item.barcode) searchConditions.push({ barcode: String(item.barcode) });
+
+                        if (searchConditions.length > 0) {
+                            const variant = await prisma.productVariant.findFirst({
+                                where: { OR: searchConditions },
+                                include: { product: true }
+                            });
+                            if (variant && variant.product) {
+                                product = variant.product;
+                            }
+                        }
+                    }
+
+                    // 4. Sitede tanımlı olmayan ürünler için fallback (varsayılan) ürün kullanalım ki sipariş kaybolmasın
+                    if (!product) {
+                        const fallbackProd = await prisma.product.findFirst();
+                        if (fallbackProd) {
+                            product = fallbackProd;
+                            isFallback = true;
+                            console.log(`ℹ️ HB Sipariş ${orderNumber}: Ürün sitede bulunamadı, fallback ürün ile aktarılıyor (SKU: ${merchantSkuVal || item.sku})`);
+                        }
+                    }
+
+                    if (!product) {
+                        console.warn(`⚠️ HB Sipariş ${orderNumber}: Hiç ürün bulunamadığı için aktarılamadı (SKU: ${merchantSkuVal})`);
                         continue;
                     }
 
@@ -410,11 +439,13 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                     const lineTotal = price * quantity;
                     const vatRate = item.vatRate || item.vat || 20;
 
+                    const productName = item.name || item.productName || item.merchantSku || item.sku || product.name || "Hepsiburada Ürünü";
+
                     orderItemsToCreate.push({
                         productId: product.id,
                         quantity: quantity,
                         unitPrice: price,
-                        productName: item.name || item.productName || "HB Ürün",
+                        productName: productName,
                         lineTotal: lineTotal,
                         vatRate: vatRate,
                         discountRate: 0
@@ -424,11 +455,13 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                     vatAmountTotal += lineTotal * (vatRate / (100 + vatRate));
                     discountTotal += item.hbDiscount?.amount || item.discountPriceToBeInvoicedHb || 0;
                     
-                    stockUpdates.push({id: product.id, qty: quantity});
+                    if (!isFallback) {
+                        stockUpdates.push({id: product.id, qty: quantity});
+                    }
                 }
 
                 if (orderItemsToCreate.length === 0) {
-                    console.log(`⚠️ HB Sipariş ${orderNumber}: Eşleşen ürün bulunamadığı için aktarılmadı.`);
+                    console.log(`⚠️ HB Sipariş ${orderNumber}: Ürün eklenemediği için sipariş aktarılmadı.`);
                     continue;
                 }
 
