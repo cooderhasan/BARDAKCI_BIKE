@@ -924,3 +924,45 @@ export async function setBulkCiceksepetiProductCategory(productIds: string[], ci
     return { success: false, error: error.message || "Toplu kategori ataması başarısız." };
   }
 }
+
+/**
+ * Siparişe ait kesilmiş faturanın linkini Çiçeksepeti'ye yükler / e-posta kuyruğuna gönderir.
+ */
+export async function uploadCiceksepetiOrderInvoice(orderId: string) {
+  try {
+    const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif Çiçeksepeti konfigürasyonu bulunamadı." };
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      return { success: false, message: "Sipariş bulunamadı." };
+    }
+
+    const invoiceUrl = (order as any).invoiceUrl;
+    if (!invoiceUrl) {
+      return { success: false, message: "Bu sipariş için sisteme yüklenmiş / kesilmiş bir fatura PDF linki bulunamadı. Önce faturayı kesiniz." };
+    }
+
+    const client = new CiceksepetiClient(config);
+    const targetItemId = order.shipmentPackageId || order.orderNumber.replace(/^CS-/, "");
+    const result = await client.uploadInvoiceLink(targetItemId, invoiceUrl);
+
+    if (result.success) {
+      try {
+        revalidatePath("/admin/orders");
+        revalidatePath("/admin/integrations/ciceksepeti");
+      } catch {}
+      return { success: true, message: `Fatura linki Çiçeksepeti'ye başarıyla iletildi! ✅ (Sipariş No: ${order.orderNumber})` };
+    } else {
+      return { success: false, message: result.message || "Çiçeksepeti'ye fatura gönderilemedi." };
+    }
+  } catch (error: any) {
+    console.error("uploadCiceksepetiOrderInvoice error:", error);
+    return { success: false, message: error.message || "Çiçeksepeti fatura gönderim hatası." };
+  }
+}

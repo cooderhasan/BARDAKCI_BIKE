@@ -158,6 +158,17 @@ export async function sendOrderInvoiceNes(orderId: string) {
                                 return { success: true, message: "Mevcut fatura linki Pazarama'ya başarıyla yeniden gönderildi ✅" };
                             }
                         }
+                    } else if (order.source === "CICEKSEPETI") {
+                        const csConfig = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+                        if (csConfig) {
+                            const { CiceksepetiClient } = await import("@/services/ciceksepeti/api");
+                            const cs = new CiceksepetiClient(csConfig);
+                            const targetItemId = order.shipmentPackageId || order.orderNumber.replace(/^CS-/, "");
+                            const csResult = await cs.uploadInvoiceLink(targetItemId, invoiceUrl);
+                            if (csResult.success) {
+                                return { success: true, message: "Mevcut fatura linki Çiçeksepeti'ye başarıyla yeniden gönderildi ✅" };
+                            }
+                        }
                     }
                 } catch (mpError: any) {
                     return { success: false, message: `Fatura zaten kesilmişti. Pazaryerine yeniden gönderim hatası: ${mpError.message}` };
@@ -344,6 +355,19 @@ export async function sendOrderInvoiceNes(orderId: string) {
                             marketplaceMessage = " | Pazarama'ya fatura linki iletildi ✅";
                         } else {
                             marketplaceMessage = ` | Pazarama fatura hatası: ${pzResult.message}`;
+                        }
+                    }
+                } else if (order.source === "CICEKSEPETI") {
+                    const csConfig = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+                    if (csConfig) {
+                        const { CiceksepetiClient } = await import("@/services/ciceksepeti/api");
+                        const cs = new CiceksepetiClient(csConfig);
+                        const targetItemId = order.shipmentPackageId || order.orderNumber.replace(/^CS-/, "");
+                        const csResult = await cs.uploadInvoiceLink(targetItemId, pdfProxyUrl);
+                        if (csResult.success) {
+                            marketplaceMessage = " | Çiçeksepeti'ye fatura linki iletildi ✅";
+                        } else {
+                            marketplaceMessage = ` | Çiçeksepeti fatura hatası: ${csResult.message}`;
                         }
                     }
                 }

@@ -735,4 +735,90 @@ export class CiceksepetiClient {
     if (data && Array.isArray(data.items)) return data.items;
     return [];
   }
+
+  /**
+   * Fatura Linki / Dokümanı Gönder (Müşteriye e-posta atma kuyruğuna ekler)
+   * Resmi Doküman Endpoint: POST /Branch/SendInvoiceMail
+   * Request Payload: { items: [ { orderItemId, documentUrl, document } ] }
+   */
+  async uploadInvoiceLink(
+    orderItemId: number | string,
+    documentUrl?: string,
+    base64Document?: string
+  ): Promise<{ success: boolean; message: string }> {
+    await this.loadConfig();
+
+    const rawItemId = String(orderItemId).replace(/^CS-/, "");
+    const numericOrderItemId = parseInt(rawItemId, 10);
+
+    if (isNaN(numericOrderItemId) || numericOrderItemId <= 0) {
+      return {
+        success: false,
+        message: `Geçersiz Çiçeksepeti orderItemId: ${orderItemId}`,
+      };
+    }
+
+    if (!documentUrl && !base64Document) {
+      return {
+        success: false,
+        message: "Fatura gönderimi için documentUrl (PDF Linki) veya document (Base64) girilmelidir.",
+      };
+    }
+
+    const payload = {
+      items: [
+        {
+          orderItemId: numericOrderItemId,
+          ...(base64Document ? { document: base64Document } : {}),
+          ...(documentUrl ? { documentUrl: documentUrl } : {}),
+        },
+      ],
+    };
+
+    const candidateUrls = [
+      `${this.baseUrl}/Branch/SendInvoiceMail`,
+      `${this.baseUrl.replace(/\/v1$/, "")}/v1/Branch/SendInvoiceMail`,
+      `${this.baseUrl.replace(/\/api\/v1$/, "")}/api/v1/Branch/SendInvoiceMail`,
+    ];
+
+    let lastError = "";
+
+    for (const url of candidateUrls) {
+      try {
+        console.log(`🧾 [CS-INVOICE] POST ${url} payload:`, JSON.stringify(payload));
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify(payload),
+          cache: "no-store",
+        });
+
+        const responseText = await res.text().catch(() => "");
+        console.log(`🧾 [CS-INVOICE] Response (${res.status}):`, responseText.substring(0, 500));
+
+        if (res.status === 404) continue;
+
+        let data: any = {};
+        try { data = JSON.parse(responseText); } catch {}
+
+        if (res.ok && data?.error !== true && data?.isSuccess !== false) {
+          return {
+            success: true,
+            message: "Fatura linki Çiçeksepeti'ye başarıyla iletildi ve müşteri e-posta kuyruğuna eklendi ✅",
+          };
+        }
+
+        lastError = data?.message || data?.userMessage || responseText.substring(0, 200) || `HTTP ${res.status}`;
+      } catch (err: any) {
+        console.error(`🧾 [CS-INVOICE] Error ${url}:`, err.message);
+        lastError = err.message;
+      }
+    }
+
+    return {
+      success: false,
+      message: `Çiçeksepeti fatura gönderme hatası: ${lastError}`,
+    };
+  }
 }
