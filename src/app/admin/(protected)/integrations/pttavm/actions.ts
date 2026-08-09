@@ -410,11 +410,6 @@ export async function syncOrdersFromPttavm() {
                   vatRate: rawItem.kdvOrani ?? 20,
                   discountRate: 0,
                 });
-
-                await prisma.product.update({
-                  where: { id: dbProd.id },
-                  data: { stock: { decrement: qty } },
-                }).catch(() => null);
               }
             }
 
@@ -437,29 +432,39 @@ export async function syncOrdersFromPttavm() {
             }
 
             if (orderItemsPayload.length > 0) {
-              await prisma.order.create({
-                data: {
-                  orderNumber,
-                  source: "PTTAVM",
-                  status: "CONFIRMED",
-                  total: Number(item.toplamTutar ?? item.totalPrice ?? subtotal),
-                  subtotal,
-                  discountAmount: 0,
-                  appliedDiscountRate: 0,
-                  vatAmount: subtotal * 0.2,
-                  guestEmail: customerEmail,
-                  shippingAddress: {
-                    fullName: customerName,
-                    addressText: item.teslimatAdresi || item.adres || "ePttAVM Adresi",
-                    city: item.il || "Türkiye",
-                    district: item.ilce || "",
-                    phone: customerPhone,
+              const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+
+              const affectedProductIds = await prisma.$transaction(async (tx) => {
+                await tx.order.create({
+                  data: {
+                    orderNumber,
+                    source: "PTTAVM",
+                    status: "CONFIRMED",
+                    total: Number(item.toplamTutar ?? item.totalPrice ?? subtotal),
+                    subtotal,
+                    discountAmount: 0,
+                    appliedDiscountRate: 0,
+                    vatAmount: subtotal * 0.2,
+                    guestEmail: customerEmail,
+                    shippingAddress: {
+                      fullName: customerName,
+                      addressText: item.teslimatAdresi || item.adres || "ePttAVM Adresi",
+                      city: item.il || "Türkiye",
+                      district: item.ilce || "",
+                      phone: customerPhone,
+                    },
+                    items: {
+                      create: orderItemsPayload,
+                    },
                   },
-                  items: {
-                    create: orderItemsPayload,
-                  },
-                },
+                });
+
+                return decrementOrderStock(tx, orderItemsPayload.map(i => ({ productId: i.productId, quantity: i.quantity })));
               });
+
+              if (affectedProductIds.length > 0) {
+                handlePostOrderStockSync(affectedProductIds, "pttavm").catch(console.error);
+              }
             }
           }
         } catch (err: any) {

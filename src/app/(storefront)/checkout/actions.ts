@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/lib/helpers";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email";
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
+import { decrementOrderStock } from "@/lib/stock-sync";
 
 interface OrderItem {
     productId: string;
@@ -288,56 +289,7 @@ export async function createOrder(data: CreateOrderData) {
             }
 
             // Update stock
-            for (const item of data.items) {
-                // Check if this product is a bundle
-                const productWithBundle = await tx.product.findUnique({
-                    where: { id: item.productId },
-                    select: {
-                        isBundle: true,
-                        bundleItems: {
-                            select: {
-                                childProductId: true,
-                                quantity: true,
-                            },
-                        },
-                    },
-                });
-
-                if (productWithBundle?.isBundle && productWithBundle.bundleItems.length > 0) {
-                    // Bundle product: decrement stock from each child product
-                    for (const bundleItem of productWithBundle.bundleItems) {
-                        await tx.product.update({
-                            where: { id: bundleItem.childProductId },
-                            data: {
-                                stock: {
-                                    decrement: bundleItem.quantity * item.quantity,
-                                },
-                            },
-                        });
-                    }
-                } else if (item.variantId) {
-                    await tx.productVariant.update({
-                        where: { id: item.variantId },
-                        data: {
-                            stock: {
-                                decrement: item.quantity,
-                            },
-                        },
-                    });
-                } else {
-                    await tx.product.update({
-                        where: { id: item.productId },
-                        data: {
-                            stock: {
-                                decrement: item.quantity,
-                            },
-                        },
-                    });
-                }
-            }
-
-            // Return the list of affected product IDs as well
-            const affectedProductIds = Array.from(new Set(data.items.map(i => i.productId)));
+            const affectedProductIds = await decrementOrderStock(tx, data.items);
 
             return { newOrder, affectedProductIds };
         });

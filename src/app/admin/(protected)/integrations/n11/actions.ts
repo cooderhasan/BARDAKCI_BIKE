@@ -415,15 +415,16 @@ export async function syncOrdersFromN11() {
                         }
                     });
 
-                    // Decrement stock atomically for matched items
-                    for (const item of orderItems) {
-                        if (item.productId) {
-                            await tx.product.update({
-                                where: { id: item.productId },
-                                data: { stock: { decrement: item.quantity } }
-                            });
-                        }
-                    }
+                    // Decrement stock atomically for matched items (supports variants & bundle child products)
+                    const { decrementOrderStock } = await import("@/lib/stock-sync");
+                    return decrementOrderStock(
+                        tx,
+                        orderItems.map(item => ({
+                            productId: item.productId,
+                            variantId: (item as any).variantId,
+                            quantity: item.quantity,
+                        }))
+                    );
                 });
 
                 // Trigger stock sync to all marketplaces

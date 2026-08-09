@@ -570,27 +570,19 @@ export async function syncOrdersFromTrendyol() {
                         }
                     });
 
-                    // 2. Decrement stock atomically for each item
-                    for (const item of resolvedItems) {
-                        if (item.variantId) {
-                            // Variant stock decrement
-                            await tx.productVariant.update({
-                                where: { id: item.variantId },
-                                data: { stock: { decrement: item.quantity } }
-                            });
-                        } else {
-                            // Product stock decrement
-                            await tx.product.update({
-                                where: { id: item.productId },
-                                data: { stock: { decrement: item.quantity } }
-                            });
-                        }
-                    }
+                    // 2. Decrement stock atomically for each item (supports variants & bundle child products)
+                    const { decrementOrderStock } = await import("@/lib/stock-sync");
+                    return decrementOrderStock(
+                        tx,
+                        resolvedItems.map(item => ({
+                            productId: item.productId,
+                            variantId: item.variantId,
+                            quantity: item.quantity,
+                        }))
+                    );
                 });
 
-                // Trigger stock sync to ALL marketplaces (including Trendyol itself)
-                // If stock reached critical level, this will push stock=0 immediately (no queue delay)
-                const affectedProductIds = Array.from(new Set(resolvedItems.map(item => item.productId)));
+                // Trigger stock sync to ALL marketplaces
                 if (affectedProductIds.length > 0) {
                     const { handlePostOrderStockSync } = await import("@/lib/stock-sync");
                     handlePostOrderStockSync(affectedProductIds, "trendyol").catch(console.error);

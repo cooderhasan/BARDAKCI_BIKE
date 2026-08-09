@@ -119,25 +119,33 @@ export async function POST(req: NextRequest) {
                 // Don't fail the request, just log it
             }
         } else {
-            // Payment failed
+            // Payment failed - cancel order, restore stock, and sync back to marketplaces
             console.log(`Order ${orderId} payment failed:`, params.failed_reason_msg);
-            // Hatayı nota ekle ama statüyü değiştirme (Böylece WAITING_FOR_PAYMENT kalır ve panelde gizli kalmaya devam eder)
-            // Ayrıca 'where' sorgusunu orderNumber olarak düzeltiyoruz (id değil)
             const orderForFail = await prisma.order.findFirst({
                 where: {
                     OR: [
                         { id: orderId },
                         { orderNumber: orderId },
                     ]
-                }
+                },
+                include: { items: true }
             });
-            if (orderForFail) {
-                await prisma.order.update({
-                    where: { id: orderForFail.id },
-                    data: {
-                        notes: (orderForFail.notes ? orderForFail.notes + " | " : "") + `PayTR Hatası: ${params.failed_reason_msg}`
-                    },
+            if (orderForFail && orderForFail.status !== "CANCELLED") {
+                const { restoreOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+                const affectedProductIds = await prisma.$transaction(async (tx) => {
+                    await tx.order.update({
+                        where: { id: orderForFail.id },
+                        data: {
+                            status: "CANCELLED",
+                            notes: (orderForFail.notes ? orderForFail.notes + " | " : "") + `PayTR Hatası: ${params.failed_reason_msg}`
+                        },
+                    });
+                    return restoreOrderStock(tx, orderForFail.items);
                 });
+
+                if (affectedProductIds.length > 0) {
+                    handlePostOrderStockSync(affectedProductIds, "site").catch(console.error);
+                }
             }
         }
 

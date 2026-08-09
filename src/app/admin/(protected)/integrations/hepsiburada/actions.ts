@@ -498,18 +498,19 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                         }
                     });
 
-                    // Decrement stock atomically for each item
-                    for (const update of stockUpdates) {
-                        await tx.product.update({
-                            where: { id: update.id },
-                            data: { stock: { decrement: update.qty } }
-                        });
-                    }
+                    // Decrement stock atomically for each item (supports variants & bundle child products)
+                    const { decrementOrderStock } = await import("@/lib/stock-sync");
+                    return decrementOrderStock(
+                        tx,
+                        orderItemsToCreate.map(item => ({
+                            productId: item.productId,
+                            variantId: item.variantId,
+                            quantity: item.quantity,
+                        }))
+                    );
                 });
 
-                // Trigger stock sync to ALL marketplaces (including HB itself)
-                // If stock reached critical level, this will push stock=0 immediately
-                const affectedProductIds = Array.from(new Set(orderItemsToCreate.map(item => item.productId)));
+                // Trigger stock sync to ALL marketplaces
                 if (affectedProductIds.length > 0) {
                     const { handlePostOrderStockSync } = await import("@/lib/stock-sync");
                     handlePostOrderStockSync(affectedProductIds, "hepsiburada").catch(console.error);

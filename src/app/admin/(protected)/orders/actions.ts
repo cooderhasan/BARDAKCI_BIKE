@@ -30,35 +30,22 @@ export async function updateOrderStatus(
 
         // If transitioning TO CANCELLED, restore stock for all order items
         if (status === "CANCELLED" && order?.status !== "CANCELLED") {
-            await prisma.$transaction(async (tx) => {
+            const { restoreOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+
+            const affectedProductIds = await prisma.$transaction(async (tx) => {
                 // Update order status
                 await tx.order.update({
                     where: { id: orderId },
                     data: { status },
                 });
 
-                // Restore stock for each item
-                for (const item of (order?.items || [])) {
-                    if (item.variantId) {
-                        await tx.productVariant.update({
-                            where: { id: item.variantId },
-                            data: { stock: { increment: item.quantity } },
-                        });
-                    } else {
-                        await tx.product.update({
-                            where: { id: item.productId },
-                            data: { stock: { increment: item.quantity } },
-                        });
-                    }
-                }
+                // Restore stock for items (supports variants and bundle child products)
+                return restoreOrderStock(tx, order?.items || []);
             });
 
             // Sync restored stock to all marketplaces
-            const affectedProductIds = Array.from(new Set((order?.items || []).map(i => i.productId)));
             if (affectedProductIds.length > 0) {
-                import("@/lib/stock-sync").then(({ handlePostOrderStockSync }) => {
-                    handlePostOrderStockSync(affectedProductIds, "site").catch(console.error);
-                }).catch(console.error);
+                handlePostOrderStockSync(affectedProductIds, "site").catch(console.error);
             }
         } else {
             // Normal status update (non-cancellation)

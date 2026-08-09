@@ -882,19 +882,16 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
             },
           });
 
-          for (const update of stockUpdates) {
-            if (update.variantId) {
-              await tx.productVariant.update({
-                where: { id: update.variantId },
-                data: { stock: { decrement: update.quantity } },
-              });
-            } else if (update.productId) {
-              await tx.product.update({
-                where: { id: update.productId },
-                data: { stock: { decrement: update.quantity } },
-              });
-            }
-          }
+          const { decrementOrderStock } = await import("@/lib/stock-sync");
+          const decrementedIds = await decrementOrderStock(
+            tx,
+            stockUpdates.map(u => ({
+              productId: u.productId,
+              variantId: u.variantId,
+              quantity: u.quantity,
+            }))
+          );
+          decrementedIds.forEach(id => affectedProductIds.push(id));
         });
 
         importedCount++;
@@ -903,7 +900,7 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
 
     if (affectedProductIds.length > 0) {
       const uniqueIds = Array.from(new Set(affectedProductIds));
-      handlePostOrderStockSync(uniqueIds, "site").catch(console.error);
+      handlePostOrderStockSync(uniqueIds, "pazarama").catch(console.error);
     }
 
     try {

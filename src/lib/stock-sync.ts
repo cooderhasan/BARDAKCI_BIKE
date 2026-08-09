@@ -19,9 +19,157 @@ interface StockCheckResult {
     isCritical: boolean;
 }
 
+export interface OrderStockItem {
+    productId: string;
+    variantId?: string | null;
+    quantity: number;
+}
+
+/**
+ * Sipariş verildiğinde veya pazaryerinden sipariş çekildiğinde stok düşürme işlemi.
+ * - Paket (Bundle) ürünlerin her bir alt ürün stoku düşülür.
+ * - Varyantlı ürünlerin varyant stoku düşülür.
+ * - Ana ürünlerin kendi stoku düşülür.
+ * Etkilenen TÜM ürün ID'lerini (paket alt ürünleri ve varyant ana ürünleri dahil) döner.
+ */
+export async function decrementOrderStock(
+    tx: any,
+    items: OrderStockItem[]
+): Promise<string[]> {
+    const affectedIds = new Set<string>();
+
+    for (const item of items) {
+        if (!item.productId || item.quantity <= 0) continue;
+
+        const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: {
+                id: true,
+                isBundle: true,
+                bundleItems: {
+                    select: {
+                        childProductId: true,
+                        quantity: true,
+                    },
+                },
+            },
+        });
+
+        if (!product) continue;
+
+        if (product.isBundle && product.bundleItems && product.bundleItems.length > 0) {
+            affectedIds.add(product.id);
+            for (const bundleItem of product.bundleItems) {
+                await tx.product.update({
+                    where: { id: bundleItem.childProductId },
+                    data: {
+                        stock: {
+                            decrement: bundleItem.quantity * item.quantity,
+                        },
+                    },
+                });
+                affectedIds.add(bundleItem.childProductId);
+            }
+        } else if (item.variantId) {
+            await tx.productVariant.update({
+                where: { id: item.variantId },
+                data: {
+                    stock: {
+                        decrement: item.quantity,
+                    },
+                },
+            });
+            affectedIds.add(product.id);
+        } else {
+            await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                    stock: {
+                        decrement: item.quantity,
+                    },
+                },
+            });
+            affectedIds.add(product.id);
+        }
+    }
+
+    return Array.from(affectedIds);
+}
+
+/**
+ * Sipariş iptal edildiğinde stok iade işlemi.
+ * - Paket ürünlerin alt ürün stokları iade edilir.
+ * - Varyantlı ürünlerin varyant stokları iade edilir.
+ * - Normal ürünlerin stokları iade edilir.
+ * Etkilenen TÜM ürün ID'lerini döner.
+ */
+export async function restoreOrderStock(
+    tx: any,
+    items: OrderStockItem[]
+): Promise<string[]> {
+    const affectedIds = new Set<string>();
+
+    for (const item of items) {
+        if (!item.productId || item.quantity <= 0) continue;
+
+        const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: {
+                id: true,
+                isBundle: true,
+                bundleItems: {
+                    select: {
+                        childProductId: true,
+                        quantity: true,
+                    },
+                },
+            },
+        });
+
+        if (!product) continue;
+
+        if (product.isBundle && product.bundleItems && product.bundleItems.length > 0) {
+            affectedIds.add(product.id);
+            for (const bundleItem of product.bundleItems) {
+                await tx.product.update({
+                    where: { id: bundleItem.childProductId },
+                    data: {
+                        stock: {
+                            increment: bundleItem.quantity * item.quantity,
+                        },
+                    },
+                });
+                affectedIds.add(bundleItem.childProductId);
+            }
+        } else if (item.variantId) {
+            await tx.productVariant.update({
+                where: { id: item.variantId },
+                data: {
+                    stock: {
+                        increment: item.quantity,
+                    },
+                },
+            });
+            affectedIds.add(product.id);
+        } else {
+            await tx.product.update({
+                where: { id: item.productId },
+                data: {
+                    stock: {
+                        increment: item.quantity,
+                    },
+                },
+            });
+            affectedIds.add(product.id);
+        }
+    }
+
+    return Array.from(affectedIds);
+}
+
 /**
  * Verilen ürün ID'leri için stok durumunu kontrol eder.
- * Kritik seviyeye ulaşmış ürünleri döner.
+ * Kritik seviyeye ulaşmış ürünleri döner. Varyant ve Paket ürün stok hesaplarını da dikkate alır.
  */
 export async function checkCriticalStockLevels(productIds: string[]): Promise<StockCheckResult[]> {
     if (productIds.length === 0) return [];
@@ -37,17 +185,41 @@ export async function checkCriticalStockLevels(productIds: string[]): Promise<St
             stock: true,
             criticalStock: true,
             barcode: true,
+            isBundle: true,
+            bundleItems: {
+                select: {
+                    quantity: true,
+                    childProduct: {
+                        select: { stock: true }
+                    }
+                }
+            },
+            variants: {
+                select: {
+                    stock: true
+                }
+            }
         },
     });
 
     return products.map((p) => {
         const criticalStock = p.criticalStock ?? defaultCritical;
+        let effectiveStock = p.stock;
+
+        if (p.isBundle && p.bundleItems && p.bundleItems.length > 0) {
+            const bundleStocks = p.bundleItems.map(bi => Math.floor(bi.childProduct.stock / (bi.quantity || 1)));
+            effectiveStock = bundleStocks.length > 0 ? Math.min(...bundleStocks) : 0;
+        } else if (p.variants && p.variants.length > 0) {
+            const minVariantStock = Math.min(...p.variants.map(v => v.stock));
+            effectiveStock = minVariantStock;
+        }
+
         return {
             productId: p.id,
             productName: p.name,
-            currentStock: p.stock,
+            currentStock: effectiveStock,
             criticalStock,
-            isCritical: p.stock <= criticalStock,
+            isCritical: effectiveStock <= criticalStock,
         };
     });
 }
@@ -71,10 +243,11 @@ export async function pushZeroStockToAllMarketplaces(productIds: string[]): Prom
         pushZeroStockToPazarama(productIds),
         pushZeroStockToIdefix(productIds),
         pushZeroStockToPttavm(productIds),
+        pushZeroStockToCiceksepeti(productIds),
     ]);
 
     for (const [index, result] of results.entries()) {
-        const marketplaces = ["Trendyol", "N11", "Hepsiburada", "Pazarama", "Idefix", "PTTAVM"];
+        const marketplaces = ["Trendyol", "N11", "Hepsiburada", "Pazarama", "Idefix", "PTTAVM", "Çiçeksepeti"];
         if (result.status === "fulfilled") {
             console.log(`✅ [Kritik Stok] ${marketplaces[index]} stok=0 gönderildi`);
         } else {
@@ -91,7 +264,7 @@ export async function pushZeroStockToAllMarketplaces(productIds: string[]): Prom
  */
 export async function handlePostOrderStockSync(
     affectedProductIds: string[],
-    sourceMarketplace?: "trendyol" | "n11" | "hepsiburada" | "site"
+    sourceMarketplace?: "trendyol" | "n11" | "hepsiburada" | "site" | "idefix" | "pttavm" | "ciceksepeti" | "pazarama"
 ): Promise<void> {
     if (affectedProductIds.length === 0) return;
 
@@ -113,12 +286,11 @@ export async function handlePostOrderStockSync(
             pushZeroStockToAllMarketplaces(criticalIds).catch(console.error);
         }
 
-        // 3. Normal ürünler için kuyruk üzerinden sync (TÜM pazaryerleri dahil, kaynak platform DAHİL)
+        // 3. Normal ürünler için kuyruk üzerinden sync (TÜM pazaryerleri dahil)
         if (normalProducts.length > 0) {
             const normalIds = normalProducts.map((p) => p.productId);
             const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
 
-            // Tüm pazaryerlerine sync at (kaynak platform DAHİL - bu eskiden eksikti!)
             await Promise.all([
                 addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: normalIds }).catch(console.error),
@@ -126,11 +298,11 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds: normalIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "pttavm", type: "stocks", productIds: normalIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "ciceksepeti", type: "stocks", productIds: normalIds }).catch(console.error),
             ]);
         }
     } catch (error) {
         console.error("❌ [PostOrder StockSync] Hata:", error);
-        // Hata olsa bile kuyruk yedek olarak çalışsın
         try {
             const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
             await Promise.all([
@@ -140,6 +312,7 @@ export async function handlePostOrderStockSync(
                 addMarketplaceSyncJob({ marketplace: "pazarama", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds: affectedProductIds }).catch(console.error),
                 addMarketplaceSyncJob({ marketplace: "pttavm", type: "stocks", productIds: affectedProductIds }).catch(console.error),
+                addMarketplaceSyncJob({ marketplace: "ciceksepeti", type: "stocks", productIds: affectedProductIds }).catch(console.error),
             ]);
         } catch (e) {
             console.error("❌ [PostOrder StockSync] Yedek kuyruk da başarısız:", e);
@@ -364,21 +537,44 @@ async function pushZeroStockToPazarama(productIds: string[]): Promise<void> {
             isActive: true,
             isPazaramaActive: true,
         },
-        select: { id: true, barcode: true, sku: true, salePrice: true, listPrice: true, pazaramaPrice: true },
+        select: {
+            id: true,
+            barcode: true,
+            sku: true,
+            salePrice: true,
+            listPrice: true,
+            pazaramaPrice: true,
+            variants: { select: { barcode: true, sku: true } },
+        },
     });
 
     if (products.length === 0) return;
 
     const profitMargin = config.profitMargin || 0;
-    const items = products.map((p) => {
+    const items: { code: string; stock: number; price: number }[] = [];
+
+    for (const p of products) {
         const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
         const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
-        return {
-            code: p.barcode || p.sku || p.id,
-            stock: 0,
-            price: Math.round(finalPrice * 100) / 100,
-        };
-    });
+        const price = Math.round(finalPrice * 100) / 100;
+
+        const validVariants = p.variants?.filter((v: any) => v.barcode || v.sku) || [];
+        if (validVariants.length > 0) {
+            for (const v of validVariants) {
+                const code = v.barcode || v.sku;
+                if (code) {
+                    items.push({ code, stock: 0, price });
+                }
+            }
+        } else {
+            const code = p.barcode || p.sku || p.id;
+            if (code) {
+                items.push({ code, stock: 0, price });
+            }
+        }
+    }
+
+    if (items.length === 0) return;
 
     const result = await client.updateStockAndPrice(items);
     if (!result.success) {

@@ -911,12 +911,6 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                   vatRate: rawItem.vatRate ?? 20,
                   discountRate: 0,
                 });
-
-                // Stok düşür
-                await prisma.product.update({
-                  where: { id: dbProd.id },
-                  data: { stock: { decrement: qty } },
-                }).catch(() => null);
               }
             }
 
@@ -940,29 +934,39 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
             }
 
             if (orderItemsPayload.length > 0) {
-              await prisma.order.create({
-                data: {
-                  orderNumber,
-                  source: "IDEFIX",
-                  status: "CONFIRMED",
-                  total: Number(item.totalPrice ?? item.discountedTotalPrice ?? subtotal),
-                  subtotal,
-                  discountAmount: Number(item.totalDiscount ?? 0),
-                  appliedDiscountRate: 0,
-                  vatAmount: subtotal * 0.2,
-                  guestEmail: customerEmail,
-                  shippingAddress: {
-                    fullName: customerName,
-                    addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
-                    city: shippingAddr.city || "Türkiye",
-                    district: shippingAddr.county || "",
-                    phone: customerPhone,
+              const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+
+              const affectedProductIds = await prisma.$transaction(async (tx) => {
+                await tx.order.create({
+                  data: {
+                    orderNumber,
+                    source: "IDEFIX",
+                    status: "CONFIRMED",
+                    total: Number(item.totalPrice ?? item.discountedTotalPrice ?? subtotal),
+                    subtotal,
+                    discountAmount: Number(item.totalDiscount ?? 0),
+                    appliedDiscountRate: 0,
+                    vatAmount: subtotal * 0.2,
+                    guestEmail: customerEmail,
+                    shippingAddress: {
+                      fullName: customerName,
+                      addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
+                      city: shippingAddr.city || "Türkiye",
+                      district: shippingAddr.county || "",
+                      phone: customerPhone,
+                    },
+                    items: {
+                      create: orderItemsPayload,
+                    },
                   },
-                  items: {
-                    create: orderItemsPayload,
-                  },
-                },
+                });
+
+                return decrementOrderStock(tx, orderItemsPayload.map(i => ({ productId: i.productId, quantity: i.quantity })));
               });
+
+              if (affectedProductIds.length > 0) {
+                handlePostOrderStockSync(affectedProductIds, "idefix").catch(console.error);
+              }
             }
           }
         } catch (err: any) {

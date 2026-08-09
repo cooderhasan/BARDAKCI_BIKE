@@ -744,40 +744,52 @@ export async function syncCiceksepetiOrders() {
         };
 
         const orderNumFormatted = `CS-${orderNumberStr}`;
+        const itemsToDecrement = product?.id ? [{ productId: product.id, quantity: qty }] : [];
 
-        await prisma.order.create({
-          data: {
-            orderNumber: orderNumFormatted,
-            subtotal: price,
-            discountAmount: Number((order as any).discount || 0),
-            appliedDiscountRate: 0,
-            vatAmount: Number((order as any).tax || 0),
-            total: price,
-            status: mappedStatus as any,
-            shippingAddress: shippingAddrJson as any,
-            shippingCost: Number((order as any).deliveryCharge || 0),
-            cargoCompany: (order as any).cargoCompany ? String((order as any).cargoCompany) : null,
-            cargoTrackingNumber: (order as any).cargoNumber ? String((order as any).cargoNumber) : null,
-            shipmentPackageId: uniqueKey,
-            trackingUrl: (order as any).shipmentTrackingUrl || null,
-            source: "CICEKSEPETI",
-            store: "BIKE",
-            notes: `Çiçeksepeti Sipariş No: ${orderNumberStr} | Ödeme: ${(order as any).orderPaymentType || 'Kredi Kartı'}`,
-            items: {
-              create: [
-                {
-                  productId: product?.id || "",
-                  quantity: qty,
-                  unitPrice: price / (qty || 1),
-                  productName: (order as any).name || "Çiçeksepeti Ürünü",
-                  lineTotal: price,
-                  vatRate: Number((order as any).tax || 20),
-                  discountRate: 0
-                }
-              ]
+        const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+
+        const affectedProductIds = await prisma.$transaction(async (tx) => {
+          await tx.order.create({
+            data: {
+              orderNumber: orderNumFormatted,
+              subtotal: price,
+              discountAmount: Number((order as any).discount || 0),
+              appliedDiscountRate: 0,
+              vatAmount: Number((order as any).tax || 0),
+              total: price,
+              status: mappedStatus as any,
+              shippingAddress: shippingAddrJson as any,
+              shippingCost: Number((order as any).deliveryCharge || 0),
+              cargoCompany: (order as any).cargoCompany ? String((order as any).cargoCompany) : null,
+              cargoTrackingNumber: (order as any).cargoNumber ? String((order as any).cargoNumber) : null,
+              shipmentPackageId: uniqueKey,
+              trackingUrl: (order as any).shipmentTrackingUrl || null,
+              source: "CICEKSEPETI",
+              store: "BIKE",
+              notes: `Çiçeksepeti Sipariş No: ${orderNumberStr} | Ödeme: ${(order as any).orderPaymentType || 'Kredi Kartı'}`,
+              items: {
+                create: [
+                  {
+                    productId: product?.id || "",
+                    quantity: qty,
+                    unitPrice: price / (qty || 1),
+                    productName: (order as any).name || "Çiçeksepeti Ürünü",
+                    lineTotal: price,
+                    vatRate: Number((order as any).tax || 20),
+                    discountRate: 0
+                  }
+                ]
+              }
             }
-          }
+          });
+
+          return decrementOrderStock(tx, itemsToDecrement);
         });
+
+        if (affectedProductIds.length > 0) {
+          handlePostOrderStockSync(affectedProductIds, "ciceksepeti").catch(console.error);
+        }
+
         newOrdersCount++;
       }
     }

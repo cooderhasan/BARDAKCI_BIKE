@@ -174,6 +174,14 @@ export function initializeWorker() {
                         if (!result.success) throw new Error(result.message);
                         console.log(`✅ Tamamlandı: ePttAVM Sync - ${result.message}`);
                     }
+                } else if (job.data.marketplace === "ciceksepeti") {
+                    const ciceksepetiConfig = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+                    if (ciceksepetiConfig && job.data.productIds && job.data.productIds.length > 0) {
+                        const { syncProductsToCiceksepeti } = await import("@/app/admin/(protected)/integrations/ciceksepeti/actions");
+                        const result = await syncProductsToCiceksepeti(job.data.productIds);
+                        if (!result.success) throw new Error(result.message);
+                        console.log(`✅ Tamamlandı: Çiçeksepeti Sync - ${result.message}`);
+                    }
                 }
                 
                 await job.updateProgress(100);
