@@ -508,6 +508,10 @@ export class TrendyolClient {
 
         if (!response.ok) {
             const errText = await response.text();
+            if (response.status === 409 && (errText.includes("already exist") || errText.includes("already exists"))) {
+                console.log("ℹ️ Trendyol 409: Fatura linki Trendyol tarafında zaten kayıtlı.");
+                return { success: true, alreadyExists: true, message: "Fatura linki Trendyol'da zaten kayıtlı." };
+            }
             throw new Error(`Trendyol Fatura Linki Gönderim Hatası (${response.status}): ${errText}`);
         }
 
@@ -517,5 +521,30 @@ export class TrendyolClient {
         } catch {
             return { success: true };
         }
+    }
+
+    /**
+     * Delete Invoice Link on Trendyol
+     * POST /integration/sellers/{sellerId}/seller-invoice-links/delete
+     */
+    async deleteInvoiceLink(shipmentPackageId: string | number) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/sellers/${this.creds.supplierId}/seller-invoice-links/delete`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify({
+                shipmentPackageId: Number(shipmentPackageId) || shipmentPackageId
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.warn(`Trendyol fatura linki silme uyarısı (${response.status}): ${errText}`);
+        }
+
+        return true;
     }
 }
