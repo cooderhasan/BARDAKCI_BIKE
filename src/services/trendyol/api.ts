@@ -509,7 +509,17 @@ export class TrendyolClient {
         if (!response.ok) {
             const errText = await response.text();
             if (response.status === 409 && (errText.includes("already exist") || errText.includes("already exists"))) {
-                console.log("ℹ️ Trendyol 409: Fatura linki Trendyol tarafında zaten kayıtlı.");
+                console.log("ℹ️ Trendyol 409: Fatura linki önceden kayıtlı. Eski link silinip yeni link gönderiliyor...");
+                await this.deleteInvoiceLink(shipmentPackageId).catch(() => {});
+                const retryRes = await fetch(primaryUrl, {
+                    method: "POST",
+                    headers: this.getHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                if (retryRes.ok) {
+                    const retryText = await retryRes.text();
+                    try { return retryText ? JSON.parse(retryText) : { success: true }; } catch { return { success: true }; }
+                }
                 return { success: true, alreadyExists: true, message: "Fatura linki Trendyol'da zaten kayıtlı." };
             }
             throw new Error(`Trendyol Fatura Linki Gönderim Hatası (${response.status}): ${errText}`);

@@ -121,6 +121,16 @@ export async function sendOrderInvoiceNes(orderId: string) {
         // Fatura zaten kesilmiş mi kontrol
         if ((order as any).invoiceNo) {
             let invoiceUrl = (order as any).invoiceUrl;
+            const partyId = config.senderVkn || "25403236566";
+            const uuid = (order as any).invoiceId || (invoiceUrl?.match(/pdf\/([a-f0-9-]+)/i)?.[1]);
+            if (uuid && (!invoiceUrl || invoiceUrl.includes("bardakcibike.com.tr"))) {
+                const nesDocType = "EArchiveInvoice";
+                invoiceUrl = `https://belge.nes.com.tr/document?PartyIdentification=${partyId}&Uuid=${uuid}&DocumentType=${nesDocType}&PreviewType=PDF&fileName=${uuid}.pdf`;
+                await prisma.order.update({
+                    where: { id: orderId },
+                    data: { invoiceUrl },
+                });
+            }
 
             // Pazaryerine link yeniden gönder
             if (order.source !== "WEB" && invoiceUrl) {
@@ -308,11 +318,10 @@ export async function sendOrderInvoiceNes(orderId: string) {
             ? await client.createEInvoice(receiver, invoiceLines, invoiceOptions)
             : await client.createEArchiveInvoice(receiver, invoiceLines, invoiceOptions);
 
-        // 10. PDF Proxy URL'i oluştur
-        const documentType = useEInvoice ? "einvoice" : "earchive";
-        const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
-        const pdfProxyUrl = `${siteUrl}/api/invoices/pdf/${result.uuid}?type=${documentType}`;
-
+        // 10. NES Doğrudan PDF URL'i oluştur (Pazaryerlerinde yeni sekmede direkt PDF açılması için)
+        const partyId = config.senderVkn || "25403236566";
+        const nesDocType = useEInvoice ? "EInvoice" : "EArchiveInvoice";
+        const pdfProxyUrl = `https://belge.nes.com.tr/document?PartyIdentification=${partyId}&Uuid=${result.uuid}&DocumentType=${nesDocType}&PreviewType=PDF&fileName=${result.uuid}.pdf`;
 
         // 11. DB'ye kaydet
         await prisma.order.update({
