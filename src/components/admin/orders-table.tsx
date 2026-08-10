@@ -839,7 +839,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         >
                                                             <ReceiptText className="h-5 w-5" />
                                                         </Button>
-                                                    ) : (order.source === "HEPSIBURADA" || order.source === "N11" || order.source === "IDEFIX") && (
+                                                    ) : (order.source === "TRENDYOL" || order.source === "HEPSIBURADA" || order.source === "N11" || order.source === "IDEFIX" || order.source === "PAZARAMA" || order.source === "CICEKSEPETI") && (
                                                          <Button
                                                              variant="outline"
                                                              size="icon"
