@@ -537,22 +537,28 @@ export class TrendyolClient {
      * Delete Invoice Link on Trendyol
      * POST /integration/sellers/{sellerId}/seller-invoice-links/delete
      */
-    async deleteInvoiceLink(shipmentPackageId: string | number) {
+    async deleteInvoiceLink(shipmentPackageId: string | number, customerId?: number | string) {
         await this.init();
         if (!this.creds) throw new Error("No creds");
 
+        const pkgId = Number(shipmentPackageId) || shipmentPackageId;
         const url = `${this.gatewayUrl}/integration/sellers/${this.creds.supplierId}/seller-invoice-links/delete`;
         const response = await fetch(url, {
             method: "POST",
             headers: this.getHeaders(),
             body: JSON.stringify({
-                shipmentPackageId: Number(shipmentPackageId) || shipmentPackageId
+                serviceSourceId: pkgId,
+                shipmentPackageId: pkgId,
+                channelId: 1,
+                customerId: Number(customerId) || 1
             })
         });
 
         if (!response.ok) {
             const errText = await response.text();
             console.warn(`Trendyol fatura linki silme uyarısı (${response.status}): ${errText}`);
+        } else {
+            console.log(`✅ Trendyol eski fatura linki silindi (PackageId: ${pkgId}).`);
         }
 
         return true;

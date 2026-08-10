@@ -172,6 +172,7 @@ export async function sendOrderInvoiceNes(orderId: string) {
                         const { TrendyolClient } = await import("@/services/trendyol/api");
                         const ty = new TrendyolClient();
                         const packageId = order.shipmentPackageId || order.orderNumber;
+                        await ty.deleteInvoiceLink(packageId).catch(() => {});
                         await ty.uploadInvoiceLink(packageId, invoiceUrl, (order as any).invoiceNo || undefined);
                         return { success: true, message: "Mevcut fatura linki Trendyol'a başarıyla yeniden gönderildi ✅" };
                     } else if (order.source === "IDEFIX") {
