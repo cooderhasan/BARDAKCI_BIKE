@@ -369,6 +369,10 @@ export class IdefixClient {
     try {
       return await this.request<any>("POST", primaryUrl, { invoiceLink });
     } catch (error: any) {
+      if (error.message?.includes("INVOICE_URL_ALREADY_EXIST") || error.message?.includes("zaten mevcut") || error.message?.includes("422")) {
+        console.log("ℹ️ Idefix 422: Fatura linki İdefix tarafında zaten kayıtlı.");
+        return { success: true, alreadyExists: true, message: "Fatura linki İdefix'te zaten kayıtlı." };
+      }
       if (error.message?.includes("404") || error.message?.includes("No route found")) {
         const fallbackUrl = `${this.omsBaseUrl}/${shipmentId}/invoice`;
         return await this.request<any>("POST", fallbackUrl, { invoiceLink });
