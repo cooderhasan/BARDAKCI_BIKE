@@ -362,10 +362,19 @@ export class IdefixClient {
 
   /**
    * Fatura linki gonderme.
+   * POST /oms/{vendorId}/{shipmentID}/invoice-link
    */
   async sendInvoiceLink(shipmentId: string, invoiceLink: string): Promise<any> {
-    const url = `${this.omsBaseUrl}/${shipmentId}/invoice`;
-    return this.request<any>("POST", url, { invoiceLink });
+    const primaryUrl = `${this.omsBaseUrl}/${shipmentId}/invoice-link`;
+    try {
+      return await this.request<any>("POST", primaryUrl, { invoiceLink });
+    } catch (error: any) {
+      if (error.message?.includes("404") || error.message?.includes("No route found")) {
+        const fallbackUrl = `${this.omsBaseUrl}/${shipmentId}/invoice`;
+        return await this.request<any>("POST", fallbackUrl, { invoiceLink });
+      }
+      throw error;
+    }
   }
 
   async uploadInvoiceLink(shipmentId: string, invoiceLink: string): Promise<any> {
