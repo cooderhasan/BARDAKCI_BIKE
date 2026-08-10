@@ -941,6 +941,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                   data: {
                     orderNumber,
                     source: "IDEFIX",
+                    shipmentPackageId: String(item.shipmentId || item.id || orderNumber),
                     status: "CONFIRMED",
                     total: Number(item.totalPrice ?? item.discountedTotalPrice ?? subtotal),
                     subtotal,

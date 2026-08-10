@@ -158,6 +158,21 @@ export async function sendOrderInvoiceNes(orderId: string) {
                                 return { success: true, message: "Mevcut fatura linki Pazarama'ya başarıyla yeniden gönderildi ✅" };
                             }
                         }
+                    } else if (order.source === "TRENDYOL") {
+                        const { TrendyolClient } = await import("@/services/trendyol/api");
+                        const ty = new TrendyolClient();
+                        const packageId = order.shipmentPackageId || order.orderNumber;
+                        await ty.uploadInvoiceLink(packageId, invoiceUrl);
+                        return { success: true, message: "Mevcut fatura linki Trendyol'a başarıyla yeniden gönderildi ✅" };
+                    } else if (order.source === "IDEFIX") {
+                        const idefixConfig = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+                        if (idefixConfig) {
+                            const { IdefixClient } = await import("@/services/idefix/api");
+                            const idx = new IdefixClient(idefixConfig);
+                            const shipmentId = order.shipmentPackageId || order.orderNumber;
+                            await idx.sendInvoiceLink(shipmentId, invoiceUrl);
+                            return { success: true, message: "Mevcut fatura linki İdefix'e başarıyla yeniden gönderildi ✅" };
+                        }
                     } else if (order.source === "CICEKSEPETI") {
                         const csConfig = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
                         if (csConfig) {
@@ -343,6 +358,15 @@ export async function sendOrderInvoiceNes(orderId: string) {
                     const packageId = order.shipmentPackageId || order.orderNumber;
                     await ty.uploadInvoiceLink(packageId, pdfProxyUrl);
                     marketplaceMessage = " | Trendyol'a fatura linki iletildi ✅";
+                } else if (order.source === "IDEFIX") {
+                    const idefixConfig = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+                    if (idefixConfig) {
+                        const { IdefixClient } = await import("@/services/idefix/api");
+                        const idx = new IdefixClient(idefixConfig);
+                        const shipmentId = order.shipmentPackageId || order.orderNumber;
+                        await idx.sendInvoiceLink(shipmentId, pdfProxyUrl);
+                        marketplaceMessage = " | İdefix'e fatura linki iletildi ✅";
+                    }
                 } else if (order.source === "PAZARAMA") {
                     const pzConfig = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
                     if (pzConfig) {

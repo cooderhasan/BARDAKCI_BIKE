@@ -339,6 +339,21 @@ export async function sendOrderInvoice(orderId: string) {
                                 return { success: false, message: `Pazarama fatura hatası: ${pzResult.message}` };
                             }
                         }
+                    } else if (order.source === "TRENDYOL") {
+                        const { TrendyolClient } = await import("@/services/trendyol/api");
+                        const ty = new TrendyolClient();
+                        const packageId = order.shipmentPackageId || order.orderNumber;
+                        await ty.uploadInvoiceLink(packageId, invoiceUrl);
+                        return { success: true, message: "Mevcut fatura linki Trendyol'a başarıyla yeniden gönderildi ve güncellendi! ✅" };
+                    } else if (order.source === "IDEFIX") {
+                        const idefixConfig = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+                        if (idefixConfig) {
+                            const { IdefixClient } = await import("@/services/idefix/api");
+                            const idx = new IdefixClient(idefixConfig);
+                            const shipmentId = order.shipmentPackageId || order.orderNumber;
+                            await idx.sendInvoiceLink(shipmentId, invoiceUrl);
+                            return { success: true, message: "Mevcut fatura linki İdefix'e başarıyla yeniden gönderildi ve güncellendi! ✅" };
+                        }
                     } else if (order.source === "CICEKSEPETI") {
                         const csConfig = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
                         if (csConfig) {
@@ -536,6 +551,31 @@ export async function sendOrderInvoice(orderId: string) {
                         }
                     } else {
                         marketplaceMessage = " | Pazarama'ya fatura linki gönderilemedi (PDF URL bulunamadı)";
+                    }
+                } else if (order.source === "TRENDYOL") {
+                    if (invoiceUrl) {
+                        const { TrendyolClient } = await import("@/services/trendyol/api");
+                        const ty = new TrendyolClient();
+                        const packageId = order.shipmentPackageId || order.orderNumber;
+                        await ty.uploadInvoiceLink(packageId, invoiceUrl);
+                        marketplaceMessage = " | Trendyol'a fatura linki iletildi ✅";
+                    } else {
+                        marketplaceMessage = " | Trendyol'a fatura linki gönderilemedi (PDF URL bulunamadı)";
+                    }
+                } else if (order.source === "IDEFIX") {
+                    if (invoiceUrl) {
+                        const idefixConfig = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+                        if (idefixConfig) {
+                            const { IdefixClient } = await import("@/services/idefix/api");
+                            const idx = new IdefixClient(idefixConfig);
+                            const shipmentId = order.shipmentPackageId || order.orderNumber;
+                            await idx.sendInvoiceLink(shipmentId, invoiceUrl);
+                            marketplaceMessage = " | İdefix'e fatura linki iletildi ✅";
+                        } else {
+                            marketplaceMessage = " | İdefix entegrasyon ayarı bulunamadı";
+                        }
+                    } else {
+                        marketplaceMessage = " | İdefix'e fatura linki gönderilemedi (PDF URL bulunamadı)";
                     }
                 } else if (order.source === "CICEKSEPETI") {
                     if (invoiceUrl) {

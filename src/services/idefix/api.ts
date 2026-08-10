@@ -368,6 +368,10 @@ export class IdefixClient {
     return this.request<any>("POST", url, { invoiceLink });
   }
 
+  async uploadInvoiceLink(shipmentId: string, invoiceLink: string): Promise<any> {
+    return this.sendInvoiceLink(shipmentId, invoiceLink);
+  }
+
   /**
    * Teslim edildi bildirimi.
    */

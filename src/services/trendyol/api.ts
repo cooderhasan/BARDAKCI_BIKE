@@ -489,6 +489,11 @@ export class TrendyolClient {
             throw new Error(`Trendyol Fatura Linki Gönderim Hatası (${response.status}): ${errText}`);
         }
 
-        return await response.json();
+        const text = await response.text();
+        try {
+            return text ? JSON.parse(text) : { success: true };
+        } catch {
+            return { success: true };
+        }
     }
 }
