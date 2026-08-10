@@ -468,21 +468,43 @@ export class TrendyolClient {
 
     /**
      * Send Invoice Link to Trendyol
-     * POST /integration/seller-order/send-invoice-link
+     * POST /integration/sellers/{sellerId}/seller-invoice-links
      */
-    async uploadInvoiceLink(shipmentPackageId: string | number, invoiceLink: string) {
+    async uploadInvoiceLink(shipmentPackageId: string | number, invoiceLink: string, invoiceNumber?: string) {
         await this.init();
         if (!this.creds) throw new Error("No creds");
 
-        const url = `${this.gatewayUrl}/integration/seller-order/send-invoice-link`;
-        const response = await fetch(url, {
+        const primaryUrl = `${this.gatewayUrl}/integration/sellers/${this.creds.supplierId}/seller-invoice-links`;
+        const payload: any = {
+            invoiceLink,
+            shipmentPackageId: Number(shipmentPackageId) || shipmentPackageId
+        };
+        if (invoiceNumber) {
+            payload.invoiceNumber = invoiceNumber;
+            payload.invoiceDateTime = Date.now();
+        }
+
+        let response = await fetch(primaryUrl, {
             method: "POST",
             headers: this.getHeaders(),
-            body: JSON.stringify({
-                invoiceLink,
-                shipmentPackageId: Number(shipmentPackageId) || shipmentPackageId
-            })
+            body: JSON.stringify(payload)
         });
+
+        // Fallback to legacy endpoint if primary fails
+        if (!response.ok && (response.status === 404 || response.status === 556 || response.status === 503)) {
+            const fallbackUrl = `${this.gatewayUrl}/integration/seller-order/send-invoice-link`;
+            const fallbackRes = await fetch(fallbackUrl, {
+                method: "POST",
+                headers: this.getHeaders(),
+                body: JSON.stringify({
+                    invoiceLink,
+                    shipmentPackageId: Number(shipmentPackageId) || shipmentPackageId
+                })
+            });
+            if (fallbackRes.ok) {
+                response = fallbackRes;
+            }
+        }
 
         if (!response.ok) {
             const errText = await response.text();

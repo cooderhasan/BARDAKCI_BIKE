@@ -343,7 +343,7 @@ export async function sendOrderInvoice(orderId: string) {
                         const { TrendyolClient } = await import("@/services/trendyol/api");
                         const ty = new TrendyolClient();
                         const packageId = order.shipmentPackageId || order.orderNumber;
-                        await ty.uploadInvoiceLink(packageId, invoiceUrl);
+                        await ty.uploadInvoiceLink(packageId, invoiceUrl, (order as any).invoiceNo || undefined);
                         return { success: true, message: "Mevcut fatura linki Trendyol'a başarıyla yeniden gönderildi ve güncellendi! ✅" };
                     } else if (order.source === "IDEFIX") {
                         const idefixConfig = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
@@ -557,7 +557,7 @@ export async function sendOrderInvoice(orderId: string) {
                         const { TrendyolClient } = await import("@/services/trendyol/api");
                         const ty = new TrendyolClient();
                         const packageId = order.shipmentPackageId || order.orderNumber;
-                        await ty.uploadInvoiceLink(packageId, invoiceUrl);
+                        await ty.uploadInvoiceLink(packageId, invoiceUrl, invoiceNo || undefined);
                         marketplaceMessage = " | Trendyol'a fatura linki iletildi ✅";
                     } else {
                         marketplaceMessage = " | Trendyol'a fatura linki gönderilemedi (PDF URL bulunamadı)";
