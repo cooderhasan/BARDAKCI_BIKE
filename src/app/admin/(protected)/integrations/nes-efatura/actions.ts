@@ -325,11 +325,12 @@ export async function sendOrderInvoiceNes(orderId: string) {
         const pdfProxyUrl = `https://belge.nes.com.tr/document?PartyIdentification=${partyId}&Uuid=${result.uuid}&DocumentType=${nesDocType}&PreviewType=PDF&fileName=${result.uuid}.pdf`;
 
         // 11. DB'ye kaydet
+        const invoiceNo = result.invoiceNumber || `NES-${order.orderNumber}`;
         await prisma.order.update({
             where: { id: orderId },
             data: {
                 invoiceId: result.uuid || `nes-${Date.now()}`,
-                invoiceNo: result.invoiceNumber || `NES-${order.orderNumber}`,
+                invoiceNo,
                 invoiceStatus: "SENT",
                 invoiceUrl: pdfProxyUrl,
             },
