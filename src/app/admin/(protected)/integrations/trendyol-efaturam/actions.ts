@@ -351,7 +351,25 @@ export async function sendOrderInvoice(orderId: string) {
                         if (idefixConfig) {
                             const { IdefixClient } = await import("@/services/idefix/api");
                             const idx = new IdefixClient(idefixConfig);
-                            const shipmentId = order.shipmentPackageId || order.orderNumber;
+                            let shipmentId = order.shipmentPackageId;
+                            if (!shipmentId || shipmentId.startsWith("IDE")) {
+                                try {
+                                    const orderRes = await idx.getOrders({ orderNumber: order.orderNumber });
+                                    const items = orderRes?.items || (Array.isArray(orderRes) ? orderRes : []);
+                                    const found = items.find((i: any) => i.orderNumber === order.orderNumber || i.id || i.shipmentId);
+                                    const realShipmentId = found?.shipmentId || found?.id;
+                                    if (realShipmentId) {
+                                        shipmentId = String(realShipmentId);
+                                        await prisma.order.update({
+                                            where: { id: order.id },
+                                            data: { shipmentPackageId: shipmentId },
+                                        });
+                                    }
+                                } catch (e: any) {
+                                    console.warn("Idefix sevkiyat ID bulma uyarısı:", e.message);
+                                }
+                            }
+                            if (!shipmentId) shipmentId = order.orderNumber;
                             await idx.sendInvoiceLink(shipmentId, invoiceUrl);
                             return { success: true, message: "Mevcut fatura linki İdefix'e başarıyla yeniden gönderildi ve güncellendi! ✅" };
                         }
@@ -569,7 +587,25 @@ export async function sendOrderInvoice(orderId: string) {
                         if (idefixConfig) {
                             const { IdefixClient } = await import("@/services/idefix/api");
                             const idx = new IdefixClient(idefixConfig);
-                            const shipmentId = order.shipmentPackageId || order.orderNumber;
+                            let shipmentId = order.shipmentPackageId;
+                            if (!shipmentId || shipmentId.startsWith("IDE")) {
+                                try {
+                                    const orderRes = await idx.getOrders({ orderNumber: order.orderNumber });
+                                    const items = orderRes?.items || (Array.isArray(orderRes) ? orderRes : []);
+                                    const found = items.find((i: any) => i.orderNumber === order.orderNumber || i.id || i.shipmentId);
+                                    const realShipmentId = found?.shipmentId || found?.id;
+                                    if (realShipmentId) {
+                                        shipmentId = String(realShipmentId);
+                                        await prisma.order.update({
+                                            where: { id: order.id },
+                                            data: { shipmentPackageId: shipmentId },
+                                        });
+                                    }
+                                } catch (e: any) {
+                                    console.warn("Idefix sevkiyat ID bulma uyarısı:", e.message);
+                                }
+                            }
+                            if (!shipmentId) shipmentId = order.orderNumber;
                             await idx.sendInvoiceLink(shipmentId, invoiceUrl);
                             marketplaceMessage = " | İdefix'e fatura linki iletildi ✅";
                         } else {
