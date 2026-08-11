@@ -17,8 +17,8 @@ export async function getPttavmConfig() {
 
 export async function savePttavmConfig(prevState: any, formData: FormData) {
   try {
-    const apiKey = formData.get("apiKey") as string;
-    const accessToken = formData.get("accessToken") as string;
+    const apiKey = (formData.get("apiKey") as string || "").trim();
+    const accessToken = (formData.get("accessToken") as string || "").trim();
     const profitMarginStr = formData.get("profitMargin") as string;
     const isActive = formData.get("isActive") === "on";
     const isTestMode = formData.get("isTestMode") === "on";

@@ -80,8 +80,8 @@ export class PttavmClient {
       throw new Error("ePttAVM API Key veya Access Token eksik.");
     }
     return {
-      "Api-Key": this.creds.apiKey,
-      "access-token": this.creds.accessToken,
+      "Api-Key": this.creds.apiKey.trim(),
+      "Access-Token": this.creds.accessToken.trim(),
       "X-Correlation-Id": crypto.randomUUID(),
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -127,13 +127,12 @@ export class PttavmClient {
   /** Bağlantıyı test eder */
   async checkConnection(): Promise<{ success: boolean; message: string }> {
     try {
-      // Kategorileri veya test ürün endpoint'ini sorgula
-      const result = await this.request<any>("GET", "/api/v1/categories/main").catch(() => null);
-      if (result) {
-        return { success: true, message: "ePttAVM API bağlantısı başarılı!" };
+      await this.init();
+      // Ana kategorileri sorgulayarak bağlantıyı doğrula
+      const result = await this.request<any>("GET", "/api/v1/categories/main");
+      if (result && (result.success || result.main_category)) {
+        return { success: true, message: "ePttAVM API bağlantısı başarılı! Kategoriler çekildi." };
       }
-      // Yedek olarak sipariş arama dene
-      await this.request<any>("GET", "/api/v1/orders/search?isActiveOrders=true&pageSize=1");
       return { success: true, message: "ePttAVM API bağlantısı başarılı!" };
     } catch (err: any) {
       return { success: false, message: `ePttAVM Bağlantı Hatası: ${err.message}` };
