@@ -21,7 +21,10 @@ export interface PttavmProductUpsertItem {
   title: string;
   name?: string;
   description?: string;
+  longDescription?: string;
   shortDescription?: string;
+  productDescription?: string;
+  details?: string;
   categoryId?: number;
   brandId?: number;
   brand?: string;
