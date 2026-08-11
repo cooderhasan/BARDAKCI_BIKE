@@ -449,14 +449,13 @@ export async function sendOrderInvoiceNes(orderId: string) {
                             marketplaceMessage = ` | Çiçeksepeti fatura hatası: ${csResult.message}`;
                         }
                     }
-                    } else if (order.source === "PTTAVM" || order.source === "PTT") {
-                        const { uploadInvoiceToPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
-                        const pttRes = await uploadInvoiceToPttavm(order.orderNumber, pdfProxyUrl);
-                        if (pttRes.success) {
-                            marketplaceMessage = " | ePttAVM'ye fatura linki iletildi ✅";
-                        } else {
-                            marketplaceMessage = ` | ePttAVM fatura hatası: ${pttRes.message}`;
-                        }
+                } else if (order.source === "PTTAVM" || order.source === "PTT") {
+                    const { uploadInvoiceToPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
+                    const pttRes = await uploadInvoiceToPttavm(order.orderNumber, pdfProxyUrl);
+                    if (pttRes.success) {
+                        marketplaceMessage = " | ePttAVM'ye fatura linki iletildi ✅";
+                    } else {
+                        marketplaceMessage = ` | ePttAVM fatura hatası: ${pttRes.message}`;
                     }
                 }
             } catch (mpError: any) {
