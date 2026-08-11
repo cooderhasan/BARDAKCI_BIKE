@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  staticPageGenerationTimeout: 1000,
   reactCompiler: false,
   serverExternalPackages: ['@react-pdf/renderer'],
   typescript: {

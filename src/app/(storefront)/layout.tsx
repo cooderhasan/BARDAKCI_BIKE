@@ -13,6 +13,8 @@ import { CookieConsent } from "@/components/storefront/cookie-consent";
 import { WhatsAppButton } from "@/components/storefront/whatsapp-button";
 import { getStoreType, getStoreSettings, getStoreFilter } from "@/lib/store-helper";
 
+export const dynamic = "force-dynamic";
+
 export default async function StorefrontLayout({
     children,
 }: {

@@ -8,6 +8,8 @@ import { AiAnnouncementBanner } from "@/components/admin/ai-announcement-banner"
 import { AbandonedCartBanner } from "@/components/admin/abandoned-cart-banner";
 import { Toaster } from "@/components/ui/sonner";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
     children,
 }: {
