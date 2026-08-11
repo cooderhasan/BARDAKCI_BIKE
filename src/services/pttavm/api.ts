@@ -24,6 +24,8 @@ export interface PttavmProductUpsertItem {
   shortDescription?: string;
   categoryId?: number;
   brandId?: number;
+  brand?: string;
+  brandName?: string;
   quantity: number;
   stock?: number;
   priceWithoutVAT: number;
