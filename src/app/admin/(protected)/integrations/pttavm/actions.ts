@@ -260,7 +260,8 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       });
 
       const catWithPttavm = p.categories.find((c) => c.pttavmCategoryId) || p.categories[0];
-      const categoryId = Number(catWithPttavm?.pttavmCategoryId || 1001);
+      const defaultCatId = p.name.toLowerCase().includes("pedal") ? 1875 : (p.store === "MOTOR" ? 3502 : 1891);
+      const categoryId = Number(catWithPttavm?.pttavmCategoryId || defaultCatId);
       const brandId = p.brand?.pttavmBrandId ? Number(p.brand.pttavmBrandId) : undefined;
       const desi = Math.max(1, Math.round(Number(p.desi || 1)));
       const productBarcode = (p.barcode || p.sku || "").trim();
