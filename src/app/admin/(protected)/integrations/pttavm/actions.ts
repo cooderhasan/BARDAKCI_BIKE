@@ -709,4 +709,60 @@ export async function getPttavmCategories() {
   }
 }
 
+/**
+ * Fatura Linkini veya PDF Base64 Verisini ePttAVM'ye Yükleme
+ * POST /api/v1/orders/{orderId}/invoice
+ */
+export async function uploadInvoiceToPttavm(orderNumber: string, invoiceUrl: string, pdfBase64?: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "ePttAVM entegrasyonu aktif değil." };
+    }
+
+    const { PttavmClient } = await import("@/services/pttavm/api");
+    const client = new PttavmClient(config);
+
+    // Fetch order detail from PttAVM to extract exact lineItemIds
+    let lineItemIds: number[] = [];
+    try {
+      const pttOrder = await client.getOrderDetail(orderNumber);
+      const rawOrder = Array.isArray(pttOrder) ? pttOrder[0] : (pttOrder?.data || pttOrder?.order || pttOrder);
+      const items = Array.isArray(rawOrder?.siparisUrunler)
+        ? rawOrder.siparisUrunler
+        : (Array.isArray(rawOrder?.items) ? rawOrder.items : []);
+      
+      lineItemIds = items
+        .map((i: any) => Number(i.lineItemId || i.siparisUrunId || i.id || i.lineId))
+        .filter((id: number) => !isNaN(id) && id > 0);
+    } catch (err: any) {
+      console.warn(`PttAVM order detail fetch warning for ${orderNumber}:`, err.message);
+    }
+
+    // Fallback lineItemId if detail couldn't fetch line items
+    if (lineItemIds.length === 0) {
+      lineItemIds = [1];
+    }
+
+    const payload: any = {
+      lineItemId: lineItemIds,
+      url: invoiceUrl || null,
+      content: pdfBase64 || null,
+    };
+
+    const res = await client.sendInvoice(orderNumber, payload);
+    const isSuccess = res?.success === true || res?.isSuccess === true || !res?.error_Message;
+
+    if (isSuccess) {
+      return { success: true, message: "Fatura ePttAVM'ye başarıyla yüklendi ✅" };
+    } else {
+      return { success: false, message: res?.error_Message || res?.message || "ePttAVM fatura yükleme başarısız" };
+    }
+  } catch (error: any) {
+    console.error("uploadInvoiceToPttavm Error:", error);
+    return { success: false, message: "ePttAVM fatura hatası: " + error.message };
+  }
+}
+
+
 

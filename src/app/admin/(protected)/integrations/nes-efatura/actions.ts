@@ -213,6 +213,14 @@ export async function sendOrderInvoiceNes(orderId: string) {
                                 return { success: true, message: "Mevcut fatura linki Çiçeksepeti'ye başarıyla yeniden gönderildi ✅" };
                             }
                         }
+                    } else if (order.source === "PTTAVM" || order.source === "PTT") {
+                        const { uploadInvoiceToPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
+                        const pttRes = await uploadInvoiceToPttavm(order.orderNumber, invoiceUrl);
+                        if (pttRes.success) {
+                            return { success: true, message: "Mevcut fatura linki ePttAVM'ye başarıyla yeniden gönderildi ✅" };
+                        } else {
+                            return { success: false, message: pttRes.message };
+                        }
                     }
                 } catch (mpError: any) {
                     return { success: false, message: `Fatura zaten kesilmişti. Pazaryerine yeniden gönderim hatası: ${mpError.message}` };
@@ -439,6 +447,15 @@ export async function sendOrderInvoiceNes(orderId: string) {
                             marketplaceMessage = " | Çiçeksepeti'ye fatura linki iletildi ✅";
                         } else {
                             marketplaceMessage = ` | Çiçeksepeti fatura hatası: ${csResult.message}`;
+                        }
+                    }
+                    } else if (order.source === "PTTAVM" || order.source === "PTT") {
+                        const { uploadInvoiceToPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
+                        const pttRes = await uploadInvoiceToPttavm(order.orderNumber, pdfProxyUrl);
+                        if (pttRes.success) {
+                            marketplaceMessage = " | ePttAVM'ye fatura linki iletildi ✅";
+                        } else {
+                            marketplaceMessage = ` | ePttAVM fatura hatası: ${pttRes.message}`;
                         }
                     }
                 }
