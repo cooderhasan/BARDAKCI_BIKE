@@ -76,17 +76,19 @@ export function PttavmSettingsForm({ initialData }: PttavmSettingsFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="accessToken">Access Token / API Şifresi (Password)</Label>
+          <Label htmlFor="accessToken">Access Token / API Şifresi</Label>
           <Input
             id="accessToken"
             name="accessToken"
-            type="password"
+            type="text"
+            autoComplete="off"
+            spellCheck={false}
             defaultValue={initialData?.accessToken || ""}
-            placeholder="ePttAVM Access Token veya API Şifresi"
+            placeholder="ePttAVM Access Token kodunu giriniz"
             required
           />
           <p className="text-xs text-muted-foreground">
-            ePttAVM Access Token bilginiz veya Entegra panelindeki <strong>Password</strong> (API Şifreniz).
+            ePttAVM Satıcı Portalı'ndan (Self Entegratör sekmesinden) aldığınız uzun Access Token kodu.
           </p>
         </div>
 
