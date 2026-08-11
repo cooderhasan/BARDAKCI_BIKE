@@ -36,7 +36,9 @@ export interface PttavmStockPriceItem {
   barcode: string;
   active: boolean;
   quantity: number;
+  stock?: number;
   priceWithoutVAT: number;
+  priceWithoutVat?: number;
   priceWithVAT: number;
   vatRate: number;
   discount?: number;
