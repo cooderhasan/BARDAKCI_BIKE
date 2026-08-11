@@ -14,11 +14,15 @@ export interface PttavmProductUpsertItem {
   barcode: string;
   active: boolean;
   title: string;
+  name?: string;
   description?: string;
+  shortDescription?: string;
   categoryId?: number;
   brandId?: number;
   quantity: number;
+  stock?: number;
   priceWithoutVAT: number;
+  priceWithoutVat?: number;
   priceWithVAT: number;
   vatRate: number;
   discount?: number;

@@ -262,15 +262,20 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       const productBarcode = (p.barcode || p.sku || "").trim();
 
       if (productBarcode) {
+        const prodDesc = (p.marketplaceDescription || p.description || p.name).trim();
         upsertItems.push({
           barcode: productBarcode,
           active: p.isActive,
           title: p.name,
-          description: (p.marketplaceDescription || p.description || p.name).trim(),
+          name: p.name,
+          description: prodDesc,
+          shortDescription: prodDesc.slice(0, 250),
           categoryId,
           brandId,
           quantity: availableStock,
+          stock: availableStock,
           priceWithoutVAT,
+          priceWithoutVat: priceWithoutVAT,
           priceWithVAT,
           vatRate,
           discount: 0,
