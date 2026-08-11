@@ -339,21 +339,22 @@ export async function syncOrdersFromPttavm() {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
-    const res = await client.getOrders({
+    const resActive = await client.getOrders({
       startDate: formatDate(thirtyDaysAgo),
       endDate: formatDate(now),
-      isActiveOrders: true,
+      isActiveOrders: false,
       pageSize: 100,
-    });
+    }).catch(() => null);
 
-    const items = res?.items || res?.orders || (Array.isArray(res) ? res : []);
+    const items = Array.isArray(resActive) ? resActive : (resActive?.items || resActive?.orders || []);
+
     if (!Array.isArray(items) || items.length === 0) {
       return { success: true, message: "ePttAVM'de yeni sipariş bulunamadı.", count: 0 };
     }
 
     let savedCount = 0;
     for (const item of items) {
-      const pttavmOrderId = String(item.id || item.siparisNo || item.orderId);
+      const pttavmOrderId = String(item.id || item.siparisNo || item.orderId || "");
       const orderNumber = String(item.siparisNo || item.orderNumber || pttavmOrderId);
       const state = String(item.durum || item.state || "CONFIRMED");
 
@@ -363,113 +364,175 @@ export async function syncOrdersFromPttavm() {
         create: { pttavmOrderId, orderNumber, state, rawData: item },
       });
 
-      if (orderNumber) {
-        try {
+      if (!orderNumber) continue;
+
+      try {
+        const customerFirstName = String(item.musteriAdi || "").trim();
+        const customerLastName = String(item.musteriSoyadi || "").trim();
+        const customerName = `${customerFirstName} ${customerLastName}`.trim() || "ePttAVM Müşterisi";
+        const customerEmail = String(item.eposta || item.musteriEposta || item.email || "pttavm@customer.com").trim();
+        const customerPhone = String(item.telefonNo || item.musteriTelefon || item.phone || "").trim();
+
+        const invoiceName = `${item.faturaMusteriAdi || customerFirstName} ${item.faturaMusteriSoyadi || customerLastName}`.trim() || customerName;
+        const shippingAddressObj = {
+          fullName: customerName,
+          addressText: String(item.siparisAdresi || item.teslimatAdresi || item.adres || "ePttAVM Adresi").trim(),
+          city: String(item.siparisIli || item.il || "Türkiye").trim(),
+          district: String(item.siparisIlce || item.ilce || "").trim(),
+          phone: customerPhone,
+          billingFullName: invoiceName,
+          billingAddressText: String(item.faturaAdresi || item.siparisAdresi || item.adres || "ePttAVM Adresi").trim(),
+          billingCity: String(item.faturaIli || item.siparisIli || item.il || "Türkiye").trim(),
+          billingDistrict: String(item.faturaIlce || item.siparisIlce || item.ilce || "").trim(),
+          taxOffice: String(item.vergiDaire || "").trim(),
+          taxNumber: String(item.vergiNo || item.tckn || "").trim(),
+          companyName: String(item.firmaUnvani || "").trim(),
+        };
+
+        const lineItems = Array.isArray(item.siparisUrunler) && item.siparisUrunler.length > 0
+          ? item.siparisUrunler
+          : (Array.isArray(item.items) ? item.items : [item]);
+
+        const orderItemsPayload: any[] = [];
+        let totalNetOrderAmount = 0;
+
+        for (const rawItem of lineItems) {
+          const rawTitle = String(rawItem.urun || rawItem.urunAdi || item.urunAdi || "ePttAVM Ürünü").trim();
+          const barcode = String(rawItem.urunBarkod || rawItem.variantBarkod || rawItem.barkod || rawItem.barcode || item.urunKodu || "").trim();
+          const qty = Math.max(1, Number(rawItem.toplamIslemAdedi || rawItem.adet || rawItem.quantity || 1));
+          
+          let grossTotal = Number(rawItem.kdvDahilToplamTutar || 0);
+          let discountTotal = Number(rawItem.indirimToplam || 0);
+          let netTotal = grossTotal > 0 ? (grossTotal - discountTotal) : Number(rawItem.fiyat || rawItem.price || item.fiyat || 0) * qty;
+
+          if (netTotal <= 0 && lineItems.length === 1 && Number(item.toplamTutar || item.totalPrice || 0) > 0) {
+            netTotal = Number(item.toplamTutar || item.totalPrice);
+          }
+
+          const unitPrice = Math.round((netTotal / qty) * 100) / 100;
+          totalNetOrderAmount += netTotal;
+
+          let dbProd: any = null;
+
+          // 1. Exact match on barcode or sku
+          if (barcode) {
+            dbProd = await prisma.product.findFirst({
+              where: { OR: [{ barcode }, { sku: barcode }] },
+            });
+            if (!dbProd) {
+              const variant = await prisma.productVariant.findFirst({
+                where: { OR: [{ barcode }, { sku: barcode }] },
+                include: { product: true },
+              });
+              if (variant?.product) dbProd = variant.product;
+            }
+          }
+
+          // 2. Prefix match if barcode contains "-" (e.g. "s3733-187" -> prefix "s3733")
+          if (!dbProd && barcode.includes("-")) {
+            const prefix = barcode.split("-")[0].trim();
+            if (prefix.length >= 2) {
+              dbProd = await prisma.product.findFirst({
+                where: { OR: [{ sku: { equals: prefix, mode: "insensitive" } }, { barcode: { equals: prefix, mode: "insensitive" } }] },
+              });
+              if (!dbProd) {
+                const variant = await prisma.productVariant.findFirst({
+                  where: { OR: [{ sku: { equals: prefix, mode: "insensitive" } }, { barcode: { equals: prefix, mode: "insensitive" } }] },
+                  include: { product: true },
+                });
+                if (variant?.product) dbProd = variant.product;
+              }
+            }
+          }
+
+          // 3. Title match fallback
+          if (!dbProd && rawTitle && rawTitle !== "ePttAVM Ürünü") {
+            const firstWord = rawTitle.split(" ")[0];
+            if (firstWord.length >= 3) {
+              dbProd = await prisma.product.findFirst({
+                where: { name: { contains: firstWord, mode: "insensitive" } },
+              });
+            }
+          }
+
+          // 4. Fallback product
+          if (!dbProd) {
+            dbProd = await prisma.product.findFirst();
+          }
+
+          if (dbProd) {
+            orderItemsPayload.push({
+              productId: dbProd.id,
+              quantity: qty,
+              unitPrice: unitPrice,
+              productName: rawTitle !== "ePttAVM Ürünü" ? rawTitle : dbProd.name,
+              lineTotal: netTotal,
+              vatRate: Number(rawItem.kdvOrani || 20),
+              discountRate: 0,
+            });
+          }
+        }
+
+        if (orderItemsPayload.length > 0) {
+          const finalTotal = totalNetOrderAmount > 0 ? totalNetOrderAmount : Number(item.toplamTutar || item.totalPrice || 0);
           const existingOrder = await prisma.order.findUnique({
             where: { orderNumber },
+            include: { items: true },
           });
 
           if (!existingOrder) {
-            const customerName = `${item.musteriAdi ?? ""} ${item.musteriSoyadi ?? ""}`.trim() || "ePttAVM Müşterisi";
-            const customerEmail = item.musteriEposta || "pttavm@customer.com";
-            const customerPhone = item.musteriTelefon || "";
+            const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
 
-            const orderItemsPayload: any[] = [];
-            let subtotal = 0;
+            const affectedProductIds = await prisma.$transaction(async (tx) => {
+              await tx.order.create({
+                data: {
+                  orderNumber,
+                  source: "PTTAVM",
+                  status: "CONFIRMED",
+                  total: finalTotal,
+                  subtotal: finalTotal,
+                  discountAmount: 0,
+                  appliedDiscountRate: 0,
+                  vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
+                  guestEmail: customerEmail,
+                  shippingAddress: shippingAddressObj,
+                  items: {
+                    create: orderItemsPayload,
+                  },
+                },
+              });
 
-            const lineItems = item.siparisUrunler || item.items || [];
-            for (const rawItem of lineItems) {
-              const barcode = rawItem.barkod || rawItem.barcode;
+              return decrementOrderStock(tx, orderItemsPayload.map(i => ({ productId: i.productId, quantity: i.quantity })));
+            });
 
-              let dbProd: any = null;
-              if (barcode) {
-                dbProd = await prisma.product.findFirst({
-                  where: { OR: [{ barcode: String(barcode) }, { sku: String(barcode) }] },
-                });
-                if (!dbProd) {
-                  const variant = await prisma.productVariant.findFirst({
-                    where: { OR: [{ barcode: String(barcode) }, { sku: String(barcode) }] },
-                    include: { product: true },
-                  });
-                  if (variant?.product) dbProd = variant.product;
-                }
-              }
-
-              const itemPrice = Number(rawItem.fiyat ?? rawItem.price ?? 0);
-              const qty = Number(rawItem.adet ?? rawItem.quantity ?? 1);
-              const lineTotal = itemPrice * qty;
-              subtotal += lineTotal;
-
-              if (dbProd) {
-                orderItemsPayload.push({
-                  productId: dbProd.id,
-                  quantity: qty,
-                  unitPrice: itemPrice,
-                  productName: rawItem.urunAdi || dbProd.name,
-                  lineTotal,
-                  vatRate: rawItem.kdvOrani ?? 20,
-                  discountRate: 0,
-                });
-              }
+            if (affectedProductIds.length > 0) {
+              handlePostOrderStockSync(affectedProductIds, "pttavm").catch(console.error);
             }
-
-            if (orderItemsPayload.length === 0 && lineItems.length > 0) {
-              const firstRawItem = lineItems[0];
-              const fallbackProd = await prisma.product.findFirst();
-              if (fallbackProd) {
-                const itemPrice = Number(firstRawItem.fiyat ?? firstRawItem.price ?? 0);
-                const qty = Number(firstRawItem.adet ?? firstRawItem.quantity ?? 1);
-                orderItemsPayload.push({
-                  productId: fallbackProd.id,
-                  quantity: qty,
-                  unitPrice: itemPrice,
-                  productName: firstRawItem.urunAdi || "ePttAVM Ürünü",
-                  lineTotal: itemPrice * qty,
-                  vatRate: 20,
-                  discountRate: 0,
-                });
-              }
-            }
-
-            if (orderItemsPayload.length > 0) {
-              const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
-
-              const affectedProductIds = await prisma.$transaction(async (tx) => {
-                await tx.order.create({
+          } else {
+            // Update existing incomplete order (fix email, phone, address, prices, titles if they were 0 or ePttAVM Ürünü)
+            const hasIncompleteItems = existingOrder.items.some(i => i.productName === "ePttAVM Ürünü" || Number(i.unitPrice) === 0);
+            if (hasIncompleteItems || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
+              await prisma.$transaction(async (tx) => {
+                await tx.orderItem.deleteMany({ where: { orderId: existingOrder.id } });
+                await tx.order.update({
+                  where: { id: existingOrder.id },
                   data: {
-                    orderNumber,
-                    source: "PTTAVM",
-                    status: "CONFIRMED",
-                    total: Number(item.toplamTutar ?? item.totalPrice ?? subtotal),
-                    subtotal,
-                    discountAmount: 0,
-                    appliedDiscountRate: 0,
-                    vatAmount: subtotal * 0.2,
+                    total: finalTotal,
+                    subtotal: finalTotal,
+                    vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
                     guestEmail: customerEmail,
-                    shippingAddress: {
-                      fullName: customerName,
-                      addressText: item.teslimatAdresi || item.adres || "ePttAVM Adresi",
-                      city: item.il || "Türkiye",
-                      district: item.ilce || "",
-                      phone: customerPhone,
-                    },
+                    shippingAddress: shippingAddressObj,
                     items: {
                       create: orderItemsPayload,
                     },
                   },
                 });
-
-                return decrementOrderStock(tx, orderItemsPayload.map(i => ({ productId: i.productId, quantity: i.quantity })));
               });
-
-              if (affectedProductIds.length > 0) {
-                handlePostOrderStockSync(affectedProductIds, "pttavm").catch(console.error);
-              }
             }
           }
-        } catch (err: any) {
-          console.error(`prisma.order create error (${orderNumber}):`, err.message);
         }
+      } catch (err: any) {
+        console.error(`prisma.order sync error (${orderNumber}):`, err.message);
       }
 
       savedCount++;
@@ -482,7 +545,7 @@ export async function syncOrdersFromPttavm() {
 
     return {
       success: true,
-      message: `${savedCount} ePttAVM siparişi senkronize edildi.`,
+      message: `${savedCount} adet ePttAVM siparişi kontrol edildi ve aktarıldı.`,
       count: savedCount,
     };
   } catch (error: any) {
