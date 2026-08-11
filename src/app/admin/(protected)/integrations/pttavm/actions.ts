@@ -256,15 +256,17 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       });
 
       const catWithPttavm = p.categories.find((c) => c.pttavmCategoryId) || p.categories[0];
-      const categoryId = catWithPttavm?.pttavmCategoryId || undefined;
-      const brandId = p.brand?.pttavmBrandId || undefined;
+      const categoryId = Number(catWithPttavm?.pttavmCategoryId || 1001);
+      const brandId = p.brand?.pttavmBrandId ? Number(p.brand.pttavmBrandId) : undefined;
+      const desi = Math.max(1, Math.round(Number(p.desi || 1)));
+      const productBarcode = (p.barcode || p.sku || "").trim();
 
-      if (p.barcode) {
+      if (productBarcode) {
         upsertItems.push({
-          barcode: p.barcode,
+          barcode: productBarcode,
           active: p.isActive,
           title: p.name,
-          description: p.marketplaceDescription || p.description || p.name,
+          description: (p.marketplaceDescription || p.description || p.name).trim(),
           categoryId,
           brandId,
           quantity: availableStock,
@@ -272,7 +274,7 @@ export async function syncProductsToPttavm(productIds?: string[]) {
           priceWithVAT,
           vatRate,
           discount: 0,
-          desi: Number(p.desi || 1),
+          desi,
           images: formattedImages,
           isCargoFromSupplier: true,
         });
@@ -313,6 +315,7 @@ export async function syncProductsToPttavm(productIds?: string[]) {
     return {
       success: result.success,
       message: result.message || `${upsertItems.length} ürün ePttAVM kataloğuna aktarıldı. Tracking ID: ${result.trackingId || "Tamamlandı"}`,
+      trackingId: result.trackingId,
     };
   } catch (error: any) {
     console.error("syncProductsToPttavm Error:", error);
