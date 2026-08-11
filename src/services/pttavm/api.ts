@@ -12,6 +12,11 @@ export interface PttavmCreds {
 
 export interface PttavmProductUpsertItem {
   barcode: string;
+  gtin?: string;
+  ean?: string;
+  sku?: string;
+  stockCode?: string;
+  merchantItemCode?: string;
   active: boolean;
   title: string;
   name?: string;

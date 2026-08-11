@@ -267,8 +267,14 @@ export async function syncProductsToPttavm(productIds?: string[]) {
 
       if (productBarcode) {
         const prodDesc = (p.marketplaceDescription || p.description || p.name).trim();
+        const stockCodeVal = (p.sku || productBarcode).trim();
         upsertItems.push({
           barcode: productBarcode,
+          gtin: productBarcode,
+          ean: productBarcode,
+          sku: stockCodeVal,
+          stockCode: stockCodeVal,
+          merchantItemCode: stockCodeVal,
           active: p.isActive,
           title: p.name,
           name: p.name,
