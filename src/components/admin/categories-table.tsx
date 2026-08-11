@@ -77,6 +77,7 @@ interface Category {
     isFeatured: boolean;
     trendyolCategoryId?: number | null;
     n11CategoryId?: number | null;
+    pttavmCategoryId?: number | null;
     hbCategoryId?: string | null;
     idefixCategoryId?: string | number | null;
     pazaramaCategoryId?: string | number | null;
@@ -178,6 +179,9 @@ function SortableRow({ category, onEdit, onDelete, onToggleStatus, onInspectProd
                     </div>
                     <div title={category.n11CategoryId ? "N11 Bağlı" : "N11 Bağlı Değil"}>
                         <div className={`w-2 h-2 rounded-full ${category.n11CategoryId ? "bg-purple-500" : "bg-gray-200"}`} />
+                    </div>
+                    <div title={category.pttavmCategoryId ? "ePttAVM Bağlı" : "ePttAVM Bağlı Değil"}>
+                        <div className={`w-2 h-2 rounded-full ${category.pttavmCategoryId ? "bg-teal-500" : "bg-gray-200"}`} />
                     </div>
                     <div title={category.hbCategoryId ? "Hepsiburada Bağlı" : "Hepsiburada Bağlı Değil"}>
                         <div className={`w-2 h-2 rounded-full ${category.hbCategoryId ? "bg-orange-600" : "bg-gray-200"}`} />
@@ -1022,6 +1026,117 @@ function CiceksepetiCategorySearch({
     );
 }
 
+interface PttavmCat {
+    id: number;
+    name: string;
+}
+
+function PttavmCategorySearch({
+    value,
+    onChange,
+}: {
+    value?: number;
+    onChange: (id: number | undefined) => void;
+}) {
+    const [search, setSearch] = useState(value ? String(value) : "");
+    const [allCategories, setAllCategories] = useState<PttavmCat[]>([]);
+    const [results, setResults] = useState<PttavmCat[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        setSearch(value ? String(value) : "");
+    }, [value]);
+
+    const fetchCategories = async () => {
+        if (allCategories.length > 0) return allCategories;
+        setLoading(true);
+        try {
+            const { getPttavmCategories } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
+            const res = await getPttavmCategories();
+            if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+                setAllCategories(res.data);
+                return res.data;
+            }
+            return [];
+        } catch {
+            return [];
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = async (q: string) => {
+        setSearch(q);
+        const num = parseInt(q, 10);
+        onChange(!isNaN(num) ? num : undefined);
+        if (q.length < 2) {
+            setResults([]);
+            setOpen(false);
+            return;
+        }
+
+        const cats = await fetchCategories();
+        const query = q.toLowerCase();
+        const filtered = cats
+            .filter((c) => c.name.toLowerCase().includes(query) || String(c.id).includes(query))
+            .slice(0, 50);
+
+        setResults(filtered);
+        setOpen(filtered.length > 0);
+    };
+
+    const handleSelect = (cat: PttavmCat) => {
+        onChange(cat.id);
+        setSearch(String(cat.id));
+        setResults([]);
+        setOpen(false);
+    };
+
+    const handleClear = () => {
+        onChange(undefined);
+        setSearch("");
+        setResults([]);
+        setOpen(false);
+    };
+
+    return (
+        <div className="space-y-1.5">
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                    className="pl-8 pr-8 border-teal-200 focus-visible:ring-teal-500 text-xs font-mono"
+                    placeholder="ePttAVM Kategori ID giriniz veya adı ile arayınız..."
+                    value={search}
+                    onChange={(e) => handleSearch(e.target.value)}
+                />
+                {loading && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-teal-500" />}
+                {search && !loading && (
+                    <button type="button" onClick={handleClear} className="absolute right-2.5 top-2.5 text-gray-400 hover:text-red-500">
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+
+            {open && results.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-teal-200 rounded-lg shadow-xl">
+                    {results.map((cat) => (
+                        <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => handleSelect(cat)}
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-teal-50 dark:hover:bg-teal-900/20 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                        >
+                            <span className="font-medium text-gray-800 dark:text-gray-200">{cat.name}</span>
+                            <span className="text-[10px] text-teal-600 font-mono shrink-0">#{cat.id}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [parentSearch, setParentSearch] = useState("");
@@ -1040,6 +1155,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [isFeatured, setIsFeatured] = useState(false);
     const [trendyolCategoryId, setTrendyolCategoryId] = useState<number | undefined>(undefined);
     const [n11CategoryId, setN11CategoryId] = useState<number | undefined>(undefined);
+    const [pttavmCategoryId, setPttavmCategoryId] = useState<number | undefined>(undefined);
     const [hbCategoryId, setHbCategoryId] = useState<string | undefined>(undefined);
     const [idefixCategoryId, setIdefixCategoryId] = useState<number | undefined>(undefined);
     const [pazaramaCategoryId, setPazaramaCategoryId] = useState<string | undefined>(undefined);
@@ -1315,6 +1431,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     headerOrder,
                     trendyolCategoryId,
                     n11CategoryId,
+                    pttavmCategoryId,
                     hbCategoryId,
                     idefixCategoryId,
                     pazaramaCategoryId,
@@ -1336,6 +1453,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     headerOrder,
                     trendyolCategoryId,
                     n11CategoryId,
+                    pttavmCategoryId,
                     hbCategoryId,
                     idefixCategoryId,
                     pazaramaCategoryId,
@@ -1395,6 +1513,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setIsFeatured(false);
         setTrendyolCategoryId(undefined);
         setN11CategoryId(undefined);
+        setPttavmCategoryId(undefined);
         setHbCategoryId(undefined);
         setIdefixCategoryId(undefined);
         setPazaramaCategoryId(undefined);
@@ -1418,6 +1537,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         setIsFeatured(category.isFeatured);
         setTrendyolCategoryId(category.trendyolCategoryId ?? undefined);
         setN11CategoryId(category.n11CategoryId ?? undefined);
+        setPttavmCategoryId(category.pttavmCategoryId ?? undefined);
         setHbCategoryId(category.hbCategoryId ?? undefined);
         setIdefixCategoryId(category.idefixCategoryId ? Number(category.idefixCategoryId) : undefined);
         setPazaramaCategoryId(category.pazaramaCategoryId ? String(category.pazaramaCategoryId) : undefined);
@@ -1553,6 +1673,14 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                         onChange={setN11CategoryId}
                                     />
                                     <p className="text-[10px] text-purple-600">N11 kategorisini adıyla arayıp seçebilirsiniz.</p>
+                                </div>
+                                <div className="space-y-2 p-3 bg-teal-50 dark:bg-teal-950/20 rounded-lg border border-teal-200 dark:border-teal-800">
+                                    <Label htmlFor="pttavmCategoryId" className="text-teal-700 dark:text-teal-400 font-semibold text-xs uppercase tracking-wide">📮 ePttAVM Kategori Eşleştirme</Label>
+                                    <PttavmCategorySearch
+                                        value={pttavmCategoryId}
+                                        onChange={setPttavmCategoryId}
+                                    />
+                                    <p className="text-[10px] text-teal-600">ePttAVM kategorisini adıyla arayıp (örn: Bisiklet) seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                                     <Label htmlFor="hbCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Hepsiburada Kategori Eşleştirme</Label>

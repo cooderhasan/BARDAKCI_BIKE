@@ -14,7 +14,7 @@ export async function getCategories() {
     });
 }
 
-export async function createCategory(data: { name: string; slug: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; ciceksepetiCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string }) {
+export async function createCategory(data: { name: string; slug: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; pttavmCategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; ciceksepetiCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string }) {
     try {
         await prisma.category.create({
             data: {
@@ -30,6 +30,7 @@ export async function createCategory(data: { name: string; slug: string; store?:
                 headerOrder: data.headerOrder ?? 0,
                 trendyolCategoryId: data.trendyolCategoryId ?? null,
                 n11CategoryId: data.n11CategoryId ?? null,
+                pttavmCategoryId: data.pttavmCategoryId ? Number(data.pttavmCategoryId) : null,
                 hbCategoryId: data.hbCategoryId ? String(data.hbCategoryId) : null,
                 idefixCategoryId: data.idefixCategoryId ? String(data.idefixCategoryId) : null,
                 pazaramaCategoryId: data.pazaramaCategoryId ? String(data.pazaramaCategoryId) : null,
@@ -47,7 +48,7 @@ export async function createCategory(data: { name: string; slug: string; store?:
     }
 }
 
-export async function updateCategory(id: string, data: { name?: string; slug?: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; ciceksepetiCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
+export async function updateCategory(id: string, data: { name?: string; slug?: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; pttavmCategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; ciceksepetiCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
     try {
         const updateData: Record<string, any> = {};
         
@@ -64,6 +65,7 @@ export async function updateCategory(id: string, data: { name?: string; slug?: s
         if (data.headerOrder !== undefined) updateData.headerOrder = data.headerOrder;
         if (data.trendyolCategoryId !== undefined) updateData.trendyolCategoryId = data.trendyolCategoryId;
         if (data.n11CategoryId !== undefined) updateData.n11CategoryId = data.n11CategoryId;
+        if (data.pttavmCategoryId !== undefined) updateData.pttavmCategoryId = data.pttavmCategoryId ? Number(data.pttavmCategoryId) : null;
         if (data.googleProductCategory !== undefined) updateData.googleProductCategory = data.googleProductCategory;
         if (data.description !== undefined) updateData.description = data.description;
         if (data.parentId !== undefined) updateData.parentId = data.parentId || null;

@@ -588,3 +588,60 @@ export async function togglePttavmProductActive(productId: string, currentState:
   }
 }
 
+export async function getPttavmCategories() {
+  try {
+    const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, data: [] };
+
+    const client = new PttavmClient({
+      apiKey: config.apiKey,
+      accessToken: config.accessToken,
+      profitMargin: config.profitMargin || 0,
+      isTestMode: Boolean(config.isTestMode),
+    });
+
+    const mainRes = await client.getCategories();
+    const mainCats = mainRes?.main_category || [];
+    if (!Array.isArray(mainCats) || mainCats.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const allTreeCategories: Array<{ id: number; name: string }> = [];
+
+    const flattenTree = (nodes: any[], prefix: string) => {
+      if (!Array.isArray(nodes)) return;
+      for (const n of nodes) {
+        if (!n) continue;
+        const catId = Number(n.id);
+        const fullName = prefix ? `${prefix} > ${n.name}` : n.name;
+        if (catId) {
+          allTreeCategories.push({ id: catId, name: fullName });
+        }
+        if (Array.isArray(n.children) && n.children.length > 0) {
+          flattenTree(n.children, fullName);
+        }
+      }
+    };
+
+    // Parallel fetch for main category subtrees
+    await Promise.all(
+      mainCats.map(async (mc: any) => {
+        const mcId = Number(mc.id);
+        if (mcId) {
+          allTreeCategories.push({ id: mcId, name: mc.name });
+          const subRes = await client.request<any>("GET", `/api/v1/categories/category-tree?parentId=${mcId}`).catch(() => null);
+          if (subRes && Array.isArray(subRes.category_tree)) {
+            flattenTree(subRes.category_tree, mc.name);
+          }
+        }
+      })
+    );
+
+    return { success: true, data: allTreeCategories };
+  } catch (error: any) {
+    console.error("getPttavmCategories error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+
