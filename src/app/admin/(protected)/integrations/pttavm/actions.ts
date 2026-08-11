@@ -254,9 +254,9 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       const criticalStock = p.criticalStock ?? 0;
       const availableStock = p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
 
-      const formattedImages = (p.images || []).map((img) => {
+      const formattedImages = (p.images || []).map((img, idx) => {
         const fullUrl = img.startsWith("http") ? img : `${siteUrl}${img.startsWith("/") ? "" : "/"}${img}`;
-        return { url: fullUrl };
+        return { url: fullUrl, order: idx + 1 };
       });
 
       const catWithPttavm = p.categories.find((c) => c.pttavmCategoryId) || p.categories[0];
