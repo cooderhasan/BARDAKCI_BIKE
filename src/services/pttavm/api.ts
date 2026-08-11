@@ -23,7 +23,7 @@ export interface PttavmProductUpsertItem {
   vatRate: number;
   discount?: number;
   desi?: number;
-  images?: string[];
+  images?: { url: string }[];
   variants?: any[];
   isCargoFromSupplier?: boolean;
 }
