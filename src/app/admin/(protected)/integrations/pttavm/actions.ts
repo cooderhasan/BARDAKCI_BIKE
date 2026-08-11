@@ -268,6 +268,7 @@ export async function syncProductsToPttavm(productIds?: string[]) {
 
       if (productBarcode) {
         const prodDesc = (p.marketplaceDescription || p.description || p.name).trim();
+        const stockCodeVal = (p.sku || productBarcode).trim();
         const brandNameVal = p.brand?.name || "Diğer";
         upsertItems.push({
           barcode: productBarcode,
