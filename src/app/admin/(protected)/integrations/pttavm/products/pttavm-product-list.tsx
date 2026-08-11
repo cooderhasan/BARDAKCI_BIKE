@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Package,
 } from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { formatPrice } from "@/lib/helpers";
 
 interface Product {
@@ -54,21 +55,43 @@ interface PttavmProductListProps {
 }
 
 export function PttavmProductList({ initialProducts, pagination }: PttavmProductListProps) {
-  const [products, setProducts] = useState(initialProducts);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
-  useEffect(() => {
-    setProducts(initialProducts);
-  }, [initialProducts]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [products, setProducts] = useState(initialProducts);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");
   const [isPending, startTransition] = useTransition();
 
-  const filteredProducts = pagination ? products : products.filter((p) => {
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get("search") || "");
+  }, [searchParams]);
+
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+    const params = new URLSearchParams(searchParams.toString());
+    if (term.trim()) {
+      params.set("search", term.trim());
+      params.set("page", "1");
+    } else {
+      params.delete("search");
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const filteredProducts = products.filter((p) => {
+    const term = searchTerm.trim().toLowerCase();
     const matchesSearch =
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
+      !term ||
+      p.name.toLowerCase().includes(term) ||
+      (p.sku && p.sku.toLowerCase().includes(term)) ||
+      (p.barcode && p.barcode.toLowerCase().includes(term));
 
     if (filterActive === "ACTIVE") return matchesSearch && p.isPttavmActive;
     if (filterActive === "PASSIVE") return matchesSearch && !p.isPttavmActive;
@@ -164,7 +187,7 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
               placeholder="Ürün adı, SKU veya barkod ara..."
               className="pl-9"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
 

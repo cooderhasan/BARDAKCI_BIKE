@@ -570,11 +570,13 @@ export async function getPttavmProducts({
   try {
     const skip = (page - 1) * limit;
     const where: any = {};
-    if (search) {
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { sku: { contains: search, mode: "insensitive" } },
-        { barcode: { contains: search, mode: "insensitive" } },
+        { name: { contains: cleanSearch, mode: "insensitive" } },
+        { sku: { contains: cleanSearch, mode: "insensitive" } },
+        { barcode: { contains: cleanSearch, mode: "insensitive" } },
+        { variants: { some: { OR: [{ sku: { contains: cleanSearch, mode: "insensitive" } }, { barcode: { contains: cleanSearch, mode: "insensitive" } }] } } },
       ];
     }
     if (store && store !== "ALL") {
