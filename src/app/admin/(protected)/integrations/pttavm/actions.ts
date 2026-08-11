@@ -479,6 +479,11 @@ export async function syncOrdersFromPttavm() {
 
         if (orderItemsPayload.length > 0) {
           const finalTotal = totalNetOrderAmount > 0 ? totalNetOrderAmount : Number(item.toplamTutar || item.totalPrice || 0);
+          const cargoTrackingNumber = item.kargoBarkod ? String(item.kargoBarkod).trim() : null;
+          const cargoCompany = "PTT Kargo";
+          const shipmentPackageId = cargoTrackingNumber || orderNumber;
+          const trackingUrl = cargoTrackingNumber ? `https://gonderitakip.ptt.gov.tr/Track/Detail?id=${cargoTrackingNumber}` : null;
+
           const existingOrder = await prisma.order.findUnique({
             where: { orderNumber },
             include: { items: true },
@@ -493,6 +498,10 @@ export async function syncOrdersFromPttavm() {
                   orderNumber,
                   source: "PTTAVM",
                   status: "CONFIRMED",
+                  cargoCompany,
+                  cargoTrackingNumber,
+                  shipmentPackageId,
+                  trackingUrl,
                   total: finalTotal,
                   subtotal: finalTotal,
                   discountAmount: 0,
@@ -513,14 +522,18 @@ export async function syncOrdersFromPttavm() {
               handlePostOrderStockSync(affectedProductIds, "pttavm").catch(console.error);
             }
           } else {
-            // Update existing incomplete order (fix email, phone, address, prices, titles if they were 0 or ePttAVM Ürünü)
+            // Update existing incomplete order (fix email, phone, address, cargo, prices, titles if they were 0 or ePttAVM Ürünü)
             const hasIncompleteItems = existingOrder.items.some(i => i.productName === "ePttAVM Ürünü" || Number(i.unitPrice) === 0);
-            if (hasIncompleteItems || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
+            if (hasIncompleteItems || !existingOrder.cargoTrackingNumber || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
               await prisma.$transaction(async (tx) => {
                 await tx.orderItem.deleteMany({ where: { orderId: existingOrder.id } });
                 await tx.order.update({
                   where: { id: existingOrder.id },
                   data: {
+                    cargoCompany,
+                    cargoTrackingNumber: cargoTrackingNumber || existingOrder.cargoTrackingNumber,
+                    shipmentPackageId: shipmentPackageId || existingOrder.shipmentPackageId,
+                    trackingUrl: trackingUrl || existingOrder.trackingUrl,
                     total: finalTotal,
                     subtotal: finalTotal,
                     vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
