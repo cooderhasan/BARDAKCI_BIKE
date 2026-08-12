@@ -65,6 +65,15 @@ export async function setupRepeatableJobs() {
         jobId: 'ciceksepeti-order-sync-cron'
     });
     console.log("⏰ Çiçeksepeti Order Sync Cron (15m) registered.");
+
+    // Her 15 dakikada bir ePttAVM siparişlerini çek
+    await queue.add("pttavm-order-sync", {}, {
+        repeat: {
+            pattern: '*/15 * * * *' // Every 15 minutes
+        },
+        jobId: 'pttavm-order-sync-cron'
+    });
+    console.log("⏰ ePttAVM Order Sync Cron (15m) registered.");
 }
 
 export function initializeWorker() {
@@ -122,6 +131,14 @@ export function initializeWorker() {
                     console.log("🔄 Otomatik Pazarama Sipariş Senkronizasyonu başlatıldı...");
                     const { syncOrdersFromPazarama } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
                     const result = await syncOrdersFromPazarama();
+                    console.log(`✅ Cron Sonucu: ${result.message}`);
+                    return;
+                }
+
+                if (job.name === "pttavm-order-sync") {
+                    console.log("🔄 Otomatik ePttAVM Sipariş Senkronizasyonu başlatıldı...");
+                    const { syncOrdersFromPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
+                    const result = await syncOrdersFromPttavm();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
                     return;
                 }
