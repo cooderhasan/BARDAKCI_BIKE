@@ -102,24 +102,19 @@ export async function parseExcelFile(formData: FormData): Promise<ParseResult> {
             const rowNum = index + 2; // Excel rows start at 1, plus header
 
             const name = row["Ürün Adı (Zorunlu)"] || row["Ürün Adı"];
-            const price = parseNumber(row["Liste Fiyatı (TL)"] ?? row["Liste Fiyatı (Zorunlu)"] ?? row["Liste Fiyatı"]);
             const cat = row["Kategori Slug (Zorunlu)"] || row["Kategori Slug"];
+            const sku = row["Stok Kodu"] || row["Barkod"];
 
-            if (!name) {
-                errors.push({ row: rowNum, message: "Ürün adı zorunludur" });
-            }
-            if (price === null) {
-                errors.push({ row: rowNum, message: "Geçerli bir liste fiyatı giriniz" });
-            }
-            if (!cat) {
-                errors.push({ row: rowNum, message: "Kategori slug zorunludur" });
+            // A row is valid if it has at least a Name OR SKU/Barcode to identify the product
+            if (!name && !sku) {
+                errors.push({ row: rowNum, message: "Ürün adı veya Stok Kodu / Barkod zorunludur" });
             }
         });
 
         return { rows, errors };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Excel parse error:", error);
-        return { rows: [], errors: [{ row: 0, message: "Dosya okunamadı" }] };
+        return { rows: [], errors: [{ row: 0, message: `Dosya okunamadı: ${error?.message || error}` }] };
     }
 }
 
@@ -168,21 +163,6 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
             const listPrice = parseNumber(row["Liste Fiyatı (TL)"] ?? row["Liste Fiyatı (Zorunlu)"] ?? row["Liste Fiyatı"]);
             const categorySlug = row["Kategori Slug (Zorunlu)"] || row["Kategori Slug"];
 
-            if (!name || listPrice === null || !categorySlug) {
-                errors.push({ row: rowNum, message: "Zorunlu alanlar eksik" });
-                continue;
-            }
-
-            const categoryId = categoryMap.get(categorySlug);
-            if (!categoryId) {
-                errors.push({ row: rowNum, message: `Kategori bulunamadı: ${categorySlug}` });
-                continue;
-            }
-
-            const brandSlug = row["Marka Slug"];
-            const brandId = brandSlug ? brandMap.get(brandSlug) : null;
-
-            const slug = generateSlug(name) + "-" + Date.now().toString(36);
             const sku = row["Stok Kodu"] ? String(row["Stok Kodu"]).trim() : null;
             const barcode = row["Barkod"] ? String(row["Barkod"]).trim() : null;
 
@@ -194,10 +174,21 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
                 existingProduct = productByBarcodeMap.get(barcode);
             }
 
+            if (!existingProduct && (!name || listPrice === null || !categorySlug)) {
+                errors.push({ row: rowNum, message: "Yeni ürün için Zorunlu alanlar (İsim, Fiyat, Kategori) eksik" });
+                continue;
+            }
+
+            const categoryId = categorySlug ? categoryMap.get(categorySlug) : existingProduct?.categoryId;
+            const brandSlug = row["Marka Slug"];
+            const brandId = brandSlug ? brandMap.get(brandSlug) : existingProduct?.brandId;
+
+            const slug = generateSlug(name || existingProduct?.name || "urun") + "-" + Date.now().toString(36);
             const parsedDesi = parseNumber(row["Desi"] ?? row["Desi (Kg)"]);
             const desiVal = parsedDesi !== null ? Math.max(0.01, parsedDesi) : (existingProduct?.desi ?? 1);
 
-            const salePrice = parseNumber(row["Satış Fiyatı (TL)"] ?? row["Satış Fiyatı"]) ?? listPrice;
+            const finalPrice = listPrice !== null ? listPrice : (existingProduct?.listPrice ? Number(existingProduct.listPrice) : 0);
+            const salePrice = parseNumber(row["Satış Fiyatı (TL)"] ?? row["Satış Fiyatı"]) ?? finalPrice;
             const trendyolPrice = parseNumber(row["Trendyol Fiyatı (TL)"] ?? row["Trendyol Fiyatı"]);
             const n11Price = parseNumber(row["N11 Fiyatı (TL)"] ?? row["N11 Fiyatı"]);
             const hepsiburadaPrice = parseNumber(row["Hepsiburada Fiyatı (TL)"] ?? row["Hepsiburada Fiyatı"]);
@@ -206,8 +197,8 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
             const ciceksepetiPrice = parseNumber(row["Çiçeksepeti Fiyatı (TL)"] ?? row["Çiçeksepeti Fiyatı"]);
 
             const productData: any = {
-                name: name,
-                listPrice: listPrice,
+                name: name || existingProduct?.name,
+                listPrice: finalPrice,
                 salePrice: salePrice,
                 categoryId: categoryId,
                 brandId: brandId || null,
