@@ -13,35 +13,25 @@ export async function GET() {
         });
 
         const exportData = products.map((p) => {
-            const listPrice = Number(p.listPrice || 0);
-            const salePrice = Number(p.salePrice || listPrice);
-            const trendyolPrice = Number(p.trendyolPrice || salePrice);
-            const n11Price = Number(p.n11Price || salePrice);
-            const hepsiburadaPrice = Number(p.hepsiburadaPrice || salePrice);
-            const pazaramaPrice = Number(p.pazaramaPrice || salePrice);
-            const pttavmPrice = Number(p.pttavmPrice || salePrice);
-            const ciceksepetiPrice = Number(p.ciceksepetiPrice || salePrice);
-            const desiVal = p.desi !== null && p.desi !== undefined ? Number(p.desi) : 1;
-
             return {
                 "Stok Kodu": p.sku || "",
                 "Barkod": p.barcode || "",
                 "Ürün Adı (Zorunlu)": p.name,
-                "Desi": desiVal,
-                "Liste Fiyatı (TL)": listPrice,
-                "Satış Fiyatı (TL)": salePrice,
-                "Trendyol Fiyatı (TL)": trendyolPrice,
-                "N11 Fiyatı (TL)": n11Price,
-                "Hepsiburada Fiyatı (TL)": hepsiburadaPrice,
-                "Pazarama Fiyatı (TL)": pazaramaPrice,
-                "ePttAVM Fiyatı (TL)": pttavmPrice,
-                "Çiçeksepeti Fiyatı (TL)": ciceksepetiPrice,
-                "Stok Adedi": Number(p.stock || 0),
+                "Desi": p.desi !== null && p.desi !== undefined ? Number(p.desi) : "",
+                "Liste Fiyatı (TL)": p.listPrice !== null && p.listPrice !== undefined ? Number(p.listPrice) : "",
+                "Satış Fiyatı (TL)": p.salePrice !== null && p.salePrice !== undefined ? Number(p.salePrice) : "",
+                "Trendyol Fiyatı (TL)": p.trendyolPrice !== null && p.trendyolPrice !== undefined ? Number(p.trendyolPrice) : "",
+                "N11 Fiyatı (TL)": p.n11Price !== null && p.n11Price !== undefined ? Number(p.n11Price) : "",
+                "Hepsiburada Fiyatı (TL)": p.hepsiburadaPrice !== null && p.hepsiburadaPrice !== undefined ? Number(p.hepsiburadaPrice) : "",
+                "Pazarama Fiyatı (TL)": p.pazaramaPrice !== null && p.pazaramaPrice !== undefined ? Number(p.pazaramaPrice) : "",
+                "ePttAVM Fiyatı (TL)": p.pttavmPrice !== null && p.pttavmPrice !== undefined ? Number(p.pttavmPrice) : "",
+                "Çiçeksepeti Fiyatı (TL)": p.ciceksepetiPrice !== null && p.ciceksepetiPrice !== undefined ? Number(p.ciceksepetiPrice) : "",
+                "Stok Adedi": p.stock !== null && p.stock !== undefined ? Number(p.stock) : 0,
                 "Kategori Slug (Zorunlu)": p.category?.slug || "genel",
                 "Marka Slug": p.brand?.slug || "",
-                "KDV Oranı (%)": Number(p.vatRate || 20),
-                "Kritik Stok": Number(p.criticalStock || 10),
-                "Minimum Sipariş": Number(p.minQuantity || 1),
+                "KDV Oranı (%)": p.vatRate !== null && p.vatRate !== undefined ? Number(p.vatRate) : 20,
+                "Kritik Stok": p.criticalStock !== null && p.criticalStock !== undefined ? Number(p.criticalStock) : 10,
+                "Minimum Sipariş": p.minQuantity !== null && p.minQuantity !== undefined ? Number(p.minQuantity) : 1,
                 "Menşei": p.origin || "",
                 "Öne Çıkan (1/0)": p.isFeatured ? 1 : 0,
                 "Yeni Ürün (1/0)": p.isNew ? 1 : 0,
