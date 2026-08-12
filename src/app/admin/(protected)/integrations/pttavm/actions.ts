@@ -453,6 +453,62 @@ export async function syncOrdersFromPttavm() {
               });
               if (variant?.product) dbProd = variant.product;
             }
+
+            // 1b. Core numeric SKU extraction (e.g. "bm-lpk-mc-000310150-00-29817" -> "000310150")
+            if (!dbProd) {
+              const coreNum = (barcode.match(/\d{5,}/) || [])[0];
+              if (coreNum) {
+                dbProd = await prisma.product.findFirst({
+                  where: { OR: [{ sku: { contains: coreNum, mode: "insensitive" } }, { barcode: { contains: coreNum, mode: "insensitive" } }] },
+                });
+                if (!dbProd) {
+                  const variant = await prisma.productVariant.findFirst({
+                    where: { OR: [{ sku: { contains: coreNum, mode: "insensitive" } }, { barcode: { contains: coreNum, mode: "insensitive" } }] },
+                    include: { product: true },
+                  });
+                  if (variant?.product) dbProd = variant.product;
+                }
+              }
+            }
+          }
+
+          // Smart title cross-check if matched product name conflicts with order title dimensions or SET vs SINGLE product status
+          if (dbProd && rawTitle && rawTitle !== "ePttAVM Ürünü") {
+            const cleanTitle = rawTitle.replace(/\s*-\s*/g, "-");
+            const rawLower = cleanTitle.toLowerCase();
+            const dbLower = dbProd.name.toLowerCase();
+            
+            const tokens = cleanTitle.split(" ").map((t) => t.trim()).filter(Boolean);
+            const brandWord = tokens[0] || "";
+            const sizeTokens = tokens.filter((t) => /\d+\.\d+/.test(t) || /\d+-\d+/.test(t));
+            const missingSizes = sizeTokens.filter((s) => !dbLower.includes(s.toLowerCase()));
+            const isRawSingle = !rawLower.includes("set") && !rawLower.includes("takım");
+            const isDbSet = dbLower.includes("set") || dbLower.includes("takım");
+
+            if (missingSizes.length > 0 || (isRawSingle && isDbSet)) {
+              const queryConditions: any[] = [];
+              if (brandWord && brandWord.length >= 2) {
+                queryConditions.push({ name: { contains: brandWord, mode: "insensitive" } });
+              }
+              
+              sizeTokens.forEach((s: string) => {
+                queryConditions.push({ name: { contains: s, mode: "insensitive" } });
+              });
+
+              if (isRawSingle) {
+                queryConditions.push({ NOT: { name: { contains: "Seti", mode: "insensitive" } } });
+              }
+
+              if (queryConditions.length > 0) {
+                const betterMatch = await prisma.product.findFirst({
+                  where: { AND: queryConditions },
+                });
+
+                if (betterMatch) {
+                  dbProd = betterMatch;
+                }
+              }
+            }
           }
 
           // 2. Prefix match if barcode contains "-" (e.g. "s3733-187" -> prefix "s3733")
