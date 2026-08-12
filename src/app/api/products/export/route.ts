@@ -12,31 +12,43 @@ export async function GET() {
             },
         });
 
-        const exportData = products.map((p) => ({
-            "Stok Kodu": p.sku || "",
-            "Barkod": p.barcode || "",
-            "Ürün Adı (Zorunlu)": p.name,
-            "Desi": p.desi !== null && p.desi !== undefined ? p.desi : 1,
-            "Liste Fiyatı (TL)": p.listPrice,
-            "Satış Fiyatı (TL)": p.salePrice || p.listPrice,
-            "Trendyol Fiyatı (TL)": p.trendyolPrice || "",
-            "N11 Fiyatı (TL)": p.n11Price || "",
-            "Hepsiburada Fiyatı (TL)": p.hepsiburadaPrice || "",
-            "Pazarama Fiyatı (TL)": p.pazaramaPrice || "",
-            "ePttAVM Fiyatı (TL)": p.pttavmPrice || "",
-            "Çiçeksepeti Fiyatı (TL)": p.ciceksepetiPrice || "",
-            "Stok Adedi": p.stock,
-            "Kategori Slug (Zorunlu)": p.category?.slug || "genel",
-            "Marka Slug": p.brand?.slug || "",
-            "KDV Oranı (%)": p.vatRate || 20,
-            "Kritik Stok": p.criticalStock || 10,
-            "Minimum Sipariş": p.minQuantity || 1,
-            "Menşei": p.origin || "",
-            "Öne Çıkan (1/0)": p.isFeatured ? 1 : 0,
-            "Yeni Ürün (1/0)": p.isNew ? 1 : 0,
-            "Çok Satan (1/0)": p.isBestSeller ? 1 : 0,
-            "Açıklama": p.description || "",
-        }));
+        const exportData = products.map((p) => {
+            const listPrice = Number(p.listPrice || 0);
+            const salePrice = Number(p.salePrice || listPrice);
+            const trendyolPrice = Number(p.trendyolPrice || salePrice);
+            const n11Price = Number(p.n11Price || salePrice);
+            const hepsiburadaPrice = Number(p.hepsiburadaPrice || salePrice);
+            const pazaramaPrice = Number(p.pazaramaPrice || salePrice);
+            const pttavmPrice = Number(p.pttavmPrice || salePrice);
+            const ciceksepetiPrice = Number(p.ciceksepetiPrice || salePrice);
+            const desiVal = p.desi !== null && p.desi !== undefined ? Number(p.desi) : 1;
+
+            return {
+                "Stok Kodu": p.sku || "",
+                "Barkod": p.barcode || "",
+                "Ürün Adı (Zorunlu)": p.name,
+                "Desi": desiVal,
+                "Liste Fiyatı (TL)": listPrice,
+                "Satış Fiyatı (TL)": salePrice,
+                "Trendyol Fiyatı (TL)": trendyolPrice,
+                "N11 Fiyatı (TL)": n11Price,
+                "Hepsiburada Fiyatı (TL)": hepsiburadaPrice,
+                "Pazarama Fiyatı (TL)": pazaramaPrice,
+                "ePttAVM Fiyatı (TL)": pttavmPrice,
+                "Çiçeksepeti Fiyatı (TL)": ciceksepetiPrice,
+                "Stok Adedi": Number(p.stock || 0),
+                "Kategori Slug (Zorunlu)": p.category?.slug || "genel",
+                "Marka Slug": p.brand?.slug || "",
+                "KDV Oranı (%)": Number(p.vatRate || 20),
+                "Kritik Stok": Number(p.criticalStock || 10),
+                "Minimum Sipariş": Number(p.minQuantity || 1),
+                "Menşei": p.origin || "",
+                "Öne Çıkan (1/0)": p.isFeatured ? 1 : 0,
+                "Yeni Ürün (1/0)": p.isNew ? 1 : 0,
+                "Çok Satan (1/0)": p.isBestSeller ? 1 : 0,
+                "Açıklama": p.description || "",
+            };
+        });
 
         const workbook = XLSX.utils.book_new();
         const worksheet = XLSX.utils.json_to_sheet(exportData);
