@@ -6,8 +6,26 @@ import * as XLSX from "xlsx";
 
 interface ImportRow {
     "Ürün Adı (Zorunlu)"?: string;
+    "Ürün Adı"?: string;
+    "Liste Fiyatı (TL)"?: number | string;
     "Liste Fiyatı (Zorunlu)"?: number | string;
+    "Liste Fiyatı"?: number | string;
+    "Satış Fiyatı (TL)"?: number | string;
+    "Satış Fiyatı"?: number | string;
+    "Trendyol Fiyatı (TL)"?: number | string;
+    "Trendyol Fiyatı"?: number | string;
+    "N11 Fiyatı (TL)"?: number | string;
+    "N11 Fiyatı"?: number | string;
+    "Hepsiburada Fiyatı (TL)"?: number | string;
+    "Hepsiburada Fiyatı"?: number | string;
+    "Pazarama Fiyatı (TL)"?: number | string;
+    "Pazarama Fiyatı"?: number | string;
+    "ePttAVM Fiyatı (TL)"?: number | string;
+    "ePttAVM Fiyatı"?: number | string;
+    "Çiçeksepeti Fiyatı (TL)"?: number | string;
+    "Çiçeksepeti Fiyatı"?: number | string;
     "Kategori Slug (Zorunlu)"?: string;
+    "Kategori Slug"?: string;
     "Stok Kodu"?: string;
     "Barkod"?: string;
     "Desi"?: number | string;
@@ -83,14 +101,17 @@ export async function parseExcelFile(formData: FormData): Promise<ParseResult> {
         rows.forEach((row, index) => {
             const rowNum = index + 2; // Excel rows start at 1, plus header
 
-            if (!row["Ürün Adı (Zorunlu)"]) {
+            const name = row["Ürün Adı (Zorunlu)"] || row["Ürün Adı"];
+            const price = parseNumber(row["Liste Fiyatı (TL)"] ?? row["Liste Fiyatı (Zorunlu)"] ?? row["Liste Fiyatı"]);
+            const cat = row["Kategori Slug (Zorunlu)"] || row["Kategori Slug"];
+
+            if (!name) {
                 errors.push({ row: rowNum, message: "Ürün adı zorunludur" });
             }
-            const price = parseNumber(row["Liste Fiyatı (Zorunlu)"]);
             if (price === null) {
                 errors.push({ row: rowNum, message: "Geçerli bir liste fiyatı giriniz" });
             }
-            if (!row["Kategori Slug (Zorunlu)"]) {
+            if (!cat) {
                 errors.push({ row: rowNum, message: "Kategori slug zorunludur" });
             }
         });
@@ -140,9 +161,9 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
         const rowNum = i + 2;
 
         try {
-            const name = row["Ürün Adı (Zorunlu)"];
-            const listPrice = parseNumber(row["Liste Fiyatı (Zorunlu)"]);
-            const categorySlug = row["Kategori Slug (Zorunlu)"];
+            const name = row["Ürün Adı (Zorunlu)"] || row["Ürün Adı"];
+            const listPrice = parseNumber(row["Liste Fiyatı (TL)"] ?? row["Liste Fiyatı (Zorunlu)"] ?? row["Liste Fiyatı"]);
+            const categorySlug = row["Kategori Slug (Zorunlu)"] || row["Kategori Slug"];
 
             if (!name || listPrice === null || !categorySlug) {
                 errors.push({ row: rowNum, message: "Zorunlu alanlar eksik" });
@@ -173,14 +194,29 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
             const parsedDesi = parseNumber(row["Desi"] ?? row["Desi (Kg)"]);
             const desiVal = parsedDesi !== null ? Math.max(0.01, parsedDesi) : (existingProduct?.desi ?? 1);
 
+            const salePrice = parseNumber(row["Satış Fiyatı (TL)"] ?? row["Satış Fiyatı"]) ?? listPrice;
+            const trendyolPrice = parseNumber(row["Trendyol Fiyatı (TL)"] ?? row["Trendyol Fiyatı"]);
+            const n11Price = parseNumber(row["N11 Fiyatı (TL)"] ?? row["N11 Fiyatı"]);
+            const hepsiburadaPrice = parseNumber(row["Hepsiburada Fiyatı (TL)"] ?? row["Hepsiburada Fiyatı"]);
+            const pazaramaPrice = parseNumber(row["Pazarama Fiyatı (TL)"] ?? row["Pazarama Fiyatı"]);
+            const pttavmPrice = parseNumber(row["ePttAVM Fiyatı (TL)"] ?? row["ePttAVM Fiyatı"]);
+            const ciceksepetiPrice = parseNumber(row["Çiçeksepeti Fiyatı (TL)"] ?? row["Çiçeksepeti Fiyatı"]);
+
             const productData: any = {
                 name: name,
                 listPrice: listPrice,
+                salePrice: salePrice,
                 categoryId: categoryId,
                 brandId: brandId || null,
                 sku: sku,
                 barcode: barcode,
                 desi: desiVal,
+                ...(trendyolPrice !== null && { trendyolPrice }),
+                ...(n11Price !== null && { n11Price }),
+                ...(hepsiburadaPrice !== null && { hepsiburadaPrice }),
+                ...(pazaramaPrice !== null && { pazaramaPrice }),
+                ...(pttavmPrice !== null && { pttavmPrice }),
+                ...(ciceksepetiPrice !== null && { ciceksepetiPrice }),
                 description: row["Açıklama"] ? String(row["Açıklama"]) : null,
                 stock: parseNumber(row["Stok Adedi"]) ?? 0,
                 criticalStock: parseNumber(row["Kritik Stok"]) ?? 10,
@@ -189,7 +225,6 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
                 origin: row["Menşei"] ? String(row["Menşei"]) : null,
                 isFeatured: parseNumber(row["Öne Çıkan (1/0)"]) === 1,
                 isNew: parseNumber(row["Yeni Ürün (1/0)"]) === 1,
-                isBestSeller: parseNumber(row["Çok Satan (1/0)"]) === 1,
             };
 
             if (existingProduct) {

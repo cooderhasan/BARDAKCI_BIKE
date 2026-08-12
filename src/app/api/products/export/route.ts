@@ -17,7 +17,14 @@ export async function GET() {
             "Barkod": p.barcode || "",
             "Ürün Adı (Zorunlu)": p.name,
             "Desi": p.desi !== null && p.desi !== undefined ? p.desi : 1,
-            "Liste Fiyatı (Zorunlu)": p.listPrice,
+            "Liste Fiyatı (TL)": p.listPrice,
+            "Satış Fiyatı (TL)": p.salePrice || p.listPrice,
+            "Trendyol Fiyatı (TL)": p.trendyolPrice || "",
+            "N11 Fiyatı (TL)": p.n11Price || "",
+            "Hepsiburada Fiyatı (TL)": p.hepsiburadaPrice || "",
+            "Pazarama Fiyatı (TL)": p.pazaramaPrice || "",
+            "ePttAVM Fiyatı (TL)": p.pttavmPrice || "",
+            "Çiçeksepeti Fiyatı (TL)": p.ciceksepetiPrice || "",
             "Stok Adedi": p.stock,
             "Kategori Slug (Zorunlu)": p.category?.slug || "genel",
             "Marka Slug": p.brand?.slug || "",
@@ -40,6 +47,13 @@ export async function GET() {
             { wch: 35 }, // Ürün Adı
             { wch: 10 }, // Desi
             { wch: 15 }, // Liste Fiyatı
+            { wch: 15 }, // Satış Fiyatı
+            { wch: 18 }, // Trendyol Fiyatı
+            { wch: 15 }, // N11 Fiyatı
+            { wch: 18 }, // Hepsiburada Fiyatı
+            { wch: 18 }, // Pazarama Fiyatı
+            { wch: 18 }, // ePttAVM Fiyatı
+            { wch: 18 }, // Çiçeksepeti Fiyatı
             { wch: 12 }, // Stok Adedi
             { wch: 22 }, // Kategori Slug
             { wch: 15 }, // Marka Slug
@@ -60,7 +74,7 @@ export async function GET() {
         return new NextResponse(buffer, {
             headers: {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "Content-Disposition": `attachment; filename=urunler-desi-listesi-${new Date().toISOString().split("T")[0]}.xlsx`,
+                "Content-Disposition": `attachment; filename=urunler-fiyat-ve-desi-listesi-${new Date().toISOString().split("T")[0]}.xlsx`,
             },
         });
     } catch (error) {
