@@ -11,6 +11,7 @@ export async function GET() {
                 "Kategori Slug (Zorunlu)": "genel",
                 "Stok Kodu": "STK001",
                 "Barkod": "8690000000001",
+                "Desi": 0.5,
                 "Açıklama": "Ürün açıklaması buraya yazılır",
                 "Stok Adedi": 50,
                 "KDV Oranı (%)": 20,

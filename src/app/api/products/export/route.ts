@@ -4,85 +4,64 @@ import * as XLSX from "xlsx";
 
 export async function GET() {
     try {
-        // Fetch all active products with relations
         const products = await prisma.product.findMany({
-            where: { isActive: true },
+            orderBy: { createdAt: "desc" },
             include: {
-                category: { select: { slug: true, name: true } },
-                brand: { select: { slug: true, name: true } },
+                category: { select: { slug: true } },
+                brand: { select: { slug: true } },
             },
-            orderBy: { name: "asc" }
         });
 
-        // Transform to Excel format
-        const excelData = products.map(p => ({
-            "ID": p.id,
-            "Ürün Adı": p.name,
-            "Slug": p.slug,
-            "Liste Fiyatı": Number(p.listPrice),
-            "Kategori": p.category?.name || "",
-            "Kategori Slug": p.category?.slug || "",
-            "Marka": p.brand?.name || "",
-            "Marka Slug": p.brand?.slug || "",
+        const exportData = products.map((p) => ({
             "Stok Kodu": p.sku || "",
             "Barkod": p.barcode || "",
-            "Açıklama": p.description || "",
+            "Ürün Adı (Zorunlu)": p.name,
+            "Desi": p.desi !== null && p.desi !== undefined ? p.desi : 1,
+            "Liste Fiyatı (Zorunlu)": p.listPrice,
             "Stok Adedi": p.stock,
-            "Kritik Stok": p.criticalStock,
-            "KDV Oranı (%)": p.vatRate,
-            "Minimum Sipariş": p.minQuantity,
+            "Kategori Slug (Zorunlu)": p.category?.slug || "genel",
+            "Marka Slug": p.brand?.slug || "",
+            "KDV Oranı (%)": p.vatRate || 20,
+            "Kritik Stok": p.criticalStock || 10,
+            "Minimum Sipariş": p.minQuantity || 1,
             "Menşei": p.origin || "",
-            "Öne Çıkan": p.isFeatured ? 1 : 0,
-            "Yeni Ürün": p.isNew ? 1 : 0,
-            "Çok Satan": p.isBestSeller ? 1 : 0,
-            "Aktif": p.isActive ? 1 : 0,
-            "Oluşturulma Tarihi": p.createdAt.toISOString().split("T")[0],
+            "Öne Çıkan (1/0)": p.isFeatured ? 1 : 0,
+            "Yeni Ürün (1/0)": p.isNew ? 1 : 0,
+            "Çok Satan (1/0)": p.isBestSeller ? 1 : 0,
+            "Açıklama": p.description || "",
         }));
 
-        // Create workbook and worksheet
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-        // Set column widths
         worksheet["!cols"] = [
-            { wch: 25 }, // ID
-            { wch: 35 }, // Ürün Adı
-            { wch: 30 }, // Slug
-            { wch: 12 }, // Liste Fiyatı
-            { wch: 20 }, // Kategori
-            { wch: 20 }, // Kategori Slug
-            { wch: 15 }, // Marka
-            { wch: 15 }, // Marka Slug
-            { wch: 15 }, // Stok Kodu
+            { wch: 18 }, // Stok Kodu
             { wch: 18 }, // Barkod
-            { wch: 50 }, // Açıklama
+            { wch: 35 }, // Ürün Adı
+            { wch: 10 }, // Desi
+            { wch: 15 }, // Liste Fiyatı
             { wch: 12 }, // Stok Adedi
-            { wch: 12 }, // Kritik Stok
+            { wch: 22 }, // Kategori Slug
+            { wch: 15 }, // Marka Slug
             { wch: 12 }, // KDV Oranı
+            { wch: 12 }, // Kritik Stok
             { wch: 15 }, // Minimum Sipariş
             { wch: 12 }, // Menşei
-            { wch: 10 }, // Öne Çıkan
-            { wch: 10 }, // Yeni Ürün
-            { wch: 10 }, // Çok Satan
-            { wch: 8 },  // Aktif
-            { wch: 15 }, // Oluşturulma Tarihi
+            { wch: 15 }, // Öne Çıkan
+            { wch: 15 }, // Yeni Ürün
+            { wch: 12 }, // Çok Satan
+            { wch: 40 }, // Açıklama
         ];
 
         XLSX.utils.book_append_sheet(workbook, worksheet, "Ürünler");
 
-        // Generate buffer
         const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
-        // Generate filename with date
-        const date = new Date().toISOString().split("T")[0];
-        const filename = `urunler-${date}.xlsx`;
-
-        // Return Excel file
         return new NextResponse(buffer, {
             headers: {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "Content-Disposition": `attachment; filename=${filename}`
-            }
+                "Content-Disposition": `attachment; filename=urunler-desi-listesi-${new Date().toISOString().split("T")[0]}.xlsx`,
+            },
         });
     } catch (error) {
         console.error("Error exporting products:", error);

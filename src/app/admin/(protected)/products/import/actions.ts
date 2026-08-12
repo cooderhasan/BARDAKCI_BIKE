@@ -6,20 +6,22 @@ import * as XLSX from "xlsx";
 
 interface ImportRow {
     "Ürün Adı (Zorunlu)"?: string;
-    "Liste Fiyatı (Zorunlu)"?: number;
+    "Liste Fiyatı (Zorunlu)"?: number | string;
     "Kategori Slug (Zorunlu)"?: string;
     "Stok Kodu"?: string;
     "Barkod"?: string;
+    "Desi"?: number | string;
+    "Desi (Kg)"?: number | string;
     "Açıklama"?: string;
-    "Stok Adedi"?: number;
-    "KDV Oranı (%)"?: number;
-    "Minimum Sipariş"?: number;
-    "Kritik Stok"?: number;
+    "Stok Adedi"?: number | string;
+    "KDV Oranı (%)"?: number | string;
+    "Minimum Sipariş"?: number | string;
+    "Kritik Stok"?: number | string;
     "Marka Slug"?: string;
     "Menşei"?: string;
-    "Öne Çıkan (1/0)"?: number;
-    "Yeni Ürün (1/0)"?: number;
-    "Çok Satan (1/0)"?: number;
+    "Öne Çıkan (1/0)"?: number | string;
+    "Yeni Ürün (1/0)"?: number | string;
+    "Çok Satan (1/0)"?: number | string;
 }
 
 interface ParseResult {
@@ -32,6 +34,14 @@ interface ImportResult {
     created: number;
     updated: number;
     errors: { row: number; message: string }[];
+}
+
+function parseNumber(val: any): number | null {
+    if (val === undefined || val === null || val === "") return null;
+    if (typeof val === "number") return val;
+    const strVal = String(val).replace(",", ".").trim();
+    const parsed = parseFloat(strVal);
+    return isNaN(parsed) ? null : parsed;
 }
 
 function generateSlug(text: string): string {
@@ -76,7 +86,8 @@ export async function parseExcelFile(formData: FormData): Promise<ParseResult> {
             if (!row["Ürün Adı (Zorunlu)"]) {
                 errors.push({ row: rowNum, message: "Ürün adı zorunludur" });
             }
-            if (!row["Liste Fiyatı (Zorunlu)"] || isNaN(Number(row["Liste Fiyatı (Zorunlu)"]))) {
+            const price = parseNumber(row["Liste Fiyatı (Zorunlu)"]);
+            if (price === null) {
                 errors.push({ row: rowNum, message: "Geçerli bir liste fiyatı giriniz" });
             }
             if (!row["Kategori Slug (Zorunlu)"]) {
@@ -108,12 +119,21 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
     let updated = 0;
     const errors: { row: number; message: string }[] = [];
 
-    // Get all categories and brands for lookup
+    // Pre-fetch all categories, brands, and existing SKUs for ultra-fast lookup
     const categories = await prisma.category.findMany({ select: { id: true, slug: true } });
     const brands = await prisma.brand.findMany({ select: { id: true, slug: true } });
+    const existingProducts = await prisma.product.findMany({ select: { id: true, sku: true, barcode: true, desi: true } });
 
     const categoryMap = new Map(categories.map(c => [c.slug, c.id]));
     const brandMap = new Map(brands.map(b => [b.slug, b.id]));
+    
+    // Map existing products by SKU and Barcode
+    const productBySkuMap = new Map();
+    const productByBarcodeMap = new Map();
+    existingProducts.forEach(p => {
+        if (p.sku) productBySkuMap.set(p.sku.trim(), p);
+        if (p.barcode) productByBarcodeMap.set(p.barcode.trim(), p);
+    });
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
@@ -121,10 +141,10 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
 
         try {
             const name = row["Ürün Adı (Zorunlu)"];
-            const listPrice = row["Liste Fiyatı (Zorunlu)"];
+            const listPrice = parseNumber(row["Liste Fiyatı (Zorunlu)"]);
             const categorySlug = row["Kategori Slug (Zorunlu)"];
 
-            if (!name || !listPrice || !categorySlug) {
+            if (!name || listPrice === null || !categorySlug) {
                 errors.push({ row: rowNum, message: "Zorunlu alanlar eksik" });
                 continue;
             }
@@ -139,30 +159,37 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
             const brandId = brandSlug ? brandMap.get(brandSlug) : null;
 
             const slug = generateSlug(name) + "-" + Date.now().toString(36);
-            const sku = row["Stok Kodu"] || null;
+            const sku = row["Stok Kodu"] ? String(row["Stok Kodu"]).trim() : null;
+            const barcode = row["Barkod"] ? String(row["Barkod"]).trim() : null;
 
-            // Check if product with same SKU exists
-            let existingProduct = null;
-            if (sku) {
-                existingProduct = await prisma.product.findFirst({ where: { sku } });
+            // Fast map lookup
+            let existingProduct: any = null;
+            if (sku && productBySkuMap.has(sku)) {
+                existingProduct = productBySkuMap.get(sku);
+            } else if (barcode && productByBarcodeMap.has(barcode)) {
+                existingProduct = productByBarcodeMap.get(barcode);
             }
 
-            const productData = {
+            const parsedDesi = parseNumber(row["Desi"] ?? row["Desi (Kg)"]);
+            const desiVal = parsedDesi !== null ? Math.max(0.01, parsedDesi) : (existingProduct?.desi ?? 1);
+
+            const productData: any = {
                 name: name,
-                listPrice: Number(listPrice),
+                listPrice: listPrice,
                 categoryId: categoryId,
                 brandId: brandId || null,
                 sku: sku,
-                barcode: row["Barkod"] || null,
-                description: row["Açıklama"] || null,
-                stock: row["Stok Adedi"] ?? 0,
-                criticalStock: row["Kritik Stok"] ?? 10,
-                vatRate: row["KDV Oranı (%)"] ?? 20,
-                minQuantity: row["Minimum Sipariş"] ?? 1,
-                origin: row["Menşei"] || null,
-                isFeatured: row["Öne Çıkan (1/0)"] === 1,
-                isNew: row["Yeni Ürün (1/0)"] === 1,
-                isBestSeller: row["Çok Satan (1/0)"] === 1,
+                barcode: barcode,
+                desi: desiVal,
+                description: row["Açıklama"] ? String(row["Açıklama"]) : null,
+                stock: parseNumber(row["Stok Adedi"]) ?? 0,
+                criticalStock: parseNumber(row["Kritik Stok"]) ?? 10,
+                vatRate: parseNumber(row["KDV Oranı (%)"]) ?? 20,
+                minQuantity: parseNumber(row["Minimum Sipariş"]) ?? 1,
+                origin: row["Menşei"] ? String(row["Menşei"]) : null,
+                isFeatured: parseNumber(row["Öne Çıkan (1/0)"]) === 1,
+                isNew: parseNumber(row["Yeni Ürün (1/0)"]) === 1,
+                isBestSeller: parseNumber(row["Çok Satan (1/0)"]) === 1,
             };
 
             if (existingProduct) {

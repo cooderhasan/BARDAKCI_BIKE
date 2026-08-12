@@ -112,10 +112,16 @@ export default function ProductImportPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Link href="/api/products/export">
+                        <Button className="bg-[#17457C] hover:bg-[#123662] text-white">
+                            <Download className="h-4 w-4 mr-2" />
+                            Tüm Ürünleri Desileriyle İndir
+                        </Button>
+                    </Link>
                     <Link href="/api/products/template">
                         <Button variant="outline">
                             <Download className="h-4 w-4 mr-2" />
-                            Şablon İndir
+                            Boş Şablon İndir
                         </Button>
                     </Link>
                     <Link href="/admin/products">
