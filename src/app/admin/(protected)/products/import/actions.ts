@@ -156,6 +156,9 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
         if (p.barcode) productByBarcodeMap.set(p.barcode.trim(), p);
     });
 
+    const BATCH_SIZE = 100;
+    let pendingQueries: any[] = [];
+
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const rowNum = i + 2;
@@ -225,31 +228,43 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
                 origin: row["Menşei"] ? String(row["Menşei"]) : null,
                 isFeatured: parseNumber(row["Öne Çıkan (1/0)"]) === 1,
                 isNew: parseNumber(row["Yeni Ürün (1/0)"]) === 1,
+                isBestSeller: parseNumber(row["Çok Satan (1/0)"]) === 1,
             };
 
             if (existingProduct) {
-                // Update existing product
-                await prisma.product.update({
-                    where: { id: existingProduct.id },
-                    data: productData
-                });
+                pendingQueries.push(
+                    prisma.product.update({
+                        where: { id: existingProduct.id },
+                        data: productData
+                    })
+                );
                 updated++;
             } else {
-                // Create new product
-                await prisma.product.create({
-                    data: {
-                        ...productData,
-                        slug: slug,
-                        images: [],
-                        isActive: true,
-                    }
-                });
+                pendingQueries.push(
+                    prisma.product.create({
+                        data: {
+                            ...productData,
+                            slug: slug,
+                            images: [],
+                            isActive: true,
+                        }
+                    })
+                );
                 created++;
+            }
+
+            if (pendingQueries.length >= BATCH_SIZE) {
+                await prisma.$transaction(pendingQueries);
+                pendingQueries = [];
             }
         } catch (error) {
             console.error(`Row ${rowNum} error:`, error);
             errors.push({ row: rowNum, message: "Kayıt hatası" });
         }
+    }
+
+    if (pendingQueries.length > 0) {
+        await prisma.$transaction(pendingQueries);
     }
 
     revalidatePath("/admin/products");
