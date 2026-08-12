@@ -121,6 +121,7 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
       const finalPriceWithVat = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
       const vatRate = p.vatRate || 20;
       const priceWithoutVAT = Math.round((finalPriceWithVat / (1 + vatRate / 100)) * 100) / 100;
+      const priceWithoutVat = priceWithoutVAT;
       const priceWithVAT = Math.round(finalPriceWithVat * 100) / 100;
 
       const criticalStock = p.criticalStock ?? 0;
