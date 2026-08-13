@@ -654,6 +654,19 @@ export async function syncOrdersFromPttavm() {
           const shipmentPackageId = cargoTrackingNumber || orderNumber;
           const trackingUrl = cargoTrackingNumber ? `https://gonderitakip.ptt.gov.tr/Track/Detail?id=${cargoTrackingNumber}` : null;
 
+          // Map ePttAVM order status to local Order status
+          const rawStatusStr = String(item.siparisDurumu || item.durum || state || "").toLowerCase();
+          let targetOrderStatus: "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED" = "CONFIRMED";
+          if (rawStatusStr.includes("gonderilmis") || rawStatusStr.includes("gönderilmiş") || cargoTrackingNumber) {
+            targetOrderStatus = "SHIPPED";
+          }
+          if (rawStatusStr.includes("tamamlandi") || rawStatusStr.includes("tamamlandı") || rawStatusStr.includes("teslim")) {
+            targetOrderStatus = "DELIVERED";
+          }
+          if (rawStatusStr.includes("iptal") || rawStatusStr.includes("iade") || rawStatusStr.includes("gecersiz")) {
+            targetOrderStatus = "CANCELLED";
+          }
+
           const existingOrder = await prisma.order.findUnique({
             where: { orderNumber },
             include: { items: true },
@@ -667,7 +680,7 @@ export async function syncOrdersFromPttavm() {
                 data: {
                   orderNumber,
                   source: "PTTAVM",
-                  status: "CONFIRMED",
+                  status: targetOrderStatus,
                   cargoCompany,
                   cargoTrackingNumber,
                   shipmentPackageId,
@@ -692,14 +705,25 @@ export async function syncOrdersFromPttavm() {
               handlePostOrderStockSync(affectedProductIds, "pttavm").catch(console.error);
             }
           } else {
-            // Update existing incomplete order (fix email, phone, address, cargo, prices, titles if they were 0 or ePttAVM Ürünü)
+            // Update existing order status, cargo tracking details, address & email
+            const statusChanged = existingOrder.status !== targetOrderStatus;
+            const cargoChanged = cargoTrackingNumber && existingOrder.cargoTrackingNumber !== cargoTrackingNumber;
             const hasIncompleteItems = existingOrder.items.some(i => i.productName === "ePttAVM Ürünü" || Number(i.unitPrice) === 0);
-            if (hasIncompleteItems || !existingOrder.cargoTrackingNumber || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
-              await prisma.$transaction(async (tx) => {
-                await tx.orderItem.deleteMany({ where: { orderId: existingOrder.id } });
+
+            if (statusChanged || cargoChanged || hasIncompleteItems || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
+              const { restoreOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+
+              const affectedIds = await prisma.$transaction(async (tx) => {
+                let affected: string[] = [];
+
+                if (hasIncompleteItems) {
+                  await tx.orderItem.deleteMany({ where: { orderId: existingOrder.id } });
+                }
+
                 await tx.order.update({
                   where: { id: existingOrder.id },
                   data: {
+                    status: targetOrderStatus,
                     cargoCompany,
                     cargoTrackingNumber: cargoTrackingNumber || existingOrder.cargoTrackingNumber,
                     shipmentPackageId: shipmentPackageId || existingOrder.shipmentPackageId,
@@ -709,12 +733,21 @@ export async function syncOrdersFromPttavm() {
                     vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
                     guestEmail: customerEmail,
                     shippingAddress: shippingAddressObj,
-                    items: {
-                      create: orderItemsPayload,
-                    },
+                    ...(hasIncompleteItems ? { items: { create: orderItemsPayload } } : {}),
                   },
                 });
+
+                // If status changed to CANCELLED, restore stock
+                if (statusChanged && targetOrderStatus === "CANCELLED" && existingOrder.status !== "CANCELLED") {
+                  affected = await restoreOrderStock(tx, existingOrder.items.map(i => ({ productId: i.productId, quantity: i.quantity })));
+                }
+
+                return affected;
               });
+
+              if (affectedIds.length > 0) {
+                handlePostOrderStockSync(affectedIds, "pttavm").catch(console.error);
+              }
             }
           }
         }
