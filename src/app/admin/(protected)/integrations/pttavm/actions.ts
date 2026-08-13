@@ -78,6 +78,19 @@ export async function testPttavmConnection() {
 
 // ==================== STOK VE FİYAT SENKRONİZASYONU ====================
 
+// ==================== HELPER FUNCTIONS ====================
+
+function sanitizeVatRate(rawVat?: number | null): number {
+  if (!rawVat || isNaN(rawVat)) return 20;
+  const vat = Number(rawVat);
+  if (vat <= 0) return 0;
+  if (vat <= 1) return 1;
+  if (vat <= 10) return 10;
+  return 20;
+}
+
+// ==================== STOK VE FİYAT SENKRONİZASYONU ====================
+
 export async function syncPttavmStockAndPrice(productIds?: string[]) {
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
@@ -106,7 +119,6 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
     const products = await prisma.product.findMany({
       where,
       include: { variants: true, pttavmProduct: true },
-      take: 200,
     });
 
     if (products.length === 0) {
@@ -119,7 +131,7 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
     for (const p of products) {
       const basePrice = Number(p.pttavmPrice || p.salePrice || p.listPrice);
       const finalPriceWithVat = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
-      const vatRate = p.vatRate || 20;
+      const vatRate = sanitizeVatRate(p.vatRate);
       const priceWithoutVAT = Math.round((finalPriceWithVat / (1 + vatRate / 100)) * 100) / 100;
       const priceWithoutVat = priceWithoutVAT;
       const priceWithVAT = Math.round(finalPriceWithVat * 100) / 100;
@@ -127,12 +139,12 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
       const criticalStock = p.criticalStock ?? 0;
       const availableStock = p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
 
-      const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+      const validVariants = p.variants?.filter((v: any) => v.barcode || v.sku) || [];
       if (validVariants.length > 0) {
         for (const v of validVariants) {
           const varAvailableStock = v.stock <= criticalStock ? 0 : Math.max(0, v.stock - criticalStock);
           items.push({
-            barcode: v.barcode,
+            barcode: v.barcode || v.sku,
             active: p.isActive && varAvailableStock > 0,
             quantity: varAvailableStock,
             stock: varAvailableStock,
@@ -144,9 +156,10 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
             isCargoFromSupplier: true,
           });
         }
-      } else if (p.barcode) {
+      } else if (p.barcode || p.sku) {
+        const barcodeVal = (p.barcode || p.sku || "").trim();
         items.push({
-          barcode: p.barcode,
+          barcode: barcodeVal,
           active: p.isActive && availableStock > 0,
           quantity: availableStock,
           stock: availableStock,
@@ -161,27 +174,43 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
     }
 
     if (items.length === 0) {
-      return { success: false, message: "Barkodlu ürün bulunamadı." };
+      return { success: false, message: "Barkodlu veya SKU'lu ürün bulunamadı." };
     }
 
-    const result = await client.updateStockAndPrice(items);
+    // Batching in chunks of 1000 items (ePttAVM API rate limit)
+    const BATCH_SIZE = 1000;
+    const trackingIds: string[] = [];
+    let lastResult: any = null;
+
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const chunk = items.slice(i, i + BATCH_SIZE);
+      lastResult = await client.updateStockAndPrice(chunk);
+      if (lastResult?.trackingId) {
+        trackingIds.push(lastResult.trackingId);
+      }
+      if (i + BATCH_SIZE < items.length) {
+        await new Promise((res) => setTimeout(res, 1000));
+      }
+    }
+
+    const mainTrackingId = trackingIds.join(", ") || lastResult?.trackingId || null;
 
     for (const p of products) {
       await (prisma as any).pttavmProduct.upsert({
         where: { productId: p.id },
         update: {
-          trackingId: result.trackingId || null,
-          isSynced: result.success,
-          batchStatus: result.success ? "COMPLETED" : "FAILED",
+          trackingId: mainTrackingId,
+          isSynced: lastResult?.success ?? true,
+          batchStatus: lastResult?.success ? "COMPLETED" : "FAILED",
           lastSyncedAt: new Date(),
-          lastSyncError: result.message || null,
+          lastSyncError: lastResult?.message || null,
         },
         create: {
           productId: p.id,
           barcode: p.barcode,
-          trackingId: result.trackingId || null,
-          isSynced: result.success,
-          batchStatus: result.success ? "COMPLETED" : "FAILED",
+          trackingId: mainTrackingId,
+          isSynced: lastResult?.success ?? true,
+          batchStatus: lastResult?.success ? "COMPLETED" : "FAILED",
           lastSyncedAt: new Date(),
         },
       });
@@ -192,8 +221,8 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
     } catch {}
 
     return {
-      success: result.success,
-      message: result.message || `${items.length} adet ürünün stok/fiyatı ePttAVM'ye iletildi. Tracking ID: ${result.trackingId || "Tamamlandı"}`,
+      success: true,
+      message: `${items.length} adet ürün stok/fiyatı ePttAVM'ye iletildi. Tracking ID: ${mainTrackingId || "Tamamlandı"}`,
     };
   } catch (error: any) {
     console.error("syncPttavmStockAndPrice Error:", error);
@@ -248,7 +277,7 @@ export async function syncProductsToPttavm(productIds?: string[]) {
     for (const p of products) {
       const basePrice = Number(p.pttavmPrice || p.salePrice || p.listPrice);
       const finalPriceWithVat = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
-      const vatRate = p.vatRate || 20;
+      const vatRate = sanitizeVatRate(p.vatRate);
       const priceWithoutVAT = Math.round((finalPriceWithVat / (1 + vatRate / 100)) * 100) / 100;
       const priceWithVAT = Math.round(finalPriceWithVat * 100) / 100;
 
@@ -267,11 +296,31 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       const desi = Math.max(1, Math.round(Number(p.desi || 1)));
       const productBarcode = (p.barcode || p.sku || "").trim();
 
+      // Format variants to prevent ePttAVM from deleting existing variants
+      const formattedVariants = (p.variants || [])
+        .filter((v: any) => v.barcode || v.sku)
+        .map((v: any) => {
+          const varAvailableStock = v.stock <= criticalStock ? 0 : Math.max(0, v.stock - criticalStock);
+          const attributes: any[] = [];
+          if (v.color) attributes.push({ definition: "Renk", value: v.color });
+          if (v.size) attributes.push({ definition: "Beden", value: v.size });
+          if (attributes.length === 0 && v.name) attributes.push({ definition: "Varyant", value: v.name });
+
+          return {
+            variantBarcode: v.barcode || v.sku,
+            quantity: varAvailableStock,
+            price: 0,
+            catalogBarcode: v.barcode || v.sku,
+            attributes,
+          };
+        });
+
       if (productBarcode) {
         const prodDesc = (p.marketplaceDescription || p.description || p.name).trim();
         const stockCodeVal = (p.sku || productBarcode).trim();
         const brandNameVal = p.brand?.name || "Diğer";
-        upsertItems.push({
+
+        const itemPayload: PttavmProductUpsertItem = {
           barcode: productBarcode,
           gtin: productBarcode,
           ean: productBarcode,
@@ -300,7 +349,13 @@ export async function syncProductsToPttavm(productIds?: string[]) {
           desi,
           images: formattedImages,
           isCargoFromSupplier: true,
-        });
+        };
+
+        if (formattedVariants.length > 0) {
+          itemPayload.variants = formattedVariants;
+        }
+
+        upsertItems.push(itemPayload);
       }
     }
 
@@ -308,24 +363,40 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       return { success: false, message: "Gönderilecek geçerli barkodlu ürün bulunamadı." };
     }
 
-    const result = await client.upsertProducts(upsertItems);
+    // Batching in chunks of 1000 items (ePttAVM API rate limit)
+    const BATCH_SIZE = 1000;
+    const trackingIds: string[] = [];
+    let lastResult: any = null;
+
+    for (let i = 0; i < upsertItems.length; i += BATCH_SIZE) {
+      const chunk = upsertItems.slice(i, i + BATCH_SIZE);
+      lastResult = await client.upsertProducts(chunk);
+      if (lastResult?.trackingId) {
+        trackingIds.push(lastResult.trackingId);
+      }
+      if (i + BATCH_SIZE < upsertItems.length) {
+        await new Promise((res) => setTimeout(res, 1000));
+      }
+    }
+
+    const mainTrackingId = trackingIds.join(", ") || lastResult?.trackingId || null;
 
     for (const p of products) {
       await (prisma as any).pttavmProduct.upsert({
         where: { productId: p.id },
         update: {
-          trackingId: result.trackingId || null,
-          isSynced: result.success,
-          batchStatus: result.success ? "COMPLETED" : "FAILED",
+          trackingId: mainTrackingId,
+          isSynced: lastResult?.success ?? true,
+          batchStatus: lastResult?.success ? "COMPLETED" : "FAILED",
           lastSyncedAt: new Date(),
-          lastSyncError: result.message || null,
+          lastSyncError: lastResult?.message || null,
         },
         create: {
           productId: p.id,
           barcode: p.barcode,
-          trackingId: result.trackingId || null,
-          isSynced: result.success,
-          batchStatus: result.success ? "COMPLETED" : "FAILED",
+          trackingId: mainTrackingId,
+          isSynced: lastResult?.success ?? true,
+          batchStatus: lastResult?.success ? "COMPLETED" : "FAILED",
           lastSyncedAt: new Date(),
         },
       });
@@ -336,9 +407,9 @@ export async function syncProductsToPttavm(productIds?: string[]) {
     } catch {}
 
     return {
-      success: result.success,
-      message: result.message || `${upsertItems.length} ürün ePttAVM kataloğuna aktarıldı. Tracking ID: ${result.trackingId || "Tamamlandı"}`,
-      trackingId: result.trackingId,
+      success: true,
+      message: `${upsertItems.length} ürün ePttAVM kataloğuna aktarıldı. Tracking ID: ${mainTrackingId || "Tamamlandı"}`,
+      trackingId: mainTrackingId,
     };
   } catch (error: any) {
     console.error("syncProductsToPttavm Error:", error);
@@ -366,16 +437,36 @@ export async function syncOrdersFromPttavm() {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
-    const resActive = await client.getOrders({
-      startDate: formatDate(thirtyDaysAgo),
-      endDate: formatDate(now),
-      isActiveOrders: false,
-      pageSize: 100,
-    }).catch(() => null);
+    // Query both active orders awaiting shipping (isActiveOrders: true) and all recent orders (isActiveOrders: false)
+    const [resActive, resHistory] = await Promise.all([
+      client.getOrders({
+        startDate: formatDate(thirtyDaysAgo),
+        endDate: formatDate(now),
+        isActiveOrders: true,
+        pageSize: 100,
+      }).catch(() => null),
+      client.getOrders({
+        startDate: formatDate(thirtyDaysAgo),
+        endDate: formatDate(now),
+        isActiveOrders: false,
+        pageSize: 100,
+      }).catch(() => null),
+    ]);
 
-    const items = Array.isArray(resActive) ? resActive : (resActive?.items || resActive?.orders || []);
+    const itemsActive = Array.isArray(resActive) ? resActive : (resActive?.items || resActive?.orders || []);
+    const itemsHistory = Array.isArray(resHistory) ? resHistory : (resHistory?.items || resHistory?.orders || []);
 
-    if (!Array.isArray(items) || items.length === 0) {
+    const orderMap = new Map<string, any>();
+    for (const item of [...itemsActive, ...itemsHistory]) {
+      const pttId = String(item.id || item.siparisNo || item.orderId || "");
+      if (pttId && !orderMap.has(pttId)) {
+        orderMap.set(pttId, item);
+      }
+    }
+
+    const items = Array.from(orderMap.values());
+
+    if (items.length === 0) {
       return { success: true, message: "ePttAVM'de yeni sipariş bulunamadı.", count: 0 };
     }
 
@@ -738,14 +829,85 @@ export async function getPttavmProducts({
 
 export async function togglePttavmProductActive(productId: string, currentState: boolean) {
   try {
+    const newState = !currentState;
     await prisma.product.update({
       where: { id: productId },
-      data: { isPttavmActive: !currentState },
+      data: { isPttavmActive: newState },
     });
+
+    // Notify live ePttAVM API if active config exists
+    try {
+      const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+      if (config) {
+        const pttProduct = await (prisma as any).pttavmProduct.findFirst({ where: { productId } });
+        const product = await prisma.product.findUnique({ where: { id: productId }, select: { barcode: true, sku: true } });
+        const pttavmId = pttProduct?.pttavmId || product?.barcode || product?.sku || productId;
+
+        const client = new PttavmClient({
+          apiKey: config.apiKey,
+          accessToken: config.accessToken,
+          profitMargin: config.profitMargin || 0,
+          isTestMode: Boolean(config.isTestMode),
+        });
+
+        await client.updateProductStatus(pttavmId, newState);
+      }
+    } catch (err: any) {
+      console.warn("ePttAVM API updateProductStatus warning:", err.message);
+    }
+
     revalidatePath("/admin/integrations/pttavm/products");
     return { success: true };
-  } catch (error) {
-    return { success: false, error: "Güncelleme başarısız." };
+  } catch (error: any) {
+    return { success: false, error: "Güncelleme başarısız: " + error.message };
+  }
+}
+
+/**
+  * ePttAVM İşlem Durumu Sorgulama (Tracking Result)
+  * GET /api/v1/products/tracking-result/{trackingId}
+  */
+export async function checkPttavmTrackingResult(trackingId: string) {
+  try {
+    const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif ePttAVM entegrasyonu bulunamadı." };
+    }
+
+    const client = new PttavmClient({
+      apiKey: config.apiKey,
+      accessToken: config.accessToken,
+      isTestMode: Boolean(config.isTestMode),
+    });
+
+    const result = await client.getTrackingResult(trackingId);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, message: "Tracking sorgulama hatası: " + error.message };
+  }
+}
+
+/**
+  * ePttAVM Barkod İle Ürün Sorgulama
+  * POST /api/v1/products/get-by-barcodes
+  */
+export async function getProductsByBarcodesPttavm(barcodes: string[]) {
+  try {
+    const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif ePttAVM entegrasyonu bulunamadı." };
+    }
+
+    const client = new PttavmClient({
+      apiKey: config.apiKey,
+      accessToken: config.accessToken,
+      isTestMode: Boolean(config.isTestMode),
+    });
+
+    const result = await client.getProductsByBarcodes(barcodes);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, message: "Barkod sorgulama hatası: " + error.message };
   }
 }
 

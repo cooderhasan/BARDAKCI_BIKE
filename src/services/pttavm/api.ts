@@ -105,11 +105,12 @@ export class PttavmClient {
     };
   }
 
-  private async request<T>(
+  public async request<T>(
     method: "GET" | "POST" | "PUT" | "DELETE",
     path: string,
     body?: unknown
   ): Promise<T> {
+    await this.init();
     const url = `${this.baseUrl}${path}`;
     const options: RequestInit = {
       method,
@@ -164,7 +165,7 @@ export class PttavmClient {
     );
   }
 
-  // ==================== ÜRÜN EKLEME / GÜNCELLEME (UPSERT) ====================
+  // ==================== ÜRÜN YÖNETİMİ & DURUM ====================
 
   /**
    * Ürün Ekleme / Güncelleme (Upsert)
@@ -193,6 +194,38 @@ export class PttavmClient {
   }
 
   /**
+   * Ürün Durum Güncelleme (Aktif / Pasif Yap)
+   * PUT /api/v1/products/{productId}/status
+   */
+  async updateProductStatus(productId: string | number, isActive: boolean): Promise<{
+    success: boolean;
+    errorMessage?: string;
+    errorCode?: string;
+  }> {
+    return this.request<any>("PUT", `/api/v1/products/${productId}/status`, {
+      isActive,
+    });
+  }
+
+  /**
+   * Barkod ile Toplu Ürün Bilgisi Sorgulama
+   * POST /api/v1/products/get-by-barcodes
+   */
+  async getProductsByBarcodes(barcodes: string[]): Promise<any> {
+    return this.request<any>("POST", "/api/v1/products/get-by-barcodes", {
+      barcodes,
+    });
+  }
+
+  /**
+   * Tekil Barkod İle Ürün Sorgulama
+   * GET /api/v1/products?barcode={barcode}
+   */
+  async getProductByBarcode(barcode: string): Promise<any> {
+    return this.request<any>("GET", `/api/v1/products?barcode=${encodeURIComponent(barcode)}`);
+  }
+
+  /**
    * Ürün İşlem Durumu Sorgulama (Tracking Result)
    * GET /api/v1/products/tracking-result/{trackingId}
    */
@@ -200,7 +233,7 @@ export class PttavmClient {
     return this.request<any>("GET", `/api/v1/products/tracking-result/${trackingId}`);
   }
 
-  // ==================== SİPARİŞ ENTEGRASYONU ====================
+  // ==================== SİPARİŞ & KARGO ENTEGRASYONU ====================
 
   /**
    * Sipariş arama ve listeleme
@@ -229,6 +262,22 @@ export class PttavmClient {
   }
 
   /**
+   * Sipariş Kargo Bilgileri
+   * GET /api/v1/orders/{orderId}/cargo-infos
+   */
+  async getOrderCargoInfos(orderId: string): Promise<any> {
+    return this.request<any>("GET", `/api/v1/orders/${orderId}/cargo-infos`);
+  }
+
+  /**
+   * Kargo Profillerini Alır
+   * GET /api/v1/shipping/cargo-profiles
+   */
+  async getCargoProfiles(): Promise<any> {
+    return this.request<any>("GET", "/api/v1/shipping/cargo-profiles");
+  }
+
+  /**
    * Fatura Yükleme
    * POST /api/v1/orders/{orderId}/invoice
    */
@@ -236,3 +285,4 @@ export class PttavmClient {
     return this.request<any>("POST", `/api/v1/orders/${orderId}/invoice`, payload);
   }
 }
+

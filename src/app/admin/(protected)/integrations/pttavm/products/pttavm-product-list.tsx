@@ -13,6 +13,7 @@ import {
   togglePttavmProductActive,
   syncProductsToPttavm,
   syncPttavmStockAndPrice,
+  checkPttavmTrackingResult,
 } from "../actions";
 import {
   Search,
@@ -20,6 +21,7 @@ import {
   Send,
   CheckCircle2,
   Package,
+  Activity,
 } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { formatPrice } from "@/lib/helpers";
@@ -164,6 +166,24 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
         toast.success(res.message);
       } else {
         toast.error(res.message);
+      }
+    });
+  };
+
+  const handleCheckTracking = (trackingId: string) => {
+    startTransition(async () => {
+      const loadingToast = toast.loading(`Tracking ID [${trackingId}] sorgulanıyor...`);
+      const res = await checkPttavmTrackingResult(trackingId);
+      toast.dismiss(loadingToast);
+
+      if (res.success) {
+        const status = res.data?.status || "Bilinmiyor";
+        const progress = res.data?.progress !== undefined ? `${res.data.progress}%` : "";
+        toast.info(`İşlem Durumu: ${status} ${progress}`, {
+          description: `Toplam: ${res.data?.productsSubTrackingResult?.countOfTotalProducts ?? "-"}, Tamamlanan: ${res.data?.productsSubTrackingResult?.countOfCompletedProducts ?? "-"}`,
+        });
+      } else {
+        toast.error(res.message || "Durum sorgulanamadı.");
       }
     });
   };
@@ -372,6 +392,18 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
                               "Pasif"
                             )}
                           </span>
+                          {product.trackingId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-teal-600 gap-1 mt-0.5"
+                              onClick={() => handleCheckTracking(product.trackingId!)}
+                              title={`Tracking ID: ${product.trackingId}`}
+                            >
+                              <Activity className="w-3 h-3 text-teal-600" />
+                              Durum
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

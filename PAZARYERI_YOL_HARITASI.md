@@ -37,9 +37,9 @@ Stoklar arasında "Yok Satma" (Overselling) problemini önleyecek akıllı mimar
 ## 🌍 Faz 4: Yeni Pazaryerlerinin (EpttAVM, Pazarama, İdefix) Eklenmesi
 Sistem artık sağlam, kuyruklu ve tamamen modüler çalışıyor; Yeni pazaryerleri rahatça entegre edilebilir.
 
-- [ ] **EpttAVM:** Swagger/Soap dokümanlarına göre `EpttavmConfig` Prisma şemasına eklenecek ve `api.ts` yazılacak.
-- [ ] **Pazarama:** Pazarama API dokümantasyonu incelenip `PazaramaConfig` ve `sync` fonksiyonları eklenecek.
-- [ ] **Kuyruğa Dahil Etme:** E-ticaret sitenizde stok 1 azaldığında, Background Worker *aynı saniye içinde* "Sırayla N11, Trendyol, Pazarama ve Epttavm'nin apilerine git ve stoğu 10'dan 9'a düşür" işlemini yapacak.
+- [x] **EpttAVM:** REST API v1 dokümantasyonuna uygun olarak `PttavmConfig`, `PttavmProduct` ve `PttavmOrder` veritabanı şeması eklendi. `api.ts`, upsert batching (1000 ürün limiti), KDV validasyonu, ürün aktif/pasif canlı API güncellemesi ve sipariş/stok senkronizasyonu tamamlandı.
+- [x] **Pazarama:** Pazarama API dokümantasyonu incelenip `PazaramaConfig` ve `sync` fonksiyonları eklendi.
+- [x] **Kuyruğa Dahil Etme:** E-ticaret sitenizde stok 1 azaldığında, Background Worker *aynı saniye içinde* "Sırayla N11, Trendyol, Hepsiburada, Idefix, Pazarama ve Epttavm'nin apilerine git ve stoğu eksilt" işlemini yapacak.
 
 ---
 
