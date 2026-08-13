@@ -39,48 +39,21 @@ export default async function StorefrontLayout({
     let categories: any[] = [];
 
     try {
-        // 1. Try to fetch categories explicitly marked for header for current store
-        categories = await prisma.category.findMany({
-            where: {
-                isActive: true,
-                isInHeader: true,
-                store: storeFilter,
-            },
-            orderBy: [
-                { headerOrder: "asc" },
-                { order: "asc" }
-            ],
-            select: {
-                id: true,
-                name: true,
-                slug: true,
-                parentId: true,
-                imageUrl: true,
-                menuImageUrl: true,
-                isInHeader: true,
-                children: {
-                    where: { isActive: true, store: storeFilter },
-                    select: {
-                        id: true,
-                        name: true,
-                        slug: true,
-                        imageUrl: true
-                    },
-                    orderBy: { order: "asc" }
-                }
-            }
-        });
+        if (activeStore === "MOTOR") {
+            const motorTargetOrder = [
+                "Motosiklet Yedek Parça",
+                "Markaya Göre",
+                "Motosiklet Aksesuar",
+                "Bakım ve Tamir Ürünleri"
+            ];
 
-        // 2. Fallback: If no header categories found, fetch default ones (Home children or root)
-        if (categories.length === 0) {
-            categories = await prisma.category.findMany({
+            const fetchedMotorCategories = await prisma.category.findMany({
                 where: {
                     isActive: true,
                     store: storeFilter,
-                    parent: { name: "Home" }
+                    parentId: null,
+                    name: { in: motorTargetOrder }
                 },
-                orderBy: { order: "asc" },
-                take: 10,
                 select: {
                     id: true,
                     name: true,
@@ -102,13 +75,55 @@ export default async function StorefrontLayout({
                 }
             });
 
-            // 3. Second Fallback: If still no categories (maybe no "Home" category exists), fetch root categories
+            if (fetchedMotorCategories.length > 0) {
+                categories = fetchedMotorCategories.sort((a, b) => {
+                    const idxA = motorTargetOrder.indexOf(a.name);
+                    const idxB = motorTargetOrder.indexOf(b.name);
+                    return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+                });
+            }
+        }
+
+        if (categories.length === 0) {
+            // 1. Try to fetch categories explicitly marked for header for current store
+            categories = await prisma.category.findMany({
+                where: {
+                    isActive: true,
+                    isInHeader: true,
+                    store: storeFilter,
+                },
+                orderBy: [
+                    { headerOrder: "asc" },
+                    { order: "asc" }
+                ],
+                select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    parentId: true,
+                    imageUrl: true,
+                    menuImageUrl: true,
+                    isInHeader: true,
+                    children: {
+                        where: { isActive: true, store: storeFilter },
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            imageUrl: true
+                        },
+                        orderBy: { order: "asc" }
+                    }
+                }
+            });
+
+            // 2. Fallback: If no header categories found, fetch default ones (Home children or root)
             if (categories.length === 0) {
                 categories = await prisma.category.findMany({
                     where: {
                         isActive: true,
-                        parentId: null,
                         store: storeFilter,
+                        parent: { name: "Home" }
                     },
                     orderBy: { order: "asc" },
                     take: 10,
@@ -132,6 +147,38 @@ export default async function StorefrontLayout({
                         }
                     }
                 });
+
+                // 3. Second Fallback: If still no categories (maybe no "Home" category exists), fetch root categories
+                if (categories.length === 0) {
+                    categories = await prisma.category.findMany({
+                        where: {
+                            isActive: true,
+                            parentId: null,
+                            store: storeFilter,
+                        },
+                        orderBy: { order: "asc" },
+                        take: 10,
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                            parentId: true,
+                            imageUrl: true,
+                            menuImageUrl: true,
+                            isInHeader: true,
+                            children: {
+                                where: { isActive: true, store: storeFilter },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    slug: true,
+                                    imageUrl: true
+                                },
+                                orderBy: { order: "asc" }
+                            }
+                        }
+                    });
+                }
             }
         }
     } catch (error) {
