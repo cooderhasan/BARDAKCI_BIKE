@@ -31,6 +31,7 @@ export default function ProductImportPage() {
     const [loading, setLoading] = useState(false);
     const [importing, setImporting] = useState(false);
     const [preview, setPreview] = useState<any[]>([]);
+    const [totalRows, setTotalRows] = useState<number>(0);
     const [errors, setErrors] = useState<{ row: number; message: string }[]>([]);
     const [result, setResult] = useState<{ created: number; updated: number } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,17 +50,19 @@ export default function ProductImportPage() {
 
         try {
             const parseResult = await parseExcelFile(formData);
-            setPreview(parseResult.rows.slice(0, 10)); // Show first 10 rows
+            setPreview(parseResult.rows);
+            setTotalRows(parseResult.totalCount);
             setErrors(parseResult.errors);
 
-            if (parseResult.errors.length === 0 && parseResult.rows.length > 0) {
-                toast.success(`${parseResult.rows.length} ürün okundu, import için hazır.`);
+            if (parseResult.errors.length === 0 && parseResult.totalCount > 0) {
+                toast.success(`${parseResult.totalCount} ürün okundu, import için hazır.`);
             } else if (parseResult.errors.length > 0) {
                 toast.error(`${parseResult.errors.length} hata bulundu. Lütfen düzeltin.`);
             }
         } catch (error) {
             toast.error("Dosya okunamadı");
             setPreview([]);
+            setTotalRows(0);
         } finally {
             setLoading(false);
         }
@@ -92,6 +95,7 @@ export default function ProductImportPage() {
     const resetImport = () => {
         setFile(null);
         setPreview([]);
+        setTotalRows(0);
         setErrors([]);
         setResult(null);
         if (fileInputRef.current) {
@@ -167,7 +171,8 @@ export default function ProductImportPage() {
                         <div className="text-sm">
                             <p className="font-medium text-amber-800">Önemli Notlar:</p>
                             <ul className="text-amber-700 mt-1 space-y-1 list-disc list-inside">
-                                <li>Stok kodu (SKU) mevcut bir ürünle eşleşirse, o ürün güncellenir</li>
+                                <li>Stok kodu (SKU) veya Barkod mevcut bir ürünle eşleşirse, o ürün güncellenir</li>
+                                <li>Mevcut ürünler için sadece Desi veya Fiyat alanlarını güncelleyebilirsiniz</li>
                                 <li>Kategori ve marka slug'ları sistemde tanımlı olmalıdır</li>
                                 <li>Fiyatlar ondalık (örn: 100.50) olarak girilmelidir</li>
                             </ul>
@@ -186,7 +191,7 @@ export default function ProductImportPage() {
                         <label className="cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-12 hover:bg-gray-50 transition-colors">
                             <FileSpreadsheet className="h-12 w-12 text-gray-400 mb-4" />
                             <p className="font-medium text-gray-700">Excel dosyasını seçin veya sürükleyin</p>
-                            <p className="text-sm text-gray-500 mt-1">.xlsx veya .xls dosyaları</p>
+                            <p className="text-sm text-gray-500 mt-1">.xlsx veya .xls dosyaları (50MB'a kadar)</p>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -203,7 +208,7 @@ export default function ProductImportPage() {
                                     <div>
                                         <p className="font-medium">{file.name}</p>
                                         <p className="text-sm text-gray-500">
-                                            {preview.length > 0 && `${preview.length}+ ürün bulundu`}
+                                            {totalRows > 0 && `${totalRows} ürün bulundu`}
                                         </p>
                                     </div>
                                 </div>
@@ -241,7 +246,7 @@ export default function ProductImportPage() {
                             )}
 
                             {/* Import Button */}
-                            {!result && preview.length > 0 && errors.length === 0 && (
+                            {!result && totalRows > 0 && errors.length === 0 && (
                                 <Button
                                     onClick={handleImport}
                                     disabled={importing}
@@ -256,7 +261,7 @@ export default function ProductImportPage() {
                                     ) : (
                                         <>
                                             <Upload className="h-4 w-4 mr-2" />
-                                            {preview.length} Ürünü Import Et
+                                            {totalRows} Ürünü Import Et
                                         </>
                                     )}
                                 </Button>

@@ -16,64 +16,44 @@ async function main() {
     "Lastik", "Motosiklet Zincirleri"
   ];
 
-  // 1. Ana kategoriyi oluştur veya bul
+  // 1. Ana kategori: Motosiklet Yedek Parça (1. Kategori)
   const mainCategory = await prisma.category.upsert({
     where: { slug: "motosiklet-yedek-parca" },
-    update: { isInHeader: true, isFeatured: true },
+    update: { isInHeader: true, headerOrder: 1, isFeatured: true },
     create: {
       name: mainCategoryName,
       slug: "motosiklet-yedek-parca",
       isInHeader: true,
+      headerOrder: 1,
       isFeatured: true,
     },
   });
 
   console.log(`✅ Ana kategori hazır: ${mainCategory.name}`);
 
-  // 2. İkinci Ana Kategori: Motosiklet Koruma Ekipmanları
-  const protectionCategoryName = "Motosiklet Koruma Ekipmanları";
-  const protectionSubCategories = [
-    "Bot", "Gözlük", "Mont", "Yağmurluk", "Boyunluk & Maske", 
-    "Kask", "Pantolon", "Yelekler & Termal Giyim", "Eldiven", 
-    "Korumalar", "T-shirt"
+  // 2. İkinci Ana Kategori: Markaya Göre (2. Kategori)
+  const brandCategoryName = "Markaya Göre";
+  const brandSubCategories = [
+    "Mondial", "Bajaj", "Cf Moto", "Kanuni", "RKS", "TVS", 
+    "Honda", "Arora", "Chopper", "KTM", "Suzuki", "Yamaha", 
+    "Atv", "Hero", "Kuba", "SYM Motor"
   ];
 
-  const protectionCategory = await prisma.category.upsert({
-    where: { slug: "motosiklet-koruma-ekipmanlari" },
-    update: { isInHeader: true, isFeatured: true },
+  const brandCategory = await prisma.category.upsert({
+    where: { slug: "markaya-gore" },
+    update: { isInHeader: true, headerOrder: 2, isFeatured: true },
     create: {
-      name: protectionCategoryName,
-      slug: "motosiklet-koruma-ekipmanlari",
+      name: brandCategoryName,
+      slug: "markaya-gore",
       isInHeader: true,
+      headerOrder: 2,
       isFeatured: true,
     },
   });
 
-  console.log(`✅ İkinci ana kategori hazır: ${protectionCategory.name}`);
+  console.log(`✅ İkinci ana kategori hazır: ${brandCategory.name}`);
 
-  // 3. Üçüncü Ana Kategori: Bakım ve Tamir Ürünleri
-  const maintenanceCategoryName = "Bakım ve Tamir Ürünleri";
-  const maintenanceSubCategories = [
-    "Amortisör Yağı", "Fren Hidrolik Yağı", "Motul Bakım Ürünleri", 
-    "Temizlik Ürünleri", "Antifriz", "Hiflo Filtre", "Tamir Seti", 
-    "Yağ", "Branda & Örtü", "K&N Yağ Filtreleri", "Tamirat Ürünleri", 
-    "Zincir Temizleme Ürünleri"
-  ];
-
-  const maintenanceCategory = await prisma.category.upsert({
-    where: { slug: "bakim-ve-tamir-urunleri" },
-    update: { isInHeader: true, isFeatured: true },
-    create: {
-      name: maintenanceCategoryName,
-      slug: "bakim-ve-tamir-urunleri",
-      isInHeader: true,
-      isFeatured: true,
-    },
-  });
-
-  console.log(`✅ Üçüncü ana kategori hazır: ${maintenanceCategory.name}`);
-
-  // 4. Dördüncü Ana Kategori: Motosiklet Aksesuar
+  // 3. Üçüncü Ana Kategori: Motosiklet Aksesuar (3. Kategori)
   const accessoryCategoryName = "Motosiklet Aksesuar";
   const accessorySubCategories = [
     "Aksiyon Kamera ve Aparatları", "Çanta", "Kilit Sistemi", 
@@ -85,37 +65,61 @@ async function main() {
 
   const accessoryCategory = await prisma.category.upsert({
     where: { slug: "motosiklet-aksesuar" },
-    update: { isInHeader: true, isFeatured: true },
+    update: { isInHeader: true, headerOrder: 3, isFeatured: true },
     create: {
       name: accessoryCategoryName,
       slug: "motosiklet-aksesuar",
       isInHeader: true,
+      headerOrder: 3,
       isFeatured: true,
     },
   });
 
-  console.log(`✅ Dördüncü ana kategori hazır: ${accessoryCategory.name}`);
+  console.log(`✅ Üçüncü ana kategori hazır: ${accessoryCategory.name}`);
 
-  // 5. Beşinci Ana Kategori: Markaya Göre
-  const brandCategoryName = "Markaya Göre";
-  const brandSubCategories = [
-    "Mondial", "Bajaj", "Cf Moto", "Kanuni", "RKS", "TVS", 
-    "Honda", "Arora", "Chopper", "KTM", "Suzuki", "Yamaha", 
-    "Atv", "Hero", "Kuba", "SYM Motor"
+  // 4. Dördüncü Ana Kategori: Bakım ve Tamir Ürünleri (4. Kategori)
+  const maintenanceCategoryName = "Bakım ve Tamir Ürünleri";
+  const maintenanceSubCategories = [
+    "Amortisör Yağı", "Fren Hidrolik Yağı", "Motul Bakım Ürünleri", 
+    "Temizlik Ürünleri", "Antifriz", "Hiflo Filtre", "Tamir Seti", 
+    "Yağ", "Branda & Örtü", "K&N Yağ Filtreleri", "Tamirat Ürünleri", 
+    "Zincir Temizleme Ürünleri"
   ];
 
-  const brandCategory = await prisma.category.upsert({
-    where: { slug: "markaya-gore" },
-    update: { isInHeader: true, isFeatured: true },
+  const maintenanceCategory = await prisma.category.upsert({
+    where: { slug: "bakim-ve-tamir-urunleri" },
+    update: { isInHeader: true, headerOrder: 4, isFeatured: true },
     create: {
-      name: brandCategoryName,
-      slug: "markaya-gore",
+      name: maintenanceCategoryName,
+      slug: "bakim-ve-tamir-urunleri",
       isInHeader: true,
+      headerOrder: 4,
       isFeatured: true,
     },
   });
 
-  console.log(`✅ Beşinci ana kategori hazır: ${brandCategory.name}`);
+  console.log(`✅ Dördüncü ana kategori hazır: ${maintenanceCategory.name}`);
+
+  // 5. Beşinci Ana Kategori: Motosiklet Koruma Ekipmanları (Diğer kategoriler)
+  const protectionCategoryName = "Motosiklet Koruma Ekipmanları";
+  const protectionSubCategories = [
+    "Bot", "Gözlük", "Mont", "Yağmurluk", "Boyunluk & Maske", 
+    "Kask", "Pantolon", "Yelekler & Termal Giyim", "Eldiven", 
+    "Korumalar", "T-shirt"
+  ];
+
+  const protectionCategory = await prisma.category.upsert({
+    where: { slug: "motosiklet-koruma-ekipmanlari" },
+    update: { isInHeader: false, isFeatured: true },
+    create: {
+      name: protectionCategoryName,
+      slug: "motosiklet-koruma-ekipmanlari",
+      isInHeader: false,
+      isFeatured: true,
+    },
+  });
+
+  console.log(`✅ Beşinci ana kategori hazır: ${protectionCategory.name}`);
 
   // 6. Alt kategorileri ekle (Tüm gruplar için)
   async function addSubs(subs: string[], parentId: string) {
