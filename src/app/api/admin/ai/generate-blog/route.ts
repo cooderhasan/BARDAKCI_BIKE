@@ -27,6 +27,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Yapay Zeka (AI) yapılandırılmamış veya aktif değil." }, { status: 400 });
     }
 
+    // 2. Fetch real active categories from DB to prevent hallucinated 404 links
+    const categories = await prisma.category.findMany({
+        where: { isActive: true },
+        select: { name: true, slug: true },
+        orderBy: { order: "asc" },
+        take: 40,
+    });
+
+    const categoryListText = categories.length > 0
+        ? categories.map(c => `- ${c.name}: /category/${c.slug}`).join("\n")
+        : `- Dağ Bisikleti: /category/dag-bisikleti\n- Şehir Bisikleti: /category/sehir-bisikleti\n- Çocuk Bisikleti: /category/cocuk-bisikleti\n- Bisiklet Aksesuar: /category/bisiklet-aksesuar\n- Bisiklet Yedek Parça: /category/bisiklet-yedek-parca\n- Tüm Ürünler: /products`;
+
     const systemPrompt = `Sen profesyonel bir bisiklet kültürü yazarı, bisiklet mekanisyeni ve e-ticaret SEO içerik uzmanısın.
     Görevin; verilen başlığa uygun olarak, hem okuyucuyu bilgilendirecek, hem de arama motorlarında üst sıralara çıkacak SEO uyumlu, profesyonel, akıcı ve bilgilendirici bir Türkçe blog yazısı yazmaktır.
 
@@ -35,12 +47,19 @@ export async function POST(req: NextRequest) {
        - Başlangıçta konunun önemini anlatan ve okuyucunun ilgisini çeken kısa ve vurucu bir giriş paragrafı.
        - Ardından hiyerarşik alt başlıklar (<h2>, <h3> kullanarak) altında konuyu derinlemesine ele alan paragraflar.
        - Önemli listelemeler ve maddeler için mutlaka <ul> ve <li> etiketlerini kullan.
+       - Karşılaştırma, teknik özellik veya puanlama içeren bölümlerde MUTLAKA standart HTML tablo etiketleri (<table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table>) kullan. Kesinlikle markdown (|...|) formatında tablo yapma, doğrudan saf HTML <table> etiketleri kullan.
        - Okuyucuya faydalı pratik ipuçları için şık kutu formatları (örneğin <div class="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-xl my-4">...</div>) kullan.
        - Sonuç bölümünde yazıyı özetle ve okuyucuyu dükkanımızda (Bardakcı Bisiklet) satılan ilgili ürün gruplarını incelemeye yönlendir.
-    2. VURGULAMA (BOLD): Önemli anahtar kelimeleri ve teknik terimleri <b>...</b> veya <strong>...</strong> etiketleri içinde vurgula.
-    3. ÜSLUP: Samimi ama son derece bilgili, profesyonel, anlaşılır ve akıcı bir Türkçe kullan.
-    4. UZUNLUK: Yazı en az 600-800 kelime uzunluğunda, detaylı ve doyurucu olmalıdır.
-    5. HTML BİÇİMİ: Çıktıyı doğrudan HTML formatında ver. Ekstra markdown işaretlemeleri (\`\`\`html vb.) kullanma.`;
+    2. LİNKLER VE YÖNLENDİRMELER (KRİTİK KURAL):
+       - Kesinlikle rastgele veya uydurma URL linki ekleme (örneğin '/kategori/...' veya '/urunler/...' gibi geçersiz linkler 404 hatası verir).
+       - Sitedeki bağlantılar İngilizce 'category' şeklindedir (Örn: /category/dag-bisikleti).
+       - Eğer yazı içinde veya sonunda link vereceksen SADECE şu gerçek mağaza linklerinden uygun olanı veya '/products' linkini kullan:
+${categoryListText}
+       - Örnek doğru link kullanımı: <a href="/category/bisiklet-yedek-parca">Bisiklet Yedek Parça Kategorisi</a> veya <a href="/products">Tüm Bisiklet Ürünlerimizi İnceleyin</a>
+    3. VURGULAMA (BOLD): Önemli anahtar kelimeleri ve teknik terimleri <b>...</b> veya <strong>...</strong> etiketleri içinde vurgula.
+    4. ÜSLUP: Samimi ama son derece bilgili, profesyonel, anlaşılır ve akıcı bir Türkçe kullan.
+    5. UZUNLUK: Yazı en az 600-800 kelime uzunluğunda, detaylı ve doyurucu olmalıdır.
+    6. HTML BİÇİMİ: Çıktıyı doğrudan HTML formatında ver. Ekstra markdown işaretlemeleri (\`\`\`html vb.) kullanma.`;
 
     const userPrompt = `Lütfen şu başlıkta kapsamlı, SEO uyumlu bir blog yazısı oluştur: "${title}"`;
 
@@ -103,6 +122,38 @@ export async function POST(req: NextRequest) {
 
     // Clean CJK characters if present (Qwen fallback safety)
     generatedHtml = generatedHtml.replace(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uff00-\uffef]/g, "").trim();
+
+    // Helper: Convert any leftover markdown tables to clean HTML tables
+    const tableRegex = /\|[^\n]+\|\n\|[\s-:|]+\|\n(?:\|[^\n]+\|\n?)+/g;
+    generatedHtml = generatedHtml.replace(tableRegex, (match) => {
+        const lines = match.trim().split("\n").map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) return match;
+
+        const headers = lines[0].split("|").map(s => s.trim()).filter(Boolean);
+        const rows = lines.slice(2);
+
+        let html = '<table><thead><tr>';
+        headers.forEach(h => {
+            html += `<th>${h}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        rows.forEach((row) => {
+            const cells = row.split("|").map(s => s.trim()).filter(Boolean);
+            html += '<tr>';
+            cells.forEach(c => {
+                html += `<td>${c}</td>`;
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        return html;
+    });
+
+    // Helper: Auto-correct common link mistakes (e.g. /kategori/ -> /category/)
+    generatedHtml = generatedHtml.replace(/href=["']\/kategori\//gi, 'href="/category/');
+    generatedHtml = generatedHtml.replace(/href=["'](https?:\/\/[^\/]+)\/kategori\//gi, 'href="$1/category/');
 
     // Generate a quick summary from the HTML
     const cleanText = generatedHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();

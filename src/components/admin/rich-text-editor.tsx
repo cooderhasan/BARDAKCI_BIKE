@@ -6,6 +6,10 @@ import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Image from "@tiptap/extension-image";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -28,6 +32,9 @@ import {
     ImagePlus,
     Tag,
     Loader2,
+    Table as TableIcon,
+    Plus,
+    Trash2,
 } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -62,6 +69,23 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
                 types: ["heading", "paragraph"],
             }),
             Underline,
+            Table.configure({
+                resizable: true,
+                HTMLAttributes: {
+                    class: "border-collapse table-auto w-full my-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden",
+                },
+            }),
+            TableRow,
+            TableHeader.configure({
+                HTMLAttributes: {
+                    class: "border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-2.5 font-bold text-left text-sm",
+                },
+            }),
+            TableCell.configure({
+                HTMLAttributes: {
+                    class: "border border-gray-200 dark:border-gray-700 p-2.5 text-sm",
+                },
+            }),
             Image.configure({
                 HTMLAttributes: {
                     class: "rounded-lg max-w-full h-auto mx-auto block my-4",
@@ -82,6 +106,13 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    // Sync content if changed from outside (e.g. AI generation or loading another post)
+    useEffect(() => {
+        if (editor && content !== editor.getHTML()) {
+            editor.commands.setContent(content, false);
+        }
+    }, [content, editor]);
 
     const setLink = useCallback(() => {
         if (!editor) return;
@@ -305,6 +336,70 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
 
                 <div className="w-px bg-gray-300 mx-1" />
 
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                        if (editor.isActive("table")) {
+                            editor.chain().focus().deleteTable().run();
+                        } else {
+                            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                        }
+                    }}
+                    className={editor.isActive("table") ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : ""}
+                    title={editor.isActive("table") ? "Tabloyu Sil" : "Tablo Ekle (3x3)"}
+                >
+                    <TableIcon className="h-4 w-4" />
+                </Button>
+
+                {editor.isActive("table") && (
+                    <div className="flex items-center gap-0.5 bg-blue-50/80 p-0.5 rounded border border-blue-200 text-xs">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editor.chain().focus().addRowAfter().run()}
+                            title="Aşağıya Satır Ekle"
+                            className="h-6 px-1.5 text-xs text-blue-700 hover:bg-blue-100"
+                        >
+                            +Satır
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editor.chain().focus().deleteRow().run()}
+                            title="Seçili Satırı Sil"
+                            className="h-6 px-1.5 text-xs text-red-600 hover:bg-red-100"
+                        >
+                            -Satır
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editor.chain().focus().addColumnAfter().run()}
+                            title="Sağa Sütun Ekle"
+                            className="h-6 px-1.5 text-xs text-blue-700 hover:bg-blue-100"
+                        >
+                            +Sütun
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editor.chain().focus().deleteColumn().run()}
+                            title="Seçili Sütunu Sil"
+                            className="h-6 px-1.5 text-xs text-red-600 hover:bg-red-100"
+                        >
+                            -Sütun
+                        </Button>
+                    </div>
+                )}
+
+                <div className="w-px bg-gray-300 mx-1" />
+
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -384,6 +479,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
                             // Switching back to Visual Mode
                             // Save changes from textarea back to editor
                             editor.commands.setContent(sourceCode);
+                            onChange(sourceCode);
                         }
                         setShowSource(!showSource);
                     }}
@@ -398,8 +494,11 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
             {showSource ? (
                 <textarea
                     value={sourceCode}
-                    onChange={(e) => setSourceCode(e.target.value)}
-                    className="w-full h-[200px] p-4 font-mono text-sm bg-gray-900 text-green-400 focus:outline-none resize-y"
+                    onChange={(e) => {
+                        setSourceCode(e.target.value);
+                        onChange(e.target.value);
+                    }}
+                    className="w-full min-h-[300px] p-4 font-mono text-sm bg-gray-900 text-green-400 focus:outline-none resize-y"
                     spellCheck={false}
                 />
             ) : (
