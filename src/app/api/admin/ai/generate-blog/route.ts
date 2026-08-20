@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
        - Ardından hiyerarşik alt başlıklar (<h2>, <h3> kullanarak) altında konuyu derinlemesine ele alan paragraflar.
        - Önemli listelemeler ve maddeler için mutlaka <ul> ve <li> etiketlerini kullan.
        - Karşılaştırma, teknik özellik veya puanlama içeren bölümlerde MUTLAKA standart HTML tablo etiketleri (<table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table>) kullan. Kesinlikle markdown (|...|) formatında tablo yapma, doğrudan saf HTML <table> etiketleri kullan.
-       - Okuyucuya faydalı pratik ipuçları için şık kutu formatları (örneğin <div class="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-xl my-4">...</div>) kullan.
+       - Okuyucuya faydalı pratik ipuçları veya uyarılar için MUTLAKA <blockquote> etiketini kullan (örneğin: <blockquote>💡 <strong>Pratik İpucu:</strong> İpucu açıklaması buraya...</blockquote>). Kesinlikle div kullanma, blockquote kullan.
        - Sonuç bölümünde yazıyı özetle ve okuyucuyu dükkanımızda (Bardakcı Bisiklet) satılan ilgili ürün gruplarını incelemeye yönlendir.
     2. LİNKLER VE YÖNLENDİRMELER (KRİTİK KURAL):
        - Kesinlikle rastgele veya uydurma URL linki ekleme (örneğin '/kategori/...' veya '/urunler/...' gibi geçersiz linkler 404 hatası verir).
@@ -150,6 +150,9 @@ ${categoryListText}
         html += '</tbody></table>';
         return html;
     });
+
+    // Helper: Convert any div-based callouts/boxes or tips to standard blockquotes so Tiptap never strips them
+    generatedHtml = generatedHtml.replace(/<div[^>]*class=["'][^"']*(?:bg-blue|rounded|border)[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi, '<blockquote>$1</blockquote>');
 
     // Helper: Auto-correct common link mistakes (e.g. /kategori/ -> /category/)
     generatedHtml = generatedHtml.replace(/href=["']\/kategori\//gi, 'href="/category/');

@@ -32,6 +32,7 @@ import {
     Table as TableIcon,
     Plus,
     Trash2,
+    Quote,
 } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -286,6 +287,16 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
                     className={editor.isActive("orderedList") ? "bg-gray-200" : ""}
                 >
                     <ListOrdered className="h-4 w-4" />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                    className={editor.isActive("blockquote") ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : ""}
+                    title="İpucu / Vurgu Kutusu (Alıntı)"
+                >
+                    <Quote className="h-4 w-4" />
                 </Button>
 
                 <div className="w-px bg-gray-300 mx-1" />

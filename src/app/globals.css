@@ -278,3 +278,47 @@
   background-color: rgba(30, 41, 59, 0.4);
 }
 
+/* Blog & Prose Callout / Tip Box (Blockquote) */
+.prose blockquote,
+.ProseMirror blockquote {
+  background-color: #f0f7ff;
+  border-left: 4px solid #17457C;
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  color: #1e293b;
+  font-style: normal;
+  border-top: 1px solid #e0eeff;
+  border-right: 1px solid #e0eeff;
+  border-bottom: 1px solid #e0eeff;
+}
+
+.prose blockquote p,
+.ProseMirror blockquote p {
+  margin: 0;
+  color: #1e293b;
+  font-style: normal;
+  line-height: 1.6;
+}
+
+.prose blockquote p + p,
+.ProseMirror blockquote p + p {
+  margin-top: 0.5rem;
+}
+
+/* Dark Mode Callout / Tip Box */
+.dark .prose blockquote,
+.dark .ProseMirror blockquote {
+  background-color: rgba(23, 69, 124, 0.15);
+  border-left-color: #38bdf8;
+  border-top-color: rgba(56, 189, 248, 0.2);
+  border-right-color: rgba(56, 189, 248, 0.2);
+  border-bottom-color: rgba(56, 189, 248, 0.2);
+  color: #e2e8f0;
+}
+
+.dark .prose blockquote p,
+.dark .ProseMirror blockquote p {
+  color: #e2e8f0;
+}
+
