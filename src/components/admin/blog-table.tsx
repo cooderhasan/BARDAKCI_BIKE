@@ -23,9 +23,12 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { X, Plus, Pencil, Trash2, Search, Sparkles, Loader2 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import dynamic from "next/dynamic";
+const RichTextEditor = dynamic(
+    () => import("@/components/admin/rich-text-editor").then((mod) => mod.RichTextEditor),
+    { ssr: false }
+);
 import { 
     createBlogPost, 
     updateBlogPost, 

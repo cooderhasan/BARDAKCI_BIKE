@@ -39,7 +39,11 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder, getCategoryProductsAction, moveProductToCategoryAction, moveAllProductsAndMergeCategoryAction } from "@/app/admin/(protected)/categories/actions";
-import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import dynamic from "next/dynamic";
+const RichTextEditor = dynamic(
+    () => import("@/components/admin/rich-text-editor").then((mod) => mod.RichTextEditor),
+    { ssr: false }
+);
 import { searchHepsiburadaCategories } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
 import { CiceksepetiAttributeMappingModal } from "@/components/admin/ciceksepeti-attribute-mapping-modal";
 import {

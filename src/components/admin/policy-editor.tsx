@@ -7,7 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updatePolicy } from "@/app/actions/policy";
 import { toast } from "sonner";
-import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import dynamic from "next/dynamic";
+const RichTextEditor = dynamic(
+    () => import("@/components/admin/rich-text-editor").then((mod) => mod.RichTextEditor),
+    { ssr: false }
+);
 
 interface Policy {
     slug: string;

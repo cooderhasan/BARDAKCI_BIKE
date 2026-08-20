@@ -9,7 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { updateSiteSettings, bulkUpdateAllProductsCriticalStockAction } from "@/app/admin/(protected)/settings/actions";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import dynamic from "next/dynamic";
+const RichTextEditor = dynamic(
+    () => import("@/components/admin/rich-text-editor").then((mod) => mod.RichTextEditor),
+    { ssr: false }
+);
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CargoSettings } from "@/components/admin/cargo-settings";
 import { Switch } from "@/components/ui/switch";
