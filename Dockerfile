@@ -15,7 +15,7 @@ COPY package*.json ./
 COPY prisma ./prisma
 
 # Install dependencies (this runs postinstall which needs prisma schema)
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy rest of source files
 COPY . .
