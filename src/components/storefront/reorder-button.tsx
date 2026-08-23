@@ -42,6 +42,8 @@ export function ReorderButton({ orderId }: ReorderButtonProps) {
                         stock: item.stock,
                         discountRate: 0, // Default for reorder
                         minQuantity: item.minQuantity, // Now available on item
+                        desi: item.desi,
+                        isFreeShipping: item.isFreeShipping,
                     });
                     addedCount++;
                 }

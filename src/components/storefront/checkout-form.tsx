@@ -87,15 +87,17 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
 
     const summary = getSummary();
 
-    // Calculate shipping cost: Bisiklet mağazasında her zaman Ücretsiz Kargo, Motor mağazasında Desi Bazlı Kargo
+    // Calculate shipping cost: Ürün bazlı kargo hesaplama
+    // isFreeShipping=true olan ürünlerin desisi zaten totalDesi'ye dahil edilmiyor (helpers.ts)
+    // Dolayısıyla sepette sadece bisiklet varsa totalDesi=0, kargo ücreti=0
     const selectedCargo = cargoCompanies.find(c => c.id === selectedCargoId);
     let shippingCost = 0;
-    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
-    const isFreeShipping = !isMotorStore; // Bisiklet mağazasında ücretsiz kargo
+    const chargeableDesi = summary.totalDesi; // Sadece isFreeShipping=false ürünlerin desisi
+    const allItemsFreeShipping = items.every(item => item.isFreeShipping === true);
 
-    if (!isFreeShipping && selectedCargo && selectedCargo.isDesiActive && selectedCargo.desiPrices.length > 0) {
+    if (chargeableDesi > 0 && selectedCargo && selectedCargo.isDesiActive && selectedCargo.desiPrices.length > 0) {
         // Desi 0 ise en az 0.01 desi üzerinden hesapla (0-0.99 aralığı için)
-        const totalDesi = summary.totalDesi && summary.totalDesi > 0 ? summary.totalDesi : 0.01;
+        const totalDesi = chargeableDesi > 0 ? chargeableDesi : 0.01;
         const range = selectedCargo.desiPrices.find(r =>
             totalDesi >= Number(r.minDesi) && totalDesi <= Number(r.maxDesi)
         ) || selectedCargo.desiPrices[selectedCargo.desiPrices.length - 1]; // Fallback to last range if exceeds max
@@ -557,7 +559,9 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                     </div>
                                     <div className="flex justify-between items-center font-medium">
                                         <span className="text-gray-600 dark:text-gray-400">Kargo</span>
-                                        {isFreeShipping ? (
+                                        {allItemsFreeShipping ? (
+                                            <span className="text-green-600">Ücretsiz</span>
+                                        ) : shippingCost === 0 && chargeableDesi === 0 ? (
                                             <span className="text-green-600">Ücretsiz</span>
                                         ) : selectedCargo && !selectedCargo.isDesiActive ? (
                                             <span className="text-gray-900 dark:text-gray-200 uppercase text-xs font-bold">

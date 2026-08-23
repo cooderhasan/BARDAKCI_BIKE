@@ -34,6 +34,7 @@ interface Product {
     height?: number | null;
     length?: number | null;
     desi?: number | null;
+    isFreeShipping?: boolean;
     _count?: {
         variants: number;
     };
@@ -52,7 +53,6 @@ export function ProductCardV2({
     isDealer,
     badge,
 }: ProductCardProps) {
-    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const { addItem } = useCartStore();
     const [quantity, setQuantity] = useState(product.minQuantity || 1);
 
@@ -109,6 +109,7 @@ export function ProductCardV2({
             minQuantity: product.minQuantity,
             discountRate: discountRate, // Always pass the user's/dealer's discount rate
             desi: effectiveDesi,
+            isFreeShipping: product.isFreeShipping,
         });
 
         toast.success("Ürün sepete eklendi");
@@ -138,7 +139,7 @@ export function ProductCardV2({
                                 %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
                             </div>
                         )}
-                        {!isMotorStore && (
+                        {product.isFreeShipping && (
                             <div className="bg-emerald-600 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-in fade-in duration-300 flex items-center gap-1">
                                 <Truck className="w-3.5 h-3.5" />
                                 <span>ÜCRETSİZ KARGO</span>

@@ -33,6 +33,7 @@ interface Product {
     height?: number | null;
     length?: number | null;
     desi?: number | null;
+    isFreeShipping?: boolean;
     googlePrice?: number | null;
     _count?: {
         variants: number;
@@ -54,7 +55,6 @@ export function ProductCardModern({
     badge,
     priority = false,
 }: ProductCardProps) {
-    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const { addItem, openAddedToCartModal } = useCartStore();
     const [quantity, setQuantity] = useState(product.minQuantity || 1);
 
@@ -111,6 +111,7 @@ export function ProductCardModern({
             minQuantity: product.minQuantity,
             discountRate: discountRate,
             desi: effectiveDesi,
+            isFreeShipping: product.isFreeShipping,
         };
 
         addItem(itemToAdd);
@@ -181,7 +182,7 @@ export function ProductCardModern({
                                 {product.brand.name}
                             </span>
                         )}
-                        {!isMotorStore && (
+                        {product.isFreeShipping && (
                             <span className="inline-flex items-center self-start gap-1 bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 text-[10px] font-bold px-2 py-0.5 rounded-md leading-tight shadow-sm transition-all duration-300 group-hover/card:bg-emerald-500 group-hover/card:text-white group-hover/card:border-transparent whitespace-nowrap shrink-0">
                                 <Truck className="w-3 h-3 shrink-0" />
                                 <span>ÜCRETSİZ KARGO</span>

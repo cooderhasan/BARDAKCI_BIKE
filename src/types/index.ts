@@ -86,6 +86,7 @@ export interface CartItem {
     variantId?: string;
     variantInfo?: string;
     desi?: number | null;
+    isFreeShipping?: boolean;
 }
 
 export interface CartSummary {

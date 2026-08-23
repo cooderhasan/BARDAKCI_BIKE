@@ -66,6 +66,9 @@ export async function getReorderItems(orderId: string) {
             images: true,
             vatRate: true,
             minQuantity: true,
+            weight: true,
+            desi: true,
+            isFreeShipping: true,
         }
     });
 
@@ -89,7 +92,9 @@ export async function getReorderItems(orderId: string) {
             quantity: quantityToAdd,
             vatRate: product.vatRate,
             stock: product.stock, // passing stock for client validation if needed
-            minQuantity: product.minQuantity
+            minQuantity: product.minQuantity,
+            desi: Number(product.desi || product.weight || 0),
+            isFreeShipping: product.isFreeShipping ?? false,
         };
     }).filter(item => item !== null);
 

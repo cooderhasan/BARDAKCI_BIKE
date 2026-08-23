@@ -24,6 +24,7 @@ interface Product {
     height?: number | null;
     length?: number | null;
     desi?: number | null;
+    isFreeShipping?: boolean;
 }
 
 interface FeaturedProductsProps {

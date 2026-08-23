@@ -25,6 +25,7 @@ interface Product {
     height?: number | null;
     length?: number | null;
     desi?: number | null;
+    isFreeShipping?: boolean;
     category: {
         name: string;
         slug: string;
@@ -47,7 +48,6 @@ export function ProductCard({
     isDealer,
     badge,
 }: ProductCardProps) {
-    const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const { addItem } = useCartStore();
     const price = calculatePrice(
         product.listPrice,
@@ -88,6 +88,7 @@ export function ProductCard({
             minQuantity: product.minQuantity,
             discountRate: discountRate, // Always pass the user's/dealer's discount rate
             desi: effectiveDesi,
+            isFreeShipping: product.isFreeShipping,
         });
 
         toast.success("Ürün sepete eklendi");
@@ -126,7 +127,7 @@ export function ProductCard({
                                 %{discountRate} İndirim
                             </Badge>
                         )}
-                        {!isMotorStore && (
+                        {product.isFreeShipping && (
                             <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white animate-in fade-in duration-300">
                                 Ücretsiz Kargo
                             </Badge>

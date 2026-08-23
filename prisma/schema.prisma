@@ -245,6 +245,7 @@ model Product {
   isNew       Boolean     @default(false)
   isBestSeller Boolean    @default(false)
   isActive    Boolean     @default(true)
+  isFreeShipping Boolean  @default(false) // Ücretsiz kargo: Bisikletlerde true, yedek parça/aksesuarda false
   store       StoreType   @default(BIKE)
   
   // Marketplace Visibility

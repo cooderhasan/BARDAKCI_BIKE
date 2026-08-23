@@ -89,8 +89,10 @@ export function calculateCartSummary(
         discountAmount += itemDiscount;
         vatAmount += itemVat;
 
-        // Add desi calculation
-        totalDesi += (item.desi || 0) * item.quantity;
+        // Add desi calculation — only count items that are NOT free shipping
+        if (!item.isFreeShipping) {
+            totalDesi += (item.desi || 0) * item.quantity;
+        }
     });
 
     // Total to pay is simply subtotal minus discount

@@ -36,6 +36,7 @@ export async function GET() {
                 "Öne Çıkan (1/0)": p.isFeatured ? 1 : 0,
                 "Yeni Ürün (1/0)": p.isNew ? 1 : 0,
                 "Çok Satan (1/0)": p.isBestSeller ? 1 : 0,
+                "Ücretsiz Kargo (1/0)": p.isFreeShipping ? 1 : 0,
                 "Açıklama": p.description || "",
             };
         });

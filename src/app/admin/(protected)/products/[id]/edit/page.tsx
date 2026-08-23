@@ -88,6 +88,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         })),
         categories: product.categories.map(c => ({ id: c.id })),
         isBundle: anyProduct.isBundle || false,
+        isFreeShipping: anyProduct.isFreeShipping || false,
         isTrendyolActive: anyProduct.isTrendyolActive || false,
         isN11Active: anyProduct.isN11Active || false,
         isHepsiburadaActive: anyProduct.isHepsiburadaActive || false,

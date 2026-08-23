@@ -188,7 +188,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
     const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
-    const isFreeShipping = Number(product.listPrice) >= freeShippingLimit;
+    const isFreeShipping = product.isFreeShipping || Number(product.listPrice) >= freeShippingLimit;
 
     // 1. Product Schema
     const productSchema: any = {

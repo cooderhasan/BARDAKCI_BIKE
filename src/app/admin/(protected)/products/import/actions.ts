@@ -281,6 +281,7 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
                     ...(parseNumber(getValue(row, ["Öne Çıkan (1/0)"])) !== null && { isFeatured: parseNumber(getValue(row, ["Öne Çıkan (1/0)"])) === 1 }),
                     ...(parseNumber(getValue(row, ["Yeni Ürün (1/0)"])) !== null && { isNew: parseNumber(getValue(row, ["Yeni Ürün (1/0)"])) === 1 }),
                     ...(parseNumber(getValue(row, ["Çok Satan (1/0)"])) !== null && { isBestSeller: parseNumber(getValue(row, ["Çok Satan (1/0)"])) === 1 }),
+                    ...(parseNumber(getValue(row, ["Ücretsiz Kargo (1/0)", "Ücretsiz Kargo", "isFreeShipping"])) !== null && { isFreeShipping: parseNumber(getValue(row, ["Ücretsiz Kargo (1/0)", "Ücretsiz Kargo", "isFreeShipping"])) === 1 }),
                 };
 
                 if (existingProduct) {

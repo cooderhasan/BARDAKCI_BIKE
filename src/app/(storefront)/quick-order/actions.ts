@@ -13,6 +13,8 @@ export type QuickOrderProduct = {
     image: string | null;
     vatRate: number;
     minQuantity: number;
+    desi?: number | null;
+    isFreeShipping?: boolean;
 };
 
 export async function getProductByCode(code: string): Promise<{ success: boolean; product?: QuickOrderProduct; error?: string }> {
@@ -40,6 +42,9 @@ export async function getProductByCode(code: string): Promise<{ success: boolean
                 vatRate: true,
                 minQuantity: true,
                 images: true,
+                weight: true,
+                desi: true,
+                isFreeShipping: true,
             }
         });
 
@@ -64,6 +69,8 @@ export async function getProductByCode(code: string): Promise<{ success: boolean
                 image,
                 vatRate: product.vatRate,
                 minQuantity: product.minQuantity,
+                desi: Number(product.desi || product.weight || 0),
+                isFreeShipping: product.isFreeShipping ?? false,
             }
         };
 

@@ -122,6 +122,8 @@ export default function QuickOrderPage() {
                         minQuantity: row.product.minQuantity,
                         stock: row.product.stock,
                         discountRate: 0,
+                        desi: row.product.desi,
+                        isFreeShipping: row.product.isFreeShipping,
                     });
                     addedCount++;
                 }

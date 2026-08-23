@@ -97,6 +97,7 @@ interface Product {
     isNew: boolean;
     isBestSeller: boolean;
     isActive: boolean;
+    isFreeShipping?: boolean;
     isBundle?: boolean;
     isTrendyolActive?: boolean;
     isN11Active?: boolean;
@@ -160,6 +161,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         images: product?.images || [] as string[],
         variants: product?.variants || [] as ProductVariant[],
         isActive: product?.isActive ?? true,
+        isFreeShipping: product?.isFreeShipping ?? false,
         store: ((product as any)?.store as "BIKE" | "MOTOR" | "BOTH") || "BIKE",
         isTrendyolActive: product?.isTrendyolActive ?? false,
         isN11Active: product?.isN11Active ?? false,
@@ -855,6 +857,31 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {/* Ücretsiz Kargo Toggle */}
+                            <div className={`flex items-center justify-between p-4 rounded-lg border-2 transition-colors ${
+                                formData.isFreeShipping 
+                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700' 
+                                    : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
+                            }`}>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-lg">🚚</span>
+                                        <Label htmlFor="isFreeShipping" className="text-base font-semibold cursor-pointer">
+                                            Bu Üründe Ücretsiz Kargo
+                                        </Label>
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-8">
+                                        Aktifse bu ürün için kargo ücreti hesaplanmaz. Bisikletlerde açık, yedek parça/aksesuarda kapalı tutun.
+                                    </p>
+                                </div>
+                                <Checkbox
+                                    id="isFreeShipping"
+                                    checked={formData.isFreeShipping}
+                                    onCheckedChange={(checked) => handleChange("isFreeShipping", !!checked)}
+                                    className="h-6 w-6"
+                                />
+                            </div>
+
                             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                                 <p className="text-sm text-blue-800 dark:text-blue-200">
                                     <strong>Bilgi:</strong> Desi = (En × Boy × Yükseklik) / 3000. Kargo firmaları ağırlık ve desi değerlerinden büyük olanı baz alır.
