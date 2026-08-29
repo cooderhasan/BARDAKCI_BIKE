@@ -683,6 +683,110 @@ export async function syncCiceksepetiOrders() {
       }
 
       if (existingMainOrder) {
+        // Çiçeksepeti aynı orderId altında birden fazla orderItemId döner (çoklu kalem).
+        // Bu orderItemId zaten sipariş kalemi olarak eklenmiş mi kontrol et.
+        const orderItemProductName = String((order as any).name || "").trim();
+        const orderItemBarcode = String((order as any).barcode || (order as any).code || "").trim();
+
+        const existingItems = await prisma.orderItem.findMany({
+          where: { orderId: existingMainOrder.id },
+        });
+
+        // Bu kalemin zaten eklenip eklenmediğini kontrol et (ürün adı + barcode/code ile)
+        const alreadyHasItem = existingItems.some((item: any) => {
+          if (orderItemBarcode && item.variantInfo === `CS-ITEM-${uniqueKey}`) return true;
+          if (orderItemProductName && item.productName === orderItemProductName) return true;
+          return false;
+        });
+
+        if (!alreadyHasItem && orderItemProductName) {
+          // Yeni kalem: Ürünü veritabanında bul
+          const itemSearchCodes = [
+            (order as any).barcode,
+            (order as any).code,
+            (order as any).productCode,
+            (order as any).productId
+          ].filter(Boolean).map((s) => String(s).trim());
+
+          let itemProduct: any = null;
+          if (itemSearchCodes.length > 0) {
+            itemProduct = await prisma.product.findFirst({
+              where: {
+                OR: itemSearchCodes.flatMap((code) => [
+                  { barcode: code },
+                  { sku: code },
+                  { id: code }
+                ])
+              }
+            });
+          }
+
+          if (!itemProduct && orderItemProductName) {
+            const subTitle = orderItemProductName.substring(0, 15);
+            if (subTitle.length >= 3) {
+              itemProduct = await prisma.product.findFirst({
+                where: { name: { contains: subTitle, mode: "insensitive" } }
+              });
+            }
+          }
+
+          if (!itemProduct) {
+            itemProduct = await prisma.product.findFirst();
+          }
+
+          const itemQty = Number((order as any).quantity) || 1;
+          const itemPrice = Number((order as any).totalPrice || (order as any).itemPrice || 0);
+          const itemsToDecrement = itemProduct?.id ? [{ productId: itemProduct.id, quantity: itemQty }] : [];
+
+          const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+
+          const affectedProductIds = await prisma.$transaction(async (tx) => {
+            // Yeni kalemi mevcut siparişe ekle
+            await tx.orderItem.create({
+              data: {
+                orderId: existingMainOrder.id,
+                productId: itemProduct?.id || "",
+                quantity: itemQty,
+                unitPrice: itemPrice / (itemQty || 1),
+                productName: orderItemProductName,
+                variantInfo: `CS-ITEM-${uniqueKey}`, // orderItemId'yi takip etmek için
+                lineTotal: itemPrice,
+                vatRate: Number((order as any).tax || 20),
+                discountRate: 0,
+              }
+            });
+
+            // Sipariş toplamlarını güncelle (mevcut + yeni kalem)
+            const allItems = await tx.orderItem.findMany({
+              where: { orderId: existingMainOrder.id },
+            });
+            const newSubtotal = allItems.reduce((sum: number, i: any) => sum + Number(i.lineTotal || 0), 0);
+            const newVat = allItems.reduce((sum: number, i: any) => {
+              const lt = Number(i.lineTotal || 0);
+              const vr = Number(i.vatRate || 0);
+              return sum + (lt * vr / (100 + vr));
+            }, 0);
+
+            await tx.order.update({
+              where: { id: existingMainOrder.id },
+              data: {
+                subtotal: Math.round(newSubtotal * 100) / 100,
+                total: Math.round(newSubtotal * 100) / 100,
+                vatAmount: Math.round(newVat * 100) / 100,
+              }
+            });
+
+            return decrementOrderStock(tx, itemsToDecrement);
+          });
+
+          if (affectedProductIds.length > 0) {
+            handlePostOrderStockSync(affectedProductIds, "ciceksepeti").catch(console.error);
+          }
+
+          console.log(`🧾 [CS-ORDERS] Mevcut siparişe yeni kalem eklendi: "${orderItemProductName}" -> CS-${orderNumberStr} (orderItemId: ${uniqueKey})`);
+        }
+
+        // Status ve kargo bilgilerini her durumda güncelle
         await prisma.order.update({
           where: { id: existingMainOrder.id },
           data: {
@@ -774,6 +878,7 @@ export async function syncCiceksepetiOrders() {
                     quantity: qty,
                     unitPrice: price / (qty || 1),
                     productName: (order as any).name || "Çiçeksepeti Ürünü",
+                    variantInfo: `CS-ITEM-${uniqueKey}`,
                     lineTotal: price,
                     vatRate: Number((order as any).tax || 20),
                     discountRate: 0
