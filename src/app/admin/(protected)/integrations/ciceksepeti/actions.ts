@@ -384,11 +384,9 @@ export async function syncProductsToCiceksepeti(
           }
         }
 
-        // Çiçeksepeti canlı kategorisinde tanımlı olan attributeId'leri kesin olarak süz.
-        // Eğer o kategoride hiç nitelik yoksa veya süzme sonrası kalmıyorsa [] gönderilir.
-        const attributes = rawAttributes.filter((attr) => validAttributeIds.has(Number(attr.attributeId)));
-        console.log(`[CS-SYNC] Valid attribute IDs for cat ${categoryId}:`, Array.from(validAttributeIds));
-        console.log(`[CS-SYNC] Final filtered attributes for ${p.name}:`, JSON.stringify(attributes));
+        // Kullanıcının modalda seçtiği veya kategoriye kaydettiği nitelikleri koru
+        const attributes = rawAttributes;
+        console.log(`[CS-SYNC] Final attributes for ${p.name} (cat ${categoryId}):`, JSON.stringify(attributes));
 
         const productCode = p.sku || p.barcode || p.id;
         const operatorContacts = (customOptions?.operatorContacts && customOptions.operatorContacts.length > 0)
@@ -465,8 +463,18 @@ export async function syncProductsToCiceksepeti(
           // POST: Çiçeksepeti yeni ürün & nitelik kaydı oluştur ve onaya gönder
           result = await client.createOrUpdateProducts(productInputs);
         } catch (postErr: any) {
-          console.warn("[CS-SYNC] POST create failed, trying PUT update fallback:", postErr.message);
-          result = await client.updateProducts(productInputs);
+          // Yalnızca ürün Çiçeksepeti'nde zaten mevcutsa PUT güncelleme dene
+          if (
+            postErr.message?.includes("zaten mevcut") ||
+            postErr.message?.includes("already exists") ||
+            postErr.message?.includes("409")
+          ) {
+            console.warn("[CS-SYNC] POST create indicates product exists, trying PUT update fallback:", postErr.message);
+            result = await client.updateProducts(productInputs);
+          } else {
+            console.error("[CS-SYNC] POST create error:", postErr.message);
+            throw postErr;
+          }
         }
       }
 

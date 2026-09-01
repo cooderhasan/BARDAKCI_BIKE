@@ -139,9 +139,9 @@ export function CiceksepetiProductAttributeModal({
   const [apiAttributes, setApiAttributes] = useState<any[]>([]);
   const [attributeValues, setAttributeValues] = useState<Record<string, { attributeValueId?: string; customValue?: string }>>({});
   
-  // Teslimat Ayarları
-  const [deliveryType, setDeliveryType] = useState<string>("1");
-  const [deliveryDays, setDeliveryDays] = useState<string>("1");
+  // Teslimat Ayarları (2 = Kargo ile Gönderim, 5 = 1-3 İş Günü Standart Kargo)
+  const [deliveryType, setDeliveryType] = useState<string>("2");
+  const [deliveryDays, setDeliveryDays] = useState<string>("5");
 
   // Dinamik Eklenen Özel Nitelikler
   const [customFields, setCustomFields] = useState<{ id: string; name: string; value: string }[]>([]);
@@ -355,8 +355,8 @@ export function CiceksepetiProductAttributeModal({
                         <SelectValue placeholder="Teslimat Tipi" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1" className="text-xs">Kargo İle Gönderi</SelectItem>
-                        <SelectItem value="2" className="text-xs">Bayi / Özel Teslimat</SelectItem>
+                        <SelectItem value="2" className="text-xs">Kargo İle Gönderim</SelectItem>
+                        <SelectItem value="1" className="text-xs">Kurye / Bayi Teslimatı</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -367,10 +367,11 @@ export function CiceksepetiProductAttributeModal({
                         <SelectValue placeholder="Teslimat Aralığı" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1" className="text-xs">Aynı Gün / 1 Gün İçinde Kargo</SelectItem>
+                        <SelectItem value="5" className="text-xs">1-3 İş Günü Kargo</SelectItem>
+                        <SelectItem value="1" className="text-xs">Aynı Gün Kargo</SelectItem>
                         <SelectItem value="2" className="text-xs">1-2 Gün İçinde Kargo</SelectItem>
                         <SelectItem value="3" className="text-xs">2-3 Gün İçinde Kargo</SelectItem>
-                        <SelectItem value="5" className="text-xs">3-5 Gün İçinde Kargo</SelectItem>
+                        <SelectItem value="6" className="text-xs">3-5 Gün İçinde Kargo</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
