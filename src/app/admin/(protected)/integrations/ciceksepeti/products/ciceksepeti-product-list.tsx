@@ -302,31 +302,29 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
       )}
 
       {/* Product List Table */}
-      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+      <div className="rounded-xl border bg-card shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="w-12 text-center">
+              <TableHead className="w-10 text-center">
                 <Checkbox
                   checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
-              <TableHead className="w-16">Görsel</TableHead>
-              <TableHead>Ürün Adı & Kategori</TableHead>
-              <TableHead className="w-36">ÇS Kategori ID</TableHead>
+              <TableHead>Ürün</TableHead>
               <TableHead className="w-32">Barkod / SKU</TableHead>
-              <TableHead className="w-28 text-right">Fiyat (Çiçeksepeti)</TableHead>
-              <TableHead className="w-20 text-center">Stok</TableHead>
-              <TableHead className="w-40 text-center">Çiçeksepeti Durumu</TableHead>
-              <TableHead className="w-24 text-center">İşlem</TableHead>
+              <TableHead className="w-28 text-right">Fiyat</TableHead>
+              <TableHead className="w-16 text-center">Stok</TableHead>
+              <TableHead className="w-28 text-center">Durum</TableHead>
+              <TableHead className="w-28 text-center">İşlem</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Arama kriterlerine uygun ürün bulunamadı.
                 </TableCell>
               </TableRow>
@@ -345,118 +343,117 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
                     </TableCell>
 
                     <TableCell>
-                      <div className="w-10 h-10 rounded-md overflow-hidden bg-muted relative border">
-                        {p.images && p.images[0] ? (
-                          <Image
-                            src={p.images[0]}
-                            alt={p.name}
-                            fill
-                            className="object-cover"
-                            sizes="40px"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                            Görsel Yok
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <span className="font-medium text-sm line-clamp-1">{p.name}</span>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
-                          {(p.categories || []).map((cat: any, i: number) => (
-                            <Badge key={i} variant="outline" className="text-[10px]">{cat.name}</Badge>
-                          ))}
-                          {!p.categories?.length && <span>{p.category?.name || "Kategori Yok"}</span>}
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    {/* Çiçeksepeti Kategori ID - ürün bazında */}
-                    <TableCell>
-                      {editingCatId === p.id ? (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            ref={catInputRef}
-                            value={editCatValue}
-                            onChange={(e) => setEditCatValue(e.target.value)}
-                            placeholder="Kategori ID"
-                            className="h-7 text-xs w-20"
-                            onKeyDown={(e) => { if (e.key === "Enter") handleSaveCatId(p.id); if (e.key === "Escape") { setEditingCatId(null); setEditCatValue(""); } }}
-                            autoFocus
-                          />
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleSaveCatId(p.id)}>
-                            <Save className="h-3 w-3 text-emerald-600" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div
-                          className="flex items-center gap-1 cursor-pointer group"
-                          onClick={() => {
-                            setEditingCatId(p.id);
-                            setEditCatValue(p.ciceksepetiProduct?.ciceksepetiCategoryId || "");
-                          }}
-                        >
-                          {p.ciceksepetiProduct?.ciceksepetiCategoryId ? (
-                            <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-xs font-mono">
-                              {p.ciceksepetiProduct.ciceksepetiCategoryId}
-                            </Badge>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-md overflow-hidden bg-muted relative border shrink-0">
+                          {p.images && p.images[0] ? (
+                            <Image
+                              src={p.images[0]}
+                              alt={p.name}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
                           ) : (
-                            <Badge variant="outline" className="text-[10px] text-gray-400 border-dashed">
-                              Tanımsız
-                            </Badge>
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                              Görsel Yok
+                            </div>
                           )}
-                          <Edit3 className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition" />
                         </div>
-                      )}
+                        <div className="min-w-0 space-y-1">
+                          <p className="font-medium text-sm line-clamp-1" title={p.name}>{p.name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                            {(p.categories || []).map((cat: any, i: number) => (
+                              <Badge key={i} variant="outline" className="text-[10px] py-0 px-1.5">{cat.name}</Badge>
+                            ))}
+                            {!p.categories?.length && p.category?.name && (
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5">{p.category.name}</Badge>
+                            )}
+
+                            {/* ÇS Kategori ID Badge & Quick Edit */}
+                            {editingCatId === p.id ? (
+                              <div className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                <Input
+                                  ref={catInputRef}
+                                  value={editCatValue}
+                                  onChange={(e) => setEditCatValue(e.target.value)}
+                                  placeholder="ÇS Kat ID"
+                                  className="h-6 text-[10px] w-20 px-1"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveCatId(p.id);
+                                    if (e.key === "Escape") { setEditingCatId(null); setEditCatValue(""); }
+                                  }}
+                                  autoFocus
+                                />
+                                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => handleSaveCatId(p.id)}>
+                                  <Save className="h-3 w-3 text-emerald-600" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 cursor-pointer group"
+                                onClick={() => {
+                                  setEditingCatId(p.id);
+                                  setEditCatValue(p.ciceksepetiProduct?.ciceksepetiCategoryId || "");
+                                }}
+                                title="Çiçeksepeti Kategori ID düzenle"
+                              >
+                                {p.ciceksepetiProduct?.ciceksepetiCategoryId ? (
+                                  <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-mono py-0 px-1.5 hover:bg-rose-100">
+                                    ÇS: {p.ciceksepetiProduct.ciceksepetiCategoryId}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] text-gray-400 border-dashed py-0 px-1.5">
+                                    ÇS Kat: Tanımsız
+                                  </Badge>
+                                )}
+                                <Edit3 className="h-2.5 w-2.5 text-gray-400 opacity-0 group-hover:opacity-100 transition" />
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </TableCell>
 
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      <div>{p.barcode || "-"}</div>
-                      <div className="text-[10px] text-gray-400">{p.sku}</div>
+                    <TableCell className="font-mono text-xs">
+                      <div className="font-medium">{p.barcode || "-"}</div>
+                      <div className="text-[10px] text-muted-foreground">{p.sku || "-"}</div>
                     </TableCell>
 
-                    <TableCell className="text-right font-medium text-sm">
-                      {p.ciceksepetiPrice ? (
-                        <div className="text-rose-700 font-semibold">{Number(p.ciceksepetiPrice).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</div>
-                      ) : (
-                        <div>{Number(p.salePrice || p.listPrice).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</div>
+                    <TableCell className="text-right">
+                      <div className="font-semibold text-sm text-rose-700">
+                        {Number(p.ciceksepetiPrice || p.salePrice || p.listPrice).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+                      </div>
+                      {p.ciceksepetiPrice && p.salePrice && (
+                        <div className="text-[10px] text-muted-foreground line-through">
+                          {Number(p.salePrice).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}
+                        </div>
                       )}
                     </TableCell>
 
                     <TableCell className="text-center">
-                      <Badge variant={p.stock <= 0 ? "destructive" : p.stock <= 10 ? "secondary" : "outline"}>
+                      <Badge variant={p.stock <= 0 ? "destructive" : p.stock <= 10 ? "secondary" : "outline"} className="text-xs">
                         {p.stock}
                       </Badge>
                     </TableCell>
 
                     <TableCell className="text-center">
                       {cicekProduct?.lastSyncError ? (
-                        <div className="space-y-1">
-                          <Badge variant="destructive" className="gap-1 text-[11px]">
+                        <div className="space-y-0.5">
+                          <Badge variant="destructive" className="gap-1 text-[10px] py-0 px-1.5">
                             <XCircle className="w-3 h-3" />
                             Hata
                           </Badge>
-                          <p className="text-[10px] text-red-600 line-clamp-1" title={cicekProduct.lastSyncError}>
+                          <p className="text-[10px] text-red-600 line-clamp-1 max-w-[120px] mx-auto" title={cicekProduct.lastSyncError}>
                             {cicekProduct.lastSyncError}
                           </p>
                         </div>
                       ) : cicekProduct?.isSynced ? (
-                        <div className="space-y-1">
-                          <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-[11px]">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Eşleşti
-                          </Badge>
-                          {cicekProduct.batchRequestId && (
-                            <p className="text-[10px] text-muted-foreground font-mono">
-                              Batch: {cicekProduct.batchRequestId}
-                            </p>
-                          )}
-                        </div>
+                        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-[10px] py-0 px-1.5">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Yayında
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="gap-1 text-[11px] text-amber-700 border-amber-300 bg-amber-50">
+                        <Badge variant="outline" className="gap-1 text-[10px] py-0 px-1.5 text-amber-700 border-amber-300 bg-amber-50">
                           <Clock className="w-3 h-3" />
                           Gönderilmedi
                         </Badge>
@@ -479,7 +476,7 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleToggleStatus(p.id, p.isCiceksepetiActive)}
-                          className={`h-7 text-xs ${p.isCiceksepetiActive ? "text-emerald-700 hover:bg-emerald-50" : "text-gray-500"}`}
+                          className={`h-7 text-xs px-2 ${p.isCiceksepetiActive ? "text-emerald-700 hover:bg-emerald-50" : "text-gray-400 hover:bg-gray-50"}`}
                         >
                           {p.isCiceksepetiActive ? "Aktif" : "Pasif"}
                         </Button>
