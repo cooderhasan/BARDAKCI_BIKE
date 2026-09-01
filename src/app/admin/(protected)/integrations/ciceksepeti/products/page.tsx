@@ -13,10 +13,10 @@ interface CiceksepetiProductsPageProps {
 }
 
 export default async function CiceksepetiProductsPage({ searchParams }: CiceksepetiProductsPageProps) {
-  const params = await searchParams;
-  const page = Math.max(Number(params.page) || 1, 1);
-  const search = params.search || "";
-  const store = params.store || "ALL";
+  const params = (await searchParams) || {};
+  const page = Math.max(Number(params?.page) || 1, 1);
+  const search = params?.search || "";
+  const store = params?.store || "ALL";
 
   const { products, pagination } = await getCiceksepetiProducts({ page, limit: 50, search, store });
 

@@ -503,7 +503,7 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
                   ? {
                       ...item,
                       ciceksepetiProduct: {
-                        ...item.ciceksepetiProduct,
+                        ...(item.ciceksepetiProduct || {}),
                         isSynced: true,
                         lastSyncError: null,
                       },
