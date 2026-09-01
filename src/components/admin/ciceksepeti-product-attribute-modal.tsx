@@ -24,6 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search, ChevronDown, Check, Building2 } from "lucide-react";
 import { getCiceksepetiCategoryAttributes, syncProductsToCiceksepeti } from "@/app/admin/(protected)/integrations/ciceksepeti/actions";
 import { toast } from "sonner";
