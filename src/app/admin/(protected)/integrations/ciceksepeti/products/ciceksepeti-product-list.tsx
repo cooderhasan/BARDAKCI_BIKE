@@ -83,6 +83,15 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
       return;
     }
 
+    // Tek bir ürün seçilip tam aktarım ("all") istendiyse, nitelik (spec) modalını otomatik aç
+    if (selectedIds.length === 1 && syncType === "all") {
+      const singleProduct = products.find((p) => p.id === selectedIds[0]);
+      if (singleProduct) {
+        setSelectedModalProduct(singleProduct);
+        return;
+      }
+    }
+
     setLoading(true);
     const actionText = syncType === "prices" 
       ? "Fiyat/Stok" 
