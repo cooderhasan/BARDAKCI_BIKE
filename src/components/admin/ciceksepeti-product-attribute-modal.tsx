@@ -95,6 +95,19 @@ function SearchableAttributeSelect({
           </div>
         )}
         <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5">
+          {/* Seçimi Temizle / Boş Bırak */}
+          <div
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+              setSearchTerm("");
+            }}
+            className="flex items-center justify-between px-2.5 py-1.5 rounded text-xs cursor-pointer text-muted-foreground hover:bg-slate-100 border-b mb-1 italic"
+          >
+            <span>-- Seçimi Kaldır (Boş Bırak) --</span>
+            {!value && <Check className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 ml-1" />}
+          </div>
+
           {filteredValues.length === 0 ? (
             <div className="p-3 text-center text-xs text-muted-foreground">
               "{searchTerm}" ile eşleşen seçenek bulunamadı.
@@ -256,7 +269,23 @@ export function CiceksepetiProductAttributeModal({
     );
   }
 
+  // Seçili varyant oluşturan özellikleri bul
+  const selectedVarianterAttrs = apiAttributes.filter(
+    (attr) =>
+      (attr.varianter || attr.isVariantProperty) &&
+      (attributeValues[String(attr.id)]?.attributeValueId || attributeValues[String(attr.id)]?.customValue)
+  );
+
   async function handleSubmit() {
+    // 1) Birden fazla varyant özelliği seçildiyse engelle
+    if (selectedVarianterAttrs.length > 1) {
+      toast.error(
+        `Çiçeksepeti kuralı: Tek bir üründe birden fazla varyant oluşturan özellik seçilemez. Lütfen şu özelliklerden yalnızca 1 tanesini seçip diğerlerini boş bırakın: ${selectedVarianterAttrs.map((a) => a.name).join(", ")}`,
+        { duration: 7000 }
+      );
+      return;
+    }
+
     const missingRequired = apiAttributes.filter(
       (attr) => (attr.required || attr.isRequired) && !attributeValues[String(attr.id)]?.attributeValueId && !attributeValues[String(attr.id)]?.customValue
     );
@@ -454,21 +483,61 @@ export function CiceksepetiProductAttributeModal({
                   <span>Çiçeksepeti özel kategori özellikleri çekiliyor...</span>
                 </div>
               ) : apiAttributes.length > 0 && (
-                <div className="space-y-2 p-3 bg-amber-50/50 border border-amber-200 rounded-lg">
-                  <p className="font-semibold text-amber-900">
-                    Çiçeksepeti Kategori Nitelikleri (<span className="text-red-500">*</span> zorunlu)
-                  </p>
+                <div className="space-y-3 p-3 bg-amber-50/50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-amber-900">
+                      Çiçeksepeti Kategori Nitelikleri (<span className="text-red-500">*</span> zorunlu)
+                    </p>
+                    <span className="text-[10px] text-amber-700 font-medium">
+                      {apiAttributes.length} nitelik bulundu
+                    </span>
+                  </div>
+
+                  {/* Birden Fazla Varyant Özelliği Seçildiyse Uyarı */}
+                  {selectedVarianterAttrs.length > 1 && (
+                    <div className="p-3 bg-red-50 border border-red-300 rounded-md text-red-900 text-xs flex items-start gap-2.5 shadow-sm">
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="font-bold text-red-700">
+                          ⚠️ Birden Fazla Varyant Özelliği Seçildi ({selectedVarianterAttrs.length} adet)
+                        </p>
+                        <p className="text-[11px] leading-relaxed">
+                          Çiçeksepeti tekil ürünlerde <strong>en fazla 1 adet varyant özelliğine</strong> (örn. yalnızca Renk <u>veya</u> yalnızca Kadro Boyu) izin verir. Şu an seçili olan: <strong>{selectedVarianterAttrs.map((a) => a.name).join(", ")}</strong>. Lütfen bunlardan sadece 1 tanesini bırakıp diğerlerini <em>"-- Seçimi Kaldır --"</em> yapınız.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2.5">
                     {apiAttributes.map((attr) => {
                       const isReq = attr.required || attr.isRequired;
+                      const isVar = attr.varianter || attr.isVariantProperty;
                       const currentVal = attributeValues[String(attr.id)] || {};
 
                       return (
-                        <div key={attr.id} className="space-y-1 bg-white p-2.5 rounded border border-amber-200">
-                          <Label className="text-[11px] font-semibold flex items-center justify-between">
-                            <span>
+                        <div
+                          key={attr.id}
+                          className={`space-y-1.5 p-2.5 rounded border transition-colors ${
+                            isVar && (currentVal.attributeValueId || currentVal.customValue)
+                              ? "bg-purple-50/50 border-purple-200"
+                              : "bg-white border-amber-200"
+                          }`}
+                        >
+                          <Label className="text-[11px] font-semibold flex items-center justify-between flex-wrap gap-1">
+                            <span className="flex items-center gap-1.5">
                               {attr.name} {isReq && <span className="text-red-500">*</span>}
                             </span>
+                            <div className="flex items-center gap-1">
+                              {isVar ? (
+                                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[9px] py-0 px-1 font-normal">
+                                  Varyant Özelliği (Maks 1)
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[9px] text-gray-500 py-0 px-1 font-normal">
+                                  Ürün Özelliği
+                                </Badge>
+                              )}
+                            </div>
                           </Label>
 
                           {attr.attributeValues && attr.attributeValues.length > 0 ? (

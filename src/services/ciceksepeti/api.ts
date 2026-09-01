@@ -180,7 +180,7 @@ export class CiceksepetiClient {
             id: Number(a.attributeId || a.id),
             name: String(a.attributeName || a.name || "Nitelik"),
             required: Boolean(a.required || a.isRequired || a.mandatory),
-            varianter: Boolean(a.varianter),
+            varianter: Boolean(a.varianter || a.isVariantProperty || a.isVariant || a.variant || a.isVarianter || a.attributeType === 2 || a.attributeType === "Variant"),
             type: String(a.type || ""),
             attributeValues: (a.attributeValues || a.values || a.options || []).map((v: any) => ({
               id: Number(v.id || v.valueId),
