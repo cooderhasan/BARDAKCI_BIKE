@@ -34,6 +34,7 @@ export interface PttavmProductUpsertItem {
   priceWithoutVAT: number;
   priceWithoutVat?: number;
   priceWithVAT: number;
+  priceWithVat?: number;
   vatRate: number;
   discount?: number;
   desi?: number;
@@ -50,6 +51,7 @@ export interface PttavmStockPriceItem {
   priceWithoutVAT: number;
   priceWithoutVat?: number;
   priceWithVAT: number;
+  priceWithVat?: number;
   vatRate: number;
   discount?: number;
   variants?: any[];
