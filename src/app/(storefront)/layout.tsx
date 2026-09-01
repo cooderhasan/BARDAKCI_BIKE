@@ -38,6 +38,56 @@ export default async function StorefrontLayout({
 
     let categories: any[] = [];
 
+    function sortHeaderCategories(cats: any[]) {
+        const getPriority = (name: string): number => {
+            const n = (name || "").toLocaleLowerCase("tr-TR").trim();
+            
+            // Yedek Parça is ALWAYS LAST
+            if (n.includes("yedek parça") || n.includes("yedek parca") || n.includes("yedek")) {
+                return 990;
+            }
+            // Aksesuar is ALWAYS NEXT TO LAST (before Yedek Parça)
+            if (n.includes("aksesuar") || n.includes("ekipman")) {
+                return 880;
+            }
+            
+            // Bike categories standard hierarchy
+            if (n.includes("çocuk") || n.includes("cocuk")) return 10;
+            if (n.includes("dağ") || n.includes("dag")) return 20;
+            if (n.includes("şehir") || n.includes("sehir")) return 30;
+            if (n.includes("elektrikli") || n.includes("e-bike")) return 40;
+            if (n.includes("katlanabilir") || n.includes("katlanır")) return 50;
+            if (n.includes("yol") || n.includes("yarış") || n.includes("yaris") || n.includes("gravel")) return 60;
+            
+            return 100;
+        };
+
+        return cats.sort((a, b) => {
+            const orderA = a.headerOrder ?? 0;
+            const orderB = b.headerOrder ?? 0;
+            
+            // If explicit headerOrder differs, respect admin manual headerOrder
+            if (orderA !== orderB) {
+                return orderA - orderB;
+            }
+            
+            // If both have same headerOrder (e.g. both 0), apply deterministic business rules
+            const prioA = getPriority(a.name || "");
+            const prioB = getPriority(b.name || "");
+            if (prioA !== prioB) {
+                return prioA - prioB;
+            }
+            
+            const sideOrderA = a.order ?? 0;
+            const sideOrderB = b.order ?? 0;
+            if (sideOrderA !== sideOrderB) {
+                return sideOrderA - sideOrderB;
+            }
+            
+            return (a.name || "").localeCompare(b.name || "", "tr-TR");
+        });
+    }
+
     try {
         if (activeStore === "MOTOR") {
             const motorTargetOrder = [
@@ -62,6 +112,8 @@ export default async function StorefrontLayout({
                     imageUrl: true,
                     menuImageUrl: true,
                     isInHeader: true,
+                    headerOrder: true,
+                    order: true,
                     children: {
                         where: { isActive: true, store: storeFilter },
                         select: {
@@ -104,6 +156,8 @@ export default async function StorefrontLayout({
                     imageUrl: true,
                     menuImageUrl: true,
                     isInHeader: true,
+                    headerOrder: true,
+                    order: true,
                     children: {
                         where: { isActive: true, store: storeFilter },
                         select: {
@@ -135,6 +189,8 @@ export default async function StorefrontLayout({
                         imageUrl: true,
                         menuImageUrl: true,
                         isInHeader: true,
+                        headerOrder: true,
+                        order: true,
                         children: {
                             where: { isActive: true, store: storeFilter },
                             select: {
@@ -166,6 +222,8 @@ export default async function StorefrontLayout({
                             imageUrl: true,
                             menuImageUrl: true,
                             isInHeader: true,
+                            headerOrder: true,
+                            order: true,
                             children: {
                                 where: { isActive: true, store: storeFilter },
                                 select: {
@@ -179,6 +237,10 @@ export default async function StorefrontLayout({
                         }
                     });
                 }
+            }
+
+            if (categories.length > 0) {
+                categories = sortHeaderCategories(categories);
             }
         }
     } catch (error) {

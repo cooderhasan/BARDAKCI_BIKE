@@ -22,7 +22,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { X, Plus, Pencil, Trash2, Search, Loader2, Check, ChevronsUpDown, Eye, ExternalLink, ArrowRight, FolderSync } from "lucide-react";
+import { X, Plus, Pencil, Trash2, Search, Loader2, Check, ChevronsUpDown, Eye, ExternalLink, ArrowRight, FolderSync, GripVertical, Sparkles, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { getTrendyolCategories } from "@/app/admin/(protected)/integrations/trendyol/actions";
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder, getCategoryProductsAction, moveProductToCategoryAction, moveAllProductsAndMergeCategoryAction } from "@/app/admin/(protected)/categories/actions";
+import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder, fixHeaderOrderAction, getCategoryProductsAction, moveProductToCategoryAction, moveAllProductsAndMergeCategoryAction } from "@/app/admin/(protected)/categories/actions";
 import dynamic from "next/dynamic";
 const RichTextEditor = dynamic(
     () => import("@/components/admin/rich-text-editor").then((mod) => mod.RichTextEditor),
@@ -63,7 +63,6 @@ import {
     useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
 
 interface Category {
     id: string;
@@ -125,13 +124,30 @@ function SortableRow({ category, onEdit, onDelete, onToggleStatus, onInspectProd
 
     return (
         <TableRow ref={setNodeRef} style={style}>
-            <TableCell className="w-[80px]">
-                {reorderMode !== "none" ? (
-                    <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
-                        <GripVertical className="h-4 w-4 text-gray-400" />
+            <TableCell className="w-[100px]">
+                {reorderMode === "header" ? (
+                    <div className="flex items-center gap-1.5">
+                        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
+                            <GripVertical className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <Badge variant="outline" className="font-mono text-xs font-bold text-blue-700 bg-blue-50 border-blue-200">
+                            #{category.headerOrder}
+                        </Badge>
+                    </div>
+                ) : reorderMode === "sidebar" ? (
+                    <div className="flex items-center gap-1.5">
+                        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors">
+                            <GripVertical className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <Badge variant="outline" className="font-mono text-xs font-bold">
+                            #{category.order}
+                        </Badge>
                     </div>
                 ) : (
-                    category.order
+                    <div className="flex flex-col text-xs text-gray-500 font-mono">
+                        <span>Yan: #{category.order}</span>
+                        {category.isInHeader && <span className="text-blue-600 font-semibold">Üst: #{category.headerOrder}</span>}
+                    </div>
                 )}
             </TableCell>
             <TableCell>
@@ -1168,6 +1184,8 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [description, setDescription] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [filterMissingMapping, setFilterMissingMapping] = useState<"all" | "trendyol" | "n11" | "hb" | "any">("all");
+    const [filterStore, setFilterStore] = useState<"ALL" | "BIKE" | "MOTOR">("ALL");
+    const [fixingHeaderOrder, setFixingHeaderOrder] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [reorderMode, setReorderMode] = useState<"none" | "sidebar" | "header">("none");
     const [localCategories, setLocalCategories] = useState<Category[]>(categories);
@@ -1178,6 +1196,25 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [targetCategoryId, setTargetCategoryId] = useState<string>("");
     const [movingProductId, setMovingProductId] = useState<string | null>(null);
     const [bulkMoving, setBulkMoving] = useState(false);
+
+    const handleFixHeaderOrder = async () => {
+        if (!confirm("Üst menü sıralaması ideal düzene (Çocuk, Dağ, Şehir, Elektrikli ... Aksesuar ve Yedek Parça en sonda olacak şekilde) otomatik olarak ayarlanıp kaydedilecek. Onaylıyor musunuz?")) return;
+        
+        setFixingHeaderOrder(true);
+        try {
+            const res = await fixHeaderOrderAction(filterStore);
+            if (res.success) {
+                toast.success(res.message);
+                window.location.reload();
+            } else {
+                toast.error(res.message);
+            }
+        } catch {
+            toast.error("Sıralama düzeltilirken bir hata oluştu.");
+        } finally {
+            setFixingHeaderOrder(false);
+        }
+    };
 
     const handleOpenInspectProducts = async (category: Category) => {
         setInspectCategory(category);
@@ -1272,9 +1309,12 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
 
     const ITEMS_PER_PAGE = reorderMode === "none" ? 50 : 1000; // Increased to 50
 
-    // Filter categories based on search and mapping status
+    // Filter categories based on search, store, and mapping status
     const filteredCategories = localCategories.filter(category => {
         if (reorderMode === "header" && !category.isInHeader && !searchTerm) return false;
+
+        if (filterStore === "BIKE" && category.store !== "BIKE" && category.store !== "BOTH") return false;
+        if (filterStore === "MOTOR" && category.store !== "MOTOR" && category.store !== "BOTH") return false;
 
         const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (category.parent?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1292,7 +1332,10 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
 
     // Sort based on mode
     const sortedCategories = [...filteredCategories].sort((a, b) => {
-        if (reorderMode === "header") return a.headerOrder - b.headerOrder;
+        if (reorderMode === "header") {
+            if (a.headerOrder !== b.headerOrder) return a.headerOrder - b.headerOrder;
+            return a.order - b.order;
+        }
         return a.order - b.order;
     });
 
@@ -1327,7 +1370,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                 if (index !== -1) {
                     return {
                         ...cat,
-                        [reorderMode === "sidebar" ? "order" : "headerOrder"]: index
+                        [reorderMode === "sidebar" ? "order" : "headerOrder"]: reorderMode === "header" ? index + 1 : index
                     };
                 }
                 return cat;
@@ -1344,7 +1387,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                 } else if (reorderMode === "header") {
                     const updates = newArray.map((cat, index) => ({
                         id: cat.id,
-                        headerOrder: index
+                        headerOrder: index + 1
                     }));
                     await updateCategoriesHeaderOrder(updates);
                 }
@@ -1587,10 +1630,51 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                             variant={reorderMode === "header" ? "secondary" : "ghost"}
                             size="sm"
                             onClick={() => setReorderMode("header")}
+                            className={reorderMode === "header" ? "text-blue-700 font-bold" : ""}
                         >
                             Üst Menü
                         </Button>
                     </div>
+
+                    {/* Store Filter Tabs */}
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+                        <Button
+                            variant={filterStore === "ALL" ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => { setFilterStore("ALL"); setCurrentPage(1); }}
+                        >
+                            Tümü
+                        </Button>
+                        <Button
+                            variant={filterStore === "BIKE" ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => { setFilterStore("BIKE"); setCurrentPage(1); }}
+                            className={filterStore === "BIKE" ? "text-blue-700 font-bold" : ""}
+                        >
+                            🚲 Bisiklet
+                        </Button>
+                        <Button
+                            variant={filterStore === "MOTOR" ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => { setFilterStore("MOTOR"); setCurrentPage(1); }}
+                            className={filterStore === "MOTOR" ? "text-red-700 font-bold" : ""}
+                        >
+                            🏍️ Motor
+                        </Button>
+                    </div>
+
+                    {reorderMode === "header" && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleFixHeaderOrder}
+                            disabled={fixingHeaderOrder}
+                            className="border-blue-300 text-blue-700 bg-blue-50/60 hover:bg-blue-100 font-medium text-xs flex items-center gap-1.5"
+                        >
+                            {fixingHeaderOrder ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-blue-600" />}
+                            <span>✨ Otomatik Sırala (Aksesuar & Yedek Parça Sonda)</span>
+                        </Button>
+                    )}
 
                     <Select value={filterMissingMapping} onValueChange={(val: any) => { setFilterMissingMapping(val); setCurrentPage(1); }}>
                         <SelectTrigger className="w-[180px]">
@@ -1900,6 +1984,24 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                         <Label htmlFor="inHeader">Üst Menüde Göster</Label>
                                     </div>
                                 </div>
+                                {isInHeader && (
+                                    <div className="space-y-1.5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 animate-in fade-in duration-200">
+                                        <Label htmlFor="headerOrder" className="text-blue-900 dark:text-blue-200 font-semibold text-xs uppercase tracking-wide">
+                                            🔝 Üst Menü Sıralaması (Header Order)
+                                        </Label>
+                                        <Input
+                                            id="headerOrder"
+                                            type="number"
+                                            value={headerOrder}
+                                            onChange={(e) => setHeaderOrder(parseInt(e.target.value) || 0)}
+                                            placeholder="Örn: 1, 2, 3..."
+                                            className="bg-white dark:bg-gray-900 border-blue-300"
+                                        />
+                                        <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                                            Kategorinin üst menüdeki görünüm sırasını belirler (1, 2, 3...). Küçük sayılar solda görünür. Aksesuar ve Yedek Parça en sonda olmalıdır.
+                                         </p>
+                                    </div>
+                                )}
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>

@@ -131,6 +131,101 @@ export async function updateCategoriesHeaderOrder(updates: { id: string; headerO
     );
     revalidatePath("/admin/categories");
     revalidatePath("/");
+    return { success: true, message: "Üst menü sıralaması güncellendi." };
+}
+
+export async function fixHeaderOrderAction(targetStore: "BIKE" | "MOTOR" | "ALL" = "ALL") {
+    try {
+        const getPriority = (name: string, store: string): number => {
+            const n = (name || "").toLocaleLowerCase("tr-TR").trim();
+            
+            if (store === "MOTOR") {
+                if (n.includes("yedek parça") || n.includes("yedek parca") || n.includes("yedek")) return 10;
+                if (n.includes("marka")) return 20;
+                if (n.includes("aksesuar")) return 30;
+                if (n.includes("bakım") || n.includes("tamir")) return 40;
+                return 100;
+            }
+
+            // BIKE Store
+            // Yedek Parça is ALWAYS LAST
+            if (n.includes("yedek parça") || n.includes("yedek parca") || n.includes("yedek")) return 990;
+            // Aksesuar is ALWAYS NEXT TO LAST
+            if (n.includes("aksesuar") || n.includes("ekipman")) return 880;
+
+            if (n.includes("çocuk") || n.includes("cocuk")) return 10;
+            if (n.includes("dağ") || n.includes("dag")) return 20;
+            if (n.includes("şehir") || n.includes("sehir")) return 30;
+            if (n.includes("elektrikli") || n.includes("e-bike")) return 40;
+            if (n.includes("katlanabilir") || n.includes("katlanır")) return 50;
+            if (n.includes("yol") || n.includes("yarış") || n.includes("yaris") || n.includes("gravel")) return 60;
+            
+            return 100;
+        };
+
+        const updates: { id: string; headerOrder: number }[] = [];
+
+        if (targetStore === "ALL" || targetStore === "BIKE") {
+            const bikeCategories = await prisma.category.findMany({
+                where: { isActive: true, isInHeader: true, store: { in: ["BIKE", "BOTH"] } },
+                select: { id: true, name: true, store: true, order: true }
+            });
+
+            const sortedBike = [...bikeCategories].sort((a, b) => {
+                const prioA = getPriority(a.name, a.store);
+                const prioB = getPriority(b.name, b.store);
+                if (prioA !== prioB) return prioA - prioB;
+                if (a.order !== b.order) return a.order - b.order;
+                return a.name.localeCompare(b.name, "tr-TR");
+            });
+
+            sortedBike.forEach((cat, index) => {
+                updates.push({ id: cat.id, headerOrder: index + 1 });
+            });
+        }
+
+        if (targetStore === "ALL" || targetStore === "MOTOR") {
+            const motorCategories = await prisma.category.findMany({
+                where: { isActive: true, isInHeader: true, store: { in: ["MOTOR", "BOTH"] } },
+                select: { id: true, name: true, store: true, order: true }
+            });
+
+            const sortedMotor = [...motorCategories].sort((a, b) => {
+                const prioA = getPriority(a.name, a.store);
+                const prioB = getPriority(b.name, b.store);
+                if (prioA !== prioB) return prioA - prioB;
+                if (a.order !== b.order) return a.order - b.order;
+                return a.name.localeCompare(b.name, "tr-TR");
+            });
+
+            sortedMotor.forEach((cat, index) => {
+                updates.push({ id: cat.id, headerOrder: index + 1 });
+            });
+        }
+
+        if (updates.length > 0) {
+            await prisma.$transaction(
+                updates.map((u) =>
+                    prisma.category.update({
+                        where: { id: u.id },
+                        data: { headerOrder: u.headerOrder }
+                    })
+                )
+            );
+        }
+
+        try {
+            revalidatePath("/admin/categories");
+            revalidatePath("/");
+        } catch {
+            // ignore if outside Next.js request context
+        }
+
+        return { success: true, message: `Üst menü sıralaması (${updates.length} kategori) başarıyla optimize edildi.` };
+    } catch (error: any) {
+        console.error("fixHeaderOrderAction error:", error);
+        return { success: false, message: "Sıralama düzeltilirken hata oluştu: " + error.message };
+    }
 }
 
 export async function mergeTireCategoriesAction() {
