@@ -116,22 +116,35 @@ export function buildUblInvoiceXml(
     // Satır hesaplamaları
     let lineExtensionAmount = 0;
     let totalTaxAmount = 0;
+    let totalAllowanceAmount = 0;
 
     const linesXml = lines.map((line, index) => {
         const qty = line.quantity;
         const price = line.unitPrice;
         const vatRate = line.taxRate;
-        const lineTotal = qty * price;
+        const discount = line.discountAmount || 0;
+        const grossTotal = qty * price;
+        const lineTotal = grossTotal - discount;
         const vatAmount = lineTotal * (vatRate / 100);
 
         lineExtensionAmount += lineTotal;
         totalTaxAmount += vatAmount;
+        totalAllowanceAmount += discount;
+
+        // AllowanceCharge bloğu (iskonto varsa)
+        const allowanceXml = discount > 0.01 ? `
+            <cac:AllowanceCharge>
+                <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+                <cbc:MultiplierFactorNumeric>${toFixed2(grossTotal > 0 ? (discount / grossTotal) * 100 : 0)}</cbc:MultiplierFactorNumeric>
+                <cbc:Amount currencyID="TRY">${toFixed2(discount)}</cbc:Amount>
+                <cbc:BaseAmount currencyID="TRY">${toFixed2(grossTotal)}</cbc:BaseAmount>
+            </cac:AllowanceCharge>` : "";
 
         return `
         <cac:InvoiceLine>
             <cbc:ID>${index + 1}</cbc:ID>
             <cbc:InvoicedQuantity unitCode="${escapeXml(line.unitCode || "C62")}">${qty}</cbc:InvoicedQuantity>
-            <cbc:LineExtensionAmount currencyID="TRY">${toFixed2(lineTotal)}</cbc:LineExtensionAmount>
+            <cbc:LineExtensionAmount currencyID="TRY">${toFixed2(lineTotal)}</cbc:LineExtensionAmount>${allowanceXml}
             <cac:TaxTotal>
                 <cbc:TaxAmount currencyID="TRY">${toFixed2(vatAmount)}</cbc:TaxAmount>
                 <cac:TaxSubtotal>
@@ -157,6 +170,7 @@ export function buildUblInvoiceXml(
 
     const taxExclusiveAmount = lineExtensionAmount;
     const taxInclusiveAmount = lineExtensionAmount + totalTaxAmount;
+    const allowanceTotalAmount = totalAllowanceAmount;
 
     // Gönderici (Supplier) isim/şahıs ayrımı
     const senderVkn = sender.vkn.replace(/\D/g, "");
@@ -315,7 +329,8 @@ ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:Documen
     <cac:LegalMonetaryTotal>
         <cbc:LineExtensionAmount currencyID="TRY">${toFixed2(lineExtensionAmount)}</cbc:LineExtensionAmount>
         <cbc:TaxExclusiveAmount currencyID="TRY">${toFixed2(taxExclusiveAmount)}</cbc:TaxExclusiveAmount>
-        <cbc:TaxInclusiveAmount currencyID="TRY">${toFixed2(taxInclusiveAmount)}</cbc:TaxInclusiveAmount>
+        <cbc:TaxInclusiveAmount currencyID="TRY">${toFixed2(taxInclusiveAmount)}</cbc:TaxInclusiveAmount>${allowanceTotalAmount > 0.01 ? `
+        <cbc:AllowanceTotalAmount currencyID="TRY">${toFixed2(allowanceTotalAmount)}</cbc:AllowanceTotalAmount>` : ""}
         <cbc:PayableAmount currencyID="TRY">${toFixed2(taxInclusiveAmount)}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
 ${linesXml}

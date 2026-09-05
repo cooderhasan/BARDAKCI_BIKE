@@ -165,19 +165,20 @@ function buildInvoicePayload(order: any): any {
     const totalDiscount = invoiceLines.reduce((sum, line) => sum + (line.discountAmount || 0), 0);
     const taxInclusiveAmount = taxExcludedPrice + taxAmount;
 
-    // Kargo tutarını ekle
-    const shippingCost = Number(order.shippingCost || 0);
-    if (shippingCost > 0) {
+    // Kargo tutarını ekle (KDV dahil → KDV hariç dönüşümü)
+    const shippingCostInclTax = Number(order.shippingCost || 0);
+    if (shippingCostInclTax > 0) {
         const shippingTaxRate = 20; // Kargo KDV oranı
-        const shippingTax = shippingCost * (shippingTaxRate / 100);
+        const shippingCostExclTax = shippingCostInclTax / (1 + shippingTaxRate / 100);
+        const shippingTax = shippingCostInclTax - shippingCostExclTax;
         invoiceLines.push({
             name: "Kargo Ücreti",
             quantity: 1,
             unitCode: "C62",
-            unitPrice: shippingCost,
+            unitPrice: Math.round(shippingCostExclTax * 100) / 100,
             taxRate: shippingTaxRate,
             taxAmount: Math.round(shippingTax * 100) / 100,
-            amount: shippingCost,
+            amount: Math.round(shippingCostExclTax * 100) / 100,
         });
     }
 

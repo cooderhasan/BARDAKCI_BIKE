@@ -113,6 +113,7 @@ export async function sendOrderInvoiceNes(orderId: string) {
             include: {
                 items: { include: { product: true } },
                 user: true,
+                payment: true,
             },
         });
 
@@ -562,6 +563,30 @@ function buildReceiverInfo(order: any): UblReceiverInfo {
 }
 
 function buildInvoiceLines(order: any): UblInvoiceLine[] {
+    // Ödeme yöntemi havale mi kontrol et
+    const paymentMethod = order.payment?.method;
+    const isBankTransfer = paymentMethod === "BANK_TRANSFER";
+
+    // Sipariş toplam ürün tutarı (KDV dahil, ürün indirimleri uygulanmış)
+    const itemsTotalInclTax = order.items.reduce((sum: number, item: any) => {
+        return sum + Number(item.lineTotal);
+    }, 0);
+
+    // Kargo ücreti (KDV dahil olarak DB'de saklanıyor)
+    const shippingCostInclTax = Number(order.shippingCost || 0);
+
+    // Havale indirimi hesapla:
+    // Sipariş totali (order.total) = ürünler + kargo - havale indirimi
+    // Havale indirimi = (ürünler + kargo) - order.total
+    const orderTotal = Number(order.total);
+    const expectedWithoutDiscount = itemsTotalInclTax + shippingCostInclTax;
+    const bankDiscountAmountInclTax = isBankTransfer ? Math.max(0, Math.round((expectedWithoutDiscount - orderTotal) * 100) / 100) : 0;
+
+    // Havale indirimi oranı (ürünler üzerinden)
+    const bankDiscountRatio = (bankDiscountAmountInclTax > 0.01 && itemsTotalInclTax > 0)
+        ? bankDiscountAmountInclTax / itemsTotalInclTax
+        : 0;
+
     const lines: UblInvoiceLine[] = order.items.map((item: any) => {
         const unitPriceInclTax = Number(item.unitPrice);
         const quantity = item.quantity;
@@ -569,11 +594,16 @@ function buildInvoiceLines(order: any): UblInvoiceLine[] {
         const discountRate = Number(item.discountRate || 0);
 
         // KDV dahil fiyattan KDV hariç fiyatı hesapla
+        const unitPriceExclTax = unitPriceInclTax / (1 + vatRate / 100);
+
+        // Ürün bazlı indirim (bayi indirimi/kampanya) uygula
         const discountedPriceInclTax = unitPriceInclTax * (1 - discountRate / 100);
         const lineTotalInclTax = discountedPriceInclTax * quantity;
-        const lineTotalExclTax = lineTotalInclTax / (1 + vatRate / 100);
-        const unitPriceExclTax = unitPriceInclTax / (1 + vatRate / 100);
-        const lineDiscount = (unitPriceInclTax * quantity) - lineTotalInclTax;
+
+        // Havale indirimi bu kaleme düşen kısım (KDV dahil)
+        const itemBankDiscountInclTax = lineTotalInclTax * bankDiscountRatio;
+        // KDV hariç havale indirimi
+        const itemBankDiscountExclTax = itemBankDiscountInclTax / (1 + vatRate / 100);
 
         return {
             name: item.productName || item.product?.name || "Ürün",
@@ -581,19 +611,20 @@ function buildInvoiceLines(order: any): UblInvoiceLine[] {
             unitCode: "C62",
             unitPrice: Math.round(unitPriceExclTax * 100) / 100,
             taxRate: vatRate,
-            discountAmount: lineDiscount > 0.01 ? Math.round(lineDiscount * 100) / 100 : undefined,
+            discountAmount: itemBankDiscountExclTax > 0.01 ? Math.round(itemBankDiscountExclTax * 100) / 100 : undefined,
         };
     });
 
-    // Kargo ücreti ekle
-    const shippingCost = Number(order.shippingCost || 0);
-    if (shippingCost > 0) {
+    // Kargo ücreti ekle (KDV dahil → KDV hariç dönüşümü)
+    if (shippingCostInclTax > 0) {
+        const shippingVatRate = 20;
+        const shippingCostExclTax = shippingCostInclTax / (1 + shippingVatRate / 100);
         lines.push({
             name: "Kargo Ücreti",
             quantity: 1,
             unitCode: "C62",
-            unitPrice: shippingCost,
-            taxRate: 20,
+            unitPrice: Math.round(shippingCostExclTax * 100) / 100,
+            taxRate: shippingVatRate,
         });
     }
 
