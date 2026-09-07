@@ -62,6 +62,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
     // Attribute Modal State
     const [showAttrModal, setShowAttrModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [categoryAttrs, setCategoryAttrs] = useState<any[]>([]);
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
@@ -85,20 +86,27 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
         }
     };
 
-    const handleOpenWizard = async (product: any) => {
-        const mappedCat = product.categories.find((c: any) => c.trendyolCategoryId !== null);
-        if (!mappedCat) {
+    const handleOpenWizard = async (product: any, overrideCatId?: number) => {
+        const mappedCats = product.categories.filter((c: any) => c.trendyolCategoryId !== null);
+        if (mappedCats.length === 0) {
             toast.error("Önce kategoriyi Trendyol ile eşleştirmelisiniz.");
             return;
         }
 
+        // Eğer ürünün birden çok kategorisi varsa, iç lastik gibi spesifik kategoriyi önceliklendir
+        const activeCat = overrideCatId 
+            ? mappedCats.find((c: any) => c.trendyolCategoryId === overrideCatId) || mappedCats[0]
+            : (mappedCats.find((c: any) => c.name?.toLowerCase().includes("iç lastik") || c.name?.toLowerCase().includes("lastik")) || mappedCats[0]);
+
+        const catId = activeCat.trendyolCategoryId;
         setSelectedProduct(product);
+        setSelectedCategoryId(catId);
         setShowAttrModal(true);
         setAttrLoading(true);
         setAttrMappings({});
 
         try {
-            const res = await getTrendyolCategoryAttributes(mappedCat.trendyolCategoryId);
+            const res = await getTrendyolCategoryAttributes(catId);
             if (res.success) {
                 const attrs = res.data || [];
                 setCategoryAttrs(attrs);
@@ -164,7 +172,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
         setShowAttrModal(false);
 
         try {
-            const res = await sendProductToTrendyol(selectedProduct.id, finalAttrs);
+            const res = await sendProductToTrendyol(selectedProduct.id, finalAttrs, selectedCategoryId || undefined);
             if (res.success) {
                 toast.success(res.message);
                 // Update local state
@@ -389,9 +397,35 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                             Kategori Özelliklerini Eşleştir
                         </DialogTitle>
                         <DialogDescription>
-                            Trendyol "{selectedProduct?.categories.find((c: any) => c.trendyolCategoryId)?.name}" kategorisi için zorunlu alanları doldurun.
+                            Trendyol "{selectedProduct?.categories.find((c: any) => c.trendyolCategoryId === selectedCategoryId)?.name || selectedProduct?.categories[0]?.name}" kategorisi için zorunlu alanları doldurun.
                         </DialogDescription>
                     </DialogHeader>
+
+                    {/* Çoklu Kategori Varsa Kullanıcıya Açıkça Seçim Sun */}
+                    {selectedProduct && selectedProduct.categories.filter((c: any) => c.trendyolCategoryId !== null).length > 1 && (
+                        <div className="p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800 rounded-2xl space-y-1.5 mt-2">
+                            <Label className="text-xs font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                                <span>⚠️ Ürünün Birden Çok Kategorisi Var. Trendyol'a Gönderilecek Kategori:</span>
+                            </Label>
+                            <Select 
+                                value={selectedCategoryId?.toString()} 
+                                onValueChange={(val) => handleOpenWizard(selectedProduct, Number(val))}
+                            >
+                                <SelectTrigger className="bg-white dark:bg-gray-800 font-medium text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {selectedProduct.categories
+                                        .filter((c: any) => c.trendyolCategoryId !== null)
+                                        .map((c: any) => (
+                                            <SelectItem key={c.id} value={c.trendyolCategoryId.toString()}>
+                                                {c.name} (Trendyol ID: #{c.trendyolCategoryId})
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     {attrLoading ? (
                         <div className="py-12 flex flex-col items-center justify-center gap-3">

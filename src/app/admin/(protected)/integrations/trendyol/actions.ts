@@ -721,7 +721,7 @@ export async function getTrendyolCategoryAttributes(categoryId: number) {
     }
 }
 
-export async function sendProductToTrendyol(productId: string, attributeMappings: any[]) {
+export async function sendProductToTrendyol(productId: string, attributeMappings: any[], targetCategoryId?: number) {
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -744,8 +744,21 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
         });
 
         // 1. Kategori ve Marka ID kontrolü
-        const mappedCategory = (product as any).categories.find((c: any) => c.trendyolCategoryId !== null);
-        if (!mappedCategory) return { success: false, message: "Ürünün kategorisi Trendyol ile eşleşmemiş." };
+        let mappedCategory = null;
+        if (targetCategoryId) {
+            mappedCategory = (product as any).categories.find((c: any) => c.trendyolCategoryId === targetCategoryId) 
+                || { trendyolCategoryId: targetCategoryId };
+        } else {
+            // Eğer birden fazla kategori varsa, daha spesifik olanı (örn. iç lastik) önceliklendir
+            const mappedCats = (product as any).categories.filter((c: any) => c.trendyolCategoryId !== null);
+            mappedCategory = mappedCats.find((c: any) => c.name?.toLowerCase().includes("iç lastik") || c.name?.toLowerCase().includes("lastik")) 
+                || mappedCats[0] 
+                || null;
+        }
+
+        if (!mappedCategory || !mappedCategory.trendyolCategoryId) {
+            return { success: false, message: "Ürünün kategorisi Trendyol ile eşleşmemiş." };
+        }
 
         const brandId = (product as any).brand?.trendyolBrandId;
         if (!brandId) return { success: false, message: "Ürünün markası Trendyol ile eşleşmemiş." };
