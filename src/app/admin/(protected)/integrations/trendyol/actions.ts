@@ -832,8 +832,60 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
             console.log("[Trendyol] Updating price/stock only for synced product:", JSON.stringify(updateItems, null, 2));
             result = await client.updatePriceAndInventory(updateItems);
         } else {
-            console.log("[Trendyol] Sending full product payload (Create/Update):", JSON.stringify(items[0], null, 2));
-            result = await client.createProducts(items);
+            // Trendyol V2 Architecture:
+            // Check if product already exists or has a contentId
+            let contentId = tpRecord?.trendyolId;
+
+            if (!contentId && isAlreadySynced) {
+                try {
+                    const existingOnTy = await client.getProductByBarcode(items[0].barcode);
+                    if (existingOnTy?.contentId) {
+                        contentId = String(existingOnTy.contentId);
+                        // Save contentId to DB for subsequent updates
+                        await (prisma as any).trendyolProduct.update({
+                            where: { id: tpRecord.id },
+                            data: { trendyolId: contentId }
+                        }).catch(() => {});
+                    }
+                } catch (e) {
+                    console.warn("[Trendyol] Could not query product by barcode:", e);
+                }
+            }
+
+            if (contentId) {
+                // V2 Approved Product Content Bulk Update
+                console.log("[Trendyol] Sending V2 Content Bulk Update with contentId:", contentId);
+                const contentItems = [{
+                    contentId: Number(contentId),
+                    title: baseItem.title,
+                    description: baseItem.description,
+                    images: baseItem.images,
+                    attributes: baseItem.attributes
+                }];
+                result = await client.updateApprovedProductContent(contentItems);
+                
+                // Also update price/stock in parallel
+                const updateItems = items.map((i: any) => ({
+                    barcode: i.barcode,
+                    quantity: i.quantity,
+                    salePrice: i.salePrice,
+                    listPrice: i.listPrice
+                }));
+                await client.updatePriceAndInventory(updateItems).catch((err: any) => console.warn("[Trendyol] price-inventory update error:", err));
+            } else {
+                // V2 Product Create (v2/products)
+                console.log("[Trendyol] Sending V2 Full Product Payload (v2/products):", JSON.stringify(items[0], null, 2));
+                result = await client.createProducts(items);
+
+                // If Trendyol returns an error indicating barcode already exists or is unapproved
+                if (!result.ok && result.message && (result.message.toLowerCase().includes("barcode") || result.message.toLowerCase().includes("exist"))) {
+                    console.log("[Trendyol] Barcode might already exist, attempting unapproved bulk update...");
+                    const unapprovedRes = await client.updateUnapprovedProducts(items);
+                    if (unapprovedRes.ok) {
+                        result = unapprovedRes;
+                    }
+                }
+            }
         }
 
         if (result.ok) {
@@ -846,23 +898,9 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
             let batchErrors: string[] = [];
             
             try {
-                // Deneme 1: Product API üzerinden sorgula
-                let batchUrl = `https://apigw.trendyol.com/integration/product/sellers/${config.supplierId}/products/batch-requests/${batchId}`;
-                let batchRes = await fetch(batchUrl, { headers: client.getHeaders() });
-                
-                // Eğer 404 aldıysak, bu muhtemelen bir stok güncellemesidir, Inventory API'den dene
-                if (batchRes.status === 404) {
-                    batchUrl = `https://apigw.trendyol.com/integration/inventory/sellers/${config.supplierId}/products/batch-requests/${batchId}`;
-                    batchRes = await fetch(batchUrl, { headers: client.getHeaders() });
-                }
-
-                if (batchRes.ok) {
-                    const batchData = await batchRes.json();
-                    
-                    // KRİTİK: Stok güncellemelerinde Trendyol en üst seviyede 'status' dönmeyebilir.
-                    // Bu durumda items içindeki ilk öğenin durumuna bakıyoruz.
+                const batchData = await client.getBatchRequestResult(batchId);
+                if (batchData) {
                     batchStatus = batchData.status || (batchData.items?.[0]?.status) || "UNKNOWN";
-                    
                     if (batchData.items) {
                         for (const item of batchData.items) {
                             if (item.status === "FAILED" && item.failureReasons) {
@@ -939,21 +977,7 @@ export async function checkTrendyolBatchRequest(batchRequestId: string) {
             apiSecret: config.apiSecret
         });
 
-        // Deneme 1: Product API
-        let url = `https://apigw.trendyol.com/integration/product/sellers/${config.supplierId}/products/batch-requests/${batchRequestId}`;
-        let response = await fetch(url, { headers: client.getHeaders() });
-        
-        // Fallback: Inventory API
-        if (response.status === 404) {
-            url = `https://apigw.trendyol.com/integration/inventory/sellers/${config.supplierId}/products/batch-requests/${batchRequestId}`;
-            response = await fetch(url, { headers: client.getHeaders() });
-        }
-
-        if (!response.ok) {
-            return { success: false, message: `Trendyol Hatası (${response.status})` };
-        }
-
-        const data = await response.json();
+        const data = await client.getBatchRequestResult(batchRequestId);
         return { success: true, data };
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };
@@ -1045,19 +1069,9 @@ export async function syncBatchStatuses() {
 
         for (const batchId of uniqueBatchIds) {
             try {
-                // Deneme 1: Product API
-                let url = `https://apigw.trendyol.com/integration/product/sellers/${config.supplierId}/products/batch-requests/${batchId}`;
-                let response = await fetch(url, { headers: client.getHeaders() });
-                
-                // Fallback: Inventory API (Stok/Fiyat güncellemeleri burada olabilir)
-                if (response.status === 404) {
-                    url = `https://apigw.trendyol.com/integration/inventory/sellers/${config.supplierId}/products/batch-requests/${batchId}`;
-                    response = await fetch(url, { headers: client.getHeaders() });
-                }
+                const batchData = await client.getBatchRequestResult(batchId).catch(() => null);
 
-                if (response.ok) {
-                    const batchData = await response.json();
-                    
+                if (batchData) {
                     // Stok güncellemeleri için 'status' fallback
                     const batchStatus = batchData.status || (batchData.items?.[0]?.status) || "UNKNOWN";
                     
@@ -1157,8 +1171,18 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
             // Just link it
             await (prisma as any).trendyolProduct.upsert({
                 where: { productId: existingProduct.id },
-                update: { isSynced: true, lastSyncedAt: new Date() },
-                create: { productId: existingProduct.id, barcode: tProduct.barcode, isSynced: true, lastSyncedAt: new Date() }
+                update: { 
+                    isSynced: true, 
+                    lastSyncedAt: new Date(),
+                    trendyolId: tProduct.contentId ? String(tProduct.contentId) : undefined 
+                },
+                create: { 
+                    productId: existingProduct.id, 
+                    barcode: tProduct.barcode, 
+                    trendyolId: tProduct.contentId ? String(tProduct.contentId) : null,
+                    isSynced: true, 
+                    lastSyncedAt: new Date() 
+                }
             });
             return { success: true, message: "Ürün mevcuttu, Trendyol ile eşleştirildi.", productId: existingProduct.id };
         }
@@ -1234,6 +1258,7 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
             data: {
                 productId: newProduct.id,
                 barcode: tProduct.barcode,
+                trendyolId: tProduct.contentId ? String(tProduct.contentId) : null,
                 isSynced: true,
                 lastSyncedAt: new Date(),
                 batchStatus: "COMPLETED"

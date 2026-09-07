@@ -11,7 +11,8 @@ export async function GET(request: Request) {
         const headers: Record<string, string> = {
             "Authorization": `Basic ${Buffer.from(pair).toString("base64")}`,
             "User-Agent": `${config.supplierId} - SelfIntegration`,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "storeFrontCode": "TR"
         };
 
         // --- YENİ EKLENEN: TEST GÖNDERİMİ ---
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
                 return NextResponse.json({ error: "Barkodlu varyant veya ürün bulunamadı", testBarcode });
             }
 
-            const sendUrl = `${gatewayUrl}/integration/product/sellers/${config.supplierId}/products`;
+            const sendUrl = `${gatewayUrl}/integration/product/sellers/${config.supplierId}/v2/products`;
             const sendRes = await fetch(sendUrl, {
                 method: "POST",
                 headers,
@@ -152,22 +153,22 @@ export async function GET(request: Request) {
             });
         } catch (e) {}
 
-        // 2. Her birinin barkodunu Trendyol'da ara
+        // 2. Her birinin barkodunu Trendyol'da ara (V2)
         const barcodeSearchResults: any = {};
         for (const sp of lastSyncedProducts) {
             const barcode = sp.barcode || sp.product?.barcode;
             if (!barcode) continue;
             
             try {
-                const url = `${gatewayUrl}/integration/product/sellers/${config.supplierId}/products?barcode=${barcode}`;
+                const url = `${gatewayUrl}/integration/product/sellers/${config.supplierId}/product/${encodeURIComponent(barcode)}`;
                 const res = await fetch(url, { headers });
                 if (res.ok) {
-                    const data = await res.json();
+                    const p = await res.json();
                     barcodeSearchResults[barcode] = {
-                        found: data.totalElements > 0,
-                        totalElements: data.totalElements,
-                        products: data.content?.map((p: any) => ({
+                        found: !!p,
+                        products: p ? [{
                             title: p.title,
+                            contentId: p.contentId,
                             approved: p.approved,
                             rejected: p.rejected,
                             onSale: p.onSale,
@@ -175,7 +176,7 @@ export async function GET(request: Request) {
                             quantity: p.quantity,
                             listPrice: p.listPrice,
                             salePrice: p.salePrice,
-                        }))
+                        }] : []
                     };
                 } else {
                     barcodeSearchResults[barcode] = { status: res.status, text: (await res.text()).substring(0, 200) };
@@ -185,21 +186,21 @@ export async function GET(request: Request) {
             }
         }
 
-        // 3. Trendyol'un toplam ürün sayısı
+        // 3. Trendyol'un toplam ürün sayısı (V2 Approved)
         let totalProductCount = 0;
         try {
-            const countRes = await fetch(`${gatewayUrl}/integration/product/sellers/${config.supplierId}/products?page=0&size=1`, { headers });
+            const countRes = await fetch(`${gatewayUrl}/integration/product/sellers/${config.supplierId}/products/approved?page=0&size=1`, { headers });
             if (countRes.ok) {
                 const countData = await countRes.json();
                 totalProductCount = countData.totalElements;
             }
         } catch (e) {}
 
-        // 4. Onay bekleyen (approved=false, rejected=false) ürünleri ara
+        // 4. Onaysız (taslak) ürünleri ara (V2 Unapproved)
         let pendingProducts: any = null;
         try {
             const pendingRes = await fetch(
-                `${gatewayUrl}/integration/product/sellers/${config.supplierId}/products?approved=false&page=0&size=10`,
+                `${gatewayUrl}/integration/product/sellers/${config.supplierId}/products/unapproved?page=0&size=10`,
                 { headers }
             );
             if (pendingRes.ok) {
