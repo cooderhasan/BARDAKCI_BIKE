@@ -37,6 +37,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
+import { AttributeSearchableSelect } from "./attribute-searchable-select";
 
 interface TrendyolProductListProps {
     initialProducts: any[];
@@ -419,36 +420,28 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                             </Label>
                                             
                                             {hasValues ? (
-                                                <Select 
-                                                    value={attrMappings[attrId]?.toString()}
-                                                    onValueChange={(val) => {
+                                                <AttributeSearchableSelect
+                                                    options={attr.attributeValues}
+                                                    value={attrMappings[attrId]}
+                                                    placeholder={`${attr.attribute.name} seçin veya arayın...`}
+                                                    searchPlaceholder={`${attr.attribute.name} ara... (yazdıkça filtreler)`}
+                                                    allowCustom={attr.allowCustom}
+                                                    onValueChange={(val, option) => {
                                                         const num = Number(val);
                                                         const finalVal = isNaN(num) ? val : num;
                                                         
                                                         // Web Color seçildiğinde Renk alanını da otomatik senkronize et
-                                                        if (attrId === 348) {
-                                                            const selectedObj = attr.attributeValues.find((av: any) => av.id.toString() === val);
+                                                        if (attrId === 348 && option) {
                                                             setAttrMappings((prev: any) => ({
                                                                 ...prev,
                                                                 348: finalVal,
-                                                                ...(selectedObj ? { 47: selectedObj.name } : {})
+                                                                47: option.name
                                                             }));
                                                         } else {
                                                             setAttrMappings((prev: any) => ({ ...prev, [attrId]: finalVal }));
                                                         }
                                                     }}
-                                                >
-                                                    <SelectTrigger className="bg-white dark:bg-gray-800">
-                                                        <SelectValue placeholder={`${attr.attribute.name} seçin...`} />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="max-h-60">
-                                                        {attr.attributeValues.map((av: any) => (
-                                                            <SelectItem key={av.id} value={av.id.toString()}>
-                                                                {av.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                />
                                             ) : (
                                                 <Input 
                                                     placeholder={attr.allowCustom ? "Değer girin..." : "Değer seçilemedi"} 
