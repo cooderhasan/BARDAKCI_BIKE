@@ -235,9 +235,9 @@ export class TrendyolClient {
      * Get Attribute Values for a Category - V2
      * GET /integration/product/categories/{categoryId}/attributes/{attributeId}/values
      */
-    async getCategoryAttributeValues(categoryId: number, attributeId: number) {
+    async getCategoryAttributeValues(categoryId: number, attributeId: number, size: number = 1000) {
         await this.init();
-        const response = await fetch(`${this.gatewayUrl}/integration/product/categories/${categoryId}/attributes/${attributeId}/values`, {
+        const response = await fetch(`${this.gatewayUrl}/integration/product/categories/${categoryId}/attributes/${attributeId}/values?size=${size}`, {
             headers: this.getHeaders()
         });
         if (!response.ok) throw new Error(`Trendyol API Error: ${response.statusText}`);

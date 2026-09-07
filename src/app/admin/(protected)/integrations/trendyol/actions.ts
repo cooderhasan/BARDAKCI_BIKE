@@ -652,17 +652,58 @@ export async function getTrendyolCategoryAttributes(categoryId: number) {
             // Trendyol V2 returns values in a separate endpoint for restricted or required attributes
             if (values.length === 0 && (!allowCustom || isRequired)) {
                 try {
-                    const valRes = await client.getCategoryAttributeValues(categoryId, attrObj.id);
+                    const valRes = await client.getCategoryAttributeValues(categoryId, attrObj.id, 1000);
                     const rawList = Array.isArray(valRes) ? valRes : (valRes?.content || []);
                     if (Array.isArray(rawList) && rawList.length > 0) {
-                        values = rawList.map((v: any) => ({
+                        let parsedValues = rawList.map((v: any) => ({
                             id: v.attributeValueId ?? v.id,
                             name: v.attributeValue ?? v.name
                         }));
+
+                        // Popüler seçenekleri en başa alalım
+                        if (attrObj.id === 338) { // Beden
+                            const tekEbat = parsedValues.find((v: any) => v.name?.toLowerCase().includes("tek ebat"));
+                            if (tekEbat) {
+                                parsedValues = [tekEbat, ...parsedValues.filter((v: any) => v.id !== tekEbat.id)];
+                            }
+                        }
+                        if (attrObj.id === 1192) { // Menşei
+                            const tr = parsedValues.find((v: any) => v.name === "TR" || v.name === "Türkiye");
+                            const cn = parsedValues.find((v: any) => v.name === "CN" || v.name === "Çin");
+                            const top = [tr, cn].filter(Boolean) as any[];
+                            const topIds = new Set(top.map(t => t.id));
+                            parsedValues = [...top, ...parsedValues.filter((v: any) => !topIds.has(v.id))];
+                        }
+                        if (attrObj.id === 348) { // Web Color
+                            const siyah = parsedValues.find((v: any) => v.name?.toLowerCase() === "siyah");
+                            const beyaz = parsedValues.find((v: any) => v.name?.toLowerCase() === "beyaz");
+                            const top = [siyah, beyaz].filter(Boolean) as any[];
+                            const topIds = new Set(top.map(t => t.id));
+                            parsedValues = [...top, ...parsedValues.filter((v: any) => !topIds.has(v.id))];
+                        }
+
+                        values = parsedValues;
                     }
                 } catch (e) {
                     // Ignore value fetch errors
                 }
+            }
+
+            // Renk (47) Trendyol'da serbest metindir ancak kullanıcıya popüler renkleri öneri olarak sunalım
+            if (attrObj.id === 47 && values.length === 0) {
+                values = [
+                    { id: "Siyah", name: "Siyah" },
+                    { id: "Beyaz", name: "Beyaz" },
+                    { id: "Gri", name: "Gri" },
+                    { id: "Kırmızı", name: "Kırmızı" },
+                    { id: "Mavi", name: "Mavi" },
+                    { id: "Sarı", name: "Sarı" },
+                    { id: "Yeşil", name: "Yeşil" },
+                    { id: "Turuncu", name: "Turuncu" },
+                    { id: "Lacivert", name: "Lacivert" },
+                    { id: "Bordo", name: "Bordo" },
+                    { id: "Çok Renkli", name: "Çok Renkli" }
+                ];
             }
 
             return {

@@ -115,7 +115,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                         // Menşei (1192) - TR veya CN
                         if (attrId === 1192) {
                             const tr = a.attributeValues.find((v: any) => v.name === "TR" || v.name === "Türkiye");
-                            const cn = a.attributeValues.find((v: any) => v.name === "CN");
+                            const cn = a.attributeValues.find((v: any) => v.name === "CN" || v.name === "Çin");
                             if (tr) initialMap[1192] = tr.id;
                             else if (cn) initialMap[1192] = cn.id;
                         }
@@ -124,7 +124,12 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                             const siyah = a.attributeValues.find((v: any) => v.name?.toLowerCase() === "siyah");
                             if (siyah) initialMap[348] = siyah.id;
                         }
-                    } else if (attrId === 47 && a.allowCustom) {
+                        // Renk (47)
+                        if (attrId === 47) {
+                            const siyah = a.attributeValues.find((v: any) => v.name?.toLowerCase() === "siyah");
+                            if (siyah) initialMap[47] = siyah.id;
+                        }
+                    } else if (attrId === 47) {
                         // Renk (47)
                         initialMap[47] = "Siyah";
                     }
@@ -411,7 +416,22 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                             {hasValues ? (
                                                 <Select 
                                                     value={attrMappings[attrId]?.toString()}
-                                                    onValueChange={(val) => setAttrMappings((prev: any) => ({ ...prev, [attrId]: Number(val) }))}
+                                                    onValueChange={(val) => {
+                                                        const num = Number(val);
+                                                        const finalVal = isNaN(num) ? val : num;
+                                                        
+                                                        // Web Color seçildiğinde Renk alanını da otomatik senkronize et
+                                                        if (attrId === 348) {
+                                                            const selectedObj = attr.attributeValues.find((av: any) => av.id.toString() === val);
+                                                            setAttrMappings((prev: any) => ({
+                                                                ...prev,
+                                                                348: finalVal,
+                                                                ...(selectedObj ? { 47: selectedObj.name } : {})
+                                                            }));
+                                                        } else {
+                                                            setAttrMappings((prev: any) => ({ ...prev, [attrId]: finalVal }));
+                                                        }
+                                                    }}
                                                 >
                                                     <SelectTrigger className="bg-white dark:bg-gray-800">
                                                         <SelectValue placeholder={`${attr.attribute.name} seçin...`} />
