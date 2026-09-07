@@ -119,22 +119,22 @@ export function TrendyolBatchList({ initialData }: { initialData: BatchItem[] })
                                     </span>
                                 </TableCell>
                                 <TableCell>
-                                    {item.batchStatus === "PROCESSING" && (
+                                    {(item.batchStatus === "PROCESSING" || item.batchStatus === "IN_PROGRESS") && (
                                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                                             <Clock className="w-3 h-3 mr-1" /> İşleniyor
                                         </Badge>
                                     )}
-                                    {item.batchStatus === "COMPLETED" && item.isSynced && (
+                                    {(item.batchStatus === "COMPLETED" || item.batchStatus === "SUCCESS") && item.isSynced && (
                                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                             <CheckCircle2 className="w-3 h-3 mr-1" /> Başarılı
                                         </Badge>
                                     )}
-                                    {item.batchStatus === "FAILED" || (item.batchStatus === "COMPLETED" && !item.isSynced) ? (
+                                    {item.batchStatus === "FAILED" || ((item.batchStatus === "COMPLETED" || item.batchStatus === "SUCCESS") && !item.isSynced) ? (
                                         <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                                             <XCircle className="w-3 h-3 mr-1" /> Hatalı
                                         </Badge>
                                     ) : null}
-                                    {!["PROCESSING", "COMPLETED", "FAILED"].includes(item.batchStatus) && (
+                                    {!["PROCESSING", "IN_PROGRESS", "COMPLETED", "SUCCESS", "FAILED"].includes(item.batchStatus) && (
                                         <Badge variant="outline">{item.batchStatus}</Badge>
                                     )}
                                 </TableCell>

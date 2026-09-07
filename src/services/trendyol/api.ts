@@ -304,7 +304,7 @@ export class TrendyolClient {
         await this.init();
         if (!this.creds) throw new Error("No creds");
 
-        let cargoCompanyId = 10; // Default MNG (usually 10 or 11)
+        const cargoCompanyId = 10; // Default MNG (usually 10 or 11)
         let shipmentAddressId = 0;
         let returningAddressId = 0;
 

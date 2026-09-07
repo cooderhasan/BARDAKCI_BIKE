@@ -634,27 +634,44 @@ export async function getTrendyolCategoryAttributes(categoryId: number) {
             }
         }
         
-        // Normalize attribute structure to ensure UI compatibility
-        const normalizedAttrs = attrs.map(attr => {
-            // Eğer zaten beklediğimiz V1/V2 formatındaysa (içinde attribute objesi varsa)
-            if (attr.attribute && attr.attribute.id !== undefined) {
-                return attr; 
-            } 
-            // Eğer Trendyol direkt { id: 1, name: "Renk", required: true } şeklinde gönderiyorsa
-            else if (attr.id !== undefined && attr.name) {
-                return {
-                    attribute: {
-                        id: attr.id,
-                        name: attr.name
-                    },
-                    required: attr.required || false,
-                    allowCustom: attr.allowCustom || false,
-                    attributeValues: attr.attributeValues || []
-                };
+        // Normalize attribute structure and fetch values for required/restricted attributes
+        const normalizedAttrs = await Promise.all(attrs.map(async (attr) => {
+            let attrObj = attr.attribute;
+            let isRequired = attr.required || false;
+            let allowCustom = attr.allowCustom !== undefined ? attr.allowCustom : true;
+            let values = attr.attributeValues || [];
+
+            if (!attrObj && attr.id !== undefined && attr.name) {
+                attrObj = { id: attr.id, name: attr.name };
             }
-            // Anlaşılamayan format
-            return attr;
-        });
+
+            if (!attrObj || attrObj.id === undefined) {
+                return attr;
+            }
+
+            // Trendyol V2 returns values in a separate endpoint for restricted or required attributes
+            if (values.length === 0 && (!allowCustom || isRequired)) {
+                try {
+                    const valRes = await client.getCategoryAttributeValues(categoryId, attrObj.id);
+                    const rawList = Array.isArray(valRes) ? valRes : (valRes?.content || []);
+                    if (Array.isArray(rawList) && rawList.length > 0) {
+                        values = rawList.map((v: any) => ({
+                            id: v.attributeValueId ?? v.id,
+                            name: v.attributeValue ?? v.name
+                        }));
+                    }
+                } catch (e) {
+                    // Ignore value fetch errors
+                }
+            }
+
+            return {
+                attribute: attrObj,
+                required: isRequired,
+                allowCustom: allowCustom,
+                attributeValues: values
+            };
+        }));
         
         console.log(`[Trendyol API] Parsed ${normalizedAttrs.length} normalized attributes.`);
         return { success: true, data: normalizedAttrs };
@@ -720,18 +737,18 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
 
         // Varsayılan zorunlu özellikler - Trendyol bu alanları zorunlu tutuyor
         // Kullanıcı kendi eşleştirmesi yapmadıysa varsayılanları ekle
-        // NOT: İthalatçı Adı ve Kullanım Talimatı ürüne göre değiştiği için buraya eklenmez,
-        // kullanıcı "Düzenle" ekranından elle girer.
         const defaultAttributes = [
-            { attributeId: 1192, attributeValueId: 10617300 },  // Menşei: CN
+            { attributeId: 1192, attributeValueId: 10617300 },  // Menşei: CN (veya 10617344 TR)
             { attributeId: 338, attributeValueId: 6821 },       // Beden: Tek Ebat
+            { attributeId: 47, customAttributeValue: "Siyah" }, // Renk: Siyah
+            { attributeId: 348, attributeValueId: 7009 },       // Web Color: Siyah
             { attributeId: 1201, attributeValueId: 10621829 },  // Tamir Edilebilirlik: Tamir Edilmez
             { attributeId: 1209, attributeValueId: 10621791 },  // ECE Uygunluk: Görselinde bulunmuyor
         ];
 
-        // Kullanıcı eşleştirmesi varsa onu kullan, yoksa varsayılanları ekle
+        // Kullanıcı eşleştirmesi varsa onu kullan, boş bırakılanları temizle
         let finalAttributes = attributeMappings && attributeMappings.length > 0 
-            ? attributeMappings 
+            ? attributeMappings.filter((a: any) => a.attributeValueId !== undefined || (a.customAttributeValue && String(a.customAttributeValue).trim() !== ""))
             : [];
 
         // Eksik zorunlu alanları varsayılanlardan ekle
@@ -924,10 +941,10 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
             }
 
             // Batch henüz işleniyor veya başarılı
-            const isCompleted = batchStatus === "COMPLETED";
+            const isCompleted = batchStatus === "COMPLETED" || batchStatus === "SUCCESS";
             
             // Kritik Düzeltme: Eğer ürün zaten senkronizeyse ve şu an sadece stok/fiyat güncelliyorsak, 
-            // işlem henüz bitmemiş (PROCESSING) olsa bile isSynced durumunu bozma (true kalsın).
+            // işlem henüz bitmemiş (PROCESSING / IN_PROGRESS) olsa bile isSynced durumunu bozma (true kalsın).
             const finalIsSynced = isAlreadySynced ? true : isCompleted;
 
             await (prisma as any).trendyolProduct.upsert({
@@ -955,7 +972,15 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
                 data: { isTrendyolActive: true }
             });
 
-            return { success: true, message: `Ürün Trendyol'a gönderildi. Batch Durumu: ${batchStatus}`, batchRequestId: batchId };
+            if (batchStatus === "IN_PROGRESS" || batchStatus === "PROCESSING") {
+                return { 
+                    success: true, 
+                    message: "Ürün Trendyol'a iletildi! Trendyol şu anda ürünü kuyrukta işliyor (IN_PROGRESS). Birkaç dakika sonra İşlem Geçmişi sayfasından durumunu kontrol edebilirsiniz.", 
+                    batchRequestId: batchId 
+                };
+            }
+
+            return { success: true, message: `Ürün Trendyol'a başarıyla gönderildi ve işlendi (Durum: ${batchStatus})`, batchRequestId: batchId };
         } else {
             const errorMsg = result.errors?.[0]?.message || JSON.stringify(result);
             return { success: false, message: "Trendyol Hatası: " + errorMsg };
@@ -1051,6 +1076,7 @@ export async function syncBatchStatuses() {
                 batchRequestId: { not: null },
                 OR: [
                     { batchStatus: "PROCESSING" },
+                    { batchStatus: "IN_PROGRESS" },
                     { batchStatus: null },
                     { isSynced: false }
                 ]
