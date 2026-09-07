@@ -312,9 +312,14 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                         <div className="flex flex-col gap-1">
                                             <div className="flex items-center gap-1">
                                                 {mappedCat ? (
-                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 border-none text-[10px]">
-                                                        {product.categories[0]?.name}
-                                                    </Badge>
+                                                    <div className="flex flex-col">
+                                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 border-none text-[10px]">
+                                                            {mappedCat.name}
+                                                        </Badge>
+                                                        <span className="text-[9px] text-muted-foreground font-mono mt-0.5">
+                                                            Trendyol ID: #{mappedCat.trendyolCategoryId}
+                                                        </span>
+                                                    </div>
                                                 ) : (
                                                     <Badge variant="outline" className="text-red-500 border-red-200 text-[10px]">
                                                         Kategori Eşleşmemiş
