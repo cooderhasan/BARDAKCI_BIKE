@@ -22,8 +22,9 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { X, Plus, Pencil, Trash2, Search, Sparkles, Loader2 } from "lucide-react";
+import { X, Plus, Pencil, Trash2, Search, Sparkles, Loader2, Package } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
 const RichTextEditor = dynamic(
@@ -34,7 +35,9 @@ import {
     createBlogPost, 
     updateBlogPost, 
     deleteBlogPost, 
-    toggleBlogPostStatus 
+    toggleBlogPostStatus,
+    searchProductsForBlog,
+    getProductsByIds
 } from "@/app/admin/(protected)/blog/actions";
 
 interface BlogPost {
@@ -44,11 +47,23 @@ interface BlogPost {
     content: string;
     summary: string | null;
     imageUrl: string | null;
+    relatedProductIds?: string[];
     isActive: boolean;
     readTime: number;
     viewCount: number;
     createdAt: Date;
     updatedAt: Date;
+}
+
+interface BlogSelectedProduct {
+    id: string;
+    name: string;
+    sku?: string | null;
+    store?: string;
+    stock: number;
+    listPrice: number;
+    salePrice: number | null;
+    image: string | null;
 }
 
 interface BlogTableProps {
@@ -69,6 +84,12 @@ export function BlogTable({ posts }: BlogTableProps) {
     const [readTime, setReadTime] = useState(5);
     const [isActive, setIsActive] = useState(true);
 
+    // Manual Selected Products State
+    const [selectedProducts, setSelectedProducts] = useState<BlogSelectedProduct[]>([]);
+    const [productSearch, setProductSearch] = useState("");
+    const [searchResults, setSearchResults] = useState<BlogSelectedProduct[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+
     const [searchTerm, setSearchTerm] = useState("");
     const [uploading, setUploading] = useState(false);
 
@@ -85,10 +106,13 @@ export function BlogTable({ posts }: BlogTableProps) {
         setContent("");
         setReadTime(5);
         setIsActive(true);
+        setSelectedProducts([]);
+        setProductSearch("");
+        setSearchResults([]);
         setEditPost(null);
     };
 
-    const openEditDialog = (post: BlogPost) => {
+    const openEditDialog = async (post: BlogPost) => {
         setEditPost(post);
         setTitle(post.title);
         setImageUrl(post.imageUrl || "");
@@ -96,12 +120,62 @@ export function BlogTable({ posts }: BlogTableProps) {
         setContent(post.content);
         setReadTime(post.readTime);
         setIsActive(post.isActive);
+        setProductSearch("");
+        setSearchResults([]);
+
+        if (post.relatedProductIds && post.relatedProductIds.length > 0) {
+            try {
+                const prods = await getProductsByIds(post.relatedProductIds);
+                setSelectedProducts(prods);
+            } catch {
+                setSelectedProducts([]);
+            }
+        } else {
+            setSelectedProducts([]);
+        }
+
         setIsOpen(true);
     };
 
     const openNewDialog = () => {
         resetForm();
         setIsOpen(true);
+    };
+
+    const handleProductSearch = async (query: string) => {
+        setProductSearch(query);
+        if (query.trim().length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const results = await searchProductsForBlog(query);
+            setSearchResults(results);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const addProductToBlog = (product: BlogSelectedProduct) => {
+        if (selectedProducts.some(p => p.id === product.id)) {
+            toast.info("Bu ürün zaten seçili.");
+            return;
+        }
+        if (selectedProducts.length >= 6) {
+            toast.warning("En fazla 6 ürün seçebilirsiniz.");
+            return;
+        }
+        setSelectedProducts(prev => [...prev, product]);
+        setProductSearch("");
+        setSearchResults([]);
+    };
+
+    const removeProductFromBlog = (id: string) => {
+        setSelectedProducts(prev => prev.filter(p => p.id !== id));
     };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,6 +254,7 @@ export function BlogTable({ posts }: BlogTableProps) {
                     content,
                     summary: summary || undefined,
                     imageUrl: imageUrl || undefined,
+                    relatedProductIds: selectedProducts.map(p => p.id),
                     isActive,
                     readTime
                 });
@@ -189,6 +264,7 @@ export function BlogTable({ posts }: BlogTableProps) {
                     content,
                     summary: summary || undefined,
                     imageUrl: imageUrl || undefined,
+                    relatedProductIds: selectedProducts.map(p => p.id),
                     isActive,
                     readTime
                 });
@@ -338,6 +414,134 @@ export function BlogTable({ posts }: BlogTableProps) {
                                             disabled={uploading}
                                         />
                                     </div>
+                                </div>
+
+                                {/* Manual Product Selection */}
+                                <div className="space-y-3 p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/50">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <Label className="text-sm font-semibold flex items-center gap-1.5">
+                                                <Package className="w-4 h-4 text-[#17457C]" />
+                                                Yazıya Özel Önerilen Ürünler (Opsiyonel)
+                                            </Label>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                Buradan ürün seçerek yazının sağ tarafında sadece bu ürünlerin çıkmasını sağlayabilirsiniz. Boş bırakırsanız başlığa göre otomatik seçilir.
+                                            </p>
+                                        </div>
+                                        <Badge variant="secondary" className="text-xs shrink-0">
+                                            {selectedProducts.length} / 6 Seçildi
+                                        </Badge>
+                                    </div>
+
+                                    {/* Product Search Input */}
+                                    <div className="relative">
+                                        <Input
+                                            placeholder="Ürün adı, barkod veya stok kodu yazarak arayın..."
+                                            value={productSearch}
+                                            onChange={(e) => handleProductSearch(e.target.value)}
+                                            className="bg-white dark:bg-gray-800"
+                                        />
+                                        {isSearching && (
+                                            <Loader2 className="absolute right-3 top-2.5 w-4 h-4 animate-spin text-gray-400" />
+                                        )}
+
+                                        {/* Dropdown Results */}
+                                        {searchResults.length > 0 && (
+                                            <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                                                {searchResults.map((product) => {
+                                                    const isAlreadySelected = selectedProducts.some(p => p.id === product.id);
+                                                    return (
+                                                        <div
+                                                            key={product.id}
+                                                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                                                                isAlreadySelected ? "opacity-50" : "cursor-pointer"
+                                                            }`}
+                                                            onClick={() => !isAlreadySelected && addProductToBlog(product)}
+                                                        >
+                                                            <div className="flex items-center gap-3 min-w-0 pr-2">
+                                                                <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden shrink-0 flex items-center justify-center border">
+                                                                    {product.image ? (
+                                                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <Package className="w-5 h-5 text-gray-400" />
+                                                                    )}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                        {product.name}
+                                                                    </p>
+                                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                        <span>{product.sku || "SKU Yok"}</span>
+                                                                        <span>•</span>
+                                                                        <span className="font-semibold text-emerald-600">
+                                                                            ₺{product.salePrice || product.listPrice}
+                                                                        </span>
+                                                                        <span>•</span>
+                                                                        <span>Stok: {product.stock}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant={isAlreadySelected ? "ghost" : "outline"}
+                                                                disabled={isAlreadySelected}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    addProductToBlog(product);
+                                                                }}
+                                                                className="shrink-0 text-xs h-8"
+                                                            >
+                                                                {isAlreadySelected ? "Eklendi" : "+ Ekle"}
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Selected Products List */}
+                                    {selectedProducts.length > 0 && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                            {selectedProducts.map((p, idx) => (
+                                                <div
+                                                    key={p.id}
+                                                    className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xs group"
+                                                >
+                                                    <div className="flex items-center gap-2.5 min-w-0 pr-1">
+                                                        <span className="text-xs font-bold text-gray-400 w-4">
+                                                            {idx + 1}.
+                                                        </span>
+                                                        <div className="w-9 h-9 rounded-md bg-gray-50 dark:bg-gray-700 overflow-hidden shrink-0 flex items-center justify-center border">
+                                                            {p.image ? (
+                                                                <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <Package className="w-4 h-4 text-gray-400" />
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                                                {p.name}
+                                                            </p>
+                                                            <p className="text-[11px] text-emerald-600 font-bold">
+                                                                ₺{p.salePrice || p.listPrice}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        onClick={() => removeProductFromBlog(p.id)}
+                                                        className="w-7 h-7 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 shrink-0"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">

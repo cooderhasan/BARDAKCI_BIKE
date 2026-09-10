@@ -981,6 +981,7 @@ model BlogPost {
   content     String    @db.Text    // HTML formatında zengin yazı içeriği
   summary     String?   @db.Text    // Kısa özet
   imageUrl    String?               // Yazı kapak resmi
+  relatedProductIds String[] @default([]) // Yazıya özel manuel seçilen ürün ID'leri
   isActive    Boolean   @default(true)
   readTime    Int       @default(5) // Tahmini okuma süresi (dakika)
   viewCount   Int       @default(0) // Okuma sayısı

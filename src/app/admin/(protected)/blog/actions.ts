@@ -10,6 +10,7 @@ export async function createBlogPost(data: {
     content: string;
     summary?: string;
     imageUrl?: string;
+    relatedProductIds?: string[];
     isActive?: boolean;
     readTime?: number;
 }) {
@@ -36,6 +37,7 @@ export async function createBlogPost(data: {
                 content: data.content,
                 summary: data.summary || null,
                 imageUrl: data.imageUrl || null,
+                relatedProductIds: data.relatedProductIds || [],
                 isActive: data.isActive ?? true,
                 readTime: data.readTime ?? 5,
             },
@@ -56,6 +58,7 @@ export async function updateBlogPost(id: string, data: {
     content?: string;
     summary?: string;
     imageUrl?: string;
+    relatedProductIds?: string[];
     isActive?: boolean;
     readTime?: number;
 }) {
@@ -131,4 +134,80 @@ export async function toggleBlogPostStatus(id: string, isActive: boolean) {
         console.error("toggleBlogPostStatus error:", error);
         return { success: false };
     }
+}
+
+export async function searchProductsForBlog(query: string) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        throw new Error("Unauthorized");
+    }
+
+    if (!query || query.trim().length < 2) return [];
+
+    const cleanQuery = query.trim();
+
+    const products = await prisma.product.findMany({
+        where: {
+            isActive: true,
+            OR: [
+                { name: { contains: cleanQuery, mode: "insensitive" } },
+                { sku: { contains: cleanQuery, mode: "insensitive" } },
+                { barcode: { contains: cleanQuery, mode: "insensitive" } },
+            ],
+        },
+        select: {
+            id: true,
+            name: true,
+            sku: true,
+            store: true,
+            stock: true,
+            listPrice: true,
+            salePrice: true,
+            images: true,
+        },
+        orderBy: [{ stock: "desc" }, { createdAt: "desc" }],
+        take: 12,
+    });
+
+    return products.map(p => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        store: p.store,
+        stock: p.stock,
+        listPrice: Number(p.listPrice),
+        salePrice: p.salePrice ? Number(p.salePrice) : null,
+        image: p.images && p.images.length > 0 ? p.images[0] : null,
+    }));
+}
+
+export async function getProductsByIds(ids: string[]) {
+    if (!ids || ids.length === 0) return [];
+    
+    const products = await prisma.product.findMany({
+        where: {
+            id: { in: ids }
+        },
+        select: {
+            id: true,
+            name: true,
+            sku: true,
+            store: true,
+            stock: true,
+            listPrice: true,
+            salePrice: true,
+            images: true,
+        }
+    });
+
+    return products.map(p => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        store: p.store,
+        stock: p.stock,
+        listPrice: Number(p.listPrice),
+        salePrice: p.salePrice ? Number(p.salePrice) : null,
+        image: p.images && p.images.length > 0 ? p.images[0] : null,
+    }));
 }
