@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Clock, Calendar, ChevronRight, Eye, ArrowLeft } from "lucide-react";
 import { ProductCardModern } from "@/components/storefront/product-card-modern";
 import { Metadata } from "next";
+import { getStoreType, getStoreFilter } from "@/lib/store-helper";
 
 interface PageProps {
     params: Promise<{
@@ -43,6 +44,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function StorefrontBlogPostDetailPage({ params }: PageProps) {
     const { slug } = await params;
+    const activeStore = await getStoreType();
+    const isMotor = activeStore === "MOTOR";
+    const storeFilter = getStoreFilter(activeStore);
 
     const post = await prisma.blogPost.findUnique({
         where: { slug },
@@ -67,138 +71,110 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
 
     try {
         const cleanSlug = slug.toLowerCase();
-        const slugWords = cleanSlug.split("-");
-        
+        const cleanTitle = (post.title || "").toLowerCase();
+        const combinedText = `${cleanSlug.replace(/-/g, " ")} ${cleanTitle}`;
+
+        // Strictly fetch active categories for the CURRENT store
         const categories = await prisma.category.findMany({
-            where: { isActive: true }
+            where: {
+                isActive: true,
+                store: storeFilter as any,
+            },
+            include: {
+                children: {
+                    where: { isActive: true, store: storeFilter as any },
+                    select: { id: true, name: true, slug: true }
+                }
+            }
         });
 
-        // 1. Highly specific keywords check first (e.g. denge, kask, eldiven)
-        const specificKeywordMap: { [key: string]: string[] } = {
-            "denge": ["denge"],
-            "kask": ["kask"],
-            "eldiven": ["eldiven"],
-            "lastik": ["lastik"],
-            "aksesuar": ["aksesuar"]
-        };
+        // 1. Check for specific wheel/jant size (e.g. 16 jant, 20 jant, 24 jant, etc.)
+        const jantSizeMatch = combinedText.match(/\b(12|14|16|18|20|24|26|27\.5|27,5|27-5|28|29)\s*(jant|inç|inch|")/i) 
+            || cleanSlug.match(/(12|14|16|18|20|24|26|27-5|28|29)-jant/i);
 
-        const matchedSpecificKeywords = Object.keys(specificKeywordMap).filter(kw => 
-            slugWords.some(word => word.startsWith(kw))
-        );
+        if (jantSizeMatch) {
+            const size = jantSizeMatch[1].replace(',', '.').replace('-5', '.5');
 
-        if (matchedSpecificKeywords.length > 0) {
-            const searchTerms = matchedSpecificKeywords.flatMap(kw => specificKeywordMap[kw]);
-            
-            displayProducts = await prisma.product.findMany({
-                where: {
-                    isActive: true,
-                    OR: searchTerms.map(term => ({
-                        name: {
-                            contains: term,
-                            mode: 'insensitive'
-                        }
-                    }))
-                },
-                take: 4,
-                include: {
-                    _count: { select: { variants: true } }
-                }
-            });
-        }
+            // Find categories matching this specific jant size (e.g. 16-jant-erkek-cocuk-bisikleti)
+            const matchingSizeCats = categories.filter(cat => 
+                cat.slug.includes(`${size.replace('.', '')}-jant`) || 
+                cat.slug.includes(`${size}-jant`) ||
+                cat.name.toLowerCase().includes(`${size} jant`)
+            );
 
-        // 2. If no specific products found, try Category matching
-        if (displayProducts.length === 0) {
-            let matchedCategory = null;
-
-            // Smart Category Mapping via keywords in slug words (for standard categories)
-            const categoryKeywordMap = [
-                { categorySlug: "denge-bisikleti", keywords: ["denge"] },
-                { categorySlug: "denge-bisikletleri", keywords: ["denge"] },
-                { categorySlug: "cocuk-bisikleti", keywords: ["cocuk", "cocug"] },
-                { categorySlug: "dag-bisikleti", keywords: ["dag", "rockrider"] },
-                { categorySlug: "yol-yaris-bisikleti", keywords: ["yol", "yaris", "gravel"] },
-                { categorySlug: "katlanabilir-bisiklet", keywords: ["katlanir", "katlanabilir"] },
-                { categorySlug: "sehir-bisikleti", keywords: ["sehir", "tur"] },
-                { categorySlug: "elektrikli-bisiklet", keywords: ["elektrikli", "ebike"] }
-            ];
-
-            for (const mapping of categoryKeywordMap) {
-                const hasMatch = slugWords.some(word => 
-                    mapping.keywords.some(kw => word.startsWith(kw))
-                );
-                if (hasMatch) {
-                    matchedCategory = categories.find(cat => cat.slug === mapping.categorySlug);
-                    if (matchedCategory) {
-                        break;
-                    }
-                }
-            }
-
-            // Fallback to original category matching if no smart category match was found
-            if (!matchedCategory) {
-                const sortedCategories = [...categories].sort((a, b) => b.name.length - a.name.length);
-                for (const cat of sortedCategories) {
-                    const catNameLower = cat.name.toLowerCase();
-                    const cleanCatName = catNameLower.replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c');
-                    if (cleanSlug.includes(cat.slug) || cleanSlug.includes(cleanCatName)) {
-                        matchedCategory = cat;
-                        break;
-                    }
-                }
-            }
-
-            if (matchedCategory) {
-                // Find direct active subcategories of the matched category
-                const subcategories = await prisma.category.findMany({
+            if (matchingSizeCats.length > 0) {
+                const catIds = matchingSizeCats.map(c => c.id);
+                displayProducts = await prisma.product.findMany({
                     where: {
                         isActive: true,
-                        parentId: matchedCategory.id
-                    },
-                    select: { id: true }
-                });
-                const categoryIds = [matchedCategory.id, ...subcategories.map(c => c.id)];
-
-                displayProducts = await prisma.product.findMany({
-                    where: { 
-                        isActive: true,
+                        store: storeFilter as any,
                         OR: [
-                            { categories: { some: { id: { in: categoryIds } } } },
-                            { categoryId: { in: categoryIds } }
+                            { categories: { some: { id: { in: catIds } } } },
+                            { categoryId: { in: catIds } }
                         ]
                     },
+                    orderBy: [{ stock: 'desc' }, { isFeatured: 'desc' }, { createdAt: 'desc' }],
                     take: 4,
                     include: {
                         _count: { select: { variants: true } }
                     }
                 });
             }
-        }
 
-        // 3. Fallback to general keyword search on product names if still empty
-        if (displayProducts.length === 0) {
-            const generalKeywordMap: { [key: string]: string[] } = {
-                "cocuk": ["cocuk", "çocuk"],
-                "yol": ["yol"],
-                "dag": ["dag", "dağ"],
-                "katlanir": ["katlanir", "katlanır", "katlanabilir"],
-                "elektrikli": ["elektrikli"],
-                "sehir": ["sehir", "şehir"]
-            };
-
-            const keywords = Object.keys(generalKeywordMap);
-            const matchedKeywords = keywords.filter(kw => {
-                if (kw === "yol") {
-                    return slugWords.includes("yol"); // Standalone only
-                }
-                return slugWords.some(word => word.startsWith(kw) || (kw === "cocuk" && word.startsWith("cocug")));
-            });
-
-            if (matchedKeywords.length > 0) {
-                const searchTerms = matchedKeywords.flatMap(kw => generalKeywordMap[kw]);
-
-                displayProducts = await prisma.product.findMany({
+            // If we still need more products, search products having the size in their name along with bisiklet/jant/çocuk
+            if (displayProducts.length < 4) {
+                const existingIds = displayProducts.map(p => p.id);
+                const sizeProducts = await prisma.product.findMany({
                     where: {
                         isActive: true,
+                        store: storeFilter as any,
+                        id: { notIn: existingIds },
+                        AND: [
+                            { name: { contains: size, mode: 'insensitive' } },
+                            {
+                                OR: [
+                                    { name: { contains: 'jant', mode: 'insensitive' } },
+                                    { name: { contains: 'bisiklet', mode: 'insensitive' } },
+                                    { name: { contains: 'çocuk', mode: 'insensitive' } },
+                                    { name: { contains: 'cocuk', mode: 'insensitive' } }
+                                ]
+                            }
+                        ]
+                    },
+                    orderBy: [{ stock: 'desc' }, { isFeatured: 'desc' }, { createdAt: 'desc' }],
+                    take: 4 - displayProducts.length,
+                    include: {
+                        _count: { select: { variants: true } }
+                    }
+                });
+                displayProducts = [...displayProducts, ...sizeProducts];
+            }
+        }
+
+        // 2. Specific intent / accessory keywords
+        if (displayProducts.length < 4) {
+            const specificKeywordMap: { [key: string]: string[] } = {
+                "denge": ["denge"],
+                "kask": ["kask"],
+                "eldiven": ["eldiven"],
+                "lastik": ["lastik"],
+                "aksesuar": ["aksesuar"],
+                "pedal": ["pedal"],
+                "sele": ["sele"],
+                "kilit": ["kilit"],
+                "pompa": ["pompa"]
+            };
+
+            const matchedKws = Object.keys(specificKeywordMap).filter(kw => combinedText.includes(kw));
+            if (matchedKws.length > 0) {
+                const searchTerms = matchedKws.flatMap(kw => specificKeywordMap[kw]);
+                const existingIds = displayProducts.map(p => p.id);
+                
+                const kwProducts = await prisma.product.findMany({
+                    where: {
+                        isActive: true,
+                        store: storeFilter as any,
+                        id: { notIn: existingIds },
                         OR: searchTerms.map(term => ({
                             name: {
                                 contains: term,
@@ -206,21 +182,100 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
                             }
                         }))
                     },
-                    take: 4,
+                    orderBy: [{ stock: 'desc' }, { isFeatured: 'desc' }, { createdAt: 'desc' }],
+                    take: 4 - displayProducts.length,
                     include: {
                         _count: { select: { variants: true } }
                     }
                 });
+                displayProducts = [...displayProducts, ...kwProducts];
+            }
+        }
+
+        // 3. Category Mapping via smart topics (cocuk, dag, yol, sehir, elektrikli, katlanir)
+        if (displayProducts.length < 4) {
+            const categoryKeywordMap = [
+                { categorySlugs: ["cocuk-bisikleti", "cocuk-bisikletleri"], keywords: ["cocuk", "çocuk", "bebek", "cocug", "denge", "yas", "yaş"] },
+                { categorySlugs: ["dag-bisikleti", "dag-bisikletleri"], keywords: ["dag", "dağ", "mtb", "rockrider", "arazi"] },
+                { categorySlugs: ["yol-yaris-bisikleti"], keywords: ["yol", "yaris", "yarış", "gravel", "yaris-bisikleti"] },
+                { categorySlugs: ["katlanabilir-bisiklet"], keywords: ["katlanir", "katlanır", "katlanabilir"] },
+                { categorySlugs: ["sehir-bisikleti"], keywords: ["sehir", "şehir", "tur", "trekking"] },
+                { categorySlugs: ["elektrikli-bisiklet"], keywords: ["elektrikli", "ebike", "e-bike"] }
+            ];
+
+            let matchedCatIds: string[] = [];
+            for (const mapping of categoryKeywordMap) {
+                const hasMatch = mapping.keywords.some(kw => combinedText.includes(kw));
+                if (hasMatch) {
+                    const found = categories.filter(c => mapping.categorySlugs.some(cs => c.slug.includes(cs)));
+                    if (found.length > 0) {
+                        found.forEach(cat => {
+                            matchedCatIds.push(cat.id);
+                            cat.children?.forEach(ch => matchedCatIds.push(ch.id));
+                        });
+                        break;
+                    }
+                }
+            }
+
+            if (matchedCatIds.length > 0) {
+                const existingIds = displayProducts.map(p => p.id);
+                const catProducts = await prisma.product.findMany({
+                    where: { 
+                        isActive: true,
+                        store: storeFilter as any,
+                        id: { notIn: existingIds },
+                        OR: [
+                            { categories: { some: { id: { in: matchedCatIds } } } },
+                            { categoryId: { in: matchedCatIds } }
+                        ]
+                    },
+                    orderBy: [{ stock: 'desc' }, { isFeatured: 'desc' }, { createdAt: 'desc' }],
+                    take: 4 - displayProducts.length,
+                    include: {
+                        _count: { select: { variants: true } }
+                    }
+                });
+                displayProducts = [...displayProducts, ...catProducts];
+            }
+        }
+
+        // 4. Fallback search by general terms in product names
+        if (displayProducts.length < 4) {
+            const generalWords = ["bisiklet", "cocuk", "çocuk", "dağ", "sehir", "yol"];
+            const matchedWords = generalWords.filter(w => combinedText.includes(w));
+            if (matchedWords.length > 0) {
+                const existingIds = displayProducts.map(p => p.id);
+                const fallbackProducts = await prisma.product.findMany({
+                    where: {
+                        isActive: true,
+                        store: storeFilter as any,
+                        id: { notIn: existingIds },
+                        OR: matchedWords.map(word => ({
+                            name: {
+                                contains: word,
+                                mode: 'insensitive'
+                            }
+                        }))
+                    },
+                    orderBy: [{ stock: 'desc' }, { isFeatured: 'desc' }, { createdAt: 'desc' }],
+                    take: 4 - displayProducts.length,
+                    include: {
+                        _count: { select: { variants: true } }
+                    }
+                });
+                displayProducts = [...displayProducts, ...fallbackProducts];
             }
         }
     } catch (err) {
         console.error("Error finding semantic recommended products:", err);
     }
 
-    // 4. Fallback to featured or latest products if no semantic products found
+    // 5. Final fallback to featured or latest products from the CURRENT store
     if (displayProducts.length === 0) {
         const featuredProducts = await prisma.product.findMany({
-            where: { isActive: true, isFeatured: true },
+            where: { isActive: true, store: storeFilter as any, isFeatured: true },
+            orderBy: [{ stock: 'desc' }, { createdAt: 'desc' }],
             take: 4,
             include: {
                 _count: { select: { variants: true } }
@@ -230,7 +285,8 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
         displayProducts = featuredProducts.length > 0 
             ? featuredProducts 
             : await prisma.product.findMany({
-                where: { isActive: true },
+                where: { isActive: true, store: storeFilter as any },
+                orderBy: [{ stock: 'desc' }, { createdAt: 'desc' }],
                 take: 4,
                 include: {
                     _count: { select: { variants: true } }
@@ -319,18 +375,21 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
                     <aside className="lg:col-span-4 space-y-8">
                         
                         {/* Company Card / CTA */}
-                        <div className="bg-gradient-to-br from-[#17457C]/5 to-blue-500/5 dark:from-[#17457C]/10 dark:to-blue-500/10 rounded-3xl p-6 border border-blue-100/50 dark:border-blue-900/30 text-center">
+                        <div className={`bg-gradient-to-br ${isMotor ? 'from-red-600/5 to-amber-500/5 dark:from-red-600/10 dark:to-amber-500/10 border-red-100/50 dark:border-red-900/30' : 'from-[#17457C]/5 to-blue-500/5 dark:from-[#17457C]/10 dark:to-blue-500/10 border-blue-100/50 dark:border-blue-900/30'} rounded-3xl p-6 border text-center`}>
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                                Bardakcı Bisiklet
+                                {isMotor ? "Motovitrin" : "Bardakcı Bisiklet"}
                             </h3>
                             <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-4">
-                                Hayalinizdeki bisiklete kavuşmanız ve en doğru sürüş keyfini yaşamanız için Konya'daki mağazamızda ve web sitemizde hizmetinizdeyiz.
+                                {isMotor
+                                    ? "Motosikletiniz için kaliteli yedek parça ve aksesuarlar en uygun fiyatlarla mağazamızda ve web sitemizde."
+                                    : "Hayalinizdeki bisiklete kavuşmanız ve en doğru sürüş keyfini yaşamanız için Konya'daki mağazamızda ve web sitemizde hizmetinizdeyiz."
+                                }
                             </p>
                             <Link 
                                 href="/products"
-                                className="inline-flex w-full items-center justify-center px-4 py-2.5 bg-[#17457C] text-white rounded-xl text-sm font-semibold hover:bg-blue-800 transition-colors shadow-xs"
+                                className={`inline-flex w-full items-center justify-center px-4 py-2.5 ${isMotor ? 'bg-red-600 hover:bg-red-700' : 'bg-[#17457C] hover:bg-blue-800'} text-white rounded-xl text-sm font-semibold transition-colors shadow-xs`}
                             >
-                                Bisikletleri İncele
+                                {isMotor ? "Ürünleri İncele" : "Bisikletleri İncele"}
                             </Link>
                         </div>
 
