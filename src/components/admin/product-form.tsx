@@ -363,20 +363,21 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
     ];
 
     const applyPriceToAllMarketplaces = () => {
-        // Find the first filled marketplace price, or use listPrice
+        // Find the first filled marketplace price — NEVER use listPrice
         const firstFilledField = marketplacePriceFields.find(f => {
             const val = (formData as any)[f.key];
-            return val !== "" && val !== null && val !== undefined && val !== 0;
+            return val !== "" && val !== null && val !== undefined && Number(val) > 0;
         });
-        const priceToApply = firstFilledField ? (formData as any)[firstFilledField.key] : formData.listPrice;
-        if (!priceToApply) {
-            toast.error("Uygulanacak fiyat bulunamadı. Önce en az bir fiyat girin.");
+        if (!firstFilledField) {
+            toast.error("Önce en az bir pazaryerine fiyat girin! (Liste fiyatı kullanılmaz, komisyonlu fiyat girmeniz gerekiyor)");
             return;
         }
+        const priceToApply = (formData as any)[firstFilledField.key];
         const updates: any = {};
         marketplacePriceFields.forEach(f => {
+            if (f.key === firstFilledField.key) return; // skip the source
             const val = (formData as any)[f.key];
-            if (!val || val === "" || val === 0) {
+            if (!val || val === "" || Number(val) === 0) {
                 updates[f.key] = priceToApply;
             }
         });
@@ -385,7 +386,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
             return;
         }
         setFormData(prev => ({ ...prev, ...updates }));
-        toast.success(`${Object.keys(updates).length} pazaryerine ${Number(priceToApply).toLocaleString("tr-TR")}₺ uygulandı.`);
+        toast.success(`${firstFilledField.label} fiyatı (${Number(priceToApply).toLocaleString("tr-TR")}₺) → ${Object.keys(updates).length} pazaryerine uygulandı.`);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
