@@ -18,7 +18,7 @@ import { createProduct, updateProduct, syncProductToMarketplaces, searchProducts
 import { generateSlug, generateSKU, generateBarcode } from "@/lib/helpers";
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Plus, X, ImageIcon, Trash2, Loader2, RefreshCcw, Package, RefreshCw, Brain, Search } from "lucide-react";
+import { Plus, X, ImageIcon, Trash2, Loader2, RefreshCcw, Package, RefreshCw, Brain, Search, AlertTriangle, Copy } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from "next/dynamic";
 const RichTextEditor = dynamic(
@@ -352,8 +352,62 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         handleChange("images", formData.images.filter((_, i) => i !== index));
     };
 
+    const marketplacePriceFields = [
+        { key: "trendyolPrice", activeKey: "isTrendyolActive", label: "Trendyol" },
+        { key: "n11Price", activeKey: "isN11Active", label: "N11" },
+        { key: "hepsiburadaPrice", activeKey: "isHepsiburadaActive", label: "Hepsiburada" },
+        { key: "idefixPrice", activeKey: "isIdefixActive", label: "İdefix" },
+        { key: "pazaramaPrice", activeKey: "isPazaramaActive", label: "Pazarama" },
+        { key: "pttavmPrice", activeKey: "isPttavmActive", label: "ePttAVM" },
+        { key: "ciceksepetiPrice", activeKey: "isCiceksepetiActive", label: "Çiçeksepeti" },
+    ];
+
+    const applyPriceToAllMarketplaces = () => {
+        // Find the first filled marketplace price, or use listPrice
+        const firstFilledField = marketplacePriceFields.find(f => {
+            const val = (formData as any)[f.key];
+            return val !== "" && val !== null && val !== undefined && val !== 0;
+        });
+        const priceToApply = firstFilledField ? (formData as any)[firstFilledField.key] : formData.listPrice;
+        if (!priceToApply) {
+            toast.error("Uygulanacak fiyat bulunamadı. Önce en az bir fiyat girin.");
+            return;
+        }
+        const updates: any = {};
+        marketplacePriceFields.forEach(f => {
+            const val = (formData as any)[f.key];
+            if (!val || val === "" || val === 0) {
+                updates[f.key] = priceToApply;
+            }
+        });
+        if (Object.keys(updates).length === 0) {
+            toast.info("Tüm pazaryeri fiyatları zaten dolu.");
+            return;
+        }
+        setFormData(prev => ({ ...prev, ...updates }));
+        toast.success(`${Object.keys(updates).length} pazaryerine ${Number(priceToApply).toLocaleString("tr-TR")}₺ uygulandı.`);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Pazaryeri fiyat validasyonu: Aktif pazaryerinde fiyat boşsa uyar
+        const emptyActiveMarketplaces = marketplacePriceFields.filter(f => {
+            const isActive = (formData as any)[f.activeKey];
+            const price = (formData as any)[f.key];
+            return isActive && (!price || price === "" || Number(price) === 0);
+        });
+
+        if (emptyActiveMarketplaces.length > 0) {
+            const names = emptyActiveMarketplaces.map(f => f.label).join(", ");
+            const confirmed = window.confirm(
+                `⚠️ DİKKAT!\n\nŞu aktif pazaryerlerinin fiyatı boş: ${names}\n\nBoş bırakılan pazaryerlerine LİSTE FİYATI (${Number(formData.listPrice).toLocaleString("tr-TR")}₺) gönderilecek!\n\nBu genellikle komisyonsuz düşük fiyat demektir.\n\nDevam etmek istiyor musunuz?`
+            );
+            if (!confirmed) {
+                return;
+            }
+        }
+
         setLoading(true);
 
         const data = new FormData();
@@ -625,6 +679,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             <CardTitle>Fiyatlandırma & Stok</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            {/* Liste Fiyatı & İndirimli Fiyat - 2 sütun */}
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="listPrice">Liste Fiyatı (₺) *</Label>
@@ -650,88 +705,152 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     />
                                     <p className="text-[10px] text-gray-500">Girilirse bu fiyat geçerli olur, liste fiyatı üstü çizili görünür.</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="trendyolPrice" className="text-orange-600">Trendyol Fiyatı (₺)</Label>
+                            </div>
+
+                            {/* Pazaryeri Fiyatları - Alt alta tek sütun */}
+                            <div className="border rounded-lg p-4 bg-gray-50/50 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        🏪 Pazaryeri Fiyatları
+                                    </h4>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={applyPriceToAllMarketplaces}
+                                        className="text-xs h-7 gap-1"
+                                    >
+                                        <Copy className="h-3 w-3" />
+                                        Boş Olanlara İlk Fiyatı Uygula
+                                    </Button>
+                                </div>
+                                <p className="text-[10px] text-gray-500 -mt-1">
+                                    Boş bırakılan pazaryerlerine liste fiyatı gönderilir. Komisyon eklenmiş fiyatları girmeyi unutmayın!
+                                </p>
+
+                                {/* Trendyol */}
+                                <div className={`flex items-center gap-3 rounded-md px-3 py-2 ${formData.isTrendyolActive && (!formData.trendyolPrice || formData.trendyolPrice === "") ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
+                                    <Label htmlFor="trendyolPrice" className="text-orange-600 font-medium w-40 shrink-0 text-sm flex items-center gap-1.5">
+                                        {formData.isTrendyolActive && (!formData.trendyolPrice || formData.trendyolPrice === "") && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                        Trendyol
+                                        {formData.isTrendyolActive && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
+                                    </Label>
                                     <Input
                                         id="trendyolPrice"
                                         type="number"
                                         step="0.01"
                                         value={formData.trendyolPrice}
                                         onChange={(e) => handleChange("trendyolPrice", e.target.value)}
-                                        placeholder="Varsayılan: Liste Fiyatı"
-                                        className="border-orange-200 focus:border-orange-500"
+                                        placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
+                                        className="border-orange-200 focus:border-orange-500 h-9"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="n11Price" className="text-purple-600">N11 Fiyatı (₺)</Label>
+
+                                {/* N11 */}
+                                <div className={`flex items-center gap-3 rounded-md px-3 py-2 ${formData.isN11Active && (!formData.n11Price || formData.n11Price === "") ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
+                                    <Label htmlFor="n11Price" className="text-purple-600 font-medium w-40 shrink-0 text-sm flex items-center gap-1.5">
+                                        {formData.isN11Active && (!formData.n11Price || formData.n11Price === "") && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                        N11
+                                        {formData.isN11Active && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
+                                    </Label>
                                     <Input
                                         id="n11Price"
                                         type="number"
                                         step="0.01"
                                         value={formData.n11Price}
                                         onChange={(e) => handleChange("n11Price", e.target.value)}
-                                        placeholder="Varsayılan: Liste Fiyatı"
-                                        className="border-purple-200 focus:border-purple-500"
+                                        placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
+                                        className="border-purple-200 focus:border-purple-500 h-9"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="hepsiburadaPrice" className="text-orange-600">Hepsiburada Fiyatı (₺)</Label>
+
+                                {/* Hepsiburada */}
+                                <div className={`flex items-center gap-3 rounded-md px-3 py-2 ${formData.isHepsiburadaActive && (!formData.hepsiburadaPrice || formData.hepsiburadaPrice === "") ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
+                                    <Label htmlFor="hepsiburadaPrice" className="text-orange-600 font-medium w-40 shrink-0 text-sm flex items-center gap-1.5">
+                                        {formData.isHepsiburadaActive && (!formData.hepsiburadaPrice || formData.hepsiburadaPrice === "") && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                        Hepsiburada
+                                        {formData.isHepsiburadaActive && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
+                                    </Label>
                                     <Input
                                         id="hepsiburadaPrice"
                                         type="number"
                                         step="0.01"
                                         value={formData.hepsiburadaPrice}
                                         onChange={(e) => handleChange("hepsiburadaPrice", e.target.value)}
-                                        placeholder="Varsayılan: Liste Fiyatı"
-                                        className="border-orange-200 focus:border-orange-500"
+                                        placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
+                                        className="border-orange-200 focus:border-orange-500 h-9"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="idefixPrice" className="text-purple-600">Idefix Fiyatı (₺)</Label>
+
+                                {/* İdefix */}
+                                <div className={`flex items-center gap-3 rounded-md px-3 py-2 ${formData.isIdefixActive && (!formData.idefixPrice || formData.idefixPrice === "") ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
+                                    <Label htmlFor="idefixPrice" className="text-purple-600 font-medium w-40 shrink-0 text-sm flex items-center gap-1.5">
+                                        {formData.isIdefixActive && (!formData.idefixPrice || formData.idefixPrice === "") && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                        İdefix
+                                        {formData.isIdefixActive && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
+                                    </Label>
                                     <Input
                                         id="idefixPrice"
                                         type="number"
                                         step="0.01"
                                         value={formData.idefixPrice}
                                         onChange={(e) => handleChange("idefixPrice", e.target.value)}
-                                        placeholder="Varsayılan: Liste Fiyatı"
-                                        className="border-purple-200 focus:border-purple-500"
+                                        placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
+                                        className="border-purple-200 focus:border-purple-500 h-9"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="pazaramaPrice" className="text-pink-600 font-semibold">Pazarama Fiyatı (₺)</Label>
+
+                                {/* Pazarama */}
+                                <div className={`flex items-center gap-3 rounded-md px-3 py-2 ${formData.isPazaramaActive && (!formData.pazaramaPrice || formData.pazaramaPrice === "") ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
+                                    <Label htmlFor="pazaramaPrice" className="text-pink-600 font-medium w-40 shrink-0 text-sm flex items-center gap-1.5">
+                                        {formData.isPazaramaActive && (!formData.pazaramaPrice || formData.pazaramaPrice === "") && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                        Pazarama
+                                        {formData.isPazaramaActive && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
+                                    </Label>
                                     <Input
                                         id="pazaramaPrice"
                                         type="number"
                                         step="0.01"
                                         value={formData.pazaramaPrice}
                                         onChange={(e) => handleChange("pazaramaPrice", e.target.value)}
-                                        placeholder="Varsayılan: Liste Fiyatı"
-                                        className="border-pink-200 focus:border-pink-500"
+                                        placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
+                                        className="border-pink-200 focus:border-pink-500 h-9"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="pttavmPrice" className="text-teal-600 font-semibold">ePttAVM Fiyatı (₺)</Label>
+
+                                {/* ePttAVM */}
+                                <div className={`flex items-center gap-3 rounded-md px-3 py-2 ${formData.isPttavmActive && (!formData.pttavmPrice || formData.pttavmPrice === "") ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
+                                    <Label htmlFor="pttavmPrice" className="text-teal-600 font-medium w-40 shrink-0 text-sm flex items-center gap-1.5">
+                                        {formData.isPttavmActive && (!formData.pttavmPrice || formData.pttavmPrice === "") && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                        ePttAVM
+                                        {formData.isPttavmActive && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
+                                    </Label>
                                     <Input
                                         id="pttavmPrice"
                                         type="number"
                                         step="0.01"
                                         value={formData.pttavmPrice}
                                         onChange={(e) => handleChange("pttavmPrice", e.target.value)}
-                                        placeholder="Varsayılan: Liste Fiyatı"
-                                        className="border-teal-200 focus:border-teal-500"
+                                        placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
+                                        className="border-teal-200 focus:border-teal-500 h-9"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="ciceksepetiPrice" className="text-rose-600 font-semibold">Çiçeksepeti Fiyatı (₺)</Label>
+
+                                {/* Çiçeksepeti */}
+                                <div className={`flex items-center gap-3 rounded-md px-3 py-2 ${formData.isCiceksepetiActive && (!formData.ciceksepetiPrice || formData.ciceksepetiPrice === "") ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
+                                    <Label htmlFor="ciceksepetiPrice" className="text-rose-600 font-medium w-40 shrink-0 text-sm flex items-center gap-1.5">
+                                        {formData.isCiceksepetiActive && (!formData.ciceksepetiPrice || formData.ciceksepetiPrice === "") && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                        Çiçeksepeti
+                                        {formData.isCiceksepetiActive && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
+                                    </Label>
                                     <Input
                                         id="ciceksepetiPrice"
                                         type="number"
                                         step="0.01"
                                         value={formData.ciceksepetiPrice}
                                         onChange={(e) => handleChange("ciceksepetiPrice", e.target.value)}
-                                        placeholder="Varsayılan: Liste Fiyatı"
-                                        className="border-rose-200 focus:border-rose-500"
+                                        placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
+                                        className="border-rose-200 focus:border-rose-500 h-9"
                                     />
                                 </div>
                             </div>
