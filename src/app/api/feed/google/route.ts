@@ -42,8 +42,10 @@ export async function GET(request: Request) {
     let items = "";
 
     for (const product of products) {
-      const price = product.googlePrice ?? product.salePrice ?? product.listPrice;
-      const priceFormatted = `${Number(price).toFixed(2)} TRY`;
+      const basePrice = product.googlePrice ?? product.listPrice;
+      const basePriceFormatted = `${Number(basePrice).toFixed(2)} TRY`;
+      const hasSale = product.salePrice && Number(product.salePrice) < Number(basePrice) && Number(product.salePrice) > 0;
+      const salePriceFormatted = hasSale ? `${Number(product.salePrice).toFixed(2)} TRY` : null;
 
       // Kategori ve Google Kategori eşleştirmesi
       // Hem yeni 'categories' dizisine hem de eski 'category' alanına bakıyoruz
@@ -140,8 +142,8 @@ export async function GET(request: Request) {
       ${imageUrl ? `<g:image_link>${escapeXml(imageUrl)}</g:image_link>` : ""}
       ${product.images?.[1] ? `<g:additional_image_link>${getAbsoluteUrl(product.images[1])}</g:additional_image_link>` : ""}
       <g:availability>${availability}</g:availability>
-      <g:price>${priceFormatted}</g:price>
-      ${product.salePrice && Number(product.salePrice) < Number(product.listPrice) ? `<g:sale_price>${Number(product.salePrice).toFixed(2)} TRY</g:sale_price>` : ""}
+      <g:price>${basePriceFormatted}</g:price>
+      ${salePriceFormatted ? `<g:sale_price>${salePriceFormatted}</g:sale_price>` : ""}
       <g:condition>new</g:condition>
       ${googleCategory ? `<g:google_product_category>${escapeXml(googleCategory)}</g:google_product_category>` : ""}
       ${productTypeName ? `<g:product_type>${escapeXml(productTypeName)}</g:product_type>` : ""}

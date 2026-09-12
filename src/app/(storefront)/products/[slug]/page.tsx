@@ -190,6 +190,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
     const isFreeShipping = product.isFreeShipping || Number(product.listPrice) >= freeShippingLimit;
 
+    const listPriceNum = Number(product.listPrice);
+    const hasDiscount = !!(product.salePrice && Number(product.salePrice) < listPriceNum && Number(product.salePrice) > 0);
+    const currentPrice = hasDiscount ? Number(product.salePrice) : listPriceNum;
+
     // 1. Product Schema
     const productSchema: any = {
         "@type": "Product",
@@ -207,7 +211,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             "@type": "Offer",
             "url": `${baseUrl}/products/${product.slug}`,
             "priceCurrency": "TRY",
-            "price": Number(product.listPrice),
+            "price": currentPrice,
             "priceValidUntil": new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
             "itemCondition": "https://schema.org/NewCondition",
             "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
@@ -215,6 +219,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 "@type": "Organization",
                 "name": "Bardakcı Bike",
             },
+            ...(hasDiscount ? {
+                "priceSpecification": [
+                    {
+                        "@type": "UnitPriceSpecification",
+                        "priceType": "https://schema.org/ListPrice",
+                        "price": listPriceNum,
+                        "priceCurrency": "TRY"
+                    },
+                    {
+                        "@type": "UnitPriceSpecification",
+                        "priceType": "https://schema.org/SalePrice",
+                        "price": currentPrice,
+                        "priceCurrency": "TRY"
+                    }
+                ]
+            } : {}),
             "shippingDetails": {
                 "@type": "OfferShippingDetails",
                 "shippingRate": {

@@ -134,12 +134,17 @@ export async function GET(req: NextRequest) {
             }
 
             // Price adjustment for variants
-            let finalPrice = priceToUse;
+            let finalRegularPrice = listPrice;
+            let finalSalePrice = (useSalePrice && salePrice && salePrice > 0 && salePrice < listPrice) ? salePrice : null;
             if (isVariant) {
                 const adjustment = Number((item as any).priceAdjustment || 0);
-                finalPrice += adjustment;
+                finalRegularPrice += adjustment;
+                if (finalSalePrice !== null) {
+                    finalSalePrice += adjustment;
+                }
             }
-            const finalPriceFormatted = finalPrice.toFixed(2) + " TRY";
+            const finalPriceFormatted = finalRegularPrice.toFixed(2) + " TRY";
+            const finalSalePriceFormatted = finalSalePrice !== null ? finalSalePrice.toFixed(2) + " TRY" : null;
 
             xml += `<item>
 <g:id>${escapeXml(itemId)}</g:id>
@@ -153,7 +158,7 @@ ${additionalImages.map(img => `<g:additional_image_link>${escapeXml(img)}</g:add
 <g:condition>new</g:condition>
 <g:availability>${itemStock > 0 ? "in_stock" : "out_of_stock"}</g:availability>
 <g:price>${finalPriceFormatted}</g:price>
-${useSalePrice && salePrice && salePrice > 0 ? `<g:sale_price>${finalPriceFormatted}</g:sale_price>` : ""}
+${finalSalePriceFormatted ? `<g:sale_price>${finalSalePriceFormatted}</g:sale_price>` : ""}
 ${itemSku ? `<g:mpn>${escapeXml(itemSku)}</g:mpn>` : ""}
 ${itemBarcode ? `<g:gtin>${escapeXml(itemBarcode)}</g:gtin>` : ""}
 ${googleCategory ? `<g:google_product_category>${escapeXml(googleCategory)}</g:google_product_category>` : ""}
