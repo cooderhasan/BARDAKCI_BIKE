@@ -417,7 +417,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                                     </div>
 
                                                     {/* Mega Menu Promo Image Area - Large Floating Style */}
-                                                    <div className="w-[450px] xl:w-[600px] shrink-0 hidden lg:flex items-center justify-end relative pl-8">
+                                                    <div data-nosnippet="true" className="w-[450px] xl:w-[600px] shrink-0 hidden lg:flex items-center justify-end relative pl-8">
                                                         <Link 
                                                             href={`/category/${category.slug}`}
                                                             onClick={() => setHoveredCategory(null)}

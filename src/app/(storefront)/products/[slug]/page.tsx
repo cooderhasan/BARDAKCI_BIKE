@@ -24,6 +24,14 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
     if (!product) return { title: "Ürün Bulunamadı" };
 
+    const siteUrl = activeStore === "MOTOR"
+        ? "https://motor.bardakcibike.com.tr"
+        : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
+
+    const fullImages = (product.images || []).map(img =>
+        img.startsWith("http") ? img : `${siteUrl}${img.startsWith("/") ? "" : "/"}${img}`
+    );
+
     // Strip HTML tags and create a clean description
     const cleanDesc = product.description?.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
     
@@ -39,7 +47,13 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
         openGraph: {
             title: product.name,
             description,
-            images: product.images || [],
+            images: fullImages.length > 0 ? fullImages : undefined,
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: product.name,
+            description,
+            images: fullImages.length > 0 ? fullImages : undefined,
         },
         alternates: {
             canonical: `/products/${slug}`
@@ -186,7 +200,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
         || null;
     const categoryPath = primaryCategory ? getCategoryPath(primaryCategory) : [];
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const baseUrl = activeStore === "MOTOR"
+        ? "https://motor.bardakcibike.com.tr"
+        : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
+
+    const absoluteImages = (product.images || []).map((img) =>
+        img.startsWith("http") ? img : `${baseUrl}${img.startsWith("/") ? "" : "/"}${img}`
+    );
+
     const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
     const isFreeShipping = product.isFreeShipping || Number(product.listPrice) >= freeShippingLimit;
 
@@ -198,7 +219,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const productSchema: any = {
         "@type": "Product",
         "name": product.name,
-        "image": product.images,
+        "image": absoluteImages.length > 0 ? absoluteImages : undefined,
         "description": product.description?.replace(/<[^>]*>?/gm, "") || product.name, // Strip HTML
         "sku": product.sku || undefined,
         "mpn": product.mpn || product.sku || undefined,
