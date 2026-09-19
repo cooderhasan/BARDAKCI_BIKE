@@ -15,6 +15,12 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
             include: {
                 variants: true,
                 categories: true,
+                trendyolProduct: true,
+                n11Product: true,
+                hepsiburadaProduct: true,
+                pttavmProduct: true,
+                idefixProduct: true,
+                ciceksepetiProduct: true,
                 bundleItems: {
                     include: {
                         childProduct: {
@@ -96,6 +102,12 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         isPazaramaActive: anyProduct.isPazaramaActive || false,
         isPttavmActive: anyProduct.isPttavmActive || false,
         isGoogleActive: anyProduct.isGoogleActive || false,
+        trendyolCategoryId: anyProduct.trendyolProduct?.trendyolCategoryId || null,
+        n11CategoryId: anyProduct.n11Product?.n11CategoryId || null,
+        hbCategoryId: anyProduct.hepsiburadaProduct?.hbCategoryId || null,
+        pttavmCategoryId: anyProduct.pttavmProduct?.pttavmCategoryId || null,
+        idefixCategoryId: anyProduct.idefixProduct?.idefixCategoryId || null,
+        ciceksepetiCategoryId: anyProduct.ciceksepetiProduct?.ciceksepetiCategoryId || null,
         bundleItems: (product as any).bundleItems?.map((bi: any) => ({
             childProductId: bi.childProductId,
             quantity: bi.quantity,

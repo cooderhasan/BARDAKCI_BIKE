@@ -179,6 +179,63 @@ export class TrendyolClient {
     }
 
     /**
+     * Update Approved Product Variants (Bulk) - V2
+     * POST /integration/product/sellers/{sellerId}/products/variant-bulk-update
+     */
+    async updateApprovedProductVariant(items: {
+        barcode: string;
+        channels?: string[];
+        stockCode?: string;
+        origin?: string;
+        vatRate?: number;
+        shipmentAddressId?: number;
+        returningAddressId?: number;
+        dimensionalWeight?: number;
+        lotNumber?: string;
+        cargoProviders?: string[];
+        locationBasedDelivery?: "ENABLED" | "DISABLED" | null;
+    }[]) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/product/sellers/${this.creds.supplierId}/products/variant-bulk-update`;
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify({ items })
+        });
+
+        const data = await response.json();
+        return { ok: response.ok, ...data };
+    }
+
+    /**
+     * Update Approved Product Delivery Info (Bulk) - V2
+     * POST /integration/product/sellers/{sellerId}/products/delivery-info-bulk-update
+     */
+    async updateApprovedProductDeliveryInfo(items: {
+        barcode: string;
+        deliveryOptions: {
+            deliveryDuration: number;
+        };
+    }[]) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        const url = `${this.gatewayUrl}/integration/product/sellers/${this.creds.supplierId}/products/delivery-info-bulk-update`;
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: this.getHeaders(),
+            body: JSON.stringify({ items })
+        });
+
+        const data = await response.json();
+        return { ok: response.ok, ...data };
+    }
+
+    /**
      * Update Unapproved Products (Bulk) - V2
      * POST /integration/product/sellers/{sellerId}/products/unapproved-bulk-update
      */
@@ -380,6 +437,26 @@ export class TrendyolClient {
         }
 
         return data;
+    }
+
+    /**
+     * Get Approved Products Inventory and Price - V2
+     * GET /integration/product/sellers/{sellerId}/products/approved/inventory-and-price
+     */
+    async getApprovedProductsInventoryAndPrice(page = 0, size = 100, barcode?: string) {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+
+        let url = `${this.gatewayUrl}/integration/product/sellers/${this.creds.supplierId}/products/approved/inventory-and-price?page=${page}&size=${size}`;
+        if (barcode) {
+            url += `&barcode=${encodeURIComponent(barcode)}`;
+        }
+        const response = await fetch(url, {
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) throw new Error(`Trendyol API Error: ${response.statusText}`);
+        return await response.json();
     }
 
     /**

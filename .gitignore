@@ -51,3 +51,6 @@ next-env.d.ts
 # Debug scripts (temporary, not for production)
 debug_*.js
 check_*.js
+debug_*.ts
+check_*.ts
+test_*.ts

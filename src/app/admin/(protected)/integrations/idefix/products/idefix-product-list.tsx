@@ -21,7 +21,13 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  Tag,
+  Edit3,
+  Save,
+  X,
+  Plus,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -40,6 +46,8 @@ import {
   createProductOnIdefix,
   getIdefixAddressesAndCargo,
   checkIdefixBatchStatus,
+  setIdefixProductCategory,
+  setBulkIdefixProductCategory,
 } from "../actions";
 
 import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
@@ -99,6 +107,76 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
   const [importer, setImporter] = useState("Bardakcı Bike");
   const [sendingModal, setSendingModal] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editCatValue, setEditCatValue] = useState("");
+  const [bulkCatModalOpen, setBulkCatModalOpen] = useState(false);
+  const [bulkCatValue, setBulkCatValue] = useState("");
+  const [savingCat, setSavingCat] = useState(false);
+
+  const handleSaveCatId = async (productId: string, valToSave?: string) => {
+    setSavingCat(true);
+    const targetVal = valToSave !== undefined ? valToSave : editCatValue;
+    const catStr = targetVal.trim() || null;
+    const res = await setIdefixProductCategory(productId, catStr);
+    setSavingCat(false);
+    if (res.success) {
+      toast.success(res.message);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                idefixProduct: {
+                  ...(p.idefixProduct || {}),
+                  idefixCategoryId: catStr,
+                },
+              }
+            : p
+        )
+      );
+      setEditingCatId(null);
+      setEditCatValue("");
+    } else {
+      toast.error(res.message || "İşlem başarısız.");
+    }
+  };
+
+  const handleBulkCatAssign = async () => {
+    if (selectedIds.length === 0) {
+      toast.warning("Lütfen en az bir ürün seçin.");
+      return;
+    }
+    if (!bulkCatValue.trim()) {
+      toast.warning("Lütfen geçerli bir Idefix Kategori ID girin.");
+      return;
+    }
+    setSavingCat(true);
+    const res = await setBulkIdefixProductCategory(selectedIds, bulkCatValue.trim());
+    setSavingCat(false);
+    if (res.success) {
+      toast.success(res.message);
+      setProducts((prev) =>
+        prev.map((p) =>
+          selectedIds.includes(p.id)
+            ? {
+                ...p,
+                idefixProduct: {
+                  ...(p.idefixProduct || {}),
+                  idefixCategoryId: bulkCatValue.trim(),
+                },
+              }
+            : p
+        )
+      );
+      setBulkCatModalOpen(false);
+      setBulkCatValue("");
+      setSelectedIds([]);
+    } else {
+      toast.error(res.message || "İşlem başarısız.");
+    }
+  };
+
   const openSendModal = (product: any) => {
     const count = getBarcodeCount(product);
     if (count === 0) {
@@ -108,7 +186,8 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
 
     setSelectedProduct(product);
     const mappedCat = product.categories?.find((c: any) => c.idefixCategoryId);
-    setIdefixCategoryId(mappedCat?.idefixCategoryId || "");
+    const catId = product.idefixProduct?.idefixCategoryId || mappedCat?.idefixCategoryId || "";
+    setIdefixCategoryId(catId);
     setIdefixBrandId(product.brand?.idefixBrandId || "");
     setManufacturer(product.brand?.name || "Bardakcı Bike");
     setImporter("Bardakcı Bike");
@@ -312,12 +391,22 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
         </div>
       </div>
 
-      {/* Toplu Sync */}
-      <div className="flex justify-end gap-3">
+      {/* Toplu Islemler */}
+      <div className="flex justify-end gap-3 flex-wrap">
+        <Button
+          variant="outline"
+          onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
+          disabled={selectedIds.length === 0}
+          className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-2"
+        >
+          <Tag className="w-4 h-4 text-purple-600" />
+          <span>Toplu Kategori Ata ({selectedIds.length})</span>
+        </Button>
+
         <Button
           onClick={handleBulkSync}
           disabled={syncing}
-          className="bg-purple-600 hover:bg-purple-700 text-white gap-2 ml-auto"
+          className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
         >
           {syncing ? (
             <>
@@ -333,11 +422,62 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
         </Button>
       </div>
 
+      {/* Toplu Kategori Atama Paneli */}
+      {bulkCatModalOpen && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 rounded-xl p-4 shadow-sm">
+          <Tag className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">
+              Seçili {selectedIds.length} ürüne Idefix Kategori ID ata
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              Bu ürünler site kategorisi yerine doğrudan belirlediğiniz Idefix kategorisine gönderilecektir.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Input
+              placeholder="Idefix Kategori ID (örn: 12345)"
+              value={bulkCatValue}
+              onChange={(e) => setBulkCatValue(e.target.value)}
+              className="h-9 w-full sm:w-56 text-sm bg-white dark:bg-gray-800 font-mono"
+            />
+            <Button
+              size="sm"
+              onClick={handleBulkCatAssign}
+              disabled={savingCat || !bulkCatValue.trim()}
+              className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+            >
+              {savingCat ? "Kaydediliyor..." : "Uygula"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setBulkCatModalOpen(false)}
+              className="shrink-0"
+            >
+              İptal
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Tablo */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedIds(filteredProducts.map((p) => p.id));
+                    } else {
+                      setSelectedIds([]);
+                    }
+                  }}
+                />
+              </TableHead>
               <TableHead>Urun Adi</TableHead>
               <TableHead>Marka</TableHead>
               <TableHead className="text-center">Barkodlu Var.</TableHead>
@@ -350,7 +490,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Urun bulunamadi.
                 </TableCell>
               </TableRow>
@@ -360,13 +500,111 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                 const hasBarcode = barcodeCount > 0;
                 const isSending = loadingProductId === product.id;
                 const isToggling = toggling === product.id;
+                const isSelected = selectedIds.includes(product.id);
+                const mappedCat = product.categories?.find((c: any) => c.idefixCategoryId);
 
                 return (
                   <TableRow key={product.id} className={product.isIdefixActive ? "bg-purple-50/30" : ""}>
                     <TableCell>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedIds((prev) => [...prev, product.id]);
+                          } else {
+                            setSelectedIds((prev) => prev.filter((id) => id !== product.id));
+                          }
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
                       <div>
                         <p className="font-medium text-sm line-clamp-1">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">{product.sku}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span className="text-xs text-muted-foreground font-mono">{product.sku}</span>
+                          {product.idefixProduct?.idefixCategoryId ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Badge className="bg-purple-100 text-purple-800 text-[10px] font-bold py-0 px-1.5 border-purple-200">
+                                ⭐ Özel Kat: #{product.idefixProduct.idefixCategoryId}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 text-muted-foreground hover:text-purple-600"
+                                onClick={() => {
+                                  setEditingCatId(product.id);
+                                  setEditCatValue(product.idefixProduct.idefixCategoryId);
+                                }}
+                                title="Özel kategoriyi düzenle / kaldır"
+                              >
+                                <Edit3 className="w-2.5 h-2.5" />
+                              </Button>
+                            </span>
+                          ) : mappedCat?.idefixCategoryId ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-purple-700 border-purple-200">
+                                Kat: #{mappedCat.idefixCategoryId}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 text-gray-400 hover:text-purple-600"
+                                onClick={() => {
+                                  setEditingCatId(product.id);
+                                  setEditCatValue("");
+                                }}
+                                title="Bu ürüne özel Idefix kategorisi ata"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                              </Button>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1">
+                              <Badge variant="outline" className="text-[10px] text-gray-400 border-dashed py-0 px-1.5">
+                                Kat: Tanımsız
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 text-purple-600 hover:bg-purple-50"
+                                onClick={() => {
+                                  setEditingCatId(product.id);
+                                  setEditCatValue("");
+                                }}
+                                title="Bu ürüne özel Idefix kategorisi ata"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                              </Button>
+                            </span>
+                          )}
+                        </div>
+
+                        {editingCatId === product.id && (
+                          <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-purple-300 rounded-md shadow-sm z-10 w-fit mt-1" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={editCatValue}
+                              onChange={(e) => setEditCatValue(e.target.value)}
+                              placeholder="Idefix Kat ID"
+                              className="h-6 text-[10px] w-24 px-1 font-mono"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveCatId(product.id);
+                                if (e.key === "Escape") setEditingCatId(null);
+                              }}
+                            />
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50" onClick={() => handleSaveCatId(product.id)} disabled={savingCat} title="Kaydet">
+                              <Save className="h-3 w-3" />
+                            </Button>
+                            {product.idefixProduct?.idefixCategoryId && (
+                              <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:bg-red-50" onClick={() => handleSaveCatId(product.id, "")} disabled={savingCat} title="Özel kategoriyi sil (Site eşleşmesine dön)">
+                                <X className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-400" onClick={() => setEditingCatId(null)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

@@ -150,6 +150,57 @@ export async function createProduct(formData: FormData) {
             await syncBundleProductStock(product.id);
         }
 
+        // Handle marketplace category overrides
+        const trendyolCategoryId = formData.get("trendyolCategoryId") ? Number(formData.get("trendyolCategoryId")) : null;
+        const n11CategoryId = formData.get("n11CategoryId") ? Number(formData.get("n11CategoryId")) : null;
+        const hbCategoryId = (formData.get("hbCategoryId") as string)?.trim() || null;
+        const pttavmCategoryId = formData.get("pttavmCategoryId") ? Number(formData.get("pttavmCategoryId")) : null;
+        const idefixCategoryId = (formData.get("idefixCategoryId") as string)?.trim() || null;
+        const ciceksepetiCategoryId = (formData.get("ciceksepetiCategoryId") as string)?.trim() || null;
+
+        if (trendyolCategoryId) {
+            await (prisma as any).trendyolProduct.upsert({
+                where: { productId: product.id },
+                create: { productId: product.id, barcode: product.barcode || "", trendyolCategoryId },
+                update: { trendyolCategoryId },
+            });
+        }
+        if (n11CategoryId) {
+            await (prisma as any).n11Product.upsert({
+                where: { productId: product.id },
+                create: { productId: product.id, n11CategoryId },
+                update: { n11CategoryId },
+            });
+        }
+        if (hbCategoryId) {
+            await (prisma as any).hepsiburadaProduct.upsert({
+                where: { productId: product.id },
+                create: { productId: product.id, hbCategoryId },
+                update: { hbCategoryId },
+            });
+        }
+        if (pttavmCategoryId) {
+            await (prisma as any).pttavmProduct.upsert({
+                where: { productId: product.id },
+                create: { productId: product.id, pttavmCategoryId },
+                update: { pttavmCategoryId },
+            });
+        }
+        if (idefixCategoryId) {
+            await (prisma as any).idefixProduct.upsert({
+                where: { productId: product.id },
+                create: { productId: product.id, idefixCategoryId },
+                update: { idefixCategoryId },
+            });
+        }
+        if (ciceksepetiCategoryId) {
+            await (prisma as any).ciceksepetiProduct.upsert({
+                where: { productId: product.id },
+                create: { productId: product.id, ciceksepetiCategoryId },
+                update: { ciceksepetiCategoryId },
+            });
+        }
+
         await prisma.adminLog.create({
             data: {
                 adminId: session.user.id,
@@ -338,6 +389,98 @@ export async function updateProduct(productId: string, formData: FormData) {
             await prisma.bundleItem.deleteMany({
                 where: { bundleProductId: productId },
             });
+        }
+
+        // Handle marketplace category overrides
+        if (formData.has("trendyolCategoryId")) {
+            const val = formData.get("trendyolCategoryId") ? Number(formData.get("trendyolCategoryId")) : null;
+            if (val) {
+                await (prisma as any).trendyolProduct.upsert({
+                    where: { productId },
+                    create: { productId, barcode: (oldProduct as any)?.barcode || "", trendyolCategoryId: val },
+                    update: { trendyolCategoryId: val },
+                });
+            } else {
+                await (prisma as any).trendyolProduct.updateMany({
+                    where: { productId },
+                    data: { trendyolCategoryId: null },
+                });
+            }
+        }
+        if (formData.has("n11CategoryId")) {
+            const val = formData.get("n11CategoryId") ? Number(formData.get("n11CategoryId")) : null;
+            if (val) {
+                await (prisma as any).n11Product.upsert({
+                    where: { productId },
+                    create: { productId, n11CategoryId: val },
+                    update: { n11CategoryId: val },
+                });
+            } else {
+                await (prisma as any).n11Product.updateMany({
+                    where: { productId },
+                    data: { n11CategoryId: null },
+                });
+            }
+        }
+        if (formData.has("hbCategoryId")) {
+            const val = (formData.get("hbCategoryId") as string)?.trim() || null;
+            if (val) {
+                await (prisma as any).hepsiburadaProduct.upsert({
+                    where: { productId },
+                    create: { productId, hbCategoryId: val },
+                    update: { hbCategoryId: val },
+                });
+            } else {
+                await (prisma as any).hepsiburadaProduct.updateMany({
+                    where: { productId },
+                    data: { hbCategoryId: null },
+                });
+            }
+        }
+        if (formData.has("pttavmCategoryId")) {
+            const val = formData.get("pttavmCategoryId") ? Number(formData.get("pttavmCategoryId")) : null;
+            if (val) {
+                await (prisma as any).pttavmProduct.upsert({
+                    where: { productId },
+                    create: { productId, pttavmCategoryId: val },
+                    update: { pttavmCategoryId: val },
+                });
+            } else {
+                await (prisma as any).pttavmProduct.updateMany({
+                    where: { productId },
+                    data: { pttavmCategoryId: null },
+                });
+            }
+        }
+        if (formData.has("idefixCategoryId")) {
+            const val = (formData.get("idefixCategoryId") as string)?.trim() || null;
+            if (val) {
+                await (prisma as any).idefixProduct.upsert({
+                    where: { productId },
+                    create: { productId, idefixCategoryId: val },
+                    update: { idefixCategoryId: val },
+                });
+            } else {
+                await (prisma as any).idefixProduct.updateMany({
+                    where: { productId },
+                    data: { idefixCategoryId: null },
+                });
+            }
+        }
+        if (formData.has("ciceksepetiCategoryId")) {
+            const val = (formData.get("ciceksepetiCategoryId") as string)?.trim() || null;
+            if (val) {
+                await (prisma as any).ciceksepetiProduct.upsert({
+                    where: { productId },
+                    create: { productId, ciceksepetiCategoryId: val },
+                    update: { ciceksepetiCategoryId: val },
+                });
+            } else {
+                await (prisma as any).ciceksepetiProduct.updateMany({
+                    where: { productId },
+                    data: { ciceksepetiCategoryId: null },
+                });
+            }
         }
 
         revalidatePath("/admin/products");

@@ -123,6 +123,12 @@ interface Product {
     bundleItems?: BundleItemData[];
     gender?: string | null;
     brakeType?: string | null;
+    trendyolCategoryId?: number | null;
+    n11CategoryId?: number | null;
+    hbCategoryId?: string | null;
+    pttavmCategoryId?: number | null;
+    idefixCategoryId?: string | null;
+    ciceksepetiCategoryId?: string | null;
 }
 
 interface ProductFormProps {
@@ -188,6 +194,12 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         isBundle: product?.isBundle || false,
         gender: product?.gender || "none",
         brakeType: product?.brakeType || "none",
+        trendyolCategoryId: product?.trendyolCategoryId ? String(product.trendyolCategoryId) : "",
+        n11CategoryId: product?.n11CategoryId ? String(product.n11CategoryId) : "",
+        hbCategoryId: product?.hbCategoryId || "",
+        pttavmCategoryId: product?.pttavmCategoryId ? String(product.pttavmCategoryId) : "",
+        idefixCategoryId: product?.idefixCategoryId || "",
+        ciceksepetiCategoryId: product?.ciceksepetiCategoryId || "",
     });
 
     // Bundle state
@@ -1414,6 +1426,25 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 />
                             </div>
 
+                            {formData.isTrendyolActive && (
+                                <div className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg bg-orange-50/40 dark:bg-orange-950/10 space-y-1.5">
+                                    <Label htmlFor="trendyolCategoryId" className="text-xs font-semibold text-orange-800 dark:text-orange-300">
+                                        Trendyol Özel Kategori ID (Opsiyonel Override)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Boş bırakılırsa ürünün site kategorisindeki eşleşen Trendyol kategorisi kullanılır. Buraya ID girilirse (örn: 1045) ürün Trendyol'a bu özel kategoriyle gönderilir.
+                                    </p>
+                                    <Input
+                                        id="trendyolCategoryId"
+                                        type="number"
+                                        value={formData.trendyolCategoryId}
+                                        onChange={(e) => handleChange("trendyolCategoryId", e.target.value)}
+                                        placeholder="Örn: 1045"
+                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
+                                    />
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/10">
                                 <div className="space-y-0.5">
                                     <Label className="text-base text-purple-700 dark:text-purple-300">N11 Satış</Label>
@@ -1428,6 +1459,22 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             {formData.isN11Active && (
                                 <div className="p-4 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/30 dark:bg-purple-950/10 space-y-3">
                                     <div className="space-y-2">
+                                        <Label htmlFor="n11CategoryId" className="text-purple-700 dark:text-purple-300 font-semibold text-xs flex items-center gap-1.5">
+                                            <span>N11 Özel Kategori ID (Opsiyonel Override)</span>
+                                        </Label>
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                            Boş bırakılırsa site kategori eşleşmesi kullanılır. Belirli bir alt kategoriye göndermek için N11 Kategori ID girin.
+                                        </p>
+                                        <Input
+                                            id="n11CategoryId"
+                                            type="number"
+                                            value={formData.n11CategoryId}
+                                            onChange={(e) => handleChange("n11CategoryId", e.target.value)}
+                                            placeholder="Örn: 100223"
+                                            className="h-8 text-xs border-purple-200 dark:border-purple-800 focus:border-purple-500 bg-white dark:bg-gray-800 font-mono"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
                                         <Label htmlFor="n11CatalogId" className="text-purple-700 dark:text-purple-300 font-semibold flex items-center gap-1.5">
                                             <span>N11 Katalog (Buybox) ID</span>
                                         </Label>
@@ -1439,7 +1486,6 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                             type="text"
                                             value={formData.n11CatalogId}
                                             onChange={(e) => {
-                                                // Only allow numbers
                                                 const val = e.target.value;
                                                 if (/^\d*$/.test(val)) {
                                                     handleChange("n11CatalogId", val);
@@ -1463,6 +1509,25 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 />
                             </div>
 
+                            {formData.isHepsiburadaActive && (
+                                <div className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg bg-orange-50/40 dark:bg-orange-950/10 space-y-1.5">
+                                    <Label htmlFor="hbCategoryId" className="text-xs font-semibold text-orange-800 dark:text-orange-300">
+                                        Hepsiburada Özel Kategori ID (Opsiyonel Override)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
+                                    </p>
+                                    <Input
+                                        id="hbCategoryId"
+                                        type="text"
+                                        value={formData.hbCategoryId}
+                                        onChange={(e) => handleChange("hbCategoryId", e.target.value)}
+                                        placeholder="Örn: 2147483647 veya kategori ID"
+                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
+                                    />
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/10">
                                 <div className="space-y-0.5">
                                     <Label className="text-base text-purple-700 dark:text-purple-300">Idefix Satış</Label>
@@ -1473,6 +1538,25 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     onCheckedChange={(c) => handleChange("isIdefixActive", c)}
                                 />
                             </div>
+
+                            {formData.isIdefixActive && (
+                                <div className="p-3 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/40 dark:bg-purple-950/10 space-y-1.5">
+                                    <Label htmlFor="idefixCategoryId" className="text-xs font-semibold text-purple-800 dark:text-purple-300">
+                                        Idefix Özel Kategori ID (Opsiyonel Override)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
+                                    </p>
+                                    <Input
+                                        id="idefixCategoryId"
+                                        type="text"
+                                        value={formData.idefixCategoryId}
+                                        onChange={(e) => handleChange("idefixCategoryId", e.target.value)}
+                                        placeholder="Örn: 12345"
+                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-pink-50 dark:bg-pink-900/10">
                                 <div className="space-y-0.5">
@@ -1496,6 +1580,25 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 />
                             </div>
 
+                            {formData.isPttavmActive && (
+                                <div className="p-3 border border-teal-200 dark:border-teal-800 rounded-lg bg-teal-50/40 dark:bg-teal-950/10 space-y-1.5">
+                                    <Label htmlFor="pttavmCategoryId" className="text-xs font-semibold text-teal-800 dark:text-teal-300">
+                                        ePttAVM Özel Kategori ID (Opsiyonel Override)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
+                                    </p>
+                                    <Input
+                                        id="pttavmCategoryId"
+                                        type="number"
+                                        value={formData.pttavmCategoryId}
+                                        onChange={(e) => handleChange("pttavmCategoryId", e.target.value)}
+                                        placeholder="Örn: 567"
+                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
+                                    />
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-rose-50 dark:bg-rose-900/10">
                                 <div className="space-y-0.5">
                                     <Label className="text-base text-rose-700 dark:text-rose-300">🌸 Çiçeksepeti Satış</Label>
@@ -1506,6 +1609,25 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     onCheckedChange={(c) => handleChange("isCiceksepetiActive", c)}
                                 />
                             </div>
+
+                            {formData.isCiceksepetiActive && (
+                                <div className="p-3 border border-rose-200 dark:border-rose-800 rounded-lg bg-rose-50/40 dark:bg-rose-950/10 space-y-1.5">
+                                    <Label htmlFor="ciceksepetiCategoryId" className="text-xs font-semibold text-rose-800 dark:text-rose-300">
+                                        Çiçeksepeti Özel Kategori ID (Opsiyonel Override)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
+                                    </p>
+                                    <Input
+                                        id="ciceksepetiCategoryId"
+                                        type="text"
+                                        value={formData.ciceksepetiCategoryId}
+                                        onChange={(e) => handleChange("ciceksepetiCategoryId", e.target.value)}
+                                        placeholder="Örn: 14604"
+                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
                                 <div className="space-y-0.5">

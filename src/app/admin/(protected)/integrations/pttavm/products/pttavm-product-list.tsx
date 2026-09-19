@@ -14,6 +14,8 @@ import {
   syncProductsToPttavm,
   syncPttavmStockAndPrice,
   checkPttavmTrackingResult,
+  setPttavmProductCategory,
+  setBulkPttavmProductCategory,
 } from "../actions";
 import {
   Search,
@@ -22,6 +24,11 @@ import {
   CheckCircle2,
   Package,
   Activity,
+  Tag,
+  Edit3,
+  Save,
+  X,
+  Plus,
 } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { formatPrice } from "@/lib/helpers";
@@ -41,6 +48,8 @@ interface Product {
   pttavmStatus?: string | null;
   trackingId?: string | null;
   pttavmCategoryId?: number | null;
+  hasCategoryOverride?: boolean;
+  pttavmCategoryName?: string | null;
   brand?: { name: string } | null;
 }
 
@@ -66,6 +75,77 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");
   const [isPending, startTransition] = useTransition();
+
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editCatValue, setEditCatValue] = useState("");
+  const [bulkCatModalOpen, setBulkCatModalOpen] = useState(false);
+  const [bulkCatValue, setBulkCatValue] = useState("");
+  const [savingCat, setSavingCat] = useState(false);
+
+  const handleSaveCatId = async (productId: string, valToSave?: string) => {
+    setSavingCat(true);
+    const targetVal = valToSave !== undefined ? valToSave : editCatValue;
+    const catNum = targetVal.trim() ? parseInt(targetVal.trim(), 10) : null;
+    if (targetVal.trim() && isNaN(catNum!)) {
+      toast.error("Geçerli bir sayısal ePttAVM Kategori ID girin.");
+      setSavingCat(false);
+      return;
+    }
+    const res = await setPttavmProductCategory(productId, catNum);
+    setSavingCat(false);
+    if (res.success) {
+      toast.success(res.message);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                pttavmCategoryId: catNum,
+                hasCategoryOverride: Boolean(catNum),
+              }
+            : p
+        )
+      );
+      setEditingCatId(null);
+      setEditCatValue("");
+    } else {
+      toast.error((res as any).error || res.message || "İşlem başarısız.");
+    }
+  };
+
+  const handleBulkCatAssign = async () => {
+    if (selectedIds.length === 0) {
+      toast.warning("Lütfen en az bir ürün seçin.");
+      return;
+    }
+    const catNum = parseInt(bulkCatValue.trim(), 10);
+    if (isNaN(catNum) || catNum <= 0) {
+      toast.warning("Lütfen geçerli bir ePttAVM Kategori ID girin.");
+      return;
+    }
+    setSavingCat(true);
+    const res = await setBulkPttavmProductCategory(selectedIds, catNum);
+    setSavingCat(false);
+    if (res.success) {
+      toast.success(res.message);
+      setProducts((prev) =>
+        prev.map((p) =>
+          selectedIds.includes(p.id)
+            ? {
+                ...p,
+                pttavmCategoryId: catNum,
+                hasCategoryOverride: true,
+              }
+            : p
+        )
+      );
+      setBulkCatModalOpen(false);
+      setBulkCatValue("");
+      setSelectedIds([]);
+    } else {
+      toast.error((res as any).error || res.message || "İşlem başarısız.");
+    }
+  };
 
   useEffect(() => {
     setProducts(initialProducts);
@@ -239,7 +319,18 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
+            disabled={selectedIds.length === 0}
+            className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-1.5"
+          >
+            <Tag className="w-3.5 h-3.5 text-purple-600" />
+            Toplu Kategori Ata ({selectedIds.length})
+          </Button>
+
           {selectedIds.length > 0 && (
             <>
               <Button
@@ -266,6 +357,46 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
           )}
         </div>
       </div>
+
+      {/* Toplu Kategori Atama Paneli */}
+      {bulkCatModalOpen && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 rounded-xl p-4 shadow-sm">
+          <Tag className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">
+              Seçili {selectedIds.length} ürüne ePttAVM Kategori ID ata
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">
+              Bu ürünler site kategorisi yerine doğrudan belirlediğiniz ePttAVM kategorisine gönderilecektir.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Input
+              placeholder="ePttAVM Kategori ID (örn: 567)"
+              type="number"
+              value={bulkCatValue}
+              onChange={(e) => setBulkCatValue(e.target.value)}
+              className="h-9 w-full sm:w-56 text-sm bg-white dark:bg-gray-800 font-mono"
+            />
+            <Button
+              size="sm"
+              onClick={handleBulkCatAssign}
+              disabled={savingCat || !bulkCatValue.trim()}
+              className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+            >
+              {savingCat ? "Kaydediliyor..." : "Uygula"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setBulkCatModalOpen(false)}
+              className="shrink-0"
+            >
+              İptal
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="py-4">
@@ -337,10 +468,96 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
                               unoptimized
                             />
                           </div>
-                          <div>
+                          <div className="space-y-1">
                             <p className="font-medium text-sm line-clamp-1">{product.name}</p>
-                            {product.brand?.name && (
-                              <p className="text-xs text-muted-foreground">{product.brand.name}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {product.brand?.name && (
+                                <span className="text-xs text-muted-foreground">{product.brand.name}</span>
+                              )}
+
+                              {product.hasCategoryOverride ? (
+                                <div className="inline-flex items-center gap-1">
+                                  <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 text-[10px] font-bold py-0 px-1.5">
+                                    ⭐ Özel Kat: #{product.pttavmCategoryId}
+                                  </Badge>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 text-muted-foreground hover:text-purple-600"
+                                    onClick={() => {
+                                      setEditingCatId(product.id);
+                                      setEditCatValue(String(product.pttavmCategoryId || ""));
+                                    }}
+                                    title="Özel kategoriyi düzenle / kaldır"
+                                  >
+                                    <Edit3 className="w-2.5 h-2.5" />
+                                  </Button>
+                                </div>
+                              ) : product.pttavmCategoryId ? (
+                                <div className="inline-flex items-center gap-1">
+                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-teal-700 border-teal-200">
+                                    Kat ID: #{product.pttavmCategoryId}
+                                  </Badge>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 text-gray-400 hover:text-purple-600"
+                                    onClick={() => {
+                                      setEditingCatId(product.id);
+                                      setEditCatValue("");
+                                    }}
+                                    title="Bu ürüne özel ePttAVM kategorisi ata"
+                                  >
+                                    <Plus className="w-2.5 h-2.5" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="inline-flex items-center gap-1">
+                                  <Badge variant="outline" className="text-[10px] text-red-500 border-red-200 py-0 px-1.5">
+                                    Kategori Tanımsız
+                                  </Badge>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 text-purple-600 hover:bg-purple-50"
+                                    onClick={() => {
+                                      setEditingCatId(product.id);
+                                      setEditCatValue("");
+                                    }}
+                                    title="Bu ürüne özel ePttAVM kategorisi ata"
+                                  >
+                                    <Plus className="w-2.5 h-2.5" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+
+                            {editingCatId === product.id && (
+                              <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-purple-300 rounded-md shadow-sm z-10 w-fit" onClick={(e) => e.stopPropagation()}>
+                                <Input
+                                  type="number"
+                                  value={editCatValue}
+                                  onChange={(e) => setEditCatValue(e.target.value)}
+                                  placeholder="ePttAVM Kat ID"
+                                  className="h-6 text-[10px] w-24 px-1 font-mono"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveCatId(product.id);
+                                    if (e.key === "Escape") setEditingCatId(null);
+                                  }}
+                                />
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50" onClick={() => handleSaveCatId(product.id)} disabled={savingCat} title="Kaydet">
+                                  <Save className="h-3 w-3" />
+                                </Button>
+                                {product.hasCategoryOverride && (
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:bg-red-50" onClick={() => handleSaveCatId(product.id, "")} disabled={savingCat} title="Özel kategoriyi sil (Site eşleşmesine dön)">
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-400" onClick={() => setEditingCatId(null)}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>

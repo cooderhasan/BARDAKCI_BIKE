@@ -125,7 +125,8 @@ export async function syncProductsToTrendyol(productIds?: string[], type: "produ
             include: {
                 brand: true,
                 categories: true,
-                variants: true
+                variants: true,
+                trendyolProduct: true
             }
         });
 
@@ -178,9 +179,15 @@ export async function syncProductsToTrendyol(productIds?: string[], type: "produ
         const items: any[] = [];
 
         for (const p of products) {
-            // Priority for Category: our mapped Category ID > Fallback
-            const mappedCategory = (p as any).categories.find((c: any) => c.trendyolCategoryId !== null);
-            const trendyolCatId = mappedCategory ? mappedCategory.trendyolCategoryId : 1234;
+            // Priority for Category: 1) Ürüne özel trendyolCategoryId → 2) Site kategori eşleşmesi → 3) Fallback
+            const productOverrideCatId = (p as any).trendyolProduct?.trendyolCategoryId;
+            let trendyolCatId;
+            if (productOverrideCatId) {
+                trendyolCatId = productOverrideCatId;
+            } else {
+                const mappedCategory = (p as any).categories.find((c: any) => c.trendyolCategoryId !== null);
+                trendyolCatId = mappedCategory ? mappedCategory.trendyolCategoryId : 1234;
+            }
 
             // Brand Mapping
             const brandId = (p as any).brand?.trendyolBrandId || 1795; // Default "Diğer" if not found? Need real check
@@ -731,7 +738,8 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
             include: {
                 brand: true,
                 categories: true,
-                variants: true
+                variants: true,
+                trendyolProduct: true
             }
         });
 
@@ -744,10 +752,15 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
         });
 
         // 1. Kategori ve Marka ID kontrolü
+        // Öncelik: 1) targetCategoryId (UI'dan seçilen) → 2) Ürüne özel override → 3) Site kategori eşleşmesi
         let mappedCategory = null;
+        const productOverrideCatId = (product as any).trendyolProduct?.trendyolCategoryId;
         if (targetCategoryId) {
             mappedCategory = (product as any).categories.find((c: any) => c.trendyolCategoryId === targetCategoryId) 
                 || { trendyolCategoryId: targetCategoryId };
+        } else if (productOverrideCatId) {
+            // Ürüne özel kategori override'ı kullan
+            mappedCategory = { trendyolCategoryId: productOverrideCatId };
         } else {
             // Eğer birden fazla kategori varsa, daha spesifik olanı (örn. iç lastik) önceliklendir
             const mappedCats = (product as any).categories.filter((c: any) => c.trendyolCategoryId !== null);
@@ -1614,5 +1627,54 @@ export async function answerTrendyolQuestion(questionId: string | number, text: 
     } catch (error: any) {
         console.error("Trendyol answerQuestion error:", error);
         return { success: false, message: "Cevap gönderilemedi: " + error.message };
+    }
+}
+
+// ==================== ÜRÜN BAZLI KATEGORİ OVERRIDE ====================
+
+/**
+ * Tekli ürüne Trendyol kategori override set etme
+ * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
+ */
+export async function setTrendyolProductCategory(productId: string, trendyolCategoryId: number | null) {
+    try {
+        await (prisma as any).trendyolProduct.upsert({
+            where: { productId },
+            update: { trendyolCategoryId: trendyolCategoryId },
+            create: {
+                productId,
+                barcode: "",
+                trendyolCategoryId: trendyolCategoryId,
+            },
+        });
+        revalidatePath("/admin/integrations/trendyol");
+        return { success: true, message: trendyolCategoryId ? `Ürüne özel Trendyol kategorisi atandı: ${trendyolCategoryId}` : "Ürüne özel kategori kaldırıldı, site eşleşmesi kullanılacak." };
+    } catch (error: any) {
+        console.error("setTrendyolProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
+
+/**
+ * Toplu ürünlere Trendyol kategori override set etme
+ */
+export async function setBulkTrendyolProductCategory(productIds: string[], trendyolCategoryId: number) {
+    try {
+        for (const productId of productIds) {
+            await (prisma as any).trendyolProduct.upsert({
+                where: { productId },
+                update: { trendyolCategoryId },
+                create: {
+                    productId,
+                    barcode: "",
+                    trendyolCategoryId,
+                },
+            });
+        }
+        revalidatePath("/admin/integrations/trendyol");
+        return { success: true, message: `${productIds.length} ürüne Trendyol kategori override atandı: ${trendyolCategoryId}` };
+    } catch (error: any) {
+        console.error("setBulkTrendyolProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
     }
 }

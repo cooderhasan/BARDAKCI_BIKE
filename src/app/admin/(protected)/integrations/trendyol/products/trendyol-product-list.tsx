@@ -21,11 +21,23 @@ import {
     CheckCircle2, 
     ExternalLink,
     Box,
-    History
+    History,
+    Tag,
+    Edit3,
+    Save,
+    X,
+    Plus
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { sendProductToTrendyol, getTrendyolCategoryAttributes, enqueueTrendyolSync } from "../actions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+    sendProductToTrendyol, 
+    getTrendyolCategoryAttributes, 
+    enqueueTrendyolSync,
+    setTrendyolProductCategory,
+    setBulkTrendyolProductCategory
+} from "../actions";
 import {
     Dialog,
     DialogContent,
@@ -86,19 +98,101 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
         }
     };
 
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [editingCatId, setEditingCatId] = useState<string | null>(null);
+    const [editCatValue, setEditCatValue] = useState("");
+    const [bulkCatModalOpen, setBulkCatModalOpen] = useState(false);
+    const [bulkCatValue, setBulkCatValue] = useState("");
+    const [savingCat, setSavingCat] = useState(false);
+
+    const handleSaveCatId = async (productId: string, valToSave?: string) => {
+        setSavingCat(true);
+        const targetVal = valToSave !== undefined ? valToSave : editCatValue;
+        const catNum = targetVal.trim() ? parseInt(targetVal.trim(), 10) : null;
+        if (targetVal.trim() && isNaN(catNum!)) {
+            toast.error("Geçerli bir sayısal Trendyol Kategori ID girin.");
+            setSavingCat(false);
+            return;
+        }
+        const res = await setTrendyolProductCategory(productId, catNum);
+        setSavingCat(false);
+        if (res.success) {
+            toast.success(res.message);
+            setProducts((prev) =>
+                prev.map((p) =>
+                    p.id === productId
+                        ? {
+                              ...p,
+                              trendyolProduct: {
+                                  ...(p.trendyolProduct || {}),
+                                  trendyolCategoryId: catNum,
+                              },
+                          }
+                        : p
+                )
+            );
+            setEditingCatId(null);
+            setEditCatValue("");
+        } else {
+            toast.error(res.message || "İşlem başarısız.");
+        }
+    };
+
+    const handleBulkCatAssign = async () => {
+        if (selectedIds.length === 0) {
+            toast.warning("Lütfen en az bir ürün seçin.");
+            return;
+        }
+        const catNum = parseInt(bulkCatValue.trim(), 10);
+        if (isNaN(catNum) || catNum <= 0) {
+            toast.warning("Lütfen geçerli bir Trendyol Kategori ID girin.");
+            return;
+        }
+        setSavingCat(true);
+        const res = await setBulkTrendyolProductCategory(selectedIds, catNum);
+        setSavingCat(false);
+        if (res.success) {
+            toast.success(res.message);
+            setProducts((prev) =>
+                prev.map((p) =>
+                    selectedIds.includes(p.id)
+                        ? {
+                              ...p,
+                              trendyolProduct: {
+                                  ...(p.trendyolProduct || {}),
+                                  trendyolCategoryId: catNum,
+                              },
+                          }
+                        : p
+                )
+            );
+            setBulkCatModalOpen(false);
+            setBulkCatValue("");
+            setSelectedIds([]);
+        } else {
+            toast.error(res.message || "İşlem başarısız.");
+        }
+    };
+
     const handleOpenWizard = async (product: any, overrideCatId?: number) => {
+        const productOverrideCatId = product.trendyolProduct?.trendyolCategoryId;
         const mappedCats = product.categories.filter((c: any) => c.trendyolCategoryId !== null);
-        if (mappedCats.length === 0) {
-            toast.error("Önce kategoriyi Trendyol ile eşleştirmelisiniz.");
+
+        let catId: number | null = null;
+        if (overrideCatId) {
+            catId = overrideCatId;
+        } else if (productOverrideCatId) {
+            catId = productOverrideCatId;
+        } else if (mappedCats.length > 0) {
+            const activeCat = mappedCats.find((c: any) => c.name?.toLowerCase().includes("iç lastik") || c.name?.toLowerCase().includes("lastik")) || mappedCats[0];
+            catId = activeCat.trendyolCategoryId;
+        }
+
+        if (!catId) {
+            toast.error("Önce kategoriyi Trendyol ile eşleştirmelisiniz veya ürüne özel Trendyol Kategori ID girmelisiniz.");
             return;
         }
 
-        // Eğer ürünün birden çok kategorisi varsa, iç lastik gibi spesifik kategoriyi önceliklendir
-        const activeCat = overrideCatId 
-            ? mappedCats.find((c: any) => c.trendyolCategoryId === overrideCatId) || mappedCats[0]
-            : (mappedCats.find((c: any) => c.name?.toLowerCase().includes("iç lastik") || c.name?.toLowerCase().includes("lastik")) || mappedCats[0]);
-
-        const catId = activeCat.trendyolCategoryId;
         setSelectedProduct(product);
         setSelectedCategoryId(catId);
         setShowAttrModal(true);
@@ -248,6 +342,16 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                         </Button>
                     </Link>
 
+                    <Button
+                        variant="outline"
+                        onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
+                        disabled={selectedIds.length === 0}
+                        className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all"
+                    >
+                        <Tag className="w-4 h-4 text-purple-600" />
+                        <span>Toplu Kategori Ata ({selectedIds.length})</span>
+                    </Button>
+
                     <Button 
                         onClick={handleBulkSync} 
                         disabled={syncing}
@@ -271,11 +375,63 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                 </div>
             </div>
 
+            {/* Toplu Kategori Atama Paneli */}
+            {bulkCatModalOpen && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 rounded-xl p-4 shadow-sm">
+                    <Tag className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="flex-1 space-y-1">
+                        <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">
+                            Seçili {selectedIds.length} ürüne Trendyol Kategori ID ata
+                        </p>
+                        <p className="text-xs text-purple-600 dark:text-purple-400">
+                            Bu ürünler site kategorisi yerine doğrudan belirlediğiniz Trendyol kategorisine gönderilecektir.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Input
+                            placeholder="Trendyol Kategori ID (örn: 1045)"
+                            type="number"
+                            value={bulkCatValue}
+                            onChange={(e) => setBulkCatValue(e.target.value)}
+                            className="h-9 w-full sm:w-56 text-sm bg-white dark:bg-gray-800 font-mono"
+                        />
+                        <Button
+                            size="sm"
+                            onClick={handleBulkCatAssign}
+                            disabled={savingCat || !bulkCatValue.trim()}
+                            className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+                        >
+                            {savingCat ? "Kaydediliyor..." : "Uygula"}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setBulkCatModalOpen(false)}
+                            className="shrink-0"
+                        >
+                            İptal
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader className="bg-gray-50/50 dark:bg-gray-800/50">
                         <TableRow>
-                            <TableHead className="w-[100px]">Görsel</TableHead>
+                            <TableHead className="w-[40px]">
+                                <Checkbox
+                                    checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
+                                    onCheckedChange={(checked) => {
+                                        if (checked) {
+                                            setSelectedIds(filteredProducts.map((p) => p.id));
+                                        } else {
+                                            setSelectedIds([]);
+                                        }
+                                    }}
+                                />
+                            </TableHead>
+                            <TableHead className="w-[80px]">Görsel</TableHead>
                             <TableHead>Ürün Bilgisi</TableHead>
                             <TableHead>Fiyat / Stok</TableHead>
                             <TableHead>Kategori / Marka</TableHead>
@@ -288,9 +444,22 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                             const isSynced = !!product.trendyolProduct?.isSynced;
                             const mappedCat = product.categories.find((c: any) => c.trendyolCategoryId !== null);
                             const mappedBrand = product.brand?.trendyolBrandId !== null;
+                            const isSelected = selectedIds.includes(product.id);
 
                             return (
                                 <TableRow key={product.id} className="hover:bg-orange-50/10 transition-colors">
+                                    <TableCell>
+                                        <Checkbox
+                                            checked={isSelected}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setSelectedIds((prev) => [...prev, product.id]);
+                                                } else {
+                                                    setSelectedIds((prev) => prev.filter((id) => id !== product.id));
+                                                }
+                                            }}
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
                                             {product.images?.[0] ? (
@@ -318,23 +487,105 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex flex-col gap-1">
+                                        <div className="flex flex-col gap-1.5">
                                             <div className="flex items-center gap-1">
-                                                {mappedCat ? (
+                                                {product.trendyolProduct?.trendyolCategoryId ? (
                                                     <div className="flex flex-col">
-                                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 border-none text-[10px]">
-                                                            {mappedCat.name}
-                                                        </Badge>
+                                                        <div className="flex items-center gap-1">
+                                                            <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-950/40 dark:text-orange-300 border-orange-300 text-[10px] font-bold">
+                                                                ⭐ Özel Kat: #{product.trendyolProduct.trendyolCategoryId}
+                                                            </Badge>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-5 w-5 text-muted-foreground hover:text-orange-600"
+                                                                onClick={() => {
+                                                                    setEditingCatId(product.id);
+                                                                    setEditCatValue(String(product.trendyolProduct.trendyolCategoryId));
+                                                                }}
+                                                                title="Özel kategoriyi düzenle / kaldır"
+                                                            >
+                                                                <Edit3 className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
+                                                        {mappedCat && (
+                                                            <span className="text-[9px] text-muted-foreground line-through">
+                                                                Eşleşen: {mappedCat.name} (#{mappedCat.trendyolCategoryId})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : mappedCat ? (
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center gap-1">
+                                                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 border-none text-[10px]">
+                                                                {mappedCat.name}
+                                                            </Badge>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-5 w-5 text-gray-400 hover:text-orange-600"
+                                                                onClick={() => {
+                                                                    setEditingCatId(product.id);
+                                                                    setEditCatValue("");
+                                                                }}
+                                                                title="Bu ürüne özel Trendyol kategorisi ata"
+                                                            >
+                                                                <Plus className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
                                                         <span className="text-[9px] text-muted-foreground font-mono mt-0.5">
                                                             Trendyol ID: #{mappedCat.trendyolCategoryId}
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <Badge variant="outline" className="text-red-500 border-red-200 text-[10px]">
-                                                        Kategori Eşleşmemiş
-                                                    </Badge>
+                                                    <div className="flex items-center gap-1">
+                                                        <Badge variant="outline" className="text-red-500 border-red-200 text-[10px]">
+                                                            Kategori Eşleşmemiş
+                                                        </Badge>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5 text-orange-600 hover:bg-orange-50"
+                                                            onClick={() => {
+                                                                setEditingCatId(product.id);
+                                                                setEditCatValue("");
+                                                            }}
+                                                            title="Bu ürüne özel Trendyol kategorisi ata"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </div>
+
+                                            {editingCatId === product.id && (
+                                                <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-orange-300 rounded-md shadow-sm z-10" onClick={(e) => e.stopPropagation()}>
+                                                    <Input
+                                                        type="number"
+                                                        value={editCatValue}
+                                                        onChange={(e) => setEditCatValue(e.target.value)}
+                                                        placeholder="Kat ID"
+                                                        className="h-6 text-[10px] w-20 px-1 font-mono"
+                                                        autoFocus
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") handleSaveCatId(product.id);
+                                                            if (e.key === "Escape") setEditingCatId(null);
+                                                        }}
+                                                    />
+                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50" onClick={() => handleSaveCatId(product.id)} disabled={savingCat} title="Kaydet">
+                                                        <Save className="h-3 w-3" />
+                                                    </Button>
+                                                    {product.trendyolProduct?.trendyolCategoryId && (
+                                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:bg-red-50" onClick={() => handleSaveCatId(product.id, "")} disabled={savingCat} title="Özel kategoriyi sil (Site eşleşmesine dön)">
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-400" onClick={() => setEditingCatId(null)}>
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            )}
+
                                             <div className="flex items-center gap-1">
                                                 {mappedBrand ? (
                                                     <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-[#17457C] border-none text-[10px]">

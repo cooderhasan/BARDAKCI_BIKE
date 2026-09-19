@@ -19,10 +19,22 @@ import {
     RefreshCcw, 
     AlertCircle, 
     CheckCircle2, 
-    Box
+    Box,
+    Tag,
+    Edit3,
+    Save,
+    X,
+    Plus
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { sendProductToN11, getN11CategoryAttributes, enqueueN11Sync } from "../actions";
+import { 
+    sendProductToN11, 
+    getN11CategoryAttributes, 
+    enqueueN11Sync,
+    setN11ProductCategory,
+    setBulkN11ProductCategory
+} from "../actions";
 import {
     Dialog,
     DialogContent,
@@ -79,13 +91,89 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState<{ [key: string]: string }>({});
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [editingCatId, setEditingCatId] = useState<string | null>(null);
+    const [editCatValue, setEditCatValue] = useState("");
+    const [bulkCatModalOpen, setBulkCatModalOpen] = useState(false);
+    const [bulkCatValue, setBulkCatValue] = useState("");
+    const [savingCat, setSavingCat] = useState(false);
+
+    const handleSaveCatId = async (productId: string, valToSave?: string) => {
+        setSavingCat(true);
+        const targetVal = valToSave !== undefined ? valToSave : editCatValue;
+        const catNum = targetVal.trim() ? parseInt(targetVal.trim(), 10) : null;
+        if (targetVal.trim() && isNaN(catNum!)) {
+            toast.error("Geçerli bir sayısal N11 Kategori ID girin.");
+            setSavingCat(false);
+            return;
+        }
+        const res = await setN11ProductCategory(productId, catNum);
+        setSavingCat(false);
+        if (res.success) {
+            toast.success(res.message);
+            setProducts((prev) =>
+                prev.map((p) =>
+                    p.id === productId
+                        ? {
+                              ...p,
+                              n11Product: {
+                                  ...(p.n11Product || {}),
+                                  n11CategoryId: catNum,
+                              },
+                          }
+                        : p
+                )
+            );
+            setEditingCatId(null);
+            setEditCatValue("");
+        } else {
+            toast.error((res as any).error || res.message || "İşlem başarısız.");
+        }
+    };
+
+    const handleBulkCatAssign = async () => {
+        if (selectedIds.length === 0) {
+            toast.warning("Lütfen en az bir ürün seçin.");
+            return;
+        }
+        const catNum = parseInt(bulkCatValue.trim(), 10);
+        if (isNaN(catNum) || catNum <= 0) {
+            toast.warning("Lütfen geçerli bir N11 Kategori ID girin.");
+            return;
+        }
+        setSavingCat(true);
+        const res = await setBulkN11ProductCategory(selectedIds, catNum);
+        setSavingCat(false);
+        if (res.success) {
+            toast.success(res.message);
+            setProducts((prev) =>
+                prev.map((p) =>
+                    selectedIds.includes(p.id)
+                        ? {
+                              ...p,
+                              n11Product: {
+                                  ...(p.n11Product || {}),
+                                  n11CategoryId: catNum,
+                              },
+                          }
+                        : p
+                )
+            );
+            setBulkCatModalOpen(false);
+            setBulkCatValue("");
+            setSelectedIds([]);
+        } else {
+            toast.error((res as any).error || res.message || "İşlem başarısız.");
+        }
+    };
 
     const handleOpenWizard = async (product: any) => {
-        // Find N11 Category ID from product's categories
+        const productOverrideCatId = product.n11Product?.n11CategoryId;
         const mappedCat = product.categories?.find((c: any) => c.n11CategoryId !== null);
+        const catId = productOverrideCatId || mappedCat?.n11CategoryId;
         
-        if (!mappedCat) {
-            toast.error("Önce kategoriyi N11 ile eşleştirmelisiniz.");
+        if (!catId) {
+            toast.error("Önce kategoriyi N11 ile eşleştirmelisiniz veya ürüne özel N11 Kategori ID girmelisiniz.");
             return;
         }
 
@@ -96,8 +184,8 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
         setShowAttrModal(true);
 
         try {
-            console.log("Fetching attrs for Cat ID:", mappedCat.n11CategoryId);
-            const res = await getN11CategoryAttributes(mappedCat.n11CategoryId);
+            console.log("Fetching attrs for Cat ID:", catId);
+            const res = await getN11CategoryAttributes(catId);
             
             if (res.success) {
                 const attrs = res.data || [];
@@ -217,6 +305,16 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                 ) : null}
 
                 <div className="flex justify-end gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
+                        disabled={selectedIds.length === 0}
+                        className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all"
+                    >
+                        <Tag className="w-4 h-4 text-purple-600" />
+                        <span>Toplu Kategori Ata ({selectedIds.length})</span>
+                    </Button>
+
                     <Button 
                         onClick={handleBulkSync} 
                         disabled={syncing}
@@ -239,14 +337,66 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                     )}
                 </div>
 
+            {/* Toplu Kategori Atama Paneli */}
+            {bulkCatModalOpen && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 rounded-xl p-4 shadow-sm">
+                    <Tag className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="flex-1 space-y-1">
+                        <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">
+                            Seçili {selectedIds.length} ürüne N11 Kategori ID ata
+                        </p>
+                        <p className="text-xs text-purple-600 dark:text-purple-400">
+                            Bu ürünler site kategorisi yerine doğrudan belirlediğiniz N11 kategorisine gönderilecektir.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Input
+                            placeholder="N11 Kategori ID (örn: 100223)"
+                            type="number"
+                            value={bulkCatValue}
+                            onChange={(e) => setBulkCatValue(e.target.value)}
+                            className="h-9 w-full sm:w-56 text-sm bg-white dark:bg-gray-800 font-mono"
+                        />
+                        <Button
+                            size="sm"
+                            onClick={handleBulkCatAssign}
+                            disabled={savingCat || !bulkCatValue.trim()}
+                            className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+                        >
+                            {savingCat ? "Kaydediliyor..." : "Uygula"}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setBulkCatModalOpen(false)}
+                            className="shrink-0"
+                        >
+                            İptal
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader className="bg-gray-50/50 dark:bg-gray-800/50">
                         <TableRow>
+                            <TableHead className="w-[40px]">
+                                <Checkbox
+                                    checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
+                                    onCheckedChange={(checked) => {
+                                        if (checked) {
+                                            setSelectedIds(filteredProducts.map((p) => p.id));
+                                        } else {
+                                            setSelectedIds([]);
+                                        }
+                                    }}
+                                />
+                            </TableHead>
                             <TableHead className="w-[80px]">Görsel</TableHead>
                             <TableHead>Ürün</TableHead>
                             <TableHead>Stok / N11 Fiyat</TableHead>
-                            <TableHead>Eşleşme</TableHead>
+                            <TableHead>Kategori / Eşleşme</TableHead>
                             <TableHead>Durum</TableHead>
                             <TableHead className="text-right">İşlem</TableHead>
                         </TableRow>
@@ -255,9 +405,23 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                         {filteredProducts.map((product) => {
                             const isSynced = !!product.n11Product?.isSynced;
                             const mappedCat = product.categories.find((c: any) => c.n11CategoryId !== null);
+                            const hasCat = product.n11Product?.n11CategoryId || mappedCat;
+                            const isSelected = selectedIds.includes(product.id);
 
                             return (
                                 <TableRow key={product.id} className="hover:bg-purple-50/10 transition-colors">
+                                    <TableCell>
+                                        <Checkbox
+                                            checked={isSelected}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setSelectedIds((prev) => [...prev, product.id]);
+                                                } else {
+                                                    setSelectedIds((prev) => prev.filter((id) => id !== product.id));
+                                                }
+                                            }}
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <img src={product.images?.[0]} className="w-12 h-12 object-cover rounded-lg border" />
                                     </TableCell>
@@ -288,13 +452,98 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        {mappedCat ? (
-                                            <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-none text-[10px]">
-                                                Kategori OK
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="text-red-500 text-[10px]">Kategori Eksik</Badge>
-                                        )}
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1">
+                                                {product.n11Product?.n11CategoryId ? (
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center gap-1">
+                                                            <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 text-[10px] font-bold">
+                                                                ⭐ Özel Kat: #{product.n11Product.n11CategoryId}
+                                                            </Badge>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-5 w-5 text-muted-foreground hover:text-purple-600"
+                                                                onClick={() => {
+                                                                    setEditingCatId(product.id);
+                                                                    setEditCatValue(String(product.n11Product.n11CategoryId));
+                                                                }}
+                                                                title="Özel kategoriyi düzenle / kaldır"
+                                                            >
+                                                                <Edit3 className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
+                                                        {mappedCat && (
+                                                            <span className="text-[9px] text-muted-foreground line-through">
+                                                                Eşleşen: #{mappedCat.n11CategoryId}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : mappedCat ? (
+                                                    <div className="flex items-center gap-1">
+                                                        <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-none text-[10px]">
+                                                            Kategori OK (#{mappedCat.n11CategoryId})
+                                                        </Badge>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5 text-gray-400 hover:text-purple-600"
+                                                            onClick={() => {
+                                                                setEditingCatId(product.id);
+                                                                setEditCatValue("");
+                              }}
+                                                            title="Bu ürüne özel N11 kategorisi ata"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1">
+                                                        <Badge variant="outline" className="text-red-500 text-[10px]">Kategori Eksik</Badge>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5 text-purple-600 hover:bg-purple-50"
+                                                            onClick={() => {
+                                                                setEditingCatId(product.id);
+                                                                setEditCatValue("");
+                                                            }}
+                                                            title="Bu ürüne özel N11 kategorisi ata"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {editingCatId === product.id && (
+                                                <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-purple-300 rounded-md shadow-sm z-10" onClick={(e) => e.stopPropagation()}>
+                                                    <Input
+                                                        type="number"
+                                                        value={editCatValue}
+                                                        onChange={(e) => setEditCatValue(e.target.value)}
+                                                        placeholder="N11 Kat ID"
+                                                        className="h-6 text-[10px] w-20 px-1 font-mono"
+                                                        autoFocus
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") handleSaveCatId(product.id);
+                                                            if (e.key === "Escape") setEditingCatId(null);
+                                                        }}
+                                                    />
+                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50" onClick={() => handleSaveCatId(product.id)} disabled={savingCat} title="Kaydet">
+                                                        <Save className="h-3 w-3" />
+                                                    </Button>
+                                                    {product.n11Product?.n11CategoryId && (
+                                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:bg-red-50" onClick={() => handleSaveCatId(product.id, "")} disabled={savingCat} title="Özel kategoriyi sil (Site eşleşmesine dön)">
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-400" onClick={() => setEditingCatId(null)}>
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {isSynced ? (
@@ -316,7 +565,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <Button size="sm" className="h-8 bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !mappedCat}>
+                                                <Button size="sm" className="h-8 bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !hasCat}>
                                                     <Send className="w-3 h-3 mr-1" />
                                                     N11'e Gönder
                                                 </Button>

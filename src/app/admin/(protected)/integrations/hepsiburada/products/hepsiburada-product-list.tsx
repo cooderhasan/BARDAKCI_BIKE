@@ -18,13 +18,27 @@ import {
     Search, 
     Send, 
     RefreshCcw, 
-    AlertCircle, 
-    CheckCircle2, 
+    AlertCircle,
+    CheckCircle2,
     Box,
-    Link2
+    Link2,
+    Tag,
+    Edit3,
+    Save,
+    X,
+    Plus
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { sendProductToHepsiburada, getHepsiburadaCategoryAttributes, getHepsiburadaAttributeValues, updateHepsiburadaSku, enqueueHepsiburadaSync } from "../actions";
+import { 
+    sendProductToHepsiburada, 
+    getHepsiburadaCategoryAttributes, 
+    getHepsiburadaAttributeValues, 
+    updateHepsiburadaSku, 
+    enqueueHepsiburadaSync,
+    setHepsiburadaProductCategory,
+    setBulkHepsiburadaProductCategory
+} from "../actions";
 import {
     Dialog,
     DialogContent,
@@ -169,10 +183,83 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         }
     };
 
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [editingCatId, setEditingCatId] = useState<string | null>(null);
+    const [editCatValue, setEditCatValue] = useState("");
+    const [bulkCatModalOpen, setBulkCatModalOpen] = useState(false);
+    const [bulkCatValue, setBulkCatValue] = useState("");
+    const [savingCat, setSavingCat] = useState(false);
+
+    const handleSaveCatId = async (productId: string, valToSave?: string) => {
+        setSavingCat(true);
+        const targetVal = valToSave !== undefined ? valToSave : editCatValue;
+        const catStr = targetVal.trim() || null;
+        const res = await setHepsiburadaProductCategory(productId, catStr);
+        setSavingCat(false);
+        if (res.success) {
+            toast.success(res.message);
+            setProducts((prev) =>
+                prev.map((p) =>
+                    p.id === productId
+                        ? {
+                              ...p,
+                              hepsiburadaProduct: {
+                                  ...(p.hepsiburadaProduct || {}),
+                                  hbCategoryId: catStr,
+                              },
+                          }
+                        : p
+                )
+            );
+            setEditingCatId(null);
+            setEditCatValue("");
+        } else {
+            toast.error(res.message || "İşlem başarısız.");
+        }
+    };
+
+    const handleBulkCatAssign = async () => {
+        if (selectedIds.length === 0) {
+            toast.warning("Lütfen en az bir ürün seçin.");
+            return;
+        }
+        if (!bulkCatValue.trim()) {
+            toast.warning("Lütfen geçerli bir Hepsiburada Kategori ID girin.");
+            return;
+        }
+        setSavingCat(true);
+        const res = await setBulkHepsiburadaProductCategory(selectedIds, bulkCatValue.trim());
+        setSavingCat(false);
+        if (res.success) {
+            toast.success(res.message);
+            setProducts((prev) =>
+                prev.map((p) =>
+                    selectedIds.includes(p.id)
+                        ? {
+                              ...p,
+                              hepsiburadaProduct: {
+                                  ...(p.hepsiburadaProduct || {}),
+                                  hbCategoryId: bulkCatValue.trim(),
+                              },
+                          }
+                        : p
+                )
+            );
+            setBulkCatModalOpen(false);
+            setBulkCatValue("");
+            setSelectedIds([]);
+        } else {
+            toast.error(res.message || "İşlem başarısız.");
+        }
+    };
+
     const handleOpenWizard = async (product: any) => {
+        const productOverrideCatId = product.hepsiburadaProduct?.hbCategoryId;
         const mappedCat = product.categories.find((c: any) => c.hbCategoryId !== null && c.hbCategoryId !== undefined);
-        if (!mappedCat) {
-            toast.error("Önce kategoriyi Hepsiburada ile eşleştirmelisiniz.");
+        const catId = productOverrideCatId || mappedCat?.hbCategoryId;
+
+        if (!catId) {
+            toast.error("Önce kategoriyi Hepsiburada ile eşleştirmelisiniz veya ürüne özel Hepsiburada Kategori ID girmelisiniz.");
             return;
         }
 
@@ -184,7 +271,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         setAttrMappings({});
 
         try {
-            const res = await getHepsiburadaCategoryAttributes(mappedCat.hbCategoryId);
+            const res = await getHepsiburadaCategoryAttributes(catId);
             if (res.success) {
                 setCategoryAttrs(res.data || []);
             } else {
@@ -267,6 +354,16 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                     />
                 </div>
                 <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
+                        disabled={selectedIds.length === 0}
+                        className="border-blue-200 text-[#17457C] hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all"
+                    >
+                        <Tag className="w-4 h-4 text-blue-600" />
+                        <span>Toplu Kategori Ata ({selectedIds.length})</span>
+                    </Button>
+
                     <Button 
                         onClick={handleBulkSync} 
                         disabled={syncing}
@@ -291,14 +388,65 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                 </div>
             </div>
 
+            {/* Toplu Kategori Atama Paneli */}
+            {bulkCatModalOpen && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl p-4 shadow-sm">
+                    <Tag className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="flex-1 space-y-1">
+                        <p className="text-sm font-semibold text-[#17457C] dark:text-blue-300">
+                            Seçili {selectedIds.length} ürüne Hepsiburada Kategori ID ata
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                            Bu ürünler site kategorisi yerine doğrudan belirlediğiniz Hepsiburada kategorisine gönderilecektir.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Input
+                            placeholder="HB Kategori ID (örn: 2147483647)"
+                            value={bulkCatValue}
+                            onChange={(e) => setBulkCatValue(e.target.value)}
+                            className="h-9 w-full sm:w-56 text-sm bg-white dark:bg-gray-800 font-mono"
+                        />
+                        <Button
+                            size="sm"
+                            onClick={handleBulkCatAssign}
+                            disabled={savingCat || !bulkCatValue.trim()}
+                            className="bg-[#17457C] hover:bg-blue-800 text-white shrink-0"
+                        >
+                            {savingCat ? "Kaydediliyor..." : "Uygula"}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setBulkCatModalOpen(false)}
+                            className="shrink-0"
+                        >
+                            İptal
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader className="bg-gray-50/50 dark:bg-gray-800/50">
                         <TableRow>
+                            <TableHead className="w-[40px]">
+                                <Checkbox
+                                    checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
+                                    onCheckedChange={(checked) => {
+                                        if (checked) {
+                                            setSelectedIds(filteredProducts.map((p) => p.id));
+                                        } else {
+                                            setSelectedIds([]);
+                                        }
+                                    }}
+                                />
+                            </TableHead>
                             <TableHead className="w-[80px]">Görsel</TableHead>
                             <TableHead>Ürün</TableHead>
                             <TableHead>HB Fiyat</TableHead>
-                            <TableHead>Katalog</TableHead>
+                            <TableHead>Kategori / Katalog</TableHead>
                             <TableHead>Durum</TableHead>
                             <TableHead className="text-right">İşlem</TableHead>
                         </TableRow>
@@ -307,9 +455,23 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                         {filteredProducts.map((product) => {
                             const isSynced = !!product.hepsiburadaProduct?.isSynced;
                             const mappedCat = product.categories.find((c: any) => c.hbCategoryId !== null && c.hbCategoryId !== undefined);
+                            const hasCat = product.hepsiburadaProduct?.hbCategoryId || mappedCat;
+                            const isSelected = selectedIds.includes(product.id);
 
                             return (
                                 <TableRow key={product.id} className="hover:bg-blue-50/10 transition-colors">
+                                    <TableCell>
+                                        <Checkbox
+                                            checked={isSelected}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setSelectedIds((prev) => [...prev, product.id]);
+                                                } else {
+                                                    setSelectedIds((prev) => prev.filter((id) => id !== product.id));
+                                                }
+                                            }}
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <img src={product.images?.[0]} className="w-12 h-12 object-cover rounded-lg border" />
                                     </TableCell>
@@ -325,32 +487,127 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        {mappedCat ? (
-                                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-[#17457C] border-none text-[10px]">
-                                                Katalog Hazır
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="text-amber-500 text-[10px]">Kategori Bekliyor</Badge>
-                                        )}
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1">
+                                                {product.hepsiburadaProduct?.hbCategoryId ? (
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-center gap-1">
+                                                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-950/40 dark:text-blue-300 border-blue-300 text-[10px] font-bold">
+                                                                ⭐ Özel Kat: #{product.hepsiburadaProduct.hbCategoryId}
+                                                            </Badge>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-5 w-5 text-muted-foreground hover:text-blue-600"
+                                                                onClick={() => {
+                                                                    setEditingCatId(product.id);
+                                                                    setEditCatValue(String(product.hepsiburadaProduct.hbCategoryId));
+                                                                }}
+                                                                title="Özel kategoriyi düzenle / kaldır"
+                                                            >
+                                                                <Edit3 className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
+                                                        {mappedCat && (
+                                                            <span className="text-[9px] text-muted-foreground line-through">
+                                                                Eşleşen: #{mappedCat.hbCategoryId}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : mappedCat ? (
+                                                    <div className="flex items-center gap-1">
+                                                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-[#17457C] border-none text-[10px]">
+                                                            Katalog Hazır (#{mappedCat.hbCategoryId})
+                                                        </Badge>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5 text-gray-400 hover:text-blue-600"
+                                                            onClick={() => {
+                                                                setEditingCatId(product.id);
+                                                                setEditCatValue("");
+                                                            }}
+                                                            title="Bu ürüne özel Hepsiburada kategorisi ata"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1">
+                                                        <Badge variant="outline" className="text-red-500 text-[10px]">Kategori Eksik</Badge>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5 text-blue-600 hover:bg-blue-50"
+                                                            onClick={() => {
+                                                                setEditingCatId(product.id);
+                                                                setEditCatValue("");
+                                                            }}
+                                                            title="Bu ürüne özel Hepsiburada kategorisi ata"
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {editingCatId === product.id && (
+                                                <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-blue-300 rounded-md shadow-sm z-10" onClick={(e) => e.stopPropagation()}>
+                                                    <Input
+                                                        value={editCatValue}
+                                                        onChange={(e) => setEditCatValue(e.target.value)}
+                                                        placeholder="HB Kat ID"
+                                                        className="h-6 text-[10px] w-20 px-1 font-mono"
+                                                        autoFocus
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") handleSaveCatId(product.id);
+                                                            if (e.key === "Escape") setEditingCatId(null);
+                                                        }}
+                                                    />
+                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-600 hover:bg-emerald-50" onClick={() => handleSaveCatId(product.id)} disabled={savingCat} title="Kaydet">
+                                                        <Save className="h-3 w-3" />
+                                                    </Button>
+                                                    {product.hepsiburadaProduct?.hbCategoryId && (
+                                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:bg-red-50" onClick={() => handleSaveCatId(product.id, "")} disabled={savingCat} title="Özel kategoriyi sil (Site eşleşmesine dön)">
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
+                                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-400" onClick={() => setEditingCatId(null)}>
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {isSynced ? (
-                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                            <div className="flex items-center gap-1">
+                                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                                <span className="text-[10px] text-green-700 dark:text-green-400 font-medium">Aktif</span>
+                                            </div>
                                         ) : (
-                                            <AlertCircle className="w-4 h-4 text-amber-500" />
+                                            <div className="flex items-center gap-1">
+                                                <AlertCircle className="w-4 h-4 text-amber-500" />
+                                                <span className="text-[10px] text-amber-700 dark:text-amber-400">Bekliyor</span>
+                                            </div>
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
                                             {isSynced ? (
-                                                <Button size="sm" variant="outline" className="h-8 border-blue-200 text-[#17457C]" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id}>
-                                                    <RefreshCcw className="w-3 h-3 mr-1" />
-                                                    Güncelle
-                                                </Button>
+                                                <>
+                                                    <Button size="sm" variant="outline" title="Özellikleri Düzenle" className="h-8 w-8 p-0 border-blue-200 text-[#17457C]" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id}>
+                                                        <Box className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button size="sm" variant="outline" className="h-8 border-blue-200 text-[#17457C]" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id}>
+                                                        <RefreshCcw className={`w-3 h-3 mr-1 ${loadingProductId === product.id ? 'animate-spin' : ''}`} />
+                                                        Güncelle
+                                                    </Button>
+                                                </>
                                             ) : (
-                                                <Button size="sm" className="h-8 bg-[#17457C] hover:bg-[#0f3460] text-white" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !mappedCat}>
-                                                    <Link2 className="w-3 h-3 mr-1" />
-                                                    HB Kataloğuna Gönder
+                                                <Button size="sm" className="h-8 bg-[#17457C] hover:bg-blue-800 text-white" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !hasCat}>
+                                                    <Send className="w-3 h-3 mr-1" />
+                                                    Hepsiburada'ya Gönder
                                                 </Button>
                                             )}
                                         </div>

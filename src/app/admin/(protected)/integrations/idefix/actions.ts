@@ -503,7 +503,7 @@ export async function createProductOnIdefix(productId: string, payload: {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { brand: true, variants: true, categories: true },
+      include: { brand: true, variants: true, categories: true, idefixProduct: true },
     });
     if (!product) {
       console.log("[IDEFIX-CREATE] HATA: Urun bulunamadi, productId:", productId);
@@ -526,7 +526,9 @@ export async function createProductOnIdefix(productId: string, payload: {
     const price = Number((product as any).idefixPrice ?? (product as any).salePrice ?? product.listPrice);
     const rawListPrice = Number(product.listPrice);
     const comparePrice = rawListPrice >= price ? rawListPrice : price;
-    const catId = Number(payload.idefixCategoryId);
+    // Öncelik: 1) Payload'dan gelen kategori → 2) Ürüne özel override → 3) Site kategori eşleşmesi
+    const productOverrideCatId = (product as any).idefixProduct?.idefixCategoryId;
+    const catId = Number(payload.idefixCategoryId || productOverrideCatId || product.categories?.find((c: any) => c.idefixCategoryId)?.idefixCategoryId || 0);
     const brandId = Number(payload.idefixBrandId);
 
     console.log("[IDEFIX-CREATE] price:", price, "comparePrice:", comparePrice, "catId:", catId, "brandId:", brandId);
@@ -1033,4 +1035,51 @@ export async function toggleIdefixProductActive(productId: string, isActive: boo
   } catch (error) {
     return { success: false, error: "Guncelleme basarisiz" };
   }
+}
+
+// ==================== ÜRÜN BAZLI KATEGORİ OVERRIDE ====================
+
+/**
+ * Tekli ürüne Idefix kategori override set etme
+ * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
+ */
+export async function setIdefixProductCategory(productId: string, idefixCategoryId: string | null) {
+    try {
+        await (prisma as any).idefixProduct.upsert({
+            where: { productId },
+            update: { idefixCategoryId: idefixCategoryId?.trim() || null },
+            create: {
+                productId,
+                idefixCategoryId: idefixCategoryId?.trim() || null,
+            },
+        });
+        revalidatePath("/admin/integrations/idefix");
+        return { success: true, message: idefixCategoryId ? `Ürüne özel Idefix kategorisi atandı: ${idefixCategoryId}` : "Ürüne özel kategori kaldırıldı, site eşleşmesi kullanılacak." };
+    } catch (error: any) {
+        console.error("setIdefixProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
+
+/**
+ * Toplu ürünlere Idefix kategori override set etme
+ */
+export async function setBulkIdefixProductCategory(productIds: string[], idefixCategoryId: string) {
+    try {
+        for (const productId of productIds) {
+            await (prisma as any).idefixProduct.upsert({
+                where: { productId },
+                update: { idefixCategoryId: idefixCategoryId.trim() },
+                create: {
+                    productId,
+                    idefixCategoryId: idefixCategoryId.trim(),
+                },
+            });
+        }
+        revalidatePath("/admin/integrations/idefix");
+        return { success: true, message: `${productIds.length} ürüne Idefix kategori override atandı: ${idefixCategoryId}` };
+    } catch (error: any) {
+        console.error("setBulkIdefixProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
+    }
 }

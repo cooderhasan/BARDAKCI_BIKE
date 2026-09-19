@@ -14,8 +14,8 @@ async function checkMissingBarcodes() {
     
     // Fetch last 100 orders from Trendyol
     console.log('Fetching orders from Trendyol...');
-    const r = await fetch(`https://api.trendyol.com/sapigw/suppliers/${supplierId}/orders?size=100`, {
-        headers: { 'Authorization': auth, 'User-Agent': supplierId }
+    const r = await fetch(`https://apigw.trendyol.com/integration/order/sellers/${supplierId}/orders?size=100`, {
+        headers: { 'Authorization': auth, 'User-Agent': supplierId, 'storeFrontCode': 'TR' }
     });
     const d = await r.json();
     

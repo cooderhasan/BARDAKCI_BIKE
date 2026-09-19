@@ -594,6 +594,7 @@ model TrendyolProduct {
   
   barcode        String   // Barker
   trendyolId     String?  // Trendyol's internal ID if returned
+  trendyolCategoryId Int? // Ürüne özel Trendyol Kategori ID (site kategorisinden bağımsız)
   
   isSynced       Boolean  @default(false)
   lastSyncError  String? 
@@ -629,6 +630,7 @@ model N11Product {
   
   n11Id          String?  // N11 Product ID
   sellerCode     String?  // Our SKU/Barcode used in N11
+  n11CategoryId  Int?     // Ürüne özel N11 Kategori ID (site kategorisinden bağımsız)
 
   isSynced       Boolean  @default(false)
   lastSyncError  String?
@@ -678,6 +680,7 @@ model HepsiburadaProduct {
   
   hbSku          String?  // Hepsiburada SKU
   merchantSku    String?  // Our SKU
+  hbCategoryId   String?  // Ürüne özel Hepsiburada Kategori ID (site kategorisinden bağımsız)
 
   isSynced       Boolean  @default(false)
   lastSyncError  String?
@@ -895,10 +898,11 @@ model IdefixProduct {
   productId       String
   product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  idefixProductId String?   // Idefix Product ID (batchResult'dan döner)
-  batchId         String?   // Toplu gönderim batch request ID
-  batchStatus     String?   // PENDING, SUCCESS, FAILED
-  matchStatus     String?   // MATCHED, UNMATCHED, APPROVED, REJECTED
+  idefixProductId  String?   // Idefix Product ID (batchResult'dan döner)
+  idefixCategoryId String?   // Ürüne özel Idefix Kategori ID (site kategorisinden bağımsız)
+  batchId          String?   // Toplu gönderim batch request ID
+  batchStatus      String?   // PENDING, SUCCESS, FAILED
+  matchStatus      String?   // MATCHED, UNMATCHED, APPROVED, REJECTED
   isSynced        Boolean   @default(false)
   lastSyncError   String?   @db.Text
   lastSyncedAt    DateTime?
@@ -1026,9 +1030,10 @@ model PttavmProduct {
   productId     String
   product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  barcode       String?   // Barkod
-  pttavmId      String?   // ePttAVM Ürün ID
-  trackingId    String?   // ePttAVM Batch/Tracking ID
+  barcode          String?   // Barkod
+  pttavmId         String?   // ePttAVM Ürün ID
+  pttavmCategoryId Int?      // Ürüne özel ePttAVM Kategori ID (site kategorisinden bağımsız)
+  trackingId       String?   // ePttAVM Batch/Tracking ID
   batchStatus   String?   // PENDING, SUCCESS, FAILED
   isSynced      Boolean   @default(false)
   lastSyncError String?   @db.Text

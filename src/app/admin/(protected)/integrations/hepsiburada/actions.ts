@@ -949,7 +949,14 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
             isTestMode: config.isTestMode ?? true,
         });
 
-        const mappedCat = product.categories.find((c: any) => c.hbCategoryId !== null && c.hbCategoryId !== undefined);
+        // Öncelik: 1) Ürüne özel HB kategori override → 2) Site kategori eşleşmesi
+        const productOverrideCatId = (product as any).hepsiburadaProduct?.hbCategoryId;
+        let mappedCat;
+        if (productOverrideCatId) {
+            mappedCat = { hbCategoryId: productOverrideCatId };
+        } else {
+            mappedCat = product.categories.find((c: any) => c.hbCategoryId !== null && c.hbCategoryId !== undefined);
+        }
         if (!mappedCat) return { success: false, message: "Ürünün kategorisi Hepsiburada ile eşleşmemiş." };
 
         const merchantId = config.merchantId || config.username;
@@ -1297,5 +1304,52 @@ export async function sendHepsiburadaInvoiceLink(packageNumber: string, orderNum
     } catch (error: any) {
         console.error("❌ Fatura Hatası:", error);
         return { success: false, message: "Fatura Hatası: " + error.message };
+    }
+}
+
+// ==================== ÜRÜN BAZLI KATEGORİ OVERRIDE ====================
+
+/**
+ * Tekli ürüne Hepsiburada kategori override set etme
+ * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
+ */
+export async function setHepsiburadaProductCategory(productId: string, hbCategoryId: string | null) {
+    try {
+        await (prisma as any).hepsiburadaProduct.upsert({
+            where: { productId },
+            update: { hbCategoryId: hbCategoryId?.trim() || null },
+            create: {
+                productId,
+                hbCategoryId: hbCategoryId?.trim() || null,
+            },
+        });
+        revalidatePath("/admin/integrations/hepsiburada");
+        return { success: true, message: hbCategoryId ? `Ürüne özel Hepsiburada kategorisi atandı: ${hbCategoryId}` : "Ürüne özel kategori kaldırıldı, site eşleşmesi kullanılacak." };
+    } catch (error: any) {
+        console.error("setHepsiburadaProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
+
+/**
+ * Toplu ürünlere Hepsiburada kategori override set etme
+ */
+export async function setBulkHepsiburadaProductCategory(productIds: string[], hbCategoryId: string) {
+    try {
+        for (const productId of productIds) {
+            await (prisma as any).hepsiburadaProduct.upsert({
+                where: { productId },
+                update: { hbCategoryId: hbCategoryId.trim() },
+                create: {
+                    productId,
+                    hbCategoryId: hbCategoryId.trim(),
+                },
+            });
+        }
+        revalidatePath("/admin/integrations/hepsiburada");
+        return { success: true, message: `${productIds.length} ürüne Hepsiburada kategori override atandı: ${hbCategoryId}` };
+    } catch (error: any) {
+        console.error("setBulkHepsiburadaProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
     }
 }

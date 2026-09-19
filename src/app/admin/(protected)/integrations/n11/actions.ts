@@ -525,7 +525,8 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             include: {
                 brand: true,
                 categories: true,
-                variants: true
+                variants: true,
+                n11Product: true
             }
         });
 
@@ -536,7 +537,14 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             apiSecret: config.apiSecret
         });
 
-        const mappedCat = product.categories.find((c: any) => c.n11CategoryId !== null);
+        // Öncelik: 1) Ürüne özel N11 kategori override → 2) Site kategori eşleşmesi
+        const productOverrideCatId = (product as any).n11Product?.n11CategoryId;
+        let mappedCat;
+        if (productOverrideCatId) {
+            mappedCat = { n11CategoryId: productOverrideCatId };
+        } else {
+            mappedCat = product.categories.find((c: any) => c.n11CategoryId !== null);
+        }
         if (!mappedCat) return { success: false, message: "Ürünün kategorisi N11 ile eşleşmemiş." };
 
         // Build attributes in REST API format: { id, valueId } OR { id, customValue }
@@ -1206,5 +1214,52 @@ export async function importN11MappingsAction(mappings: { sku: string; sellerCod
         };
     } catch (error: any) {
         return { success: false, message: "Eşleştirme hatası: " + error.message };
+    }
+}
+
+// ==================== ÜRÜN BAZLI KATEGORİ OVERRIDE ====================
+
+/**
+ * Tekli ürüne N11 kategori override set etme
+ * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
+ */
+export async function setN11ProductCategory(productId: string, n11CategoryId: number | null) {
+    try {
+        await (prisma as any).n11Product.upsert({
+            where: { productId },
+            update: { n11CategoryId },
+            create: {
+                productId,
+                n11CategoryId,
+            },
+        });
+        revalidatePath("/admin/integrations/n11");
+        return { success: true, message: n11CategoryId ? `Ürüne özel N11 kategorisi atandı: ${n11CategoryId}` : "Ürüne özel kategori kaldırıldı, site eşleşmesi kullanılacak." };
+    } catch (error: any) {
+        console.error("setN11ProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
+
+/**
+ * Toplu ürünlere N11 kategori override set etme
+ */
+export async function setBulkN11ProductCategory(productIds: string[], n11CategoryId: number) {
+    try {
+        for (const productId of productIds) {
+            await (prisma as any).n11Product.upsert({
+                where: { productId },
+                update: { n11CategoryId },
+                create: {
+                    productId,
+                    n11CategoryId,
+                },
+            });
+        }
+        revalidatePath("/admin/integrations/n11");
+        return { success: true, message: `${productIds.length} ürüne N11 kategori override atandı: ${n11CategoryId}` };
+    } catch (error: any) {
+        console.error("setBulkN11ProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
     }
 }

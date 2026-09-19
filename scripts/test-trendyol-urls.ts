@@ -18,11 +18,9 @@ async function main() {
     };
 
     const providerUrls = [
-        `https://api.trendyol.com/sapigw/suppliers/${config.supplierId}/providers`,
         `${gatewayUrl}/integration/cargo/sellers/${config.supplierId}/providers`,
         `${gatewayUrl}/integration/product/shipping-providers`,
-        `${gatewayUrl}/integration/cargoproviders`,
-        `https://api.trendyol.com/sapigw/providers`
+        `${gatewayUrl}/integration/cargoproviders`
     ];
 
     console.log("--- Testing Providers ---");
@@ -42,8 +40,7 @@ async function main() {
 
     const addressUrls = [
         `${gatewayUrl}/integration/sellers/${config.supplierId}/addresses`,
-        `${gatewayUrl}/integration/cargo/sellers/${config.supplierId}/addresses`,
-        `https://api.trendyol.com/sapigw/suppliers/${config.supplierId}/addresses`
+        `${gatewayUrl}/integration/cargo/sellers/${config.supplierId}/addresses`
     ];
 
     console.log("\n--- Testing Addresses ---");

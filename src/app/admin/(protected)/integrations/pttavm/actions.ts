@@ -291,9 +291,16 @@ export async function syncProductsToPttavm(productIds?: string[]) {
         return { url: fullUrl, order: idx + 1 };
       });
 
-      const catWithPttavm = p.categories.find((c) => c.pttavmCategoryId) || p.categories[0];
-      const defaultCatId = p.name.toLowerCase().includes("pedal") ? 1875 : (p.store === "MOTOR" ? 3502 : 1891);
-      const categoryId = Number(catWithPttavm?.pttavmCategoryId || defaultCatId);
+      // Öncelik: 1) Ürüne özel PttAVM kategori override → 2) Site kategori eşleşmesi
+      const productOverrideCatId = (p as any).pttavmProduct?.pttavmCategoryId;
+      let categoryId: number;
+      if (productOverrideCatId) {
+        categoryId = Number(productOverrideCatId);
+      } else {
+        const catWithPttavm = p.categories.find((c) => c.pttavmCategoryId) || p.categories[0];
+        const defaultCatId = p.name.toLowerCase().includes("pedal") ? 1875 : (p.store === "MOTOR" ? 3502 : 1891);
+        categoryId = Number(catWithPttavm?.pttavmCategoryId || defaultCatId);
+      }
       const brandId = p.brand?.pttavmBrandId ? Number(p.brand.pttavmBrandId) : undefined;
       const desi = Math.max(1, Math.round(Number(p.desi || 1)));
       const productBarcode = (p.barcode || p.sku || "").trim();
@@ -847,7 +854,9 @@ export async function getPttavmProducts({
         listPrice: Number(p.listPrice),
         salePrice: p.salePrice ? Number(p.salePrice) : null,
         pttavmPrice: p.pttavmPrice ? Number(p.pttavmPrice) : null,
-        pttavmCategoryId: p.categories.find((c) => c.pttavmCategoryId)?.pttavmCategoryId || null,
+        pttavmCategoryId: (p as any).pttavmProduct?.pttavmCategoryId || p.categories.find((c) => c.pttavmCategoryId)?.pttavmCategoryId || null,
+        hasCategoryOverride: Boolean((p as any).pttavmProduct?.pttavmCategoryId),
+        pttavmCategoryName: (p as any).pttavmProduct?.pttavmCategoryName || null,
         pttavmStatus: p.pttavmProduct?.batchStatus || (p.isPttavmActive ? "ACTIVE" : "INACTIVE"),
         trackingId: p.pttavmProduct?.trackingId || null,
       })),
@@ -1058,5 +1067,49 @@ export async function uploadInvoiceToPttavm(orderNumber: string, invoiceUrl: str
   }
 }
 
+// ==================== ÜRÜN BAZLI KATEGORİ OVERRIDE ====================
 
+/**
+ * Tekli ürüne ePttAVM kategori override set etme
+ * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
+ */
+export async function setPttavmProductCategory(productId: string, pttavmCategoryId: number | null) {
+    try {
+        await (prisma as any).pttavmProduct.upsert({
+            where: { productId },
+            update: { pttavmCategoryId },
+            create: {
+                productId,
+                pttavmCategoryId,
+            },
+        });
+        revalidatePath("/admin/integrations/pttavm");
+        return { success: true, message: pttavmCategoryId ? `Ürüne özel ePttAVM kategorisi atandı: ${pttavmCategoryId}` : "Ürüne özel kategori kaldırıldı, site eşleşmesi kullanılacak." };
+    } catch (error: any) {
+        console.error("setPttavmProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
+    }
+}
 
+/**
+ * Toplu ürünlere ePttAVM kategori override set etme
+ */
+export async function setBulkPttavmProductCategory(productIds: string[], pttavmCategoryId: number) {
+    try {
+        for (const productId of productIds) {
+            await (prisma as any).pttavmProduct.upsert({
+                where: { productId },
+                update: { pttavmCategoryId },
+                create: {
+                    productId,
+                    pttavmCategoryId,
+                },
+            });
+        }
+        revalidatePath("/admin/integrations/pttavm");
+        return { success: true, message: `${productIds.length} ürüne ePttAVM kategori override atandı: ${pttavmCategoryId}` };
+    } catch (error: any) {
+        console.error("setBulkPttavmProductCategory error:", error);
+        return { success: false, message: "Hata: " + error.message };
+    }
+}

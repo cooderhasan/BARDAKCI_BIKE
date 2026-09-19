@@ -14,12 +14,13 @@ async function main() {
     const headers = {
         "Authorization": `Basic ${Buffer.from(pair).toString("base64")}`,
         "User-Agent": `${config.supplierId} - SelfIntegration`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "storeFrontCode": "TR"
     };
 
     const categoryId = 411; // Testing with known generic category ID for API test
 
-    const url = `${gatewayUrl}/integration/product/product-categories/${categoryId}/attributes`;
+    const url = `${gatewayUrl}/integration/product/categories/${categoryId}/attributes`;
     console.log("Fetching attributes from:", url);
     const attrResponse = await fetch(url, { headers });
     const attrData = await attrResponse.json();
