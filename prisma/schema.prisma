@@ -284,6 +284,7 @@ model Product {
   idefixProduct   IdefixProduct?
   pttavmProduct   PttavmProduct?
   ciceksepetiProduct CiceksepetiProduct?
+  pazaramaProduct PazaramaProduct?
   reviews         Review[]
   wishlistItems   Wishlist[]
   bundleItems     BundleItem[] @relation("BundleParent")  // Bu paketin içindeki ürünler
@@ -930,6 +931,23 @@ model IdefixOrder {
 }
 
 // ==================== PAZARAMA ENTEGRASYONU ====================
+
+model PazaramaProduct {
+  id                String   @id @default(cuid())
+  productId         String   @unique
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  pazaramaCategoryId String?  // Ürüne özel Pazarama Kategori ID (site kategorisinden bağımsız)
+
+  isSynced          Boolean  @default(false)
+  lastSyncError     String?  @db.Text
+  lastSyncedAt      DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([productId])
+  @@map("pazarama_products")
+}
 
 model PazaramaConfig {
   id           String   @id @default(cuid())

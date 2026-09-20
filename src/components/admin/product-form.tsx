@@ -129,6 +129,7 @@ interface Product {
     pttavmCategoryId?: number | null;
     idefixCategoryId?: string | null;
     ciceksepetiCategoryId?: string | null;
+    pazaramaCategoryId?: string | null;
 }
 
 interface ProductFormProps {
@@ -200,6 +201,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         pttavmCategoryId: product?.pttavmCategoryId ? String(product.pttavmCategoryId) : "",
         idefixCategoryId: product?.idefixCategoryId || "",
         ciceksepetiCategoryId: product?.ciceksepetiCategoryId || "",
+        pazaramaCategoryId: product?.pazaramaCategoryId || "",
     });
 
     // Bundle state
@@ -1568,6 +1570,25 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     onCheckedChange={(c) => handleChange("isPazaramaActive", c)}
                                 />
                             </div>
+
+                            {formData.isPazaramaActive && (
+                                <div className="p-3 border border-pink-200 dark:border-pink-800 rounded-lg bg-pink-50/40 dark:bg-pink-950/10 space-y-1.5">
+                                    <Label htmlFor="pazaramaCategoryId" className="text-xs font-semibold text-pink-800 dark:text-pink-300">
+                                        🌸 Pazarama Özel Kategori ID (Opsiyonel Override)
+                                    </Label>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
+                                    </p>
+                                    <Input
+                                        id="pazaramaCategoryId"
+                                        type="text"
+                                        value={formData.pazaramaCategoryId}
+                                        onChange={(e) => handleChange("pazaramaCategoryId", e.target.value)}
+                                        placeholder="Örn: 10101 veya kategori ID"
+                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
+                                    />
+                                </div>
+                            )}
 
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-teal-50 dark:bg-teal-900/10">
                                 <div className="space-y-0.5">

@@ -476,6 +476,11 @@ export async function getPazaramaProducts({
               pazaramaCategoryId: true,
             },
           },
+          pazaramaProduct: {
+            select: {
+              pazaramaCategoryId: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -488,13 +493,19 @@ export async function getPazaramaProducts({
 
     return {
       success: true,
-      data: products.map((p) => ({
-        ...p,
-        listPrice: Number(p.listPrice),
-        salePrice: p.salePrice ? Number(p.salePrice) : null,
-        pazaramaPrice: p.pazaramaPrice ? Number(p.pazaramaPrice) : null,
-        pazaramaCategoryId: p.categories.find((c) => c.pazaramaCategoryId)?.pazaramaCategoryId || null,
-      })),
+      data: products.map((p) => {
+        const overrideCatId = (p as any).pazaramaProduct?.pazaramaCategoryId || null;
+        const mappedCatId = p.categories.find((c) => c.pazaramaCategoryId)?.pazaramaCategoryId || null;
+        return {
+          ...p,
+          listPrice: Number(p.listPrice),
+          salePrice: p.salePrice ? Number(p.salePrice) : null,
+          pazaramaPrice: p.pazaramaPrice ? Number(p.pazaramaPrice) : null,
+          pazaramaOverrideCategoryId: overrideCatId,
+          pazaramaCategoryId: overrideCatId || mappedCatId,
+          mappedCategoryId: mappedCatId,
+        };
+      }),
       pagination: {
         currentPage: page,
         totalPages,
@@ -533,7 +544,7 @@ export async function syncProductsToPazarama(
 
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      include: { brand: true, categories: true },
+      include: { brand: true, categories: true, pazaramaProduct: true },
     });
 
     if (products.length === 0) {
@@ -548,7 +559,9 @@ export async function syncProductsToPazarama(
     const payloadProducts = products.map((p) => {
       const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
       const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
+      const productOverrideCatId = (p as any).pazaramaProduct?.pazaramaCategoryId;
       const catWithPazarama = p.categories.find((c) => c.pazaramaCategoryId) || p.categories[0];
+      const targetCategoryId = productOverrideCatId || catWithPazarama?.pazaramaCategoryId || undefined;
 
       const formattedImages = (p.images || []).map((img) => {
         if (img.startsWith("http")) return img;
@@ -564,7 +577,7 @@ export async function syncProductsToPazarama(
         description: p.marketplaceDescription || p.description || p.name,
         barcode: p.barcode || p.sku || p.id,
         brandId: p.brand?.pazaramaBrandId || undefined,
-        categoryId: catWithPazarama?.pazaramaCategoryId || undefined,
+        categoryId: targetCategoryId,
         listPrice: Math.round(Number(p.listPrice) * (1 + profitMargin / 100) * 100) / 100,
         salePrice: Math.round(finalPrice * 100) / 100,
         stockQuantity: effectiveStock,
@@ -963,3 +976,61 @@ export async function uploadPazaramaOrderInvoice(orderId: string) {
 }
 
 
+
+
+// ==================== ÜRÜN BAZLI KATEGORİ OVERRIDE ====================
+
+/**
+ * Tekli ürüne Pazarama kategori override set etme
+ * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
+ */
+export async function setPazaramaProductCategory(productId: string, pazaramaCategoryId: string | null) {
+  try {
+    const cleanId = pazaramaCategoryId?.trim() || null;
+    await (prisma as any).pazaramaProduct.upsert({
+      where: { productId },
+      update: { pazaramaCategoryId: cleanId },
+      create: {
+        productId,
+        pazaramaCategoryId: cleanId,
+      },
+    });
+    revalidatePath("/admin/integrations/pazarama/products");
+    return {
+      success: true,
+      message: cleanId
+        ? `Ürüne özel Pazarama kategorisi atandı: ${cleanId}`
+        : "Ürüne özel kategori kaldırıldı, site eşleşmesi kullanılacak.",
+    };
+  } catch (error: any) {
+    console.error("setPazaramaProductCategory error:", error);
+    return { success: false, message: "Hata: " + error.message };
+  }
+}
+
+/**
+ * Toplu ürünlere Pazarama kategori override set etme
+ */
+export async function setBulkPazaramaProductCategory(productIds: string[], pazaramaCategoryId: string) {
+  try {
+    const cleanId = pazaramaCategoryId.trim();
+    for (const productId of productIds) {
+      await (prisma as any).pazaramaProduct.upsert({
+        where: { productId },
+        update: { pazaramaCategoryId: cleanId },
+        create: {
+          productId,
+          pazaramaCategoryId: cleanId,
+        },
+      });
+    }
+    revalidatePath("/admin/integrations/pazarama/products");
+    return {
+      success: true,
+      message: `${productIds.length} ürüne Pazarama kategori override atandı: ${cleanId}`,
+    };
+  } catch (error: any) {
+    console.error("setBulkPazaramaProductCategory error:", error);
+    return { success: false, message: "Hata: " + error.message };
+  }
+}

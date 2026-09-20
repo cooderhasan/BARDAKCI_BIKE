@@ -21,6 +21,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
                 pttavmProduct: true,
                 idefixProduct: true,
                 ciceksepetiProduct: true,
+                pazaramaProduct: true,
                 bundleItems: {
                     include: {
                         childProduct: {
@@ -108,6 +109,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         pttavmCategoryId: anyProduct.pttavmProduct?.pttavmCategoryId || null,
         idefixCategoryId: anyProduct.idefixProduct?.idefixCategoryId || null,
         ciceksepetiCategoryId: anyProduct.ciceksepetiProduct?.ciceksepetiCategoryId || null,
+        pazaramaCategoryId: anyProduct.pazaramaProduct?.pazaramaCategoryId || null,
         bundleItems: (product as any).bundleItems?.map((bi: any) => ({
             childProductId: bi.childProductId,
             quantity: bi.quantity,

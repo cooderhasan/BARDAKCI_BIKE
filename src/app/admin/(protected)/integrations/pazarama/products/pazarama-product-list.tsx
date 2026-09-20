@@ -14,6 +14,8 @@ import {
   syncProductsToPazarama,
   syncPazaramaStockAndPrice,
   getPazaramaCategoryAttributes,
+  setPazaramaProductCategory,
+  setBulkPazaramaProductCategory,
 } from "../actions";
 import {
   Search,
@@ -24,6 +26,10 @@ import {
   Layers,
   Sparkles,
   X,
+  Tag,
+  Edit3,
+  Save,
+  Plus,
 } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 
@@ -42,6 +48,8 @@ interface Product {
   pazaramaStatus?: string | null;
   pazaramaBatchId?: string | null;
   pazaramaCategoryId?: string | null;
+  pazaramaOverrideCategoryId?: string | null;
+  mappedCategoryId?: string | null;
   brand?: { name: string } | null;
 }
 
@@ -77,6 +85,73 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
   }>>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false);
+
+  // Kategori Override State'leri
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [editCatValue, setEditCatValue] = useState("");
+  const [savingCat, setSavingCat] = useState(false);
+  const [bulkCatOpen, setBulkCatOpen] = useState(false);
+  const [bulkCatValue, setBulkCatValue] = useState("");
+
+  const handleSaveCatId = async (productId: string, valToSave?: string) => {
+    setSavingCat(true);
+    const targetVal = valToSave !== undefined ? valToSave : editCatValue;
+    const catStr = targetVal.trim() || null;
+    const res = await setPazaramaProductCategory(productId, catStr);
+    setSavingCat(false);
+    if (res.success) {
+      toast.success(res.message);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                pazaramaOverrideCategoryId: catStr,
+                pazaramaCategoryId: catStr || p.mappedCategoryId || null,
+              }
+            : p
+        )
+      );
+      setEditingCatId(null);
+      setEditCatValue("");
+    } else {
+      toast.error(res.message || "İşlem başarısız.");
+    }
+  };
+
+  const handleBulkCatAssign = async () => {
+    if (selectedIds.length === 0) {
+      toast.warning("Lütfen en az bir ürün seçin.");
+      return;
+    }
+    if (!bulkCatValue.trim()) {
+      toast.warning("Lütfen geçerli bir Pazarama Kategori ID girin.");
+      return;
+    }
+    setSavingCat(true);
+    const res = await setBulkPazaramaProductCategory(selectedIds, bulkCatValue.trim());
+    setSavingCat(false);
+    if (res.success) {
+      toast.success(res.message);
+      const cleanVal = bulkCatValue.trim();
+      setProducts((prev) =>
+        prev.map((p) =>
+          selectedIds.includes(p.id)
+            ? {
+                ...p,
+                pazaramaOverrideCategoryId: cleanVal,
+                pazaramaCategoryId: cleanVal,
+              }
+            : p
+        )
+      );
+      setBulkCatOpen(false);
+      setBulkCatValue("");
+      setSelectedIds([]);
+    } else {
+      toast.error(res.message || "İşlem başarısız.");
+    }
+  };
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -228,6 +303,16 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
               </Button>
 
               <Button
+                variant="outline"
+                onClick={() => setBulkCatOpen(!bulkCatOpen)}
+                disabled={selectedIds.length === 0}
+                className="border-pink-200 text-pink-700 hover:bg-pink-50 gap-2"
+              >
+                <Tag className="w-4 h-4 text-pink-600" />
+                <span>Toplu Kategori Ata ({selectedIds.length})</span>
+              </Button>
+
+              <Button
                 onClick={handleSyncStockSelected}
                 disabled={isPending || selectedIds.length === 0}
                 variant="outline"
@@ -241,6 +326,46 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
         </CardHeader>
 
         <CardContent className="pt-6 space-y-4">
+          {/* Toplu Kategori Atama Paneli */}
+          {bulkCatOpen && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-900/50 rounded-xl p-4 shadow-sm">
+              <Tag className="h-5 w-5 text-pink-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-semibold text-pink-800 dark:text-pink-300">
+                  Seçili {selectedIds.length} ürüne Pazarama Kategori ID ata
+                </p>
+                <p className="text-xs text-pink-600 dark:text-pink-400">
+                  Bu ürünler site kategorisi yerine doğrudan belirlediğiniz Pazarama kategorisine gönderilecektir.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Input
+                  placeholder="Pazarama Kategori ID (örn: 10101)"
+                  value={bulkCatValue}
+                  onChange={(e) => setBulkCatValue(e.target.value)}
+                  className="h-9 w-full sm:w-56 text-sm bg-white dark:bg-gray-800 font-mono"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleBulkCatAssign}
+                  disabled={savingCat || !bulkCatValue.trim()}
+                  className="bg-[#D81B60] hover:bg-[#C2185B] text-white shrink-0"
+                >
+                  {savingCat ? "Kaydediliyor..." : "Uygula"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setBulkCatOpen(false);
+                    setBulkCatValue("");
+                  }}
+                >
+                  İptal
+                </Button>
+              </div>
+            </div>
+          )}
           {/* Filtre ve Arama Barı */}
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
             <div className="relative w-full sm:w-80">
@@ -347,6 +472,113 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                             {product.sku && <span>SKU: {product.sku}</span>}
                             {product.barcode && <span>Barkod: {product.barcode}</span>}
                           </div>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                            {product.pazaramaOverrideCategoryId ? (
+                              <span className="inline-flex items-center gap-1">
+                                <Badge className="bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300 text-[10px] font-bold py-0 px-1.5 border-pink-200">
+                                  ⭐ Özel Kat: #{product.pazaramaOverrideCategoryId}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 text-muted-foreground hover:text-pink-600"
+                                  onClick={() => {
+                                    setEditingCatId(product.id);
+                                    setEditCatValue(product.pazaramaOverrideCategoryId || "");
+                                  }}
+                                  title="Özel kategoriyi düzenle / kaldır"
+                                >
+                                  <Edit3 className="w-2.5 h-2.5" />
+                                </Button>
+                              </span>
+                            ) : product.mappedCategoryId ? (
+                              <span className="inline-flex items-center gap-1">
+                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-pink-700 border-pink-200">
+                                  Kat: #{product.mappedCategoryId}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 text-gray-400 hover:text-pink-600"
+                                  onClick={() => {
+                                    setEditingCatId(product.id);
+                                    setEditCatValue("");
+                                  }}
+                                  title="Bu ürüne özel Pazarama kategorisi ata"
+                                >
+                                  <Plus className="w-2.5 h-2.5" />
+                                </Button>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1">
+                                <Badge variant="outline" className="text-[10px] text-gray-400 border-dashed py-0 px-1.5">
+                                  Kat: Tanımsız
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 text-pink-600 hover:bg-pink-50"
+                                  onClick={() => {
+                                    setEditingCatId(product.id);
+                                    setEditCatValue("");
+                                  }}
+                                  title="Bu ürüne özel Pazarama kategorisi ata"
+                                >
+                                  <Plus className="w-2.5 h-2.5" />
+                                </Button>
+                              </span>
+                            )}
+                          </div>
+
+                          {editingCatId === product.id && (
+                            <div
+                              className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-pink-300 rounded-md shadow-sm z-10 w-fit mt-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Input
+                                value={editCatValue}
+                                onChange={(e) => setEditCatValue(e.target.value)}
+                                placeholder="Pazarama Kat ID"
+                                className="h-6 text-[10px] w-28 px-1 font-mono"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveCatId(product.id);
+                                  if (e.key === "Escape") setEditingCatId(null);
+                                }}
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-emerald-600 hover:bg-emerald-50"
+                                onClick={() => handleSaveCatId(product.id)}
+                                disabled={savingCat}
+                                title="Kaydet"
+                              >
+                                <Save className="h-3 w-3" />
+                              </Button>
+                              {product.pazaramaOverrideCategoryId && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 text-red-500 hover:bg-red-50"
+                                  onClick={() => handleSaveCatId(product.id, "")}
+                                  disabled={savingCat}
+                                  title="Özel kategoriyi sil (Site eşleşmesine dön)"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-gray-400"
+                                onClick={() => setEditingCatId(null)}
+                                title="İptal"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm">
                           {product.brand?.name || "-"}

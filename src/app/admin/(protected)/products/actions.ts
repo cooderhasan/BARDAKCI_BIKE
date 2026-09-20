@@ -157,6 +157,7 @@ export async function createProduct(formData: FormData) {
         const pttavmCategoryId = formData.get("pttavmCategoryId") ? Number(formData.get("pttavmCategoryId")) : null;
         const idefixCategoryId = (formData.get("idefixCategoryId") as string)?.trim() || null;
         const ciceksepetiCategoryId = (formData.get("ciceksepetiCategoryId") as string)?.trim() || null;
+        const pazaramaCategoryId = (formData.get("pazaramaCategoryId") as string)?.trim() || null;
 
         if (trendyolCategoryId) {
             await (prisma as any).trendyolProduct.upsert({
@@ -198,6 +199,13 @@ export async function createProduct(formData: FormData) {
                 where: { productId: product.id },
                 create: { productId: product.id, ciceksepetiCategoryId },
                 update: { ciceksepetiCategoryId },
+            });
+        }
+        if (pazaramaCategoryId) {
+            await (prisma as any).pazaramaProduct.upsert({
+                where: { productId: product.id },
+                create: { productId: product.id, pazaramaCategoryId },
+                update: { pazaramaCategoryId },
             });
         }
 
@@ -479,6 +487,21 @@ export async function updateProduct(productId: string, formData: FormData) {
                 await (prisma as any).ciceksepetiProduct.updateMany({
                     where: { productId },
                     data: { ciceksepetiCategoryId: null },
+                });
+            }
+        }
+        if (formData.has("pazaramaCategoryId")) {
+            const val = (formData.get("pazaramaCategoryId") as string)?.trim() || null;
+            if (val) {
+                await (prisma as any).pazaramaProduct.upsert({
+                    where: { productId },
+                    create: { productId, pazaramaCategoryId: val },
+                    update: { pazaramaCategoryId: val },
+                });
+            } else {
+                await (prisma as any).pazaramaProduct.updateMany({
+                    where: { productId },
+                    data: { pazaramaCategoryId: null },
                 });
             }
         }
