@@ -285,32 +285,37 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         <div className="container mx-auto px-4 py-8">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                        {currentCategory
-                            ? currentCategory.name
-                            : params.search
-                                ? `"${params.search}" Arama Sonuçları`
-                                : params.is_on_sale === "true"
-                                    ? "İndirimli Ürünler"
-                                    : "Tüm Ürünler"}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Toplam <span className="font-semibold text-gray-900 dark:text-white">{totalCount}</span> ürün listeleniyor
-                    </p>
+                <div className="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                            {currentCategory
+                                ? currentCategory.name
+                                : params.search
+                                    ? `"${params.search}" Arama Sonuçları`
+                                    : params.is_on_sale === "true"
+                                        ? "İndirimli Ürünler"
+                                        : "Tüm Ürünler"}
+                        </h1>
+                        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">
+                            Toplam <span className="font-semibold text-gray-900 dark:text-white">{totalCount}</span> ürün listeleniyor
+                        </p>
+                    </div>
+
+                    <div className="lg:hidden shrink-0">
+                        <MobileProductFilters
+                            categories={sidebarCategories}
+                            brands={brands}
+                            colors={uniqueColors}
+                            sizes={uniqueSizes}
+                            activeCategorySlug={params.category}
+                            isMotor={isMotor}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
-                    <MobileProductFilters
-                        categories={sidebarCategories}
-                        brands={brands}
-                        colors={uniqueColors}
-                        sizes={uniqueSizes}
-                        activeCategorySlug={params.category}
-                        isMotor={isMotor}
-                    />
+                <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full md:w-auto">
                     <ProductStockToggle />
-                    <div className="flex items-center gap-2 sm:gap-3 ml-auto md:ml-0 shrink-0">
+                    <div className="shrink-0">
                         <ProductSort initialSort={params.sort || "newest"} />
                     </div>
                 </div>
