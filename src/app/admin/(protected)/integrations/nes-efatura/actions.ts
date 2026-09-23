@@ -563,10 +563,6 @@ function buildReceiverInfo(order: any): UblReceiverInfo {
 }
 
 function buildInvoiceLines(order: any): UblInvoiceLine[] {
-    // Ödeme yöntemi havale mi kontrol et
-    const paymentMethod = order.payment?.method;
-    const isBankTransfer = paymentMethod === "BANK_TRANSFER";
-
     // Sipariş toplam ürün tutarı (KDV dahil, ürün indirimleri uygulanmış)
     const itemsTotalInclTax = order.items.reduce((sum: number, item: any) => {
         return sum + Number(item.lineTotal);
@@ -575,35 +571,34 @@ function buildInvoiceLines(order: any): UblInvoiceLine[] {
     // Kargo ücreti (KDV dahil olarak DB'de saklanıyor)
     const shippingCostInclTax = Number(order.shippingCost || 0);
 
-    // Havale indirimi hesapla:
-    // Sipariş totali (order.total) = ürünler + kargo - havale indirimi
-    // Havale indirimi = (ürünler + kargo) - order.total
+    // Havale veya sipariş geneli ek indirim hesapla:
+    // Sipariş totali (order.total) = ürünler + kargo - ek indirim
     const orderTotal = Number(order.total);
     const expectedWithoutDiscount = itemsTotalInclTax + shippingCostInclTax;
-    const bankDiscountAmountInclTax = isBankTransfer ? Math.max(0, Math.round((expectedWithoutDiscount - orderTotal) * 100) / 100) : 0;
+    const extraDiscountAmountInclTax = Math.max(0, Math.round((expectedWithoutDiscount - orderTotal) * 100) / 100);
 
-    // Havale indirimi oranı (ürünler üzerinden)
-    const bankDiscountRatio = (bankDiscountAmountInclTax > 0.01 && itemsTotalInclTax > 0)
-        ? bankDiscountAmountInclTax / itemsTotalInclTax
+    // Ek indirim oranı (ürünler üzerinden orantılı dağıtılır)
+    const extraDiscountRatio = (extraDiscountAmountInclTax > 0.01 && itemsTotalInclTax > 0)
+        ? extraDiscountAmountInclTax / itemsTotalInclTax
         : 0;
 
     const lines: UblInvoiceLine[] = order.items.map((item: any) => {
-        const unitPriceInclTax = Number(item.unitPrice);
-        const quantity = item.quantity;
+        const quantity = item.quantity || 1;
+        // Kalemin müşteriye satılan KDV Dahil net tutarı (kampanya/ürün indirimi düşülmüş hali, örn: 11.500 TL)
+        const lineTotalInclTax = Number(item.lineTotal);
+
+        // Sipariş geneli ek indirim varsa (örn: havale indirimi), kaleme düşen payı uygula
+        const finalLineTotalInclTax = extraDiscountRatio > 0
+            ? lineTotalInclTax * (1 - extraDiscountRatio)
+            : lineTotalInclTax;
+
         const vatRate = item.vatRate || 20;
-        const discountRate = Number(item.discountRate || 0);
 
-        // KDV dahil fiyattan KDV hariç fiyatı hesapla
+        // Gerçek KDV dahil birim fiyat (örn: 11.500 TL)
+        const unitPriceInclTax = quantity > 0 ? (finalLineTotalInclTax / quantity) : finalLineTotalInclTax;
+
+        // KDV hariç birim fiyat (örn: 9.583,33 TL)
         const unitPriceExclTax = unitPriceInclTax / (1 + vatRate / 100);
-
-        // Ürün bazlı indirim (bayi indirimi/kampanya) uygula
-        const discountedPriceInclTax = unitPriceInclTax * (1 - discountRate / 100);
-        const lineTotalInclTax = discountedPriceInclTax * quantity;
-
-        // Havale indirimi bu kaleme düşen kısım (KDV dahil)
-        const itemBankDiscountInclTax = lineTotalInclTax * bankDiscountRatio;
-        // KDV hariç havale indirimi
-        const itemBankDiscountExclTax = itemBankDiscountInclTax / (1 + vatRate / 100);
 
         return {
             name: item.productName || item.product?.name || "Ürün",
@@ -611,7 +606,6 @@ function buildInvoiceLines(order: any): UblInvoiceLine[] {
             unitCode: "C62",
             unitPrice: Math.round(unitPriceExclTax * 100) / 100,
             taxRate: vatRate,
-            discountAmount: itemBankDiscountExclTax > 0.01 ? Math.round(itemBankDiscountExclTax * 100) / 100 : undefined,
         };
     });
 
