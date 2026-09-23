@@ -80,6 +80,7 @@ export function ProductFilters({
         params.delete("page");
 
         router.push(`?${params.toString()}`);
+        onFilterApply?.();
     };
 
     const isSelected = (key: string, value: string) => {
