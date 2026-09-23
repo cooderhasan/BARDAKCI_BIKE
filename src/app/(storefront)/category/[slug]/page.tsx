@@ -331,7 +331,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto overflow-x-auto">
                     <MobileProductFilters
                         categories={sidebarCategories}
                         brands={brands}
@@ -341,8 +341,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                         isMotor={isMotor}
                     />
                     <ProductStockToggle />
-                    <div className="flex items-center gap-2 sm:gap-3 ml-auto md:ml-0 min-w-0">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline-block shrink-0">Sıralama:</span>
+                    <div className="flex items-center gap-2 sm:gap-3 ml-auto md:ml-0 shrink-0">
                         <ProductSort initialSort={searchParamsValues.sort || "newest"} />
                     </div>
                 </div>
