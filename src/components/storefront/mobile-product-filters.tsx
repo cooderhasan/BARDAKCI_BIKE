@@ -39,6 +39,7 @@ export function MobileProductFilters({
                     <SheetTitle className="text-left">Filtreler</SheetTitle>
                 </SheetHeader>
                 <ScrollArea className="h-[calc(100vh-80px)] px-6 py-4">
+                    <div className="pb-24">
                     <ProductFilters
                         categories={categories}
                         brands={brands}
@@ -46,7 +47,9 @@ export function MobileProductFilters({
                         sizes={sizes}
                         activeCategorySlug={activeCategorySlug}
                         isMotor={isMotor}
+                        onFilterApply={() => setOpen(false)}
                     />
+                    </div>
                 </ScrollArea>
             </SheetContent>
         </Sheet>

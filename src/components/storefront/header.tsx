@@ -501,7 +501,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             </Link>
                             <Link
                                 href="/products"
-                                className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-[#17457C] hover:bg-blue-50 rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-[#17457C] hover:bg-blue-50 rounded-lg transition-colors uppercase"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 <span className="w-1.5 h-1.5 rounded-full bg-[#17457C]" />
@@ -555,7 +555,7 @@ function MobileCategoryItem({ category, hasChildren, onClose }: { category: Cate
             <div className="flex items-center">
                 <Link
                     href={`/category/${category.slug}`}
-                    className="flex-1 flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-[#17457C] transition-colors"
+                    className="flex-1 flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-[#17457C] transition-colors uppercase"
                     onClick={onClose}
                 >
                     <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />

@@ -30,6 +30,7 @@ interface ProductFiltersProps {
     sizes: string[];
     activeCategorySlug?: string;
     isMotor?: boolean;
+    onFilterApply?: () => void;
 }
 
 export function ProductFilters({
@@ -39,6 +40,7 @@ export function ProductFilters({
     sizes,
     activeCategorySlug,
     isMotor = false,
+    onFilterApply,
 }: ProductFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -65,6 +67,7 @@ export function ProductFilters({
         params.delete("page");
 
         router.push(`?${params.toString()}`);
+        onFilterApply?.();
     };
 
     const handlePriceFilter = () => {
@@ -78,6 +81,7 @@ export function ProductFilters({
         params.delete("page");
 
         router.push(`?${params.toString()}`);
+        onFilterApply?.();
     };
 
     const isSelected = (key: string, value: string) => {
@@ -96,7 +100,7 @@ export function ProductFilters({
                     <AccordionContent>
                         <div className="space-y-1 pr-1">
                             <button
-                                onClick={() => router.push("/products")}
+                                onClick={() => { router.push("/products"); onFilterApply?.(); }}
                                 className={cn(
                                     "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer",
                                     !activeCategorySlug && !searchParams.get("category")
@@ -109,7 +113,7 @@ export function ProductFilters({
                             {categories.map((category) => (
                                 <button
                                     key={category.id}
-                                    onClick={() => router.push(`/category/${category.slug}`)}
+                                    onClick={() => { router.push(`/category/${category.slug}`); onFilterApply?.(); }}
                                     className={cn(
                                         "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer",
                                         activeCategorySlug === category.slug || searchParams.get("category") === category.slug
@@ -195,8 +199,8 @@ export function ProductFilters({
                                 <div className="space-y-2.5 pt-1 pr-1">
                                     {[
                                         { label: "V FREN", value: "V FREN" },
-                                        { label: "Mekanik Disk Fren", value: "Mekanik Disk Fren" },
-                                        { label: "Hidrolik Disk Fren", value: "Hidrolik Disk Fren" }
+                                        { label: "MEKANİK DİSK FREN", value: "Mekanik Disk Fren" },
+                                        { label: "HİDROLİK DİSK FREN", value: "Hidrolik Disk Fren" }
                                     ].map((brake) => (
                                         <div key={brake.value} className="flex items-center space-x-3 group">
                                             <Checkbox

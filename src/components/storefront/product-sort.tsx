@@ -19,7 +19,7 @@ export function ProductSort({ initialSort }: ProductSortProps) {
 
     return (
         <Select defaultValue={initialSort} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-full sm:w-[180px] bg-white dark:bg-gray-800">
+            <SelectTrigger className="w-[140px] sm:w-[180px] bg-white dark:bg-gray-800">
                 <SelectValue placeholder="Sıralama" />
             </SelectTrigger>
             <SelectContent>
