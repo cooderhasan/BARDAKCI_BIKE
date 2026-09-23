@@ -300,7 +300,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto overflow-x-auto">
+                <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
                     <MobileProductFilters
                         categories={sidebarCategories}
                         brands={brands}
