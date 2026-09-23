@@ -348,7 +348,7 @@ export class TrendyolEFaturamClient {
                 unitPriceAmount: this.toKurus(line.unitPrice),
                 taxPercent: Number(line.taxRate),
                 taxAmount: this.toKurus(line.taxAmount),
-                taxableAmount: this.toKurus(line.amount - line.taxAmount),
+                taxableAmount: this.toKurus(line.amount),
                 totalAmount: this.toKurus(line.amount),
                 totalDiscountAmount: line.discountAmount ? this.toKurus(line.discountAmount) : 0,
                 taxName: "KDV",
@@ -357,7 +357,7 @@ export class TrendyolEFaturamClient {
                     totalTaxAmount: this.toKurus(line.taxAmount),
                     subTotalTaxes: [{
                         taxAmount: this.toKurus(line.taxAmount),
-                        taxableAmount: this.toKurus(line.amount - line.taxAmount),
+                        taxableAmount: this.toKurus(line.amount),
                         percent: Number(line.taxRate),
                         taxType: "KDV",
                     }]
@@ -472,7 +472,7 @@ export class TrendyolEFaturamClient {
                 unitPriceAmount: this.toKurus(line.unitPrice),
                 taxPercent: Number(line.taxRate),
                 taxAmount: this.toKurus(line.taxAmount),
-                taxableAmount: this.toKurus(line.amount - line.taxAmount),
+                taxableAmount: this.toKurus(line.amount),
                 totalAmount: this.toKurus(line.amount),
                 totalDiscountAmount: line.discountAmount ? this.toKurus(line.discountAmount) : 0,
                 taxName: "KDV",
@@ -481,7 +481,7 @@ export class TrendyolEFaturamClient {
                     totalTaxAmount: this.toKurus(line.taxAmount),
                     subTotalTaxes: [{
                         taxAmount: this.toKurus(line.taxAmount),
-                        taxableAmount: this.toKurus(line.amount - line.taxAmount),
+                        taxableAmount: this.toKurus(line.amount),
                         percent: Number(line.taxRate),
                         taxType: "KDV",
                     }]

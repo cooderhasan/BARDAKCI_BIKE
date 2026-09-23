@@ -176,8 +176,8 @@ export async function createOrder(data: CreateOrderData) {
                     productId: product.id,
                     productName: productName,
                     quantity: item.quantity,
-                    unitPrice: unitPrice, // Storing List Price as Unit Price
-                    discountRate: appliedItemDiscountRate, // Storing Effective Discount Rate
+                    unitPrice: finalUnitPrice, // Gerçek satılan KDV dahil birim fiyat (örn: 11.500 TL)
+                    discountRate: appliedItemDiscountRate, // İndirim oranı
                     vatRate: product.vatRate,
                     lineTotal: discountedLineTotal,
                     variantId: item.variantId,
