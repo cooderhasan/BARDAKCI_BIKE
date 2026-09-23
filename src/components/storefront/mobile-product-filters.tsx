@@ -47,7 +47,7 @@ export function MobileProductFilters({
                         sizes={sizes}
                         activeCategorySlug={activeCategorySlug}
                         isMotor={isMotor}
-                        onFilterApply={() => setOpen(false)}
+                        onFilterApply={() => setTimeout(() => setOpen(false), 300)}
                     />
                     </div>
                 </ScrollArea>
