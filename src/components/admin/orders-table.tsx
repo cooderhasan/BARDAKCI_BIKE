@@ -16,7 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal, Barcode, ReceiptText } from "lucide-react";
+import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal, Barcode, ReceiptText, RotateCcw } from "lucide-react";
 import {
     formatDate,
     getOrderStatusLabel,
@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { updateOrderStatus, updateOrderTracking, bulkUpdateOrderStatus, sendOrderToYurtici, cancelYKOrder, queryYKOrder, bulkSendOrdersToYurtici, syncAllYKOrders, markOrderAsPrinted, markOrdersAsPrinted } from "@/app/admin/(protected)/orders/actions";
 import { sendOrderInvoice } from "@/app/admin/(protected)/integrations/trendyol-efaturam/actions";
-import { sendOrderInvoiceNes } from "@/app/admin/(protected)/integrations/nes-efatura/actions";
+import { sendOrderInvoiceNes, resetOrderInvoice } from "@/app/admin/(protected)/integrations/nes-efatura/actions";
 import { getYKStatusLabel, getYKStatusColor } from "@/services/yurtici/api";
 import { toast } from "sonner";
 import { OrderWithItems } from "@/types";
@@ -839,18 +839,44 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         >
                                                             <ReceiptText className="h-5 w-5" />
                                                         </Button>
-                                                    ) : (order.source === "TRENDYOL" || order.source === "HEPSIBURADA" || order.source === "N11" || order.source === "IDEFIX" || order.source === "PAZARAMA" || order.source === "CICEKSEPETI") && (
-                                                         <Button
-                                                             variant="outline"
-                                                             size="icon"
-                                                             className="border-orange-300 bg-orange-50/50 text-orange-600 hover:bg-orange-100 h-9 w-9"
-                                                             title="Pazaryeri Faturasını Güncelle / Yeniden Gönder"
-                                                             disabled={loadingId === order.id}
-                                                             onClick={() => handleSendInvoice(order.id)}
-                                                         >
-                                                             <RefreshCw className={`h-4 w-4 text-orange-600 ${loadingId === order.id ? 'animate-spin' : ''}`} />
-                                                         </Button>
-                                                     )}
+                                                    ) : (
+                                                        <div className="flex items-center gap-1">
+                                                            {(order.source === "TRENDYOL" || order.source === "HEPSIBURADA" || order.source === "N11" || order.source === "IDEFIX" || order.source === "PAZARAMA" || order.source === "CICEKSEPETI") && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="border-orange-300 bg-orange-50/50 text-orange-600 hover:bg-orange-100 h-9 w-9"
+                                                                    title="Pazaryeri Faturasını Güncelle / Yeniden Gönder"
+                                                                    disabled={loadingId === order.id}
+                                                                    onClick={() => handleSendInvoice(order.id)}
+                                                                >
+                                                                    <RefreshCw className={`h-4 w-4 text-orange-600 ${loadingId === order.id ? 'animate-spin' : ''}`} />
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 h-9 w-9"
+                                                                title="Fatura Kaydını Sıfırla (NES'ten İptal Edildiyse Tekrar Kesebilmek İçin)"
+                                                                disabled={loadingId === order.id}
+                                                                onClick={async () => {
+                                                                    if (window.confirm("Bu siparişin fatura kaydını sıfırlamak istiyor musunuz? (Faturayı NES portalından iptal ettiyseniz, sistemden tekrar doğru tutarla fatura kesebilmek için bu işlemi yapın)")) {
+                                                                        setLoadingId(order.id);
+                                                                        const res = await resetOrderInvoice(order.id);
+                                                                        if (res.success) {
+                                                                            toast.success(res.message);
+                                                                            router.refresh();
+                                                                        } else {
+                                                                            toast.error(res.message);
+                                                                        }
+                                                                        setLoadingId(null);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <RotateCcw className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <Button
                                                     variant="ghost"

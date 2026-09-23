@@ -624,3 +624,25 @@ function buildInvoiceLines(order: any): UblInvoiceLine[] {
 
     return lines;
 }
+
+/**
+ * Hatalı/iptal edilmiş bir faturanın sipariş üzerindeki kaydını temizler
+ * Böylece NES üzerinden iptal edilen faturanın yerine sistemden tekrar doğru fatura kesilebilir.
+ */
+export async function resetOrderInvoice(orderId: string) {
+    try {
+        await prisma.order.update({
+            where: { id: orderId },
+            data: {
+                invoiceNo: null,
+                invoiceId: null,
+                invoiceUrl: null,
+            },
+        });
+        revalidatePath("/admin/orders");
+        return { success: true, message: "Fatura kaydı siparişten temizlendi. Artık tekrar fatura kesebilirsiniz." };
+    } catch (error: any) {
+        return { success: false, message: "Fatura sıfırlanamadı: " + error.message };
+    }
+}
+
