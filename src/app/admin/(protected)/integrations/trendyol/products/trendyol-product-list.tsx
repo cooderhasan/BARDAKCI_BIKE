@@ -641,156 +641,170 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
 
             {/* ATTRIBUTE MAPPING DIALOG */}
             <Dialog open={showAttrModal} onOpenChange={setShowAttrModal}>
-                <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto rounded-3xl border-orange-100 dark:border-orange-900/30">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Box className="w-5 h-5 text-orange-500" />
-                            Kategori Özelliklerini Eşleştir
-                        </DialogTitle>
-                        <DialogDescription>
-                            Trendyol "{selectedProduct?.categories.find((c: any) => c.trendyolCategoryId === selectedCategoryId)?.name || selectedProduct?.categories[0]?.name}" kategorisi için zorunlu alanları doldurun.
-                        </DialogDescription>
-                    </DialogHeader>
+                <DialogContent className="sm:max-w-[640px] w-[95vw] max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-3xl border-orange-100 dark:border-orange-900/30 shadow-2xl">
+                    <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                <Box className="w-5 h-5 text-orange-500 shrink-0" />
+                                Kategori Özelliklerini Eşleştir
+                            </DialogTitle>
+                            <DialogDescription className="text-xs sm:text-sm text-muted-foreground truncate">
+                                Trendyol "{selectedProduct?.categories?.find((c: any) => c.trendyolCategoryId === selectedCategoryId)?.name || selectedProduct?.categories?.[0]?.name}" kategorisi için zorunlu alanları doldurun.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
 
-                    {/* Çoklu Kategori Varsa Kullanıcıya Açıkça Seçim Sun */}
-                    {selectedProduct && selectedProduct.categories.filter((c: any) => c.trendyolCategoryId !== null).length > 1 && (
-                        <div className="p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800 rounded-2xl space-y-1.5 mt-2">
-                            <Label className="text-xs font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                                <span>⚠️ Ürünün Birden Çok Kategorisi Var. Trendyol'a Gönderilecek Kategori:</span>
-                            </Label>
-                            <Select 
-                                value={selectedCategoryId?.toString()} 
-                                onValueChange={(val) => handleOpenWizard(selectedProduct, Number(val))}
-                            >
-                                <SelectTrigger className="bg-white dark:bg-gray-800 font-medium text-xs">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {selectedProduct.categories
-                                        .filter((c: any) => c.trendyolCategoryId !== null)
-                                        .map((c: any) => (
-                                            <SelectItem key={c.id} value={c.trendyolCategoryId.toString()}>
-                                                {c.name} (Trendyol ID: #{c.trendyolCategoryId})
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-4 min-w-0">
+                        {/* Çoklu Kategori Varsa Kullanıcıya Açıkça Seçim Sun (Tekilleştirilmiş) */}
+                        {(() => {
+                            if (!selectedProduct) return null;
+                            const validCats = (selectedProduct.categories || []).filter(
+                                (c: any) => c.trendyolCategoryId !== null && c.trendyolCategoryId !== undefined
+                            );
+                            const uniqueCats = Array.from(
+                                new Map(validCats.map((c: any) => [c.trendyolCategoryId, c])).values()
+                            );
 
-                    {attrLoading ? (
-                        <div className="py-12 flex flex-col items-center justify-center gap-3">
-                            <RefreshCcw className="w-10 h-10 animate-spin text-orange-500" />
-                            <p className="text-sm text-muted-foreground animate-pulse">Özellikler yükleniyor...</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4 py-2">
-                            {(() => {
-                                const requiredAttrs = categoryAttrs.filter((a: any) => a.required);
-                                const optionalAttrs = categoryAttrs.filter((a: any) => !a.required);
+                            if (uniqueCats.length <= 1) return null;
 
-                                const renderField = (attr: any) => {
-                                    const attrId = attr.attribute.id;
-                                    const hasValues = attr.attributeValues && attr.attributeValues.length > 0;
+                            return (
+                                <div className="p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800 rounded-2xl space-y-1.5 shrink-0">
+                                    <Label className="text-xs font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                                        <span>⚠️ Ürünün Birden Çok Kategorisi Var. Trendyol'a Gönderilecek Kategori:</span>
+                                    </Label>
+                                    <Select 
+                                        value={selectedCategoryId?.toString()} 
+                                        onValueChange={(val) => handleOpenWizard(selectedProduct, Number(val))}
+                                    >
+                                        <SelectTrigger className="w-full max-w-full bg-white dark:bg-gray-800 font-medium text-xs truncate">
+                                            <SelectValue className="truncate" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-w-[calc(100vw-2rem)]">
+                                            {uniqueCats.map((c: any) => (
+                                                <SelectItem key={c.trendyolCategoryId} value={c.trendyolCategoryId.toString()} className="truncate">
+                                                    {c.name} (Trendyol ID: #{c.trendyolCategoryId})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            );
+                        })()}
+
+                        {attrLoading ? (
+                            <div className="py-12 flex flex-col items-center justify-center gap-3">
+                                <RefreshCcw className="w-10 h-10 animate-spin text-orange-500" />
+                                <p className="text-sm text-muted-foreground animate-pulse">Özellikler yükleniyor...</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4 py-1">
+                                {(() => {
+                                    const requiredAttrs = categoryAttrs.filter((a: any) => a.required);
+                                    const optionalAttrs = categoryAttrs.filter((a: any) => !a.required);
+
+                                    const renderField = (attr: any) => {
+                                        const attrId = attr.attribute.id;
+                                        const hasValues = attr.attributeValues && attr.attributeValues.length > 0;
+
+                                        return (
+                                            <div key={attrId} className="space-y-1.5">
+                                                <Label className="flex items-center gap-1 text-xs font-medium">
+                                                    {attr.attribute.name}
+                                                    {attr.required ? (
+                                                        <span className="text-red-500 font-bold">*</span>
+                                                    ) : (
+                                                        <span className="text-[10px] text-muted-foreground font-normal">(İsteğe bağlı)</span>
+                                                    )}
+                                                </Label>
+                                                
+                                                {hasValues ? (
+                                                    <AttributeSearchableSelect
+                                                        options={attr.attributeValues}
+                                                        value={attrMappings[attrId]}
+                                                        placeholder={`${attr.attribute.name} seçin veya arayın...`}
+                                                        searchPlaceholder={`${attr.attribute.name} ara... (yazdıkça filtreler)`}
+                                                        allowCustom={attr.allowCustom}
+                                                        onValueChange={(val, option) => {
+                                                            const num = Number(val);
+                                                            const finalVal = isNaN(num) ? val : num;
+                                                            
+                                                            // Web Color seçildiğinde Renk alanını da otomatik senkronize et
+                                                            if (attrId === 348 && option) {
+                                                                setAttrMappings((prev: any) => ({
+                                                                    ...prev,
+                                                                    348: finalVal,
+                                                                    47: option.name
+                                                                }));
+                                                            } else {
+                                                                setAttrMappings((prev: any) => ({ ...prev, [attrId]: finalVal }));
+                                                            }
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Input 
+                                                        placeholder={attr.allowCustom ? "Değer girin..." : "Değer seçilemedi"} 
+                                                        className="bg-white dark:bg-gray-800"
+                                                        value={typeof attrMappings[attrId] === "string" ? attrMappings[attrId] : ""}
+                                                        onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attrId]: e.target.value }))}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    };
 
                                     return (
-                                        <div key={attrId} className="space-y-1.5">
-                                            <Label className="flex items-center gap-1 text-xs font-medium">
-                                                {attr.attribute.name}
-                                                {attr.required ? (
-                                                    <span className="text-red-500 font-bold">*</span>
-                                                ) : (
-                                                    <span className="text-[10px] text-muted-foreground font-normal">(İsteğe bağlı)</span>
-                                                )}
-                                            </Label>
-                                            
-                                            {hasValues ? (
-                                                <AttributeSearchableSelect
-                                                    options={attr.attributeValues}
-                                                    value={attrMappings[attrId]}
-                                                    placeholder={`${attr.attribute.name} seçin veya arayın...`}
-                                                    searchPlaceholder={`${attr.attribute.name} ara... (yazdıkça filtreler)`}
-                                                    allowCustom={attr.allowCustom}
-                                                    onValueChange={(val, option) => {
-                                                        const num = Number(val);
-                                                        const finalVal = isNaN(num) ? val : num;
-                                                        
-                                                        // Web Color seçildiğinde Renk alanını da otomatik senkronize et
-                                                        if (attrId === 348 && option) {
-                                                            setAttrMappings((prev: any) => ({
-                                                                ...prev,
-                                                                348: finalVal,
-                                                                47: option.name
-                                                            }));
-                                                        } else {
-                                                            setAttrMappings((prev: any) => ({ ...prev, [attrId]: finalVal }));
-                                                        }
-                                                    }}
-                                                />
+                                        <>
+                                            {/* Zorunlu Özellikler */}
+                                            {requiredAttrs.length > 0 ? (
+                                                <div className="space-y-3 p-4 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40">
+                                                    <div className="flex items-center gap-2 text-sm font-semibold text-orange-700 dark:text-orange-400">
+                                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                                        <span>Zorunlu Alanlar ({requiredAttrs.length} adet)</span>
+                                                    </div>
+                                                    <p className="text-[11px] text-orange-600/80 dark:text-orange-400/80 -mt-1">
+                                                        Trendyol ürün onayının başarıyla tamamlanması için bu alanları seçiniz.
+                                                    </p>
+                                                    <div className="space-y-3 pt-1">
+                                                        {requiredAttrs.map(renderField)}
+                                                    </div>
+                                                </div>
                                             ) : (
-                                                <Input 
-                                                    placeholder={attr.allowCustom ? "Değer girin..." : "Değer seçilemedi"} 
-                                                    className="bg-white dark:bg-gray-800"
-                                                    value={typeof attrMappings[attrId] === "string" ? attrMappings[attrId] : ""}
-                                                    onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attrId]: e.target.value }))}
-                                                />
+                                                <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-xs flex items-center gap-2">
+                                                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                                                    <span>Bu kategori için özel zorunlu alan bulunmamaktadır.</span>
+                                                </div>
                                             )}
-                                        </div>
+
+                                            {/* İsteğe Bağlı Özellikler (İthalatçı, Üretici vb.) */}
+                                            {optionalAttrs.length > 0 && (
+                                                <details className="group border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 bg-gray-50/50 dark:bg-gray-900/30">
+                                                    <summary className="cursor-pointer text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between select-none">
+                                                        <span className="flex items-center gap-1.5">
+                                                            📋 İsteğe Bağlı Ek Bilgiler ({optionalAttrs.length} adet - İthalatçı vb.)
+                                                        </span>
+                                                        <span className="text-[10px] text-muted-foreground group-open:rotate-180 transition-transform">▼</span>
+                                                    </summary>
+                                                    <p className="text-[11px] text-muted-foreground mt-2 mb-3">
+                                                        Bu alanlar zorunlu değildir. Boş bırakırsanız ürününüz yine de sorunsuz olarak Trendyol'a iletilir.
+                                                    </p>
+                                                    <div className="space-y-3 pt-1">
+                                                        {optionalAttrs.map(renderField)}
+                                                    </div>
+                                                </details>
+                                            )}
+                                        </>
                                     );
-                                };
+                                })()}
+                            </div>
+                        )}
+                    </div>
 
-                                return (
-                                    <>
-                                        {/* Zorunlu Özellikler */}
-                                        {requiredAttrs.length > 0 ? (
-                                            <div className="space-y-3 p-4 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40">
-                                                <div className="flex items-center gap-2 text-sm font-semibold text-orange-700 dark:text-orange-400">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    <span>Zorunlu Alanlar ({requiredAttrs.length} adet)</span>
-                                                </div>
-                                                <p className="text-[11px] text-orange-600/80 dark:text-orange-400/80 -mt-1">
-                                                    Trendyol ürün onayının başarıyla tamamlanması için bu alanları seçiniz.
-                                                </p>
-                                                <div className="space-y-3 pt-1">
-                                                    {requiredAttrs.map(renderField)}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-xs flex items-center gap-2">
-                                                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                                <span>Bu kategori için özel zorunlu alan bulunmamaktadır.</span>
-                                            </div>
-                                        )}
-
-                                        {/* İsteğe Bağlı Özellikler (İthalatçı, Üretici vb.) */}
-                                        {optionalAttrs.length > 0 && (
-                                            <details className="group border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 bg-gray-50/50 dark:bg-gray-900/30">
-                                                <summary className="cursor-pointer text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between select-none">
-                                                    <span className="flex items-center gap-1.5">
-                                                        📋 İsteğe Bağlı Ek Bilgiler ({optionalAttrs.length} adet - İthalatçı vb.)
-                                                    </span>
-                                                    <span className="text-[10px] text-muted-foreground group-open:rotate-180 transition-transform">▼</span>
-                                                </summary>
-                                                <p className="text-[11px] text-muted-foreground mt-2 mb-3">
-                                                    Bu alanlar zorunlu değildir. Boş bırakırsanız ürününüz yine de sorunsuz olarak Trendyol'a iletilir.
-                                                </p>
-                                                <div className="space-y-3 pt-1">
-                                                    {optionalAttrs.map(renderField)}
-                                                </div>
-                                            </details>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    )}
-
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <div className="p-4 px-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/60 shrink-0 flex items-center justify-end gap-2">
                         <Button variant="ghost" onClick={() => setShowAttrModal(false)}>İptal</Button>
-                        <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={handleSend} disabled={loadingProductId !== null}>
+                        <Button className="bg-orange-600 hover:bg-orange-700 text-white font-medium shadow-sm" onClick={handleSend} disabled={loadingProductId !== null}>
                             {loadingProductId ? "Gönderiliyor..." : "Verileri Gönder"}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

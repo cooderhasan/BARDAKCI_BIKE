@@ -98,13 +98,13 @@ export function AttributeSearchableSelect({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between font-normal bg-white dark:bg-gray-800 h-10 px-3 text-left border-gray-200 dark:border-gray-700 rounded-xl shadow-xs",
+            "w-full justify-between font-normal bg-white dark:bg-gray-800 h-10 px-3 text-left border-gray-200 dark:border-gray-700 rounded-xl shadow-xs min-w-0",
             !displayLabel && "text-muted-foreground",
             className
           )}
         >
-          <span className="truncate">{displayLabel || placeholder}</span>
-          <div className="flex items-center gap-1 ml-2 shrink-0">
+          <span className="truncate flex-1 min-w-0 mr-2">{displayLabel || placeholder}</span>
+          <div className="flex items-center gap-1 shrink-0">
             {displayLabel && (
               <span
                 role="button"
@@ -114,14 +114,16 @@ export function AttributeSearchableSelect({
                 <X className="h-3.5 w-3.5 opacity-60" />
               </span>
             )}
-            <ChevronDown className="h-4 w-4 opacity-50" />
+            <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
           </div>
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
         sideOffset={4}
-        className="p-0 w-[var(--radix-popover-trigger-width)] min-w-[280px] max-w-[90vw] overflow-hidden shadow-2xl border-orange-100 dark:border-orange-900/50 rounded-2xl bg-white dark:bg-gray-900 z-[100]"
+        avoidCollisions={true}
+        collisionPadding={12}
+        className="p-0 w-[var(--radix-popover-trigger-width)] min-w-[240px] max-w-[calc(100vw-2rem)] overflow-hidden shadow-2xl border-orange-100 dark:border-orange-900/50 rounded-2xl bg-white dark:bg-gray-900 z-[100]"
       >
         <div className="p-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/80 sticky top-0 z-10">
           <div className="relative">
@@ -136,7 +138,7 @@ export function AttributeSearchableSelect({
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-[260px] p-1.5 space-y-0.5">
+        <div className="overflow-y-auto overscroll-contain max-h-[260px] p-1.5 space-y-0.5">
           {allowCustom && searchQuery.trim() && !exactMatch && (
             <button
               type="button"
