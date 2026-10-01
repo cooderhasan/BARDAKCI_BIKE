@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/select";
 import { Check, ChevronsUpDown, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { N11AttributeSearchSelect } from "./n11-attribute-search-select";
 
 import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
 
@@ -580,99 +581,61 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
             </div>
 
             <Dialog open={showAttrModal} onOpenChange={setShowAttrModal}>
-                <DialogContent className="sm:max-w-[700px] rounded-3xl border-purple-100 dark:border-purple-900/30 flex flex-col max-h-[90vh]">
-                    <DialogHeader className="px-6 pt-6">
-                        <DialogTitle>N11 Özelliklerini Eşleştir</DialogTitle>
-                        <DialogDescription>Zorunlu alanları doldurarak ürünü N11'e kaydedin.</DialogDescription>
-                    </DialogHeader>
+                <DialogContent className="sm:max-w-[760px] w-[95vw] max-h-[88vh] flex flex-col p-0 overflow-hidden rounded-3xl border-purple-100 dark:border-purple-900/30 shadow-2xl">
+                    <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                <Box className="w-5 h-5 text-purple-600 shrink-0" />
+                                N11 Özelliklerini Eşleştir
+                            </DialogTitle>
+                            <DialogDescription className="text-xs sm:text-sm text-muted-foreground truncate">
+                                "{selectedProduct?.name}" ürünü için zorunlu alanları doldurarak N11'e kaydedin.
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
 
                     {attrLoading ? (
-                        <div className="py-20 flex justify-center"><RefreshCcw className="animate-spin text-purple-500 w-8 h-8" /></div>
+                        <div className="py-20 flex flex-col items-center justify-center gap-3">
+                            <RefreshCcw className="animate-spin text-purple-600 w-8 h-8" />
+                            <p className="text-xs text-muted-foreground animate-pulse">Özellikler yükleniyor...</p>
+                        </div>
                     ) : (
-                        <div className="flex-1 overflow-y-auto px-6 py-4">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-4 min-w-0">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                                {categoryAttrs.map((attr: any, idx: number) => {
+                                {categoryAttrs.map((attr: any) => {
                                     const isMissing = attr.mandatory && !attrMappings[attr.id];
                                     const hasValues = attr.values && attr.values.length > 0;
 
                                     return (
-                                        <div key={attr.id} className="space-y-1.5">
-                                            {/* DEBUG: Raw data check */}
-                                            {idx === 0 && (
-                                                <div className="text-[10px] bg-yellow-50 p-1 rounded border border-yellow-200 mb-2 font-mono">
-                                                    Ham Veri: {JSON.stringify(attr.values[0])}
-                                                </div>
-                                            )}
-                                            <div className="flex items-center justify-between">
-                                                <Label className={`text-[11px] font-semibold ${isMissing ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                    {attr.name} {attr.mandatory && <span className="text-red-500">*</span>}
+                                        <div key={attr.id} className="space-y-1.5 min-w-0">
+                                            <div className="flex items-center justify-between gap-1">
+                                                <Label className={`text-xs font-semibold truncate ${isMissing ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                    {attr.name} {attr.mandatory && <span className="text-red-500 font-bold">*</span>}
                                                 </Label>
-                                                <span className="text-[9px] text-gray-400">{attr.values.length} seçenek</span>
+                                                <span className="text-[10px] text-gray-400 shrink-0">{attr.values?.length || 0} seçenek</span>
                                             </div>
                                             
                                             {hasValues ? (
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            role="combobox"
-                                                            className="w-full justify-between h-9 text-sm font-normal border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3"
-                                                        >
-                                                            <span className="truncate">
-                                                                {attrMappings[attr.id] ? attrMappings[attr.id].name : `${attr.name} seçin...`}
-                                                            </span>
-                                                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[400px] p-0 z-[110]" align="start">
-                                                        <div className="flex flex-col h-[300px]">
-                                                            <div className="p-2 border-b">
-                                                                <Input 
-                                                                    placeholder={`${attr.name} ara...`}
-                                                                    className="h-8 text-xs"
-                                                                    value={searchTerm[attr.id] || ""}
-                                                                    onChange={(e) => {
-                                                                        setSearchTerm(prev => ({ ...prev, [attr.id]: e.target.value }));
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <div className="flex-1 overflow-y-auto p-1 custom-scrollbar">
-                                                                {attr.values
-                                                                    .filter((v: any) => {
-                                                                        const val = typeof v === 'object' ? (v?.attributeValue || v?.name || v?.value || String(v)) : String(v);
-                                                                        const term = searchTerm[attr.id] || "";
-                                                                        return val.toLocaleLowerCase('tr').includes(term.toLocaleLowerCase('tr'));
-                                                                    })
-                                                                    .map((v: any, idx: number) => {
-                                                                    const val = typeof v === 'object' ? (v?.attributeValue || v?.name || v?.value || String(v)) : String(v);
-                                                                    const isSelected = attrMappings[attr.id] === val;
-                                                                    return (
-                                                                        <div
-                                                                            key={`${attr.id}-${idx}`}
-                                                                            className={`flex items-center px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 ${isSelected ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600' : ''}`}
-                                                                            onClick={() => {
-                                                                                const valueObj = { 
-                                                                                    id: typeof v === 'object' ? (v?.id || v?.attributeValueId) : null,
-                                                                                    name: val 
-                                                                                };
-                                                                                setAttrMappings((prev: any) => ({ ...prev, [attr.id]: valueObj }));
-                                                                            }}
-                                                                        >
-                                                                            <Check className={`mr-2 h-3.5 w-3.5 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
-                                                                            <span className="truncate">{val}</span>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                                {attr.values.length === 0 && (
-                                                                    <div className="p-4 text-center text-xs text-muted-foreground">Sonuç bulunamadı.</div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </PopoverContent>
-                                                </Popover>
+                                                <N11AttributeSearchSelect
+                                                    values={attr.values}
+                                                    attrName={attr.name}
+                                                    value={attrMappings[attr.id]}
+                                                    onValueChange={(val) => {
+                                                        if (val) {
+                                                            setAttrMappings((prev: any) => ({ ...prev, [attr.id]: val }));
+                                                        } else {
+                                                            setAttrMappings((prev: any) => {
+                                                                const next = { ...prev };
+                                                                delete next[attr.id];
+                                                                return next;
+                                                            });
+                                                        }
+                                                    }}
+                                                    isMissing={isMissing}
+                                                />
                                             ) : (
                                                 <Input 
-                                                    className={`h-9 text-sm focus-visible:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800'}`}
+                                                    className={`h-9 text-xs rounded-xl focus-visible:ring-purple-500 ${isMissing ? 'border-red-300 bg-red-50/50' : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950'}`}
                                                     placeholder={`${attr.name} girin...`}
                                                     value={attrMappings[attr.id]?.name || ""}
                                                     onChange={(e) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: { id: null, name: e.target.value } }))}
@@ -685,15 +648,23 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                 })}
                             </div>
                             {categoryAttrs.length === 0 && (
-                                <div className="text-center py-8 text-muted-foreground text-sm">Bu kategori için ek özellik bulunamadı.</div>
+                                <div className="text-center py-12 text-muted-foreground text-xs">
+                                    Bu kategori için N11 tarafında özel bir zorunlu özellik bulunamadı.
+                                </div>
                             )}
                         </div>
                     )}
 
-                    <DialogFooter className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-800">
+                    <div className="p-4 px-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-900/60 shrink-0 flex items-center justify-end gap-2">
                         <Button variant="ghost" onClick={() => setShowAttrModal(false)}>İptal</Button>
-                        <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-200 dark:shadow-none" onClick={handleSend}>Kaydet ve Gönder</Button>
-                    </DialogFooter>
+                        <Button 
+                            className="bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm" 
+                            onClick={handleSend}
+                            disabled={loadingProductId !== null}
+                        >
+                            {loadingProductId ? "Gönderiliyor..." : "Kaydet ve Gönder"}
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </TabsContent>
