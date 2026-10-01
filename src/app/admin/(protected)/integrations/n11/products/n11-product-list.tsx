@@ -219,6 +219,21 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
             return;
         }
 
+        // Akıllı Güvenlik/Üretici Bilgisi Kontrolü:
+        // Eğer kullanıcı Kayıtlı Ticari Unvan veya İletişim Adresi girmişse, Sağlayıcı Tipi de seçilmelidir
+        // Aksi takdirde N11 panelinde 'Üretici' mi yoksa 'İthalatçı' mı olduğu anlaşılamayıp alanlar boş kalır.
+        const hasCompanyInfo = Object.entries(attrMappings).some(([id, val]: [string, any]) => {
+            const attr = categoryAttrs.find((a: any) => String(a.id) === String(id));
+            const name = (attr?.name || "").toLowerCase();
+            return (name.includes("ticari unvan") || name.includes("ünvan") || name.includes("iletişim adresi")) && val?.name?.trim();
+        });
+
+        const providerAttr = categoryAttrs.find((a: any) => (a.name || "").toLowerCase().includes("sağlayıcı tipi"));
+        if (hasCompanyInfo && providerAttr && !attrMappings[providerAttr.id]) {
+            toast.warning("Kayıtlı Ticari Unvan girdiğinizde N11 panelinde 'Üretici' veya 'İthalatçı' kutusuna işlenebilmesi için 'Sağlayıcı Tipi' alanını da seçmelisiniz.");
+            return;
+        }
+
         const finalAttrs = Object.entries(attrMappings).map(([id, val]: [string, any]) => ({
             id: Number(id),
             valueId: val.id || null,
