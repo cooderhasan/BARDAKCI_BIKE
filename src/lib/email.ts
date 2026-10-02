@@ -369,7 +369,7 @@ export async function sendReviewRequestEmail(props: SendReviewRequestProps) {
             to: [props.to],
             // BCC admin so store management can monitor customer feedback emails
             bcc: ADMIN_EMAIL ? [ADMIN_EMAIL] : undefined,
-            subject: `Siparişinizden Memnun Kaldınız mı? Ürünlerinizi Değerlendirin ⭐ - #${props.orderNumber}`,
+            subject: `#${props.orderNumber} Numaralı Siparişiniz Hakkında - Bardakcı Bisiklet`,
             react: ReviewRequestEmail({
                 orderNumber: props.orderNumber,
                 customerName: props.customerName,

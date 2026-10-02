@@ -209,10 +209,10 @@ export const ReviewRequestEmail = ({
                             </Text>
                             <div className="mt-3">
                                 <Link
-                                    href="https://wa.me/905443204242"
+                                    href="https://wa.me/905540144142"
                                     className="text-[13px] font-bold text-[#17457C] underline"
                                 >
-                                    WhatsApp Destek Hattı: 0544 320 42 42 ↗
+                                    WhatsApp Destek Hattı: 0554 014 41 42 ↗
                                 </Link>
                             </div>
                         </Section>
