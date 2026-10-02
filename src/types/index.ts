@@ -118,6 +118,7 @@ export interface OrderWithItems {
     trackingUrl: string | null;
     cargoLabelUrl: string | null;
     source: string | null;
+    store?: string | null;
     ykCargoKey: string | null;
     ykJobId: number | null;
     ykDocId: string | null;
@@ -131,6 +132,8 @@ export interface OrderWithItems {
     invoiceNo: string | null;
     invoiceStatus: string | null;
     invoiceUrl: string | null;
+    deliveredAt?: Date | string | null;
+    reviewEmailSentAt?: Date | string | null;
     createdAt: Date | string;
     user: {
         id: string;

@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { sendShippingNotificationEmail } from "@/lib/email";
+import { sendShippingNotificationEmail, sendReviewRequestEmail } from "@/lib/email";
 import {
     createYKShipment,
     cancelYKShipment,
@@ -28,6 +28,11 @@ export async function updateOrderStatus(
             select: { status: true, orderNumber: true, source: true, items: true },
         });
 
+        const updateData: any = { status };
+        if (status === "DELIVERED") {
+            updateData.deliveredAt = new Date();
+        }
+
         // If transitioning TO CANCELLED, restore stock for all order items
         if (status === "CANCELLED" && order?.status !== "CANCELLED") {
             const { restoreOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
@@ -36,7 +41,7 @@ export async function updateOrderStatus(
                 // Update order status
                 await tx.order.update({
                     where: { id: orderId },
-                    data: { status },
+                    data: updateData,
                 });
 
                 // Restore stock for items (supports variants and bundle child products)
@@ -51,7 +56,7 @@ export async function updateOrderStatus(
             // Normal status update (non-cancellation)
             await prisma.order.update({
                 where: { id: orderId },
-                data: { status },
+                data: updateData,
             });
         }
 
@@ -198,11 +203,16 @@ export async function bulkUpdateOrderStatus(
         }
 
         // Update all selected orders
+        const bulkData: any = { status };
+        if (status === "DELIVERED") {
+            bulkData.deliveredAt = new Date();
+        }
+
         await prisma.order.updateMany({
             where: {
                 id: { in: orderIds },
             },
-            data: { status },
+            data: bulkData,
         });
 
         // Log the bulk action (simplified log)
@@ -451,7 +461,10 @@ export async function queryYKOrder(orderId: string) {
                 // Teslim edildiyse takip URL'ini de güncelle
                 ...(result.trackingUrl ? { trackingUrl: result.trackingUrl } : {}),
                 // Ana sipariş durumunu güncelle
-                ...(newOrderStatus ? { status: newOrderStatus } : {}),
+                ...(newOrderStatus ? { 
+                    status: newOrderStatus,
+                    ...(newOrderStatus === "DELIVERED" ? { deliveredAt: new Date() } : {})
+                } : {}),
             },
         });
 
@@ -547,7 +560,10 @@ export async function syncAllYKOrders() {
                             ykDocId: result.docId ?? null,
                             ykSyncedAt: new Date(),
                             ...(result.trackingUrl ? { trackingUrl: result.trackingUrl } : {}),
-                            ...(newOrderStatus ? { status: newOrderStatus } : {}),
+                            ...(newOrderStatus ? { 
+                                status: newOrderStatus,
+                                ...(newOrderStatus === "DELIVERED" ? { deliveredAt: new Date() } : {})
+                            } : {}),
                         }
                     });
                     updatedCount++;
@@ -646,3 +662,248 @@ export async function bulkSendOrdersToYurtici(orderIds: string[]) {
         return { success: false, error: error instanceof Error ? error.message : "Toplu gönderim başarısız." };
     }
 }
+
+// ==================== REVIEW / SATISFACTION EMAIL ACTIONS ====================
+
+/**
+ * Tekil bir sipariş için manuel veya otomatik yorum talep e-postası gönderir.
+ * Kurallar:
+ * 1. Sadece WEB (kendi sitemiz) siparişleri
+ * 2. Sadece BIKE mağazası (Motovitrin Ocak ayına kadar hariç)
+ * 3. Sipariş DELIVERED durumunda olmalı
+ */
+export async function sendOrderReviewRequestEmail(orderId: string) {
+    try {
+        const session = await auth();
+        if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+            throw new Error("Unauthorized");
+        }
+
+        const order = await prisma.order.findUnique({
+            where: { id: orderId },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        companyName: true,
+                        email: true,
+                    },
+                },
+                items: {
+                    include: {
+                        product: {
+                            select: {
+                                name: true,
+                                slug: true,
+                                images: true,
+                                salePrice: true,
+                                listPrice: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!order) {
+            return { success: false, error: "Sipariş bulunamadı." };
+        }
+
+        // Only WEB orders
+        if (order.source !== "WEB") {
+            return { 
+                success: false, 
+                error: "Yorum e-postası yalnızca kendi web sitemizden gelen siparişlere gönderilebilir." 
+            };
+        }
+
+        // Multi-store guard: Only BIKE store for now
+        if (order.store !== "BIKE") {
+            return { 
+                success: false, 
+                error: "Motovitrin (MOTOR) mağazası yorum e-postası Ocak ayında devreye alınacaktır. Şu an sadece Bisiklet siparişleri için aktiftir." 
+            };
+        }
+
+        // Recipient email
+        const recipientEmail = order.user?.email || order.guestEmail || (order.shippingAddress as any)?.email;
+        if (!recipientEmail) {
+            return { success: false, error: "Müşterinin e-posta adresi bulunamadı." };
+        }
+
+        const customerName = 
+            order.user?.name || 
+            order.user?.companyName || 
+            (order.shippingAddress as any)?.fullName || 
+            (order.shippingAddress as any)?.name || 
+            "Değerli Müşterimiz";
+
+        const reviewItems = order.items
+            .filter((item) => item.product?.slug)
+            .map((item) => ({
+                productName: item.productName || item.product.name,
+                slug: item.product.slug,
+                imageUrl: item.product.images?.[0] || undefined,
+                price: Number(item.unitPrice || item.product.salePrice || item.product.listPrice || 0),
+            }));
+
+        if (reviewItems.length === 0) {
+            return { success: false, error: "Siparişte değerlendirilebilecek geçerli ürün bulunamadı." };
+        }
+
+        const emailResult = await sendReviewRequestEmail({
+            to: recipientEmail,
+            customerName,
+            orderNumber: order.orderNumber,
+            store: "BIKE",
+            items: reviewItems,
+        });
+
+        if (!emailResult.success) {
+            return { success: false, error: emailResult.error ? String(emailResult.error) : "E-posta gönderilemedi." };
+        }
+
+        // Update order reviewEmailSentAt
+        await prisma.order.update({
+            where: { id: orderId },
+            data: {
+                reviewEmailSentAt: new Date(),
+            },
+        });
+
+        revalidatePath("/admin/orders");
+        return { success: true };
+    } catch (error) {
+        console.error("sendOrderReviewRequestEmail error:", error);
+        return { success: false, error: error instanceof Error ? error.message : "Bir hata oluştu." };
+    }
+}
+
+/**
+ * Teslimatının üzerinden 24 saat geçmiş ve henüz yorum e-postası gönderilmemiş
+ * WEB siparişlerine (sadece BIKE mağazası için) otomatik yorum talep e-postası gönderir.
+ */
+export async function processDueReviewEmails() {
+    try {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        // Find eligible orders: WEB source, BIKE store, DELIVERED status, delivered >= 24h ago, not sent yet
+        const eligibleOrders = await prisma.order.findMany({
+            where: {
+                source: "WEB",
+                store: "BIKE", // Motovitrin is excluded until January
+                status: "DELIVERED",
+                deliveredAt: {
+                    lte: twentyFourHoursAgo,
+                },
+                reviewEmailSentAt: null,
+            },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        companyName: true,
+                        email: true,
+                    },
+                },
+                items: {
+                    include: {
+                        product: {
+                            select: {
+                                name: true,
+                                slug: true,
+                                images: true,
+                                salePrice: true,
+                                listPrice: true,
+                            },
+                        },
+                    },
+                },
+            },
+            take: 50, // Batch limit per execution
+        });
+
+        if (eligibleOrders.length === 0) {
+            return {
+                success: true,
+                message: "Yorum e-postası gönderilecek uygun sipariş bulunamadı.",
+                processedCount: 0,
+                sentCount: 0,
+            };
+        }
+
+        let sentCount = 0;
+        let skippedCount = 0;
+        const errors: string[] = [];
+
+        for (const order of eligibleOrders) {
+            try {
+                const recipientEmail = order.user?.email || order.guestEmail || (order.shippingAddress as any)?.email;
+                if (!recipientEmail) {
+                    skippedCount++;
+                    continue;
+                }
+
+                const customerName =
+                    order.user?.name ||
+                    order.user?.companyName ||
+                    (order.shippingAddress as any)?.fullName ||
+                    (order.shippingAddress as any)?.name ||
+                    "Değerli Müşterimiz";
+
+                const reviewItems = order.items
+                    .filter((item) => item.product?.slug)
+                    .map((item) => ({
+                        productName: item.productName || item.product.name,
+                        slug: item.product.slug,
+                        imageUrl: item.product.images?.[0] || undefined,
+                        price: Number(item.unitPrice || item.product.salePrice || item.product.listPrice || 0),
+                    }));
+
+                if (reviewItems.length === 0) {
+                    skippedCount++;
+                    continue;
+                }
+
+                const emailResult = await sendReviewRequestEmail({
+                    to: recipientEmail,
+                    customerName,
+                    orderNumber: order.orderNumber,
+                    store: "BIKE",
+                    items: reviewItems,
+                });
+
+                if (emailResult.success) {
+                    await prisma.order.update({
+                        where: { id: order.id },
+                        data: {
+                            reviewEmailSentAt: new Date(),
+                        },
+                    });
+                    sentCount++;
+                } else {
+                    errors.push(`Order #${order.orderNumber}: ${JSON.stringify(emailResult.error)}`);
+                }
+            } catch (err) {
+                console.error(`Error sending review email for order ${order.orderNumber}:`, err);
+                errors.push(`Order #${order.orderNumber}: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        }
+
+        return {
+            success: true,
+            processedCount: eligibleOrders.length,
+            sentCount,
+            skippedCount,
+            errors: errors.length > 0 ? errors : undefined,
+            message: `${sentCount} müşteriye yorum talep e-postası başarıyla gönderildi.`,
+        };
+    } catch (error) {
+        console.error("processDueReviewEmails error:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Toplu yorum e-postası işlemi başarısız.",
+        };
+    }
+}
+

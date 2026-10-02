@@ -5,6 +5,7 @@ import { ShippingNotificationEmail } from '@/emails/shipping-notification';
 import { AbandonedCartNotificationEmail } from '@/emails/abandoned-cart-notification';
 import { InvoiceNotificationEmail } from '@/emails/invoice-notification';
 import { PasswordResetEmail } from '@/emails/password-reset';
+import { ReviewRequestEmail, type ReviewRequestItem } from '@/emails/review-request';
 import { generateOrderContracts } from './pdf-generator';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
@@ -334,3 +335,60 @@ export async function sendPasswordResetEmail(props: SendPasswordResetEmailProps)
         return { success: false, error };
     }
 }
+
+// ==================== REVIEW / SATISFACTION REQUEST ====================
+
+interface SendReviewRequestProps {
+    to: string;
+    customerName: string;
+    orderNumber: string;
+    store?: "BIKE" | "MOTOR";
+    items: ReviewRequestItem[];
+}
+
+export async function sendReviewRequestEmail(props: SendReviewRequestProps) {
+    if (!process.env.RESEND_API_KEY) {
+        console.warn('RESEND_API_KEY is not set. Review email sending skipped.');
+        return { success: false, error: 'API key missing' };
+    }
+
+    // MULTI-STORE GUARD:
+    // Motovitrin (store === "MOTOR") will launch in January with separate copy and branding.
+    // For now, only send review emails for Bardakçı Bisiklet (store === "BIKE").
+    const store = props.store || "BIKE";
+    if (store === "MOTOR") {
+        console.log(`ℹ️ Motovitrin (MOTOR) mağazası yorum e-postası henüz aktif değil (Ocak ayında devreye alınacak). Sipariş: #${props.orderNumber} atlandı.`);
+        return { success: false, skipped: true, reason: 'MOTOR_STORE_INACTIVE_UNTIL_JANUARY' };
+    }
+
+    const siteUrl = "https://www.bardakcibike.com.tr";
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'Bardakçı Bisiklet <siparis@bardakcibike.com.tr>',
+            to: [props.to],
+            // BCC admin so store management can monitor customer feedback emails
+            bcc: ADMIN_EMAIL ? [ADMIN_EMAIL] : undefined,
+            subject: `Siparişinizden Memnun Kaldınız mı? Ürünlerinizi Değerlendirin ⭐ - #${props.orderNumber}`,
+            react: ReviewRequestEmail({
+                orderNumber: props.orderNumber,
+                customerName: props.customerName,
+                items: props.items,
+                store: "BIKE",
+                siteUrl,
+            }),
+        });
+
+        if (error) {
+            console.error('Review request email sending error:', error);
+            return { success: false, error };
+        }
+
+        console.log(`🌟 Yorum talep e-postası gönderildi: ${props.to} (Sipariş: #${props.orderNumber})`);
+        return { success: true, data };
+    } catch (error) {
+        console.error('Review request email sending failed:', error);
+        return { success: false, error };
+    }
+}
+

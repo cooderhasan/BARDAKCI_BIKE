@@ -10,7 +10,8 @@ import { formatPrice, calculatePrice, validateMinQuantity } from "@/lib/helpers"
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ShoppingCart, Minus, Plus, Package, Truck, ChevronLeft, ChevronRight, Shield, CreditCard, ChevronRight as ChevronRightIcon, FileText, Star } from "lucide-react";
 import { InstallmentTable } from "./installment-table";
 import { WishlistButton } from "@/components/products/wishlist-button";
@@ -128,6 +129,34 @@ export function ProductDetail({
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const addItem = useCartStore((state) => state.addItem);
+
+    // Reviews & URL navigation
+    const searchParams = useSearchParams();
+    const [activeTab, setActiveTab] = useState<string>("description");
+    const [initialRating, setInitialRating] = useState<number>(0);
+
+    useEffect(() => {
+        const tab = searchParams?.get("tab");
+        const ratingParam = searchParams?.get("rating");
+        const hash = typeof window !== "undefined" ? window.location.hash : "";
+
+        if (tab === "reviews" || hash === "#reviews" || ratingParam) {
+            setActiveTab("reviews");
+            if (ratingParam) {
+                const parsed = parseInt(ratingParam, 10);
+                if (!isNaN(parsed) && parsed >= 1 && parsed <= 5) {
+                    setInitialRating(parsed);
+                }
+            }
+            // Smoothly scroll to reviews section
+            setTimeout(() => {
+                const target = document.getElementById("reviews-section");
+                if (target) {
+                    target.scrollIntoView({ behavior: "smooth" });
+                }
+            }, 150);
+        }
+    }, [searchParams]);
 
     // Get unique colors and sizes from variants
     const variants = product.variants || [];
@@ -688,8 +717,8 @@ export function ProductDetail({
                 </div>
 
                 {/* Tabs Section */}
-                <div className="mb-12">
-                    <Tabs defaultValue="description" className="w-full">
+                <div id="reviews-section" className="mb-12">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <TabsList className="w-full bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-1.5 flex flex-wrap gap-1 shadow-sm mb-4 h-auto">
                             <TabsTrigger
                                 value="description"
@@ -780,13 +809,13 @@ export function ProductDetail({
                                         </div>
 
                                         {isAuthenticated ? (
-                                            <ReviewForm productId={product.id} />
+                                            <ReviewForm productId={product.id} initialRating={initialRating} />
                                         ) : (
                                             <div className="text-center p-4 bg-white dark:bg-gray-800 rounded-lg">
                                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                                     Değerlendirme yapabilmek için giriş yapmalısınız.
                                                 </p>
-                                                <Link href="/login">
+                                                <Link href={`/login?callbackUrl=${encodeURIComponent(`/products/${product.slug}?tab=reviews${initialRating ? `&rating=${initialRating}` : ""}`)}`}>
                                                     <Button variant="outline" size="sm" className="w-full">
                                                         Giriş Yap
                                                     </Button>
@@ -822,7 +851,7 @@ export function ProductDetail({
                             {relatedProducts.map((p) => (
                                 <ProductCardV2
                                     key={p.id}
-                                    product={p}
+                                    product={p as any}
                                     discountRate={discountRate}
                                     isDealer={isDealer}
                                 />

@@ -16,7 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal, Barcode, ReceiptText, RotateCcw } from "lucide-react";
+import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal, Barcode, ReceiptText, RotateCcw, Star } from "lucide-react";
 import {
     formatDate,
     getOrderStatusLabel,
@@ -33,7 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { updateOrderStatus, updateOrderTracking, bulkUpdateOrderStatus, sendOrderToYurtici, cancelYKOrder, queryYKOrder, bulkSendOrdersToYurtici, syncAllYKOrders, markOrderAsPrinted, markOrdersAsPrinted } from "@/app/admin/(protected)/orders/actions";
+import { updateOrderStatus, updateOrderTracking, bulkUpdateOrderStatus, sendOrderToYurtici, cancelYKOrder, queryYKOrder, bulkSendOrdersToYurtici, syncAllYKOrders, markOrderAsPrinted, markOrdersAsPrinted, sendOrderReviewRequestEmail } from "@/app/admin/(protected)/orders/actions";
 import { sendOrderInvoice } from "@/app/admin/(protected)/integrations/trendyol-efaturam/actions";
 import { sendOrderInvoiceNes, resetOrderInvoice } from "@/app/admin/(protected)/integrations/nes-efatura/actions";
 import { getYKStatusLabel, getYKStatusColor } from "@/services/yurtici/api";
@@ -86,6 +86,25 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
     const [isBulkLoading, setIsBulkLoading] = useState(false);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
     const [isSyncingYK, setIsSyncingYK] = useState(false);
+    const [isSendingReviewEmail, setIsSendingReviewEmail] = useState(false);
+
+    const handleSendReviewEmail = async (orderId: string) => {
+        setIsSendingReviewEmail(true);
+        try {
+            const result = await sendOrderReviewRequestEmail(orderId);
+            if (result.success) {
+                toast.success("Müşteriye yorum talep e-postası başarıyla gönderildi.");
+                setSelectedOrder(prev => prev ? ({ ...prev, reviewEmailSentAt: new Date().toISOString() }) : null);
+                setOrders(prev => prev.map(o => o.id === orderId ? { ...o, reviewEmailSentAt: new Date().toISOString() } : o));
+            } else {
+                toast.error(result.error || "Yorum e-postası gönderilemedi.");
+            }
+        } catch (error) {
+            toast.error("Bir hata oluştu.");
+        } finally {
+            setIsSendingReviewEmail(false);
+        }
+    };
 
     // Sync local order state when props change (due to server refetch)
     useEffect(() => {
@@ -722,6 +741,11 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         <Printer className="h-3 w-3" />
                                                     </span>
                                                 )}
+                                                {order.reviewEmailSentAt && (
+                                                    <span title={`Yorum E-postası Gönderildi (${formatDate(order.reviewEmailSentAt)})`} className="text-amber-500">
+                                                        <Star className="h-3 w-3 fill-amber-400" />
+                                                    </span>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -1085,6 +1109,58 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                             </Badge>
                                         </div>
                                     </div>
+
+                                    {/* Web Siparişleri İçin Yorum & Memnuniyet E-postası */}
+                                    {selectedOrder.source === "WEB" && (
+                                        <div className="bg-amber-50/70 p-3 rounded-md border border-amber-200/80 space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs font-semibold text-amber-950 flex items-center gap-1.5">
+                                                    <span>⭐</span> Yorum & Memnuniyet E-postası
+                                                </span>
+                                                {selectedOrder.reviewEmailSentAt ? (
+                                                    <Badge className="bg-emerald-600 text-white text-[10px] hover:bg-emerald-600">
+                                                        Gönderildi
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-amber-800 border-amber-300 text-[10px]">
+                                                        Beklemede
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            {selectedOrder.reviewEmailSentAt ? (
+                                                <p className="text-[11px] text-emerald-700 font-medium">
+                                                    ✅ Gönderildi: {formatDate(selectedOrder.reviewEmailSentAt)}
+                                                </p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <p className="text-[11px] text-amber-900/80 leading-relaxed">
+                                                        {selectedOrder.status === "DELIVERED"
+                                                            ? (selectedOrder.deliveredAt
+                                                                ? `Teslimat: ${formatDate(selectedOrder.deliveredAt)} (24 saat dolunca otomatik gönderilir)`
+                                                                : "Teslimat yapıldığında 24 saat sonra otomatik gönderilir.")
+                                                            : "Sipariş 'Tamamlandı' (DELIVERED) olduktan 24 saat sonra otomatik gönderilir."}
+                                                    </p>
+                                                    {selectedOrder.status === "DELIVERED" && (selectedOrder.store || "BIKE") === "BIKE" && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={isSendingReviewEmail}
+                                                            onClick={() => handleSendReviewEmail(selectedOrder.id)}
+                                                            className="w-full text-xs h-7 border-amber-300 bg-white hover:bg-amber-100/50 text-amber-950 font-medium"
+                                                        >
+                                                            {isSendingReviewEmail ? "Gönderiliyor..." : "📧 Şimdi Manuel Gönder"}
+                                                        </Button>
+                                                    )}
+                                                    {(selectedOrder.store === "MOTOR") && (
+                                                        <p className="text-[10px] text-blue-700 italic">
+                                                            * Motovitrin mağazası Ocak ayında aktif olacaktır.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

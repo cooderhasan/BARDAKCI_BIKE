@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,13 +10,20 @@ import { cn } from "@/lib/utils";
 
 interface ReviewFormProps {
     productId: string;
+    initialRating?: number;
 }
 
-export function ReviewForm({ productId }: ReviewFormProps) {
-    const [rating, setRating] = useState(0);
+export function ReviewForm({ productId, initialRating = 0 }: ReviewFormProps) {
+    const [rating, setRating] = useState(initialRating);
     const [comment, setComment] = useState("");
     const [hoveredRating, setHoveredRating] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (initialRating > 0 && initialRating <= 5) {
+            setRating(initialRating);
+        }
+    }, [initialRating]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

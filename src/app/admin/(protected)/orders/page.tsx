@@ -165,6 +165,9 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const serializedOrders = orders.map((order: any) => ({
         ...order,
         createdAt: order.createdAt.toISOString(),
+        deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
+        reviewEmailSentAt: order.reviewEmailSentAt ? order.reviewEmailSentAt.toISOString() : null,
+        store: order.store || "BIKE",
         guestEmail: order.guestEmail,
         subtotal: Number(order.subtotal),
         discountAmount: Number(order.discountAmount),
