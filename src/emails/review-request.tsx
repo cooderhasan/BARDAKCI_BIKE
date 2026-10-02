@@ -69,36 +69,14 @@ export const ReviewRequestEmail = ({
 
                         <div style={{ padding: "28px 24px 24px 24px" }}>
                             {/* Brand Header */}
-                            <Section className="text-center pb-5 mb-5 border-b border-gray-100">
-                                <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
-                                    <div 
-                                        style={{
-                                            width: "36px",
-                                            height: "36px",
-                                            backgroundColor: brandColor,
-                                            borderRadius: "10px",
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            color: "#ffffff",
-                                            fontWeight: "900",
-                                            fontSize: "20px",
-                                            lineHeight: "36px",
-                                            textAlign: "center",
-                                        }}
-                                    >
-                                        B
-                                    </div>
-                                    <div style={{ textAlign: "left", display: "inline-block" }}>
-                                        <Text className="text-[20px] font-black tracking-wider m-0 uppercase leading-none" style={{ color: brandColor }}>
-                                            {brandName}
-                                            <span style={{ color: accentColor }}>.</span>
-                                        </Text>
-                                        <Text className="text-[10px] text-gray-400 m-0 uppercase tracking-widest font-semibold mt-0.5">
-                                            {isBike ? "Bisiklet & Ekipman Dünyası" : "Motosiklet Yedek Parça & Aksesuar"}
-                                        </Text>
-                                    </div>
-                                </div>
+                            <Section style={{ textAlign: "center", paddingBottom: "18px", marginBottom: "20px", borderBottom: "1px solid #f1f5f9" }}>
+                                <Text style={{ margin: "0", fontSize: "24px", fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", lineHeight: "1.2" }}>
+                                    <span style={{ color: brandColor }}>BARDAKCI</span>{" "}
+                                    <span style={{ color: accentColor }}>BİSİKLET</span>
+                                </Text>
+                                <Text style={{ margin: "4px 0 0 0", fontSize: "11px", fontWeight: "700", color: "#64748b", letterSpacing: "2.5px", textTransform: "uppercase" }}>
+                                    {isBike ? "BİSİKLET & EKİPMAN DÜNYASI" : "MOTOSİKLET YEDEK PARÇA & AKSESUAR"}
+                                </Text>
                             </Section>
 
                             {/* Hero Card */}
