@@ -338,9 +338,11 @@ export class PazaramaClient {
           deliveries: [],
           ...(p.commercialId
             ? {
-                productCommercials: {
-                  productCommercialId: p.commercialId,
-                },
+                productCommercials: [
+                  {
+                    productCommercialId: p.commercialId,
+                  },
+                ],
                 productCommercialAdditionalInfo: {
                   securityDescription:
                     p.securityDescription || "Ürün kullanım ve güvenlik talimatlarına uygun kullanılmalıdır.",
