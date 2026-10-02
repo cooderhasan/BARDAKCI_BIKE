@@ -738,17 +738,15 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
             (order.shippingAddress as any)?.name || 
             "Değerli Müşterimiz";
 
-        const reviewItems = order.items
-            .filter((item) => item.product?.slug)
-            .map((item) => ({
-                productName: item.productName || item.product.name,
-                slug: item.product.slug,
-                imageUrl: item.product.images?.[0] || undefined,
-                price: Number(item.unitPrice || item.product.salePrice || item.product.listPrice || 0),
-            }));
+        const reviewItems = order.items.map((item) => ({
+            productName: item.productName || item.product?.name || "Ürün",
+            slug: item.product?.slug || "",
+            imageUrl: item.product?.images?.[0] || undefined,
+            price: Number(item.unitPrice || item.product?.salePrice || item.product?.listPrice || 0),
+        }));
 
         if (reviewItems.length === 0) {
-            return { success: false, error: "Siparişte değerlendirilebilecek geçerli ürün bulunamadı." };
+            return { success: false, error: "Siparişte ürün bulunamadı." };
         }
 
         const emailResult = await sendReviewRequestEmail({
@@ -851,14 +849,12 @@ export async function processDueReviewEmails() {
                     (order.shippingAddress as any)?.name ||
                     "Değerli Müşterimiz";
 
-                const reviewItems = order.items
-                    .filter((item) => item.product?.slug)
-                    .map((item) => ({
-                        productName: item.productName || item.product.name,
-                        slug: item.product.slug,
-                        imageUrl: item.product.images?.[0] || undefined,
-                        price: Number(item.unitPrice || item.product.salePrice || item.product.listPrice || 0),
-                    }));
+                const reviewItems = order.items.map((item) => ({
+                    productName: item.productName || item.product?.name || "Ürün",
+                    slug: item.product?.slug || "",
+                    imageUrl: item.product?.images?.[0] || undefined,
+                    price: Number(item.unitPrice || item.product?.salePrice || item.product?.listPrice || 0),
+                }));
 
                 if (reviewItems.length === 0) {
                     skippedCount++;

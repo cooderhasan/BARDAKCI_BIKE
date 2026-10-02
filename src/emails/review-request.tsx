@@ -34,13 +34,14 @@ export interface ReviewRequestEmailProps {
 
 export const ReviewRequestEmail = ({
     orderNumber,
-    customerName,
-    items,
+    customerName = "Değerli Müşterimiz",
+    items = [],
     store = "BIKE",
     siteUrl = "https://www.bardakcibike.com.tr",
 }: ReviewRequestEmailProps) => {
     const isBike = store === "BIKE";
-    const brandName = isBike ? "Bardakçı Bisiklet" : "Motovitrin";
+    // Exact store name requested: Bardakcı Bisiklet (with 'c', not 'ç')
+    const brandName = isBike ? "Bardakcı Bisiklet" : "Motovitrin";
     const brandColor = isBike ? "#17457C" : "#D32F2F";
     const accentColor = isBike ? "#F27A1A" : "#E53935";
 
@@ -48,11 +49,11 @@ export const ReviewRequestEmail = ({
 
     return (
         <Html>
-            <Head />
-            <Preview>{previewText}</Preview>
             <Tailwind>
+                <Head />
+                <Preview>{previewText}</Preview>
                 <Body className="bg-[#f4f6f8] my-auto mx-auto font-sans p-0 m-0">
-                    <Container className="bg-white border border-solid border-[#e5e7eb] rounded-2xl shadow-sm my-[20px] sm:my-[32px] mx-auto p-[18px] sm:p-[28px] max-w-[560px] w-full">
+                    <Container className="bg-white border border-solid border-[#e5e7eb] rounded-2xl shadow-sm my-[24px] mx-auto p-[24px] max-w-[560px] w-full">
                         
                         {/* Header / Brand Logo */}
                         <Section className="text-center pb-4 mb-4 border-b border-gray-100">
@@ -97,7 +98,10 @@ export const ReviewRequestEmail = ({
 
                             {items && items.length > 0 ? (
                                 items.map((item, index) => {
-                                    const reviewUrl = `${siteUrl}/products/${item.slug}?tab=reviews&rating=5#reviews`;
+                                    const reviewUrl = `${siteUrl}/products/${item.slug || ""}?tab=reviews&rating=5#reviews`;
+                                    const validImage = typeof item.imageUrl === "string" && item.imageUrl.trim().length > 0
+                                        ? (item.imageUrl.startsWith("http") ? item.imageUrl : `${siteUrl}${item.imageUrl.startsWith("/") ? "" : "/"}${item.imageUrl}`)
+                                        : null;
 
                                     return (
                                         <div
@@ -107,12 +111,12 @@ export const ReviewRequestEmail = ({
                                             <Row>
                                                 {/* Product Image */}
                                                 <Column style={{ width: "72px", verticalAlign: "top" }}>
-                                                    {item.imageUrl ? (
+                                                    {validImage ? (
                                                         <Img
-                                                            src={item.imageUrl.startsWith("http") ? item.imageUrl : `${siteUrl}${item.imageUrl.startsWith("/") ? "" : "/"}${item.imageUrl}`}
+                                                            src={validImage}
                                                             width="64"
                                                             height="64"
-                                                            alt={item.productName}
+                                                            alt={item.productName || "Ürün"}
                                                             style={{
                                                                 borderRadius: "10px",
                                                                 objectFit: "cover",
@@ -141,7 +145,7 @@ export const ReviewRequestEmail = ({
                                                 {/* Product Details & Actions */}
                                                 <Column style={{ paddingLeft: "14px", verticalAlign: "top" }}>
                                                     <Text className="m-0 text-[14px] font-bold text-gray-900 leading-snug">
-                                                        {item.productName}
+                                                        {item.productName || "Ürün"}
                                                     </Text>
 
                                                     {item.price ? (
@@ -159,7 +163,7 @@ export const ReviewRequestEmail = ({
                                                             {[1, 2, 3, 4, 5].map((star) => (
                                                                 <Link
                                                                     key={star}
-                                                                    href={`${siteUrl}/products/${item.slug}?tab=reviews&rating=${star}#reviews`}
+                                                                    href={`${siteUrl}/products/${item.slug || ""}?tab=reviews&rating=${star}#reviews`}
                                                                     style={{
                                                                         display: "inline-block",
                                                                         fontSize: "22px",
@@ -196,12 +200,12 @@ export const ReviewRequestEmail = ({
                         </Section>
 
                         {/* Customer Support Reassurance Box */}
-                        <Section className="bg-blue-50/70 border border-blue-100 rounded-xl p-4 my-6">
-                            <Text className="text-blue-950 text-[14px] font-bold m-0 mb-1 flex items-center">
+                        <Section className="bg-blue-50 border border-blue-100 rounded-xl p-4 my-6">
+                            <Text className="text-blue-950 text-[14px] font-bold m-0 mb-1">
                                 💬 Bir Sorun veya İhtiyacınız mı Var?
                             </Text>
-                            <Text className="text-blue-900/80 text-[13px] leading-[20px] m-0">
-                                Ürününüzde montaj desteğine ihtiyacınız varsa veya herhangi bir aksilik yaşadıysanız, yorum yapmadan önce lütfen bizimle iletişime geçin. Size yardımcı olmaktan memnuniyet duyarız.
+                            <Text className="text-blue-900 text-[13px] leading-[20px] m-0">
+                                Ürününüzde montaj desteğine ihtiyacınız varsa veya herhangi bir aksilik yaşadıysanız, lütfen bizimle iletişime geçin. Size yardımcı olmaktan memnuniyet duyarız.
                             </Text>
                             <div className="mt-3">
                                 <Link

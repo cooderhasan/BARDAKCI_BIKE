@@ -365,7 +365,7 @@ export async function sendReviewRequestEmail(props: SendReviewRequestProps) {
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Bardakçı Bisiklet <siparis@bardakcibike.com.tr>',
+            from: 'Bardakcı Bisiklet <siparis@bardakcibike.com.tr>',
             to: [props.to],
             // BCC admin so store management can monitor customer feedback emails
             bcc: ADMIN_EMAIL ? [ADMIN_EMAIL] : undefined,
