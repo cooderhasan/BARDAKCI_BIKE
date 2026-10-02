@@ -18,6 +18,8 @@ import {
   setBulkPazaramaProductCategory,
   getPazaramaCommercialTemplates,
   assignCommercialTemplateToProducts,
+  getStoreBrands,
+  assignCommercialTemplateToBrand,
 } from "../actions";
 import {
   Search,
@@ -33,6 +35,7 @@ import {
   Save,
   Plus,
   ShieldCheck,
+  Building2,
 } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 
@@ -53,7 +56,7 @@ interface Product {
   pazaramaCategoryId?: string | null;
   pazaramaOverrideCategoryId?: string | null;
   mappedCategoryId?: string | null;
-  brand?: { name: string } | null;
+  brand?: { id?: string; name: string } | null;
 }
 
 import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
@@ -107,6 +110,12 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
   const [bulkCommercialId, setBulkCommercialId] = useState("");
   const [savingCommercial, setSavingCommercial] = useState(false);
 
+  // Marka Filtresi ve Marka Bazlı Atama State'leri
+  const [storeBrands, setStoreBrands] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedFilterBrand, setSelectedFilterBrand] = useState<string>("ALL");
+  const [commercialAssignTab, setCommercialAssignTab] = useState<"SELECTED" | "BRAND">("SELECTED");
+  const [bulkBrandId, setBulkBrandId] = useState<string>("");
+
   const loadCommercialTemplates = async (forceAlert = false) => {
     setIsLoadingTemplates(true);
     try {
@@ -132,8 +141,18 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
     }
   };
 
+  const loadStoreBrands = async () => {
+    try {
+      const res = await getStoreBrands();
+      if (res.success && res.data) {
+        setStoreBrands(res.data);
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     loadCommercialTemplates();
+    loadStoreBrands();
   }, []);
 
   const handleBulkCommercialAssign = async () => {
@@ -159,6 +178,38 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
       setSelectedIds([]);
     } else {
       toast.error(res.message || "İşlem başarısız.");
+    }
+  };
+
+  const handleAssignToBrand = async () => {
+    if (!bulkBrandId) {
+      toast.warning("Lütfen bir marka seçin.");
+      return;
+    }
+    if (!bulkCommercialId) {
+      toast.warning("Lütfen bir temin şablonu seçin.");
+      return;
+    }
+    setSavingCommercial(true);
+    const toastId = toast.loading("Markaya ait ürünler taranıyor ve Pazarama'ya tanımlanıyor...");
+    try {
+      const res = await assignCommercialTemplateToBrand(
+        bulkBrandId,
+        bulkCommercialId,
+        securityDescription
+      );
+      toast.dismiss(toastId);
+      if (res.success) {
+        toast.success(res.message);
+        setBulkCommercialOpen(false);
+      } else {
+        toast.error(res.message || "İşlem başarısız.");
+      }
+    } catch (e: any) {
+      toast.dismiss(toastId);
+      toast.error(e.message || "Bir hata oluştu.");
+    } finally {
+      setSavingCommercial(false);
     }
   };
 
@@ -233,8 +284,15 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
     const matchesSearch =
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase()));
+      (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (p.brand?.name && p.brand.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
+    const matchesBrand =
+      selectedFilterBrand === "ALL" ||
+      p.brand?.id === selectedFilterBrand ||
+      p.brand?.name === selectedFilterBrand;
+
+    if (!matchesBrand) return false;
     if (filterActive === "ACTIVE") return matchesSearch && p.isPazaramaActive;
     if (filterActive === "PASSIVE") return matchesSearch && !p.isPazaramaActive;
     return matchesSearch;
@@ -406,12 +464,12 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                   setBulkCommercialOpen(!bulkCommercialOpen);
                   if (bulkCatOpen) setBulkCatOpen(false);
                   if (commercialTemplates.length === 0) loadCommercialTemplates();
+                  if (storeBrands.length === 0) loadStoreBrands();
                 }}
-                disabled={selectedIds.length === 0}
                 className="border-pink-200 text-pink-700 hover:bg-pink-50 gap-2"
               >
                 <ShieldCheck className="w-4 h-4 text-pink-600" />
-                <span>Toplu Temin Şablonu ({selectedIds.length})</span>
+                <span>Toplu Temin Şablonu {selectedIds.length > 0 ? `(${selectedIds.length})` : ""}</span>
               </Button>
 
               <Button
@@ -430,64 +488,166 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
         <CardContent className="pt-6 space-y-4">
           {/* Toplu Temin Şablonu Atama Paneli */}
           {bulkCommercialOpen && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-900/50 rounded-xl p-4 shadow-sm">
-              <ShieldCheck className="h-5 w-5 text-pink-600 flex-shrink-0 mt-0.5 sm:mt-0" />
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-semibold text-pink-800 dark:text-pink-300">
-                  Seçili {selectedIds.length} ürüne Pazarama Temin Şablonu (Üretici/İthalatçı) Tanımla
-                </p>
-                <p className="text-xs text-pink-600 dark:text-pink-400">
-                  Pazarama ürün güvenlik ve temin mevzuatı (7223 sayılı kanun) kapsamında seçtiğiniz şablon ürünlere tanımlanır.
-                </p>
+            <div className="bg-pink-50/80 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-900/50 rounded-xl p-4 shadow-sm space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-pink-200/60 pb-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-pink-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-pink-900 dark:text-pink-300">
+                      Pazarama Toplu Temin Şablonu (Üretici / İthalatçı) Tanımlama
+                    </p>
+                    <p className="text-xs text-pink-700 dark:text-pink-400">
+                      7223 sayılı Ürün Güvenliği mevzuatı kapsamında ürünlerinize Pazarama üzerinden şablon bağlar.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Tab Seçimi: Seçili Ürünler vs Marka Bazlı Tüm Ürünler */}
+                <div className="flex items-center bg-white dark:bg-gray-800 p-0.5 rounded-lg border border-pink-200 text-xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setCommercialAssignTab("SELECTED")}
+                    className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                      commercialAssignTab === "SELECTED"
+                        ? "bg-[#D81B60] text-white shadow-sm"
+                        : "text-gray-600 dark:text-gray-300 hover:text-pink-600"
+                    }`}
+                  >
+                    Seçili Ürünlere ({selectedIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCommercialAssignTab("BRAND")}
+                    className={`px-3 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
+                      commercialAssignTab === "BRAND"
+                        ? "bg-[#D81B60] text-white shadow-sm"
+                        : "text-gray-600 dark:text-gray-300 hover:text-pink-600"
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    🔥 Markadaki TÜM Ürünlere (Excel'siz)
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <select
-                  value={bulkCommercialId}
-                  onChange={(e) => setBulkCommercialId(e.target.value)}
-                  className="h-9 w-full sm:w-64 text-xs bg-white dark:bg-gray-800 border border-pink-300 dark:border-pink-800 rounded-md px-2"
-                >
-                  <option value="">Şablon Seçiniz...</option>
-                  {commercialTemplates.map((t) => {
-                    const typeLabel = t.isImported
-                      ? (t.type === 1 ? "İthalatçı" : t.type === 2 ? "Yetkili Temsilci" : "İfa Hizmet")
-                      : (t.type === 0 ? "Yerli İmalatçı" : "İfa Hizmet");
-                    const brandPart = t.brand ? ` - ${t.brand}` : "";
-                    return (
-                      <option key={t.commercialId} value={t.commercialId}>
-                        {t.name || t.title} ({typeLabel}{brandPart})
-                      </option>
-                    );
-                  })}
-                </select>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => loadCommercialTemplates(true)}
-                  disabled={isLoadingTemplates}
-                  className="h-9 px-2 text-pink-700 hover:bg-pink-100"
-                  title="Pazarama'dan Şablonları Yenile"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTemplates ? "animate-spin" : ""}`} />
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleBulkCommercialAssign}
-                  disabled={savingCommercial || !bulkCommercialId}
-                  className="bg-[#D81B60] hover:bg-[#C2185B] text-white shrink-0"
-                >
-                  {savingCommercial ? "Tanımlanıyor..." : "Tanımla"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setBulkCommercialOpen(false);
-                    setBulkCommercialId("");
-                  }}
-                >
-                  İptal
-                </Button>
-              </div>
+
+              {commercialAssignTab === "SELECTED" ? (
+                /* 1. SEÇENEK: SEÇİLİ ÜRÜNLERE ATAMA */
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    Tabloda seçtiğiniz <strong>{selectedIds.length}</strong> ürüne aşağıdaki temin şablonu doğrudan tanımlanacaktır:
+                  </p>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <select
+                      value={bulkCommercialId}
+                      onChange={(e) => setBulkCommercialId(e.target.value)}
+                      className="h-9 w-full sm:w-64 text-xs bg-white dark:bg-gray-800 border border-pink-300 dark:border-pink-800 rounded-md px-2"
+                    >
+                      <option value="">Şablon Seçiniz...</option>
+                      {commercialTemplates.map((t) => {
+                        const typeLabel = t.isImported
+                          ? (t.type === 1 ? "İthalatçı" : t.type === 2 ? "Yetkili Temsilci" : "İfa Hizmet")
+                          : (t.type === 0 ? "Yerli İmalatçı" : "İfa Hizmet");
+                        const brandPart = t.brand ? ` - ${t.brand}` : "";
+                        return (
+                          <option key={t.commercialId} value={t.commercialId}>
+                            {t.name || t.title} ({typeLabel}{brandPart})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => loadCommercialTemplates(true)}
+                      disabled={isLoadingTemplates}
+                      className="h-9 px-2 text-pink-700 hover:bg-pink-100"
+                      title="Pazarama'dan Şablonları Yenile"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTemplates ? "animate-spin" : ""}`} />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleBulkCommercialAssign}
+                      disabled={savingCommercial || selectedIds.length === 0 || !bulkCommercialId}
+                      className="bg-[#D81B60] hover:bg-[#C2185B] text-white shrink-0"
+                    >
+                      {savingCommercial ? "Tanımlanıyor..." : `Tanımla (${selectedIds.length})`}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setBulkCommercialOpen(false)}
+                    >
+                      Kapat
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* 2. SEÇENEK: MARKA BAZLI TÜM ÜRÜNLERE ATAMA */
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-gray-800/80 p-3 rounded-lg border border-pink-200">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                      Marka Seçin &gt; Şablon Seçin &gt; Tek Tıkla Pazarama'ya Tanımlayın
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Excel ile tek tek uğraşmanıza gerek kalmaz. O markadaki tüm ürünlerin barkodları Pazarama API'sine iletilir.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    {/* Marka Seçimi */}
+                    <select
+                      value={bulkBrandId}
+                      onChange={(e) => setBulkBrandId(e.target.value)}
+                      className="h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2.5 font-medium min-w-[150px]"
+                    >
+                      <option value="">1. Marka Seçiniz...</option>
+                      {storeBrands.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Şablon Seçimi */}
+                    <select
+                      value={bulkCommercialId}
+                      onChange={(e) => setBulkCommercialId(e.target.value)}
+                      className="h-9 text-xs bg-white dark:bg-gray-800 border border-pink-300 dark:border-pink-800 rounded-md px-2.5 min-w-[200px]"
+                    >
+                      <option value="">2. Temin Şablonu Seçiniz...</option>
+                      {commercialTemplates.map((t) => {
+                        const typeLabel = t.isImported
+                          ? (t.type === 1 ? "İthalatçı" : t.type === 2 ? "Yetkili Temsilci" : "İfa Hizmet")
+                          : (t.type === 0 ? "Yerli İmalatçı" : "İfa Hizmet");
+                        const brandPart = t.brand ? ` - ${t.brand}` : "";
+                        return (
+                          <option key={t.commercialId} value={t.commercialId}>
+                            {t.name || t.title} ({typeLabel}{brandPart})
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    <Button
+                      size="sm"
+                      onClick={handleAssignToBrand}
+                      disabled={savingCommercial || !bulkBrandId || !bulkCommercialId}
+                      className="bg-[#D81B60] hover:bg-[#C2185B] text-white shrink-0 font-semibold"
+                    >
+                      {savingCommercial ? "İşleniyor..." : "Markanın Tümüne Tanımla"}
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setBulkCommercialOpen(false)}
+                    >
+                      Kapat
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -531,16 +691,33 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
               </div>
             </div>
           )}
+
           {/* Filtre ve Arama Barı */}
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Ürün adı, SKU veya barkod ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Ürün adı, SKU, barkod veya marka ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
+
+              {/* Marka Filtresi */}
+              <select
+                value={selectedFilterBrand}
+                onChange={(e) => setSelectedFilterBrand(e.target.value)}
+                className="h-9 w-full sm:w-48 text-xs bg-white dark:bg-gray-800 border rounded-md px-2.5 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-pink-500"
+              >
+                <option value="ALL">🏷️ Tüm Markalar ({storeBrands.length})</option>
+                {storeBrands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">

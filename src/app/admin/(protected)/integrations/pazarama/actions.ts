@@ -431,11 +431,13 @@ export async function getPazaramaProducts({
   limit = 50,
   search = "",
   store = "ALL",
+  brandId = "ALL",
 }: {
   page?: number;
   limit?: number;
   search?: string;
   store?: string;
+  brandId?: string;
 } = {}) {
   try {
     const skip = (page - 1) * limit;
@@ -445,10 +447,14 @@ export async function getPazaramaProducts({
         { name: { contains: search, mode: "insensitive" } },
         { sku: { contains: search, mode: "insensitive" } },
         { barcode: { contains: search, mode: "insensitive" } },
+        { brand: { name: { contains: search, mode: "insensitive" } } },
       ];
     }
     if (store && store !== "ALL") {
       where.store = store;
+    }
+    if (brandId && brandId !== "ALL") {
+      where.brandId = brandId;
     }
 
     const [products, totalCount] = await Promise.all([
@@ -469,7 +475,7 @@ export async function getPazaramaProducts({
           pazaramaStatus: true,
           pazaramaBatchId: true,
           brand: {
-            select: { name: true },
+            select: { id: true, name: true },
           },
           categories: {
             select: {
@@ -1158,6 +1164,94 @@ export async function assignCommercialTemplateToProducts(
     };
   } catch (error: any) {
     console.error("assignCommercialTemplateToProducts error:", error);
+    return { success: false, message: error.message || "İşlem sırasında hata oluştu." };
+  }
+}
+
+/**
+ * Sistemdeki kayıtlı markaları getirir (Filtreleme ve toplu marka ataması için)
+ */
+export async function getStoreBrands() {
+  try {
+    const brands = await prisma.brand.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+    return { success: true, data: brands };
+  } catch (error: any) {
+    return { success: false, data: [] };
+  }
+}
+
+/**
+ * Seçilen markaya ait TÜM ürünlere Pazarama Temin Şablonunu topluca atar.
+ * Kullanıcıyı Excel ile tek tek uğraşmaktan tamamen kurtarır!
+ */
+export async function assignCommercialTemplateToBrand(
+  brandId: string,
+  commercialId: string,
+  securityDescription?: string
+) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif Pazarama konfigürasyonu bulunamadı." };
+    }
+
+    if (!brandId) {
+      return { success: false, message: "Lütfen bir marka seçiniz." };
+    }
+
+    if (!commercialId) {
+      return { success: false, message: "Lütfen bir temin şablonu seçiniz." };
+    }
+
+    const brand = await prisma.brand.findUnique({
+      where: { id: brandId },
+      select: { name: true },
+    });
+
+    const products = await prisma.product.findMany({
+      where: { brandId },
+      select: { id: true, barcode: true, sku: true, name: true },
+    });
+
+    if (products.length === 0) {
+      return { success: false, message: `"${brand?.name || "Seçilen"}" markasına ait ürün bulunamadı.` };
+    }
+
+    const client = new PazaramaClient(config);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const p of products) {
+      const code = p.barcode || p.sku || p.id;
+      if (!code) continue;
+
+      try {
+        const res = await client.upsertSellerProductCommercial(
+          code,
+          [commercialId],
+          securityDescription
+        );
+
+        if (res.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (e) {
+        failCount++;
+      }
+    }
+
+    return {
+      success: successCount > 0,
+      message: `"${brand?.name || ""}" markasına ait ${successCount} adet ürünün Temin Şablonu Pazarama'ya başarıyla tanımlandı!${failCount > 0 ? ` (${failCount} ürün başarısız)` : ""}`,
+      count: successCount,
+    };
+  } catch (error: any) {
+    console.error("assignCommercialTemplateToBrand error:", error);
     return { success: false, message: error.message || "İşlem sırasında hata oluştu." };
   }
 }
