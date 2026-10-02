@@ -4,6 +4,7 @@ import {
   PazaramaProductInput,
   PazaramaBatchResult,
   PazaramaOrder,
+  PazaramaCommercialTemplate,
 } from "./types";
 
 export class PazaramaClient {
@@ -335,6 +336,17 @@ export class PazaramaClient {
           images: imageObjects,
           attributes: p.attributes || [],
           deliveries: [],
+          ...(p.commercialId
+            ? {
+                productCommercials: {
+                  productCommercialId: p.commercialId,
+                },
+                productCommercialAdditionalInfo: {
+                  securityDescription:
+                    p.securityDescription || "Ürün kullanım ve güvenlik talimatlarına uygun kullanılmalıdır.",
+                },
+              }
+            : {}),
         };
       });
 
@@ -836,6 +848,119 @@ export class PazaramaClient {
       return { success: false, message: `Pazarama fatura gönderme isteği tamamlanamadı. Son hata: ${lastErrorMessage}` };
     } catch (error: any) {
       return { success: false, message: `Pazarama Fatura Hatası: ${error.message}` };
+    }
+  }
+
+  /**
+   * Fetch Seller Product Commercial Templates (Temin Şablonları)
+   * Official Endpoint: GET /product-commercials
+   */
+  async getCommercialTemplates(): Promise<PazaramaCommercialTemplate[]> {
+    try {
+      const headers = await this.getHeaders();
+      const endpoint = `${this.baseUrl}/product-commercials`;
+      console.log(`[Pazarama Temin] GET ${endpoint} - Temin şablonları çekiliyor`);
+
+      const res = await fetch(endpoint, {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      });
+
+      const rawText = await res.text().catch(() => "");
+      console.log(`[Pazarama Temin] HTTP ${res.status}:`, rawText.substring(0, 500));
+
+      if (!res.ok) {
+        return [];
+      }
+
+      let data: any = {};
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        return [];
+      }
+
+      const list =
+        data?.data?.productCommercialList ||
+        data?.productCommercialList ||
+        data?.data ||
+        [];
+
+      if (Array.isArray(list)) {
+        return list.map((item: any) => ({
+          commercialId: String(item.commercialId || item.id || "").trim(),
+          isImported: Boolean(item.isImported),
+          type: Number(item.type ?? 0),
+          name: String(item.name || "").trim(),
+          title: String(item.title || "").trim(),
+          brand: String(item.brand || "").trim(),
+          email: item.email ? String(item.email).trim() : undefined,
+          address: item.address ? String(item.address).trim() : undefined,
+        }));
+      }
+
+      return [];
+    } catch (error: any) {
+      console.error("Pazarama getCommercialTemplates error:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Ürün Şablonu Güncelleme / Ürüne Temin Şablonu Bağlama
+   * Official Endpoint: POST /product/upsertSellerProductCommercial
+   * Payload: { code, securityDescription, commercialIds: [guid] }
+   */
+  async upsertSellerProductCommercial(
+    code: string,
+    commercialIds: string[],
+    securityDescription?: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const headers = await this.getHeaders();
+      const endpoint = `${this.baseUrl}/product/upsertSellerProductCommercial`;
+
+      const payload = {
+        code: String(code).trim(),
+        securityDescription: securityDescription || "Ürün kullanım ve güvenlik talimatlarına uygun kullanılmalıdır.",
+        commercialIds: Array.isArray(commercialIds) ? commercialIds : [commercialIds],
+      };
+
+      console.log(`[Pazarama Temin Upsert] POST ${endpoint} payload:`, JSON.stringify(payload));
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        cache: "no-store",
+      });
+
+      const rawText = await res.text().catch(() => "");
+      console.log(`[Pazarama Temin Upsert] HTTP ${res.status}:`, rawText.substring(0, 500));
+
+      let data: any = {};
+      try {
+        data = JSON.parse(rawText);
+      } catch {}
+
+      if (!res.ok) {
+        const errMsg = data?.message || data?.userMessage || rawText.substring(0, 200) || `HTTP ${res.status}`;
+        return { success: false, message: `Pazarama Hata: ${errMsg}` };
+      }
+
+      if (data?.success === false || data?.isSuccess === false) {
+        const errMsg = data?.message || data?.userMessage || "İşlem reddedildi.";
+        return { success: false, message: `Pazarama Hata: ${errMsg}` };
+      }
+
+      return {
+        success: true,
+        message: data?.message || "Temin şablonu ürüne başarıyla tanımlandı.",
+      };
+    } catch (error: any) {
+      console.error("upsertSellerProductCommercial error:", error);
+      return { success: false, message: error.message || "Bağlantı hatası." };
     }
   }
 }

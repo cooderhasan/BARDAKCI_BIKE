@@ -16,6 +16,8 @@ import {
   getPazaramaCategoryAttributes,
   setPazaramaProductCategory,
   setBulkPazaramaProductCategory,
+  getPazaramaCommercialTemplates,
+  assignCommercialTemplateToProducts,
 } from "../actions";
 import {
   Search,
@@ -30,6 +32,7 @@ import {
   Edit3,
   Save,
   Plus,
+  ShieldCheck,
 } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 
@@ -85,6 +88,79 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
   }>>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false);
+
+  // Temin Şablonu (Ürün Güvenliği ve Uygunluk) State'leri
+  const [commercialTemplates, setCommercialTemplates] = useState<Array<{
+    commercialId: string;
+    isImported: boolean;
+    type: number;
+    name: string;
+    title: string;
+    brand?: string;
+  }>>([]);
+  const [selectedCommercialId, setSelectedCommercialId] = useState<string>("");
+  const [securityDescription, setSecurityDescription] = useState<string>(
+    "Ürün kullanım ve güvenlik talimatlarına uygun kullanılmalıdır."
+  );
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [bulkCommercialOpen, setBulkCommercialOpen] = useState(false);
+  const [bulkCommercialId, setBulkCommercialId] = useState("");
+  const [savingCommercial, setSavingCommercial] = useState(false);
+
+  const loadCommercialTemplates = async (forceAlert = false) => {
+    setIsLoadingTemplates(true);
+    try {
+      const res = await getPazaramaCommercialTemplates();
+      if (res.success && res.data && res.data.length > 0) {
+        setCommercialTemplates(res.data);
+        if (forceAlert) {
+          toast.success(`${res.data.length} adet temin şablonu Pazarama'dan güncellendi.`);
+        }
+        if (!selectedCommercialId && typeof window !== "undefined") {
+          const lastId = localStorage.getItem("pazarama_last_commercial_id");
+          if (lastId && res.data.some((t: any) => t.commercialId === lastId)) {
+            setSelectedCommercialId(lastId);
+          }
+        }
+      } else if (forceAlert) {
+        toast.info("Pazarama'da kayıtlı temin şablonu bulunamadı.");
+      }
+    } catch (err) {
+      if (forceAlert) toast.error("Şablonlar çekilemedi.");
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCommercialTemplates();
+  }, []);
+
+  const handleBulkCommercialAssign = async () => {
+    if (selectedIds.length === 0) {
+      toast.warning("Lütfen en az bir ürün seçin.");
+      return;
+    }
+    if (!bulkCommercialId) {
+      toast.warning("Lütfen bir temin şablonu seçin.");
+      return;
+    }
+    setSavingCommercial(true);
+    const res = await assignCommercialTemplateToProducts(
+      selectedIds,
+      bulkCommercialId,
+      securityDescription
+    );
+    setSavingCommercial(false);
+    if (res.success) {
+      toast.success(res.message);
+      setBulkCommercialOpen(false);
+      setBulkCommercialId("");
+      setSelectedIds([]);
+    } else {
+      toast.error(res.message || "İşlem başarısız.");
+    }
+  };
 
   // Kategori Override State'leri
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
@@ -212,6 +288,10 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
       return;
     }
     
+    if (commercialTemplates.length === 0) {
+      loadCommercialTemplates();
+    }
+    
     setIsLoadingAttributes(true);
     setShowAttributeModal(true);
     
@@ -241,7 +321,12 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
     setShowAttributeModal(false);
 
     startTransition(async () => {
-      const res = await syncProductsToPazarama(selectedIds, attributes);
+      const res = await syncProductsToPazarama(
+        selectedIds,
+        attributes,
+        selectedCommercialId || undefined,
+        securityDescription || undefined
+      );
       if (res.success) {
         toast.success(res.message);
         setSelectedIds([]);
@@ -304,12 +389,29 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
 
               <Button
                 variant="outline"
-                onClick={() => setBulkCatOpen(!bulkCatOpen)}
+                onClick={() => {
+                  setBulkCatOpen(!bulkCatOpen);
+                  if (bulkCommercialOpen) setBulkCommercialOpen(false);
+                }}
                 disabled={selectedIds.length === 0}
                 className="border-pink-200 text-pink-700 hover:bg-pink-50 gap-2"
               >
                 <Tag className="w-4 h-4 text-pink-600" />
                 <span>Toplu Kategori Ata ({selectedIds.length})</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setBulkCommercialOpen(!bulkCommercialOpen);
+                  if (bulkCatOpen) setBulkCatOpen(false);
+                  if (commercialTemplates.length === 0) loadCommercialTemplates();
+                }}
+                disabled={selectedIds.length === 0}
+                className="border-pink-200 text-pink-700 hover:bg-pink-50 gap-2"
+              >
+                <ShieldCheck className="w-4 h-4 text-pink-600" />
+                <span>Toplu Temin Şablonu ({selectedIds.length})</span>
               </Button>
 
               <Button
@@ -326,6 +428,69 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
         </CardHeader>
 
         <CardContent className="pt-6 space-y-4">
+          {/* Toplu Temin Şablonu Atama Paneli */}
+          {bulkCommercialOpen && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-900/50 rounded-xl p-4 shadow-sm">
+              <ShieldCheck className="h-5 w-5 text-pink-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-semibold text-pink-800 dark:text-pink-300">
+                  Seçili {selectedIds.length} ürüne Pazarama Temin Şablonu (Üretici/İthalatçı) Tanımla
+                </p>
+                <p className="text-xs text-pink-600 dark:text-pink-400">
+                  Pazarama ürün güvenlik ve temin mevzuatı (7223 sayılı kanun) kapsamında seçtiğiniz şablon ürünlere tanımlanır.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <select
+                  value={bulkCommercialId}
+                  onChange={(e) => setBulkCommercialId(e.target.value)}
+                  className="h-9 w-full sm:w-64 text-xs bg-white dark:bg-gray-800 border border-pink-300 dark:border-pink-800 rounded-md px-2"
+                >
+                  <option value="">Şablon Seçiniz...</option>
+                  {commercialTemplates.map((t) => {
+                    const typeLabel = t.isImported
+                      ? (t.type === 1 ? "İthalatçı" : t.type === 2 ? "Yetkili Temsilci" : "İfa Hizmet")
+                      : (t.type === 0 ? "Yerli İmalatçı" : "İfa Hizmet");
+                    const brandPart = t.brand ? ` - ${t.brand}` : "";
+                    return (
+                      <option key={t.commercialId} value={t.commercialId}>
+                        {t.name || t.title} ({typeLabel}{brandPart})
+                      </option>
+                    );
+                  })}
+                </select>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => loadCommercialTemplates(true)}
+                  disabled={isLoadingTemplates}
+                  className="h-9 px-2 text-pink-700 hover:bg-pink-100"
+                  title="Pazarama'dan Şablonları Yenile"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTemplates ? "animate-spin" : ""}`} />
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBulkCommercialAssign}
+                  disabled={savingCommercial || !bulkCommercialId}
+                  className="bg-[#D81B60] hover:bg-[#C2185B] text-white shrink-0"
+                >
+                  {savingCommercial ? "Tanımlanıyor..." : "Tanımla"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setBulkCommercialOpen(false);
+                    setBulkCommercialId("");
+                  }}
+                >
+                  İptal
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Toplu Kategori Atama Paneli */}
           {bulkCatOpen && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-900/50 rounded-xl p-4 shadow-sm">
@@ -656,7 +821,15 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-gray-900 border-b p-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Pazarama Kategori Attribute Seçimi</h2>
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2 text-pink-700 dark:text-pink-400">
+                  <Send className="w-5 h-5" />
+                  Pazarama Ürün Gönderme & Temin Bilgileri
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Seçili {selectedIds.length} ürün Pazarama'ya aktarılacaktır.
+                </p>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -666,32 +839,111 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
               </Button>
             </div>
 
-            <div className="p-6 space-y-4">
-              {isLoadingAttributes ? (
-                <div className="flex items-center justify-center py-8">
-                  <RefreshCw className="w-6 h-6 animate-spin text-pink-600" />
-                  <span className="ml-2">Attribute'lar yükleniyor...</span>
+            <div className="p-6 space-y-5">
+              {/* Temin Şablonu Bölümü (Zorunlu Mevzuat / Ürün Güvenliği) */}
+              <div className="bg-pink-50/70 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-900/60 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[#D81B60]" />
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Temin Şablonu (Üretici / İthalatçı Bilgisi)
+                    </span>
+                    <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/40 text-[10px] font-bold border-pink-200">
+                      7223 Sayılı Mevzuat
+                    </Badge>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => loadCommercialTemplates(true)}
+                    disabled={isLoadingTemplates}
+                    className="h-7 px-2 text-xs text-pink-700 hover:text-pink-800 hover:bg-pink-100/60 gap-1"
+                    title="Pazarama'dan Şablonları Yenile"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTemplates ? "animate-spin" : ""}`} />
+                    <span>Şablonları Yenile</span>
+                  </Button>
                 </div>
-              ) : categoryAttributes.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Bu kategori için attribute bulunamadı.
-                </div>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Seçili ürünler için zorunlu attribute değerlerini seçiniz:
-                  </p>
 
-                  {categoryAttributes.map((attr) => (
-                    <div key={attr.attributeId} className="space-y-2">
-                      <label className="text-sm font-medium flex items-center gap-2">
+                <div className="space-y-1.5">
+                  <select
+                    className="w-full border border-pink-300 dark:border-pink-800 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-pink-500"
+                    value={selectedCommercialId}
+                    onChange={(e) => {
+                      setSelectedCommercialId(e.target.value);
+                      if (typeof window !== "undefined") {
+                        localStorage.setItem("pazarama_last_commercial_id", e.target.value);
+                      }
+                    }}
+                  >
+                    <option value="">Temin Şablonu Seçiniz (İsteğe Bağlı)...</option>
+                    {commercialTemplates.map((t) => {
+                      const typeLabel = t.isImported
+                        ? (t.type === 1 ? "İthalatçı" : t.type === 2 ? "Yetkili Temsilci" : "İfa Hizmet")
+                        : (t.type === 0 ? "Yerli İmalatçı" : "İfa Hizmet");
+                      const brandPart = t.brand ? ` - ${t.brand}` : "";
+                      return (
+                        <option key={t.commercialId} value={t.commercialId}>
+                          {t.name || t.title} ({typeLabel}{brandPart})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <p className="text-[11px] text-muted-foreground">
+                    Pazarama panelinde oluşturduğunuz şablonlar (Arzu Bisiklet, Bisan, Corelli vb.) otomatik tanımlanır.
+                  </p>
+                </div>
+
+                {selectedCommercialId && (
+                  <div className="space-y-1 pt-1">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Güvenlik & Kullanım Açıklaması:
+                    </label>
+                    <Input
+                      value={securityDescription}
+                      onChange={(e) => setSecurityDescription(e.target.value)}
+                      placeholder="Güvenlik ve kullanım talimatlarına uyunuz."
+                      className="h-8 text-xs bg-white dark:bg-gray-800"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Kategori Zorunlu Özellikleri (Attributes) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-pink-600" />
+                    Kategori Zorunlu Özellikleri (Attributes)
+                  </h3>
+                  {categoryAttributes.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {categoryAttributes.length} özellik bulundu
+                    </span>
+                  )}
+                </div>
+
+                {isLoadingAttributes ? (
+                  <div className="flex items-center justify-center py-6">
+                    <RefreshCw className="w-5 h-5 animate-spin text-pink-600" />
+                    <span className="ml-2 text-sm text-muted-foreground">Attribute'lar yükleniyor...</span>
+                  </div>
+                ) : categoryAttributes.length === 0 ? (
+                  <div className="text-xs text-muted-foreground bg-gray-50 dark:bg-gray-800/40 p-3 rounded-lg border">
+                    Bu kategori için zorunlu attribute bulunmuyor. Temin şablonu ile doğrudan gönderebilirsiniz.
+                  </div>
+                ) : (
+                  categoryAttributes.map((attr) => (
+                    <div key={attr.attributeId} className="space-y-1.5">
+                      <label className="text-xs font-medium flex items-center gap-1.5">
                         {attr.attributeName}
                         {attr.isRequired && (
-                          <span className="text-red-500 text-xs">*</span>
+                          <span className="text-red-500 text-xs font-bold">*</span>
                         )}
                       </label>
                       <select
-                        className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                        className="w-full border rounded-md px-3 py-1.5 text-xs bg-background"
                         value={selectedAttributes[attr.attributeId] || ""}
                         onChange={(e) =>
                           setSelectedAttributes((prev) => ({
@@ -708,27 +960,28 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                         ))}
                       </select>
                     </div>
-                  ))}
+                  ))
+                )}
+              </div>
 
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      onClick={handleAttributeSync}
-                      className="flex-1 bg-[#D81B60] hover:bg-[#C2185B] text-white"
-                      disabled={isPending}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      {isPending ? "Gönderiliyor..." : "Pazarama'ya Gönder"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowAttributeModal(false)}
-                      disabled={isPending}
-                    >
-                      İptal
-                    </Button>
-                  </div>
-                </>
-              )}
+              {/* Alt Gönder Butonları */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  onClick={handleAttributeSync}
+                  className="flex-1 bg-[#D81B60] hover:bg-[#C2185B] text-white"
+                  disabled={isPending}
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {isPending ? "Gönderiliyor..." : "Pazarama'ya Gönder"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAttributeModal(false)}
+                  disabled={isPending}
+                >
+                  İptal
+                </Button>
+              </div>
             </div>
           </div>
         </div>

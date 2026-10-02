@@ -27,6 +27,17 @@ export interface PazaramaAttribute {
   values?: PazaramaAttributeValue[];
 }
 
+export interface PazaramaCommercialTemplate {
+  commercialId: string;
+  isImported: boolean;
+  type: number; // 0: Yerli İmalatçı, 1: İthalatçı, 2: Yetkili Temsilci, 3: İfa Hizmet Sağlayıcı
+  name: string;
+  title: string;
+  brand?: string;
+  email?: string;
+  address?: string;
+}
+
 export interface PazaramaProductInput {
   code: string; // SKU / Stock Code
   title: string;
@@ -40,6 +51,8 @@ export interface PazaramaProductInput {
   vatRate: number;
   images: string[];
   attributes?: Array<{ attributeId: string; attributeValueId: string }>;
+  commercialId?: string;
+  securityDescription?: string;
 }
 
 export interface PazaramaBatchResult {

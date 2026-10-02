@@ -534,7 +534,9 @@ export async function togglePazaramaProductActive(productId: string, currentStat
 
 export async function syncProductsToPazarama(
   productIds: string[],
-  attributes?: Array<{ attributeId: string; attributeValueId: string }>
+  attributes?: Array<{ attributeId: string; attributeValueId: string }>,
+  commercialId?: string,
+  securityDescription?: string
 ) {
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
@@ -584,10 +586,26 @@ export async function syncProductsToPazarama(
         vatRate: p.vatRate || 20,
         images: formattedImages,
         attributes: attributes || [],
+        commercialId: commercialId || undefined,
+        securityDescription: securityDescription || undefined,
       };
     });
 
     const result = await client.createProductBatch(payloadProducts);
+
+    // Seçilen temin şablonu varsa, her bir ürün koduna upsertSellerProductCommercial ile de bağla
+    if (commercialId) {
+      for (const p of products) {
+        const code = p.barcode || p.sku || p.id;
+        if (code) {
+          try {
+            await client.upsertSellerProductCommercial(code, [commercialId], securityDescription);
+          } catch (err) {
+            console.error(`[Pazarama] Temin şablonu bağlama hatası (${code}):`, err);
+          }
+        }
+      }
+    }
 
     if (result.success) {
       await prisma.product.updateMany({
@@ -602,7 +620,7 @@ export async function syncProductsToPazarama(
       revalidatePath("/admin/integrations/pazarama/products");
       return {
         success: true,
-        message: `${products.length} adet ürün Pazarama'ya başarıyla aktarıldı. Paket ID: ${result.batchId}`,
+        message: `${products.length} adet ürün Pazarama'ya başarıyla aktarıldı.${commercialId ? " (Temin şablonu tanımlandı)" : ""} Paket ID: ${result.batchId}`,
       };
     } else {
       return { success: false, message: result.error || "Aktarım başarısız oldu." };
@@ -1032,5 +1050,114 @@ export async function setBulkPazaramaProductCategory(productIds: string[], pazar
   } catch (error: any) {
     console.error("setBulkPazaramaProductCategory error:", error);
     return { success: false, message: "Hata: " + error.message };
+  }
+}
+
+// ==================== TEMİN ŞABLONLARI (ÜRÜN GÜVENLİĞİ VE UYGUNLUK) ====================
+
+/**
+ * Pazarama Satıcı Temin Şablonlarını Getirir
+ * (Önce API'den çeker, başarısız olursa veritabanı önbelleğine bakar)
+ */
+export async function getPazaramaCommercialTemplates() {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif Pazarama konfigürasyonu bulunamadı.", data: [] };
+    }
+
+    const client = new PazaramaClient(config);
+    const templates = await client.getCommercialTemplates();
+
+    if (templates && templates.length > 0) {
+      // Önbelleğe kaydet
+      try {
+        await prisma.siteSettings.upsert({
+          where: { key: "pazarama_commercial_templates" },
+          create: {
+            key: "pazarama_commercial_templates",
+            value: { items: templates, updatedAt: new Date().toISOString() },
+          },
+          update: {
+            value: { items: templates, updatedAt: new Date().toISOString() },
+          },
+        });
+      } catch (err) {
+        console.error("Commercial templates cache error:", err);
+      }
+      return { success: true, data: templates, source: "api" };
+    }
+
+    // Fallback cache
+    const saved = await prisma.siteSettings.findUnique({
+      where: { key: "pazarama_commercial_templates" },
+    });
+    if (saved?.value && Array.isArray((saved.value as any).items)) {
+      return { success: true, data: (saved.value as any).items, source: "cache" };
+    }
+
+    return { success: true, data: [], message: "Kayıtlı temin şablonu bulunamadı." };
+  } catch (error: any) {
+    console.error("getPazaramaCommercialTemplates error:", error);
+    return { success: false, message: error.message || "Şablonlar çekilemedi.", data: [] };
+  }
+}
+
+/**
+ * Seçili ürünlere Pazarama Temin Şablonunu (Üretici/İthalatçı) bağlar
+ * Endpoint: POST /product/upsertSellerProductCommercial
+ */
+export async function assignCommercialTemplateToProducts(
+  productIds: string[],
+  commercialId: string,
+  securityDescription?: string
+) {
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (!config) {
+      return { success: false, message: "Aktif Pazarama konfigürasyonu bulunamadı." };
+    }
+
+    if (!commercialId) {
+      return { success: false, message: "Lütfen bir temin şablonu seçiniz." };
+    }
+
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, barcode: true, sku: true },
+    });
+
+    if (products.length === 0) {
+      return { success: false, message: "Seçili ürün bulunamadı." };
+    }
+
+    const client = new PazaramaClient(config);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const p of products) {
+      const code = p.barcode || p.sku || p.id;
+      if (!code) continue;
+
+      const res = await client.upsertSellerProductCommercial(
+        code,
+        [commercialId],
+        securityDescription
+      );
+
+      if (res.success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    return {
+      success: successCount > 0,
+      message: `${successCount} ürün için temin şablonu Pazarama'ya başarıyla tanımlandı.${failCount > 0 ? ` (${failCount} ürün başarısız)` : ""}`,
+    };
+  } catch (error: any) {
+    console.error("assignCommercialTemplateToProducts error:", error);
+    return { success: false, message: error.message || "İşlem sırasında hata oluştu." };
   }
 }
