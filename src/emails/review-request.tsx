@@ -51,8 +51,8 @@ export const ReviewRequestEmail = ({
             <Head />
             <Preview>{previewText}</Preview>
             <Tailwind>
-                <Body className="bg-[#f4f6f8] my-auto mx-auto font-sans">
-                    <Container className="bg-white border border-solid border-[#e5e7eb] rounded-2xl shadow-sm my-[32px] mx-auto p-[28px] max-w-[560px]">
+                <Body className="bg-[#f4f6f8] my-auto mx-auto font-sans p-0 m-0">
+                    <Container className="bg-white border border-solid border-[#e5e7eb] rounded-2xl shadow-sm my-[20px] sm:my-[32px] mx-auto p-[18px] sm:p-[28px] max-w-[560px] w-full">
                         
                         {/* Header / Brand Logo */}
                         <Section className="text-center pb-4 mb-4 border-b border-gray-100">
@@ -155,17 +155,17 @@ export const ReviewRequestEmail = ({
                                                         <Text className="m-0 text-[12px] text-gray-600 font-medium mb-1.5">
                                                             Hemen puan verin:
                                                         </Text>
-                                                        <div className="flex items-center gap-1.5">
+                                                        <div className="flex items-center gap-1">
                                                             {[1, 2, 3, 4, 5].map((star) => (
                                                                 <Link
                                                                     key={star}
                                                                     href={`${siteUrl}/products/${item.slug}?tab=reviews&rating=${star}#reviews`}
                                                                     style={{
                                                                         display: "inline-block",
-                                                                        fontSize: "18px",
+                                                                        fontSize: "22px",
                                                                         textDecoration: "none",
                                                                         lineHeight: "1",
-                                                                        padding: "2px",
+                                                                        padding: "4px 3px",
                                                                     }}
                                                                     title={`${star} Yıldız Ver`}
                                                                 >
