@@ -39,6 +39,7 @@ declare module "@auth/core/jwt" {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
+    // Google OAuth integration with dual-domain support (bardakcibike & motovitrin)
     providers: [
         Google({
             clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
