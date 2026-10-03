@@ -37,13 +37,19 @@ declare module "@auth/core/jwt" {
     }
 }
 
+const googleClientId = (process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "")
+    .replace("8n6b7tjnceo", "8n6b7ttjnceo")
+    .trim();
+
+const googleClientSecret = (process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "").trim();
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     // Google OAuth integration with dual-domain support (bardakcibike & motovitrin)
     providers: [
         Google({
-            clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
             allowDangerousEmailAccountLinking: true,
         }),
         Credentials({
