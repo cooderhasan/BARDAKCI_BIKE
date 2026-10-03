@@ -73,8 +73,9 @@ enum StoreType {
 model User {
   id              String         @id @default(cuid())
   email           String         @unique
-  passwordHash    String
+  passwordHash    String?
   name            String?        // Ad Soyad
+  image           String?        // Profil Fotoğrafı (Google vb.)
   companyName     String?
   taxNumber       String?
   phone           String?

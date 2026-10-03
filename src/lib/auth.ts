@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { loginSchema } from "@/lib/validations";
@@ -10,6 +11,7 @@ declare module "next-auth" {
         id: string;
         email: string;
         name?: string | null;
+        image?: string | null;
         role: UserRole;
         status: UserStatus;
         companyName?: string | null;
@@ -31,11 +33,17 @@ declare module "@auth/core/jwt" {
         companyName?: string | null;
         discountGroupId?: string | null;
         discountRate?: number;
+        picture?: string | null;
     }
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
+        Google({
+            clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
+        }),
         Credentials({
             name: "credentials",
             credentials: {
@@ -125,6 +133,57 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }),
     ],
     callbacks: {
+        async signIn({ user, account, profile }) {
+            if (account?.provider === "google") {
+                if (!user.email) return false;
+
+                try {
+                    // Check if user already exists
+                    let dbUser = await prisma.user.findUnique({
+                        where: { email: user.email },
+                        include: { discountGroup: true },
+                    });
+
+                    if (!dbUser) {
+                        // Create new customer account with APPROVED status
+                        dbUser = await prisma.user.create({
+                            data: {
+                                email: user.email,
+                                name: user.name || (profile as any)?.name || user.email.split("@")[0],
+                                image: user.image || (profile as any)?.picture || null,
+                                role: "CUSTOMER",
+                                status: "APPROVED",
+                            },
+                            include: { discountGroup: true },
+                        });
+                    } else if (dbUser.status === "SUSPENDED" || dbUser.status === "REJECTED") {
+                        return false;
+                    } else if (!dbUser.image && (user.image || (profile as any)?.picture)) {
+                        await prisma.user.update({
+                            where: { id: dbUser.id },
+                            data: { image: user.image || (profile as any)?.picture },
+                        });
+                    }
+
+                    // Populate user properties for JWT callback
+                    user.id = dbUser.id;
+                    user.name = dbUser.name;
+                    user.role = dbUser.role;
+                    user.status = dbUser.status;
+                    user.companyName = dbUser.companyName;
+                    user.discountGroupId = dbUser.discountGroupId;
+                    user.discountRate = dbUser.discountGroup
+                        ? Number(dbUser.discountGroup.discountRate)
+                        : 0;
+
+                    return true;
+                } catch (error) {
+                    console.error("GOOGLE_SIGNIN_ERROR:", error);
+                    return false;
+                }
+            }
+            return true;
+        },
         async redirect({ url, baseUrl }) {
             if (url.startsWith("/")) return `${baseUrl}${url}`;
             try {
@@ -140,7 +199,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             } catch {}
             return baseUrl;
         },
-        async jwt({ token, user }) {
+        async jwt({ token, user, account }) {
             if (user) {
                 token.id = user.id;
                 token.name = user.name;
@@ -149,7 +208,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 token.companyName = user.companyName;
                 token.discountGroupId = user.discountGroupId;
                 token.discountRate = user.discountRate;
+                if (user.image) {
+                    token.picture = user.image;
+                }
             }
+
+            // Fallback for OAuth or re-validation: ensure token.id is the database cuid
+            if (token?.email && (!token.id || token.id === token.sub || account?.provider === "google")) {
+                try {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { email: token.email },
+                        include: { discountGroup: true },
+                    });
+                    if (dbUser) {
+                        token.id = dbUser.id;
+                        token.name = dbUser.name;
+                        token.role = dbUser.role;
+                        token.status = dbUser.status;
+                        token.companyName = dbUser.companyName;
+                        token.discountGroupId = dbUser.discountGroupId;
+                        token.discountRate = dbUser.discountGroup
+                            ? Number(dbUser.discountGroup.discountRate)
+                            : 0;
+                        if (dbUser.image) {
+                            token.picture = dbUser.image;
+                        }
+                    }
+                } catch (e) {
+                    console.error("JWT_DB_LOOKUP_ERROR:", e);
+                }
+            }
+
             return token;
         },
         async session({ session, token }) {
@@ -161,6 +250,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 session.user.companyName = token.companyName as string | null;
                 session.user.discountGroupId = token.discountGroupId as string | null;
                 session.user.discountRate = token.discountRate as number;
+                if (token.picture) {
+                    session.user.image = token.picture as string;
+                }
             }
 
             // Critical Fix: Ensure everything in session is serializable
