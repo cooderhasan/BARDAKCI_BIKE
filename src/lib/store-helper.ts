@@ -54,13 +54,13 @@ export interface StoreThemeSettings {
 
 const DEFAULT_BIKE_SETTINGS: StoreThemeSettings = {
   store: "BIKE",
-  siteTitle: "Bardakcı Bisiklet",
-  seoDescription: "Türkiye'nin lider bisiklet ve bisiklet yedek parça toptan satış platformu.",
+  siteTitle: "Bardakcı Bike",
+  seoDescription: "Orijinal Bisan, Corelli, Mosso, Ümit bisiklet modelleri, bisiklet yedek parça ve aksesuarları.",
   logoUrl: "/logo.png",
   darkLogoUrl: "/logo-dark.png",
-  phone: "+90 554 014 41 42",
-  email: "info@bardakcibike.com.tr",
-  address: "Horozluhan Mah. Ayça Sk. No:62 Selçuklu / Konya",
+  phone: "0554 014 41 42",
+  email: "vitrinmoto@gmail.com",
+  address: "Yazır Mahallesi Şafak Cad. No:32B Selçuklu / Konya",
   primaryColor: "#17457C",
   accentColor: "#F27A1A",
   isFreeShipping: true, // Bisiklet için ücretsiz kargo
@@ -68,13 +68,13 @@ const DEFAULT_BIKE_SETTINGS: StoreThemeSettings = {
 
 const DEFAULT_MOTOR_SETTINGS: StoreThemeSettings = {
   store: "MOTOR",
-  siteTitle: "Motovitrin - Motosiklet Yedek Parça & Aksesuar",
-  seoDescription: "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın.",
+  siteTitle: "Moto Vitrin",
+  seoDescription: "Orijinal motosiklet yedek parça, kask ve aksesuarları.",
   logoUrl: "/logo-motor.png",
   darkLogoUrl: "/logo-motor-dark.png",
-  phone: "+90 554 014 41 42",
-  email: "info@motovitrin.com",
-  address: "Horozluhan Mah. Ayça Sk. No:62 Selçuklu / Konya",
+  phone: "0554 014 41 42",
+  email: "vitrinmoto@gmail.com",
+  address: "Yazır Mahallesi Şafak Cad. No:32B Selçuklu / Konya",
   primaryColor: "#E53935", // Motosiklet konsepti kırmızı/turuncu tonları
   accentColor: "#FF5722",
   isFreeShipping: false, // Motor için desi bazlı kargo
@@ -96,13 +96,15 @@ export async function getStoreSettings(storeType: ActiveStore): Promise<StoreThe
 
   try {
     const general = await getSiteSettings();
+    const isB2B = (val?: string) => !val || val.includes("b2b.com") || val.includes("B2B") || val.includes("555 0000") || val === "İstanbul, Türkiye";
+
     generalLogo = general.logoUrl || general.darkLogoUrl || "";
     generalFavicon = general.faviconUrl || "";
-    generalSiteName = general.siteName || "";
-    generalSeoDescription = general.seoDescription || "";
-    generalPhone = general.phone || "";
-    generalEmail = general.email || "";
-    generalAddress = general.address || "";
+    if (!isB2B(general.siteName)) generalSiteName = general.siteName || "";
+    if (!isB2B(general.seoDescription)) generalSeoDescription = general.seoDescription || "";
+    if (!isB2B(general.phone)) generalPhone = general.phone || "";
+    if (!isB2B(general.email)) generalEmail = general.email || "";
+    if (!isB2B(general.address)) generalAddress = general.address || "";
   } catch {}
 
   const defaults: StoreThemeSettings = storeType === "MOTOR" ? DEFAULT_MOTOR_SETTINGS : {

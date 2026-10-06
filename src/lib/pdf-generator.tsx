@@ -182,7 +182,7 @@ const PreInformationFormDocument: React.FC<OrderPdfProps> = (props) => {
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>E-posta Adresi:</Text>
-                    <Text style={styles.value}>info@bardakcibike.com.tr</Text>
+                    <Text style={styles.value}>vitrinmoto@gmail.com</Text>
                 </View>
 
                 <Text style={styles.sectionTitle}>2. ALICIYA İLİŞKİN BİLGİLER</Text>
@@ -330,7 +330,7 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
                 </View>
                 <View style={styles.row}>
                     <Text style={styles.label}>E-Posta:</Text>
-                    <Text style={styles.value}>info@bardakcibike.com.tr</Text>
+                    <Text style={styles.value}>vitrinmoto@gmail.com</Text>
                 </View>
 
                 <Text style={styles.sectionTitle}>Madde - 3: ALICI BİLGİLERİ</Text>
@@ -426,7 +426,7 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
                 <Text style={styles.paragraph}>
                     Bardakcı Bike - Mehmet Fatih Bardakcı
                     {'\n'}Adres: Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA
-                    {'\n'}Telefon: +905540144142 | E-Posta: info@bardakcibike.com.tr
+                    {'\n'}Telefon: +905540144142 | E-Posta: vitrinmoto@gmail.com
                 </Text>
             </Page>
         </Document>
@@ -481,7 +481,7 @@ const CancellationRefundPolicyDocument: React.FC<{ dateStr?: string }> = ({ date
                     {'\n'}ADI/UNVANI: Mehmet Fatih Bardakcı
                     {'\n'}ADRES: Yazır mah. Şafak Cd: No:32B SELÇUKLU / KONYA
                     {'\n'}TELEFON: +905540144142
-                    {'\n'}E-POSTA: info@bardakcibike.com.tr
+                    {'\n'}E-POSTA: vitrinmoto@gmail.com
                 </Text>
 
                 <Text style={styles.sectionTitle}>CAYMA HAKKI SÜRESİ:</Text>

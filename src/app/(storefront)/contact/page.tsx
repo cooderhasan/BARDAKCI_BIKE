@@ -123,7 +123,7 @@ export default async function ContactPage() {
                                     <div>
                                         <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-0.5">Adres</p>
                                         <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                                            {storeSettings.address || "Horozluhan Mah. Ayça Sk. No:62 Selçuklu / KONYA"}
+                                            {storeSettings.address || "Yazır Mahallesi Şafak Cad. No:32B Selçuklu / Konya"}
                                         </p>
                                     </div>
                                 </div>
