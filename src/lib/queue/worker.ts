@@ -78,7 +78,7 @@ export async function setupRepeatableJobs() {
     // Her saat başı memnuniyet/yorum talep e-postalarını gönder (teslimat + 24 saat)
     await queue.add("review-email-send", {}, {
         repeat: {
-            pattern: '0 * * * *' // Every hour at :00
+            pattern: '0 10,18 * * *' // Günde 2 kez: 10:00 ve 18:00
         },
         jobId: 'review-email-send-cron'
     });
