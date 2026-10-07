@@ -74,6 +74,15 @@ export async function setupRepeatableJobs() {
         jobId: 'pttavm-order-sync-cron'
     });
     console.log("⏰ ePttAVM Order Sync Cron (15m) registered.");
+
+    // Her saat başı memnuniyet/yorum talep e-postalarını gönder (teslimat + 24 saat)
+    await queue.add("review-email-send", {}, {
+        repeat: {
+            pattern: '0 * * * *' // Every hour at :00
+        },
+        jobId: 'review-email-send-cron'
+    });
+    console.log("⏰ Review/Satisfaction Email Cron (1h) registered.");
 }
 
 export function initializeWorker() {
@@ -140,6 +149,14 @@ export function initializeWorker() {
                     const { syncOrdersFromPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
                     const result = await syncOrdersFromPttavm();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    return;
+                }
+
+                if (job.name === "review-email-send") {
+                    console.log("📧 Otomatik Memnuniyet/Yorum E-postası gönderimi başlatıldı...");
+                    const { processDueReviewEmails } = await import("@/app/admin/(protected)/orders/actions");
+                    const result = await processDueReviewEmails();
+                    console.log(`✅ Review Email Sonucu: ${result.message || JSON.stringify(result)}`);
                     return;
                 }
 
