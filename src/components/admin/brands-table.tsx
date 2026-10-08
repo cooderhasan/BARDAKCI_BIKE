@@ -259,6 +259,15 @@ export function BrandsTable({ brands }: BrandsTableProps) {
     const [hbBrandId, setHbBrandId] = useState<string | undefined>(undefined);
     const [idefixBrandId, setIdefixBrandId] = useState<number | undefined>(undefined);
     const [pazaramaBrandId, setPazaramaBrandId] = useState<string | undefined>(undefined);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [storeFilter, setStoreFilter] = useState<"ALL" | "BIKE" | "MOTOR" | "BOTH">("ALL");
+
+    // Türkçe karakterlerde (İ/ı) doğru eşleşme için tr locale kullanılıyor
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase("tr");
+    const filteredBrands = brands.filter((brand) => {
+        if (storeFilter !== "ALL" && brand.store !== storeFilter) return false;
+        return brand.name.toLocaleLowerCase("tr").includes(normalizedQuery);
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -333,7 +342,40 @@ export function BrandsTable({ brands }: BrandsTableProps) {
 
     return (
         <>
-            <div className="flex justify-end mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                        className="pl-9 pr-9"
+                        placeholder="Marka adı ile ara..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus
+                    />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
+                <select
+                    className="h-10 px-3 rounded-md border bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={storeFilter}
+                    onChange={(e) => setStoreFilter(e.target.value as typeof storeFilter)}
+                >
+                    <option value="ALL">Tüm Mağazalar</option>
+                    <option value="BIKE">🚲 Bisiklet</option>
+                    <option value="MOTOR">🏍️ Motor</option>
+                    <option value="BOTH">🌐 Ortak</option>
+                </select>
+                <span className="text-sm text-gray-500 whitespace-nowrap">
+                    {filteredBrands.length} / {brands.length} marka
+                </span>
+                <div className="sm:ml-auto">
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
                     <DialogTrigger asChild>
                         <Button onClick={openNewDialog}>
@@ -434,6 +476,7 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                         </form>
                     </DialogContent>
                 </Dialog>
+                </div>
             </div>
 
             <div className="rounded-lg border bg-white dark:bg-gray-800">
@@ -449,14 +492,14 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {brands.length === 0 ? (
+                        {filteredBrands.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                                    Henüz marka bulunmuyor.
+                                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                    {brands.length === 0 ? "Henüz marka bulunmuyor." : "Aramanızla eşleşen marka bulunamadı."}
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            brands.map((brand) => (
+                            filteredBrands.map((brand) => (
                                 <TableRow key={brand.id}>
                                     <TableCell>
                                         {brand.logoUrl ? (
