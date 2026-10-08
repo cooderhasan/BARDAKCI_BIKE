@@ -148,6 +148,10 @@ export async function syncProductsToCiceksepeti(
       return { success: false, error: "Aktif Çiçeksepeti yapılandırması bulunamadı." };
     }
 
+    // Kritik stok varsayılanı (ürünün kendi kritik stoğu yoksa); tanımsız olduğu için senkron her çalıştığında hata veriyordu
+    const generalSettings = await getSiteSettings("general");
+    const defaultCritical = Number((generalSettings as any)?.defaultCriticalStock || 10);
+
     const client = new CiceksepetiClient({
       apiKey: config.apiKey,
       supplierId: config.supplierId,
@@ -594,12 +598,23 @@ export async function getCiceksepetiProducts({
   }
 }
 
+/** Kapatınca Çiçeksepeti'ye stok 0, açınca güncel fiyat/stok gönderir (arka planda) */
+export async function syncCiceksepetiSaleState(productId: string, isOpen: boolean) {
+  if (isOpen) {
+    syncProductsToCiceksepeti([productId], "prices").catch(console.error);
+  } else {
+    const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
+    pushZeroStockToMarketplaces([productId], ["ciceksepeti"]).catch(console.error);
+  }
+}
+
 export async function toggleCiceksepetiProductStatus(productId: string, isCiceksepetiActive: boolean) {
   try {
     await prisma.product.update({
       where: { id: productId },
       data: { isCiceksepetiActive },
     });
+    await syncCiceksepetiSaleState(productId, isCiceksepetiActive);
     revalidatePath("/admin/integrations/ciceksepeti/products");
     revalidatePath("/admin/products");
     return { success: true };

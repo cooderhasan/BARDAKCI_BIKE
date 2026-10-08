@@ -516,6 +516,23 @@ export async function updateProduct(productId: string, formData: FormData) {
         // type: "prices" kullanarak hızlı fiyat+stok güncelleme API'sini çağırıyoruz
         // (type: "products" yeni ürün oluşturma modudur, fiyat güncellemesi için YANLIŞ!)
         try {
+            // Formda kapatılan pazaryerleri (veya ürün pasif yapıldıysa önceden açık olan hepsi) satıştan çekilir.
+            // Normal senkronlar kapalı ürünü atladığı için bu yapılmazsa ürün pazaryerinde satışta kalıyordu.
+            const marketplaceFlags = {
+                trendyol: "isTrendyolActive", hepsiburada: "isHepsiburadaActive", pazarama: "isPazaramaActive",
+                idefix: "isIdefixActive", pttavm: "isPttavmActive", ciceksepeti: "isCiceksepetiActive",
+            } as const;
+            const closedMarketplaces = (Object.keys(marketplaceFlags) as (keyof typeof marketplaceFlags)[]).filter((m) => {
+                const flag = marketplaceFlags[m];
+                const wasOpen = (oldProduct as any)?.isActive && (oldProduct as any)?.[flag];
+                const isOpen = (validatedData as any).isActive !== false && (validatedData as any)[flag];
+                return wasOpen && !isOpen;
+            });
+            if (closedMarketplaces.length > 0) {
+                const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
+                pushZeroStockToMarketplaces([productId], closedMarketplaces).catch(console.error);
+            }
+
             // Doğrudan senkronizasyon fonksiyonlarını çağır (arka planda, kullanıcıyı bekletmeden)
             if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId], "prices").catch(console.error);
             // N11 kapatıldıysa da çağrılır ki ürün N11'de satıştan çekilsin
@@ -592,7 +609,27 @@ export async function toggleProductStatus(productId: string, isActive: boolean) 
         data: { isActive },
     });
 
+    // Ürün sitede pasif yapılınca tüm pazaryerlerinde satıştan çekilir, aktif yapılınca stoklar geri gönderilir
+    await syncAllMarketplacesForProduct(productId, isActive).catch((e) => console.error("Pazaryeri durum senkron hatası:", e));
+
     revalidatePath("/admin/products");
+}
+
+const ALL_MARKETPLACES = ["trendyol", "n11", "hepsiburada", "pazarama", "idefix", "pttavm", "ciceksepeti"] as const;
+
+async function syncAllMarketplacesForProduct(productId: string, isActive: boolean) {
+    const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+    if (!isActive) {
+        const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
+        pushZeroStockToMarketplaces([productId], [...ALL_MARKETPLACES]).catch(console.error);
+    } else {
+        for (const marketplace of ALL_MARKETPLACES) {
+            if (marketplace === "n11") continue;
+            await addMarketplaceSyncJob({ marketplace, type: "stocks", productIds: [productId] }).catch(console.error);
+        }
+    }
+    // N11'de ayrıca Suspended/Active durumu gönderilir
+    await addMarketplaceSyncJob({ marketplace: "n11", type: "status", productIds: [productId] }).catch(console.error);
 }
 
 export async function toggleTrendyolStatus(productId: string, isTrendyolActive: boolean) {
@@ -605,6 +642,12 @@ export async function toggleTrendyolStatus(productId: string, isTrendyolActive: 
         where: { id: productId },
         data: { isTrendyolActive },
     });
+
+    // Kapatılan ürün Trendyol senkron sorgusuna girmediği için stok=0 doğrudan gönderilir
+    if (!isTrendyolActive) {
+        const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
+        pushZeroStockToMarketplaces([productId], ["trendyol"]).catch(console.error);
+    }
 
     // --- OTOMATİK PAZARYERİ SENKRONİZASYONU ---
     // Trendyol durumu değiştiğinde (kapatılmış olabilir), hemen kuyruğa at
@@ -629,6 +672,9 @@ export async function toggleCiceksepetiStatus(productId: string, isCiceksepetiAc
         where: { id: productId },
         data: { isCiceksepetiActive },
     });
+
+    const { syncCiceksepetiSaleState } = await import("@/app/admin/(protected)/integrations/ciceksepeti/actions");
+    await syncCiceksepetiSaleState(productId, isCiceksepetiActive);
 
     revalidatePath("/admin/products");
     return { success: true };

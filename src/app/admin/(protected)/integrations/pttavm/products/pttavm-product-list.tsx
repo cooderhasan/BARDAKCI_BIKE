@@ -220,7 +220,7 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
 
     startTransition(async () => {
       const loadingToast = toast.loading(`${selectedIds.length} ürün için ePttAVM stok/fiyat güncelleniyor...`);
-      const res = await syncPttavmStockAndPrice(selectedIds);
+      const res = await syncPttavmStockAndPrice(selectedIds, { activate: true });
       toast.dismiss(loadingToast);
 
       if (res.success) {

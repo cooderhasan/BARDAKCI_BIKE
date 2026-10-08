@@ -200,7 +200,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
 
     try {
       if (sendType === "quick") {
-        const res = await syncProductsToIdefix([selectedProduct.id]);
+        const res = await syncProductsToIdefix([selectedProduct.id], { activate: true });
         if (res.success) {
           toast.success(res.message);
           setModalOpen(false);
@@ -273,7 +273,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
   const handleSingleSync = async (productId: string) => {
     setLoadingProductId(productId);
     try {
-      const res = await syncProductsToIdefix([productId]);
+      const res = await syncProductsToIdefix([productId], { activate: true });
       if (res.success) {
         toast.success(res.message);
       } else {

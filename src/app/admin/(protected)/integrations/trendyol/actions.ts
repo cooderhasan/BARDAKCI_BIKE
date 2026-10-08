@@ -549,7 +549,8 @@ export async function syncOrdersFromTrendyol() {
 
             if (resolvedItems.length > 0) {
                 // Use $transaction to atomically create the order AND decrement stock
-                await prisma.$transaction(async (tx) => {
+                // Transaction stok düşülen ürün ID'lerini döner; diğer pazaryerlerine stok senkronu bunlarla tetiklenir
+                const affectedProductIds: string[] = await prisma.$transaction(async (tx) => {
                     // 1. Create the order
                     await tx.order.create({
                         data: {

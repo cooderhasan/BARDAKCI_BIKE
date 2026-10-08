@@ -256,6 +256,31 @@ export async function pushZeroStockToAllMarketplaces(productIds: string[]): Prom
     }
 }
 
+export type MarketplaceKey = "trendyol" | "n11" | "hepsiburada" | "pazarama" | "idefix" | "pttavm" | "ciceksepeti";
+
+/**
+ * Ürün bir pazaryerinde (veya sitede tamamen) kapatıldığında o pazaryerlerine stok=0 gönderir.
+ * Kritik stok fonksiyonlarından farkı: ürünün aktif/pazaryerinde açık olma şartı aranmaz,
+ * çünkü kapatma işleminden sonra bu bayraklar zaten false olur.
+ */
+export async function pushZeroStockToMarketplaces(productIds: string[], marketplaces: MarketplaceKey[]): Promise<void> {
+    if (productIds.length === 0 || marketplaces.length === 0) return;
+    const pushers: Record<MarketplaceKey, (ids: string[], includeClosed: boolean) => Promise<void>> = {
+        trendyol: pushZeroStockToTrendyol,
+        n11: pushZeroStockToN11,
+        hepsiburada: pushZeroStockToHepsiburada,
+        pazarama: pushZeroStockToPazarama,
+        idefix: pushZeroStockToIdefix,
+        pttavm: pushZeroStockToPttavm,
+        ciceksepeti: pushZeroStockToCiceksepeti,
+    };
+    const results = await Promise.allSettled(marketplaces.map((m) => pushers[m](productIds, true)));
+    results.forEach((r, i) => {
+        if (r.status === "rejected") console.error(`❌ [Satıştan Çekme] ${marketplaces[i]} stok=0 hatası:`, r.reason?.message || r.reason);
+        else console.log(`✅ [Satıştan Çekme] ${marketplaces[i]} stok=0 gönderildi`);
+    });
+}
+
 /**
  * Sipariş geldiğinde çağrılacak ana fonksiyon.
  * 1. Etkilenen ürünlerin stok seviyesini kontrol eder
@@ -325,7 +350,7 @@ export async function handlePostOrderStockSync(
 /**
  * Trendyol'a doğrudan stok=0 gönderir
  */
-async function pushZeroStockToTrendyol(productIds: string[]): Promise<void> {
+async function pushZeroStockToTrendyol(productIds: string[], includeClosed = false): Promise<void> {
     const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
     if (!config) return;
 
@@ -338,7 +363,9 @@ async function pushZeroStockToTrendyol(productIds: string[]): Promise<void> {
 
     // Ürünlerin barkodlarını çek (varyantlar dahil)
     const products = await prisma.product.findMany({
-        where: {
+        where: includeClosed
+        ? { id: { in: productIds } }
+        : {
             id: { in: productIds },
             isActive: true,
             isTrendyolActive: true,
@@ -371,7 +398,7 @@ async function pushZeroStockToTrendyol(productIds: string[]): Promise<void> {
 /**
  * N11'e doğrudan stok=0 gönderir
  */
-async function pushZeroStockToN11(productIds: string[]): Promise<void> {
+async function pushZeroStockToN11(productIds: string[], includeClosed = false): Promise<void> {
     const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
     if (!config) return;
 
@@ -382,7 +409,9 @@ async function pushZeroStockToN11(productIds: string[]): Promise<void> {
     });
 
     const products = await prisma.product.findMany({
-        where: {
+        where: includeClosed
+        ? { id: { in: productIds } }
+        : {
             id: { in: productIds },
             isActive: true,
             isN11Active: true,
@@ -431,7 +460,7 @@ async function pushZeroStockToN11(productIds: string[]): Promise<void> {
 /**
  * Hepsiburada'ya doğrudan stok=0 gönderir
  */
-async function pushZeroStockToHepsiburada(productIds: string[]): Promise<void> {
+async function pushZeroStockToHepsiburada(productIds: string[], includeClosed = false): Promise<void> {
     const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
     if (!config) return;
 
@@ -444,7 +473,9 @@ async function pushZeroStockToHepsiburada(productIds: string[]): Promise<void> {
     });
 
     const products = await prisma.product.findMany({
-        where: {
+        where: includeClosed
+        ? { id: { in: productIds } }
+        : {
             id: { in: productIds },
             isActive: true,
         },
@@ -524,7 +555,7 @@ async function pushZeroStockToHepsiburada(productIds: string[]): Promise<void> {
 /**
  * Pazarama'ya doğrudan stok=0 gönderir
  */
-async function pushZeroStockToPazarama(productIds: string[]): Promise<void> {
+async function pushZeroStockToPazarama(productIds: string[], includeClosed = false): Promise<void> {
     const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
     if (!config) return;
 
@@ -532,7 +563,9 @@ async function pushZeroStockToPazarama(productIds: string[]): Promise<void> {
     const client = new PazaramaClient(config);
 
     const products = await prisma.product.findMany({
-        where: {
+        where: includeClosed
+        ? { id: { in: productIds } }
+        : {
             id: { in: productIds },
             isActive: true,
             isPazaramaActive: true,
@@ -585,7 +618,7 @@ async function pushZeroStockToPazarama(productIds: string[]): Promise<void> {
 /**
  * Idefix'e doğrudan stok=0 gönderir
  */
-async function pushZeroStockToIdefix(productIds: string[]): Promise<void> {
+async function pushZeroStockToIdefix(productIds: string[], includeClosed = false): Promise<void> {
     const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
     if (!config) return;
 
@@ -598,7 +631,9 @@ async function pushZeroStockToIdefix(productIds: string[]): Promise<void> {
     });
 
     const products = await prisma.product.findMany({
-        where: {
+        where: includeClosed
+        ? { id: { in: productIds } }
+        : {
             id: { in: productIds },
             isActive: true,
             isIdefixActive: true,
@@ -640,7 +675,7 @@ async function pushZeroStockToIdefix(productIds: string[]): Promise<void> {
 /**
  * ePttAVM'ye doğrudan stok=0 gönderir
  */
-async function pushZeroStockToPttavm(productIds: string[]): Promise<void> {
+async function pushZeroStockToPttavm(productIds: string[], includeClosed = false): Promise<void> {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) return;
 
@@ -653,7 +688,9 @@ async function pushZeroStockToPttavm(productIds: string[]): Promise<void> {
     });
 
     const products = await prisma.product.findMany({
-        where: {
+        where: includeClosed
+        ? { id: { in: productIds } }
+        : {
             id: { in: productIds },
             isActive: true,
             isPttavmActive: true,
@@ -713,7 +750,7 @@ async function pushZeroStockToPttavm(productIds: string[]): Promise<void> {
 /**
  * Çiçeksepeti'ye doğrudan stok=0 gönderir
  */
-async function pushZeroStockToCiceksepeti(productIds: string[]): Promise<void> {
+async function pushZeroStockToCiceksepeti(productIds: string[], includeClosed = false): Promise<void> {
     const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
     if (!config) return;
 
@@ -727,7 +764,9 @@ async function pushZeroStockToCiceksepeti(productIds: string[]): Promise<void> {
     });
 
     const products = await prisma.product.findMany({
-        where: {
+        where: includeClosed
+        ? { id: { in: productIds } }
+        : {
             id: { in: productIds },
             isActive: true,
             isCiceksepetiActive: true,

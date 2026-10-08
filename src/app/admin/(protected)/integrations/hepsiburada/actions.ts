@@ -469,7 +469,8 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                 const taxOffice = invoiceInfo.taxOffice || "";
 
                 // Use $transaction to atomically create order AND decrement stock
-                await prisma.$transaction(async (tx) => {
+                // Transaction stok düşülen ürün ID'lerini döner; diğer pazaryerlerine stok senkronu bunlarla tetiklenir
+                const affectedProductIds: string[] = await prisma.$transaction(async (tx) => {
                     await tx.order.create({
                         data: {
                             orderNumber: orderNumber,
@@ -538,13 +539,14 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
 
-        const whereClause: any = {
-            isActive: true
-        };
+        // Belirli ürünler için çağrıldığında pasif/HB'de kapalı ürünler de alınır ki HB'ye stok 0 gitsin
+        // (aksi halde kapatılan ürün HB'de satışta kalıyor, sipariş sonrası senkron onu tekrar açıyordu)
+        const whereClause: any = {};
 
         if (productIds && productIds.length > 0) {
             whereClause.id = { in: productIds };
         } else {
+            whereClause.isActive = true;
             whereClause.isHepsiburadaActive = true;
         }
 
@@ -622,6 +624,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
         for (const p of products) {
             const basePrice = Number((p as any).hepsiburadaPrice) || Number(p.listPrice);
             const criticalStock = p.criticalStock ?? defaultCritical;
+            const isSellableOnHb = p.isActive && (p as any).isHepsiburadaActive;
 
             // HB merchantSku: önce hepsiburadaProduct.merchantSku, sonra product.sku/barcode
             const hbMerchantSku = (p as any).hepsiburadaProduct?.merchantSku || p.sku || p.barcode || '';
@@ -639,7 +642,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     }
 
                     const varPrice = basePrice + Number(v.priceAdjustment || 0);
-                    const availableStock = Math.max(0, v.stock - criticalStock);
+                    const availableStock = isSellableOnHb ? Math.max(0, v.stock - criticalStock) : 0;
 
                     const hbItem = {
                         hepsiburadaSku,
@@ -661,7 +664,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     continue;
                 }
 
-                const availableStock = Math.max(0, p.stock - criticalStock);
+                const availableStock = isSellableOnHb ? Math.max(0, p.stock - criticalStock) : 0;
                 
                 const hbItem = {
                     hepsiburadaSku,

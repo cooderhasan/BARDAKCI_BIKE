@@ -230,7 +230,7 @@ export async function enqueueIdefixSync() {
  * - Yeni urunler: fast-listing (katalogda olanlar icin) ile dene
  * productIds bos ise tum aktif urunler islenir.
  */
-export async function syncProductsToIdefix(productIds?: string[]): Promise<{
+export async function syncProductsToIdefix(productIds?: string[], options: { activate?: boolean } = {}): Promise<{
   success: boolean;
   message: string;
   synced?: number;
@@ -255,11 +255,16 @@ export async function syncProductsToIdefix(productIds?: string[]): Promise<{
     const where: any = { isActive: true };
     if (isSingleSync) {
       where.id = { in: productIds };
-      // Otomatik isIdefixActive aktiflestir
-      await prisma.product.updateMany({
-        where: { id: { in: productIds } },
-        data: { isIdefixActive: true },
-      });
+      if (options.activate) {
+        // Idefix ürün sayfasından bilinçli gönderimde ürün Idefix'te açılır
+        await prisma.product.updateMany({
+          where: { id: { in: productIds } },
+          data: { isIdefixActive: true },
+        });
+      } else {
+        // Sipariş sonrası stok senkronu kapatılmış ürünü tekrar açmamalı
+        where.isIdefixActive = true;
+      }
     } else {
       // Toplu gonderimde tum aktif urunlerin isIdefixActive alanini true yap
       await prisma.product.updateMany({
@@ -1028,6 +1033,9 @@ export async function toggleIdefixProductActive(productId: string, isActive: boo
       where: { id: productId },
       data: { isIdefixActive: isActive },
     });
+    const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
+    if (isActive) syncProductsToIdefix([productId]).catch(console.error);
+    else pushZeroStockToMarketplaces([productId], ["idefix"]).catch(console.error);
     try {
       revalidatePath("/admin/integrations/idefix/products");
     } catch {}

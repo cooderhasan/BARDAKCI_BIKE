@@ -530,6 +530,8 @@ export async function togglePazaramaProductActive(productId: string, currentStat
       where: { id: productId },
       data: { isPazaramaActive: !currentState },
     });
+    // Kapatınca stok 0, açınca güncel stok Pazarama'ya gider
+    syncPazaramaStockAndPrice([productId]).catch(console.error);
 
     revalidatePath("/admin/integrations/pazarama/products");
     return { success: true };
@@ -683,7 +685,9 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
       if (listPrice < salePrice) listPrice = salePrice;
 
       const criticalStock = p.criticalStock ?? 0;
-      const effectiveStock = p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
+      // Pazarama'da kapalı veya sitede pasif ürün 0 stokla gider; aksi halde sipariş sonrası senkron onu tekrar satışa açıyordu
+      const isSellable = p.isActive && p.isPazaramaActive;
+      const effectiveStock = !isSellable || p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
 
       if (p.barcode) {
         items.push({ code: p.barcode, stock: effectiveStock, price: salePrice, listPrice });

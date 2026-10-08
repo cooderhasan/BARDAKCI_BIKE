@@ -91,7 +91,7 @@ function sanitizeVatRate(rawVat?: number | null): number {
 
 // ==================== STOK VE FİYAT SENKRONİZASYONU ====================
 
-export async function syncPttavmStockAndPrice(productIds?: string[]) {
+export async function syncPttavmStockAndPrice(productIds?: string[], options: { activate?: boolean } = {}) {
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -108,10 +108,16 @@ export async function syncPttavmStockAndPrice(productIds?: string[]) {
     const where: any = { isActive: true };
     if (productIds && productIds.length > 0) {
       where.id = { in: productIds };
-      await prisma.product.updateMany({
-        where: { id: { in: productIds } },
-        data: { isPttavmActive: true },
-      });
+      if (options.activate) {
+        // ePttAVM ürün sayfasından bilinçli gönderimde ürün ePttAVM'de açılır
+        await prisma.product.updateMany({
+          where: { id: { in: productIds } },
+          data: { isPttavmActive: true },
+        });
+      } else {
+        // Sipariş sonrası stok senkronu kapatılmış ürünü tekrar açmamalı
+        where.isPttavmActive = true;
+      }
     } else {
       where.isPttavmActive = true;
     }
