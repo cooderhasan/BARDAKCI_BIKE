@@ -518,7 +518,8 @@ export async function updateProduct(productId: string, formData: FormData) {
         try {
             // Doğrudan senkronizasyon fonksiyonlarını çağır (arka planda, kullanıcıyı bekletmeden)
             if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId], "prices").catch(console.error);
-            if (validatedData.isN11Active) syncProductsToN11([productId]).catch(console.error);
+            // N11 kapatıldıysa da çağrılır ki ürün N11'de satıştan çekilsin
+            if (validatedData.isN11Active || (oldProduct as any)?.isN11Active) syncProductsToN11([productId], { syncSaleStatus: true }).catch(console.error);
             if (validatedData.isHepsiburadaActive) syncProductsToHepsiburada([productId]).catch(console.error);
             if (validatedData.isPazaramaActive) {
                 const { syncPazaramaStockAndPrice } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
@@ -648,7 +649,7 @@ export async function toggleN11Status(productId: string, isN11Active: boolean) {
     // N11 durumu değiştiğinde (kapatılmış olabilir), hemen kuyruğa at
     try {
         const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-        await addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds: [productId] });
+        await addMarketplaceSyncJob({ marketplace: "n11", type: "status", productIds: [productId] });
     } catch (e) {
         console.error("Marketplace sync queue error:", e);
     }

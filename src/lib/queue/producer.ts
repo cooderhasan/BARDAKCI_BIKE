@@ -15,7 +15,7 @@ function getQueue() {
 
 export interface SyncJobData {
     marketplace: "trendyol" | "n11" | "hepsiburada" | "idefix" | "pazarama" | "pttavm" | "ciceksepeti";
-    type: "products" | "prices" | "stocks";
+    type: "products" | "prices" | "stocks" | "status"; // status: pazaryerinde satışa aç/kapat
     productIds?: string[]; // If empty, sync all applicable
 }
 

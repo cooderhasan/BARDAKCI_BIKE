@@ -122,9 +122,12 @@ export function initializeWorker() {
 
                 if (job.name === "n11-order-sync") {
                     console.log("🔄 Otomatik N11 Sipariş Senkronizasyonu başlatıldı...");
-                    const { syncOrdersFromN11 } = await import("@/app/admin/(protected)/integrations/n11/actions");
+                    const { syncOrdersFromN11, resolvePendingN11Tasks } = await import("@/app/admin/(protected)/integrations/n11/actions");
                     const result = await syncOrdersFromN11();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    // Kuyrukta kalan ürün gönderimlerinin sonucunu al (sarı ünlem kalmasın)
+                    const taskResult = await resolvePendingN11Tasks().catch((e) => ({ checked: 0, error: e.message }));
+                    console.log(`✅ N11 bekleyen görev kontrolü:`, taskResult);
                     return;
                 }
 
@@ -165,14 +168,15 @@ export function initializeWorker() {
                     const trendyolConfig = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
                     if (trendyolConfig) {
                         const { syncProductsToTrendyol } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
-                        const result = await syncProductsToTrendyol(job.data.productIds, job.data.type);
+                        // "status" tipi şimdilik sadece N11 için; Trendyol'da stok/fiyat güncellemesi olarak işlenir
+                        const result = await syncProductsToTrendyol(job.data.productIds, job.data.type === "status" ? "stocks" : job.data.type);
                         if (!result.success) throw new Error(result.message);
                         console.log(`✅ Tamamlandı: Trendyol Sync - ${result.message}`);
                     }
                 } else if (job.data.marketplace === "n11") {
                     const n11Config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
                     if (n11Config) {
-                        const result = await syncProductsToN11(job.data.productIds);
+                        const result = await syncProductsToN11(job.data.productIds, { syncSaleStatus: job.data.type === "status" });
                         if (!result.success) throw new Error(result.message);
                         console.log(`✅ Tamamlandı: N11 Sync - ${result.message}`);
                     }

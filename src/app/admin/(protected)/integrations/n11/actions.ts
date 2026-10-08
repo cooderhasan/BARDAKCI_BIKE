@@ -86,7 +86,7 @@ export async function enqueueN11Sync() {
     }
 }
 
-export async function syncProductsToN11(productIds?: string[]) {
+export async function syncProductsToN11(productIds?: string[], options: { syncSaleStatus?: boolean } = {}) {
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -106,12 +106,23 @@ export async function syncProductsToN11(productIds?: string[]) {
             include: { variants: true, categories: true, n11Product: true }
         });
 
-        if (products.length === 0) return { success: false, message: "Ürün bulunamadı." };
-
         const client = new N11Client({
             apiKey: config.apiKey,
             apiSecret: config.apiSecret
         });
+
+        // Aç/kapat ve ürün düzenlemede N11'deki satış durumu da eşitlenir (siparişlerdeki stok senkronunda gereksiz istek atılmaz).
+        // Kapatılan ürünler yukarıdaki sorguya hiç girmediği için ayrıca satıştan çekilir; aksi halde N11'de satışta kalıyordu.
+        let statusMessage = "";
+        if (options.syncSaleStatus && productIds && productIds.length > 0) {
+            statusMessage = await syncN11SaleStatus(client, productIds);
+        }
+
+        if (products.length === 0) {
+            return statusMessage
+                ? { success: true, message: statusMessage }
+                : { success: false, message: "Ürün bulunamadı." };
+        }
 
         let successCount = 0;
         let failCount = 0;
@@ -176,12 +187,60 @@ export async function syncProductsToN11(productIds?: string[]) {
             }
         }
 
-        return { success: true, message: `N11 Senkronizasyonu Tamamlandı. ${successCount} varyant/ürün güncellendi.` };
+        if (failCount > 0) {
+            return { success: false, message: `N11 fiyat/stok güncellemesi: ${successCount} başarılı, ${failCount} hatalı. ${statusMessage}`.trim() };
+        }
+        return { success: true, message: `N11 Senkronizasyonu Tamamlandı. ${successCount} varyant/ürün güncellendi. ${statusMessage}`.trim() };
 
     } catch (error: any) {
         console.error("N11 Sync Error:", error);
         return { success: false, message: "Sync Hatası: " + error.message };
     }
+}
+
+function getN11StockCodes(p: any): string[] {
+    if (p.variants?.length > 0) {
+        return p.variants.map((v: any) => v.sku || v.barcode).filter(Boolean);
+    }
+    const code = p.n11Product?.sellerCode || p.sku || p.barcode;
+    return code ? [code] : [];
+}
+
+/**
+ * N11'e daha önce gönderilmiş ürünlerin satış durumunu sitedeki duruma eşitler:
+ * sitede N11'i kapalı veya ürünü pasif olanlar N11'de "Suspended" + stok 0 yapılır, açık olanlar "Active" yapılır.
+ */
+async function syncN11SaleStatus(client: N11Client, productIds: string[]): Promise<string> {
+    const products = await prisma.product.findMany({
+        where: { id: { in: productIds }, n11Product: { isNot: null } },
+        select: {
+            id: true, sku: true, barcode: true, vatRate: true, isActive: true, isN11Active: true,
+            n11Product: { select: { sellerCode: true } },
+            variants: { select: { sku: true, barcode: true } },
+        },
+    });
+
+    const toSuspend: { stockCode: string; vatRate: number }[] = [];
+    const toActivate: { stockCode: string; vatRate: number }[] = [];
+    for (const p of products) {
+        const target = p.isActive && p.isN11Active ? toActivate : toSuspend;
+        for (const stockCode of getN11StockCodes(p)) {
+            target.push({ stockCode, vatRate: p.vatRate ?? 20 });
+        }
+    }
+
+    const messages: string[] = [];
+    if (toSuspend.length > 0) {
+        // Stok 0 ayrıca gönderilir: durum güncellemesi reddedilse bile ürün satılamaz hale gelsin
+        await client.updateStockAndPrice(toSuspend.map((s) => ({ stockCode: s.stockCode, quantity: 0 })));
+        const res = await client.updateProductStatus(toSuspend.map((s) => ({ ...s, status: "Suspended" as const })));
+        messages.push(res.success ? `${toSuspend.length} ürün N11'de satıştan çekildi.` : `N11 satıştan çekme hatası: ${res.message}`);
+    }
+    if (toActivate.length > 0) {
+        const res = await client.updateProductStatus(toActivate.map((s) => ({ ...s, status: "Active" as const })));
+        if (!res.success) messages.push(`N11 satışa açma hatası: ${res.message}`);
+    }
+    return messages.join(" ");
 }
 
 export async function syncOrdersFromN11() {
@@ -662,10 +721,12 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
 
         if (result.success && result.taskId) {
             // Get or create N11 product record
+            // Stok/fiyat senkronu bu kodu kullandığı için gönderilen stockCode kaydedilir
+            const sentStockCode = payload.stockCode;
             const n11Product = await (prisma as any).n11Product.upsert({
                 where: { productId: product.id },
-                update: {},
-                create: { productId: product.id, isSynced: false }
+                update: { sellerCode: sentStockCode },
+                create: { productId: product.id, isSynced: false, sellerCode: sentStockCode }
             });
 
             // Create Task record
@@ -687,7 +748,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
             } catch (pollError: any) {
                 console.error(`N11 Task Polling Error [${result.taskId}]:`, pollError.message);
                 // Task is created but polling failed - leave it as PENDING for background sync
-                return { success: true, message: `Ürün N11 kuyruğuna alındı. Takip No: ${result.taskId}. Durum senkronizasyon ile güncellenecek.` };
+                return { success: true, synced: false, message: `Ürün N11 kuyruğuna alındı. Takip No: ${result.taskId}. Onaylanınca durum otomatik güncellenecek.` };
             }
             
             if (taskRes.success && taskRes.data) {
@@ -696,8 +757,8 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                 
                 let n11Status = "PENDING";
                 const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED", "DONE"];
-                const failedStates = ["FAILED", "ERROR", "REJECTED", "FAIL", "CANCELLED"];
-                const processingStates = ["IN_PROGRESS", "PROCESSING", "WORKING", "RUNNING"];
+                const failedStates = ["FAILED", "ERROR", "REJECT", "REJECTED", "FAIL", "CANCELLED"];
+                const processingStates = ["IN_PROGRESS", "IN_QUEUE", "PROCESSING", "WORKING", "RUNNING"];
 
                 if (successStates.includes(rawStatus)) {
                     n11Status = "COMPLETED";
@@ -736,7 +797,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                         where: { id: n11Product.id },
                         data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
                     });
-                    return { success: true, message: "Ürün N11'e başarıyla yüklendi." };
+                    return { success: true, synced: true, message: "Ürün N11'e başarıyla yüklendi." };
                 } else if (n11Status === "FAILED") {
                     await (prisma as any).n11Product.update({
                         where: { id: n11Product.id },
@@ -744,11 +805,11 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                     });
                     return { success: false, message: "N11 İşleme Hatası: " + detailedError };
                 } else {
-                    return { success: true, message: `Ürün N11 kuyruğuna alındı (Durum: ${n11Status}). Takip No: ${result.taskId}.` };
+                    return { success: true, synced: false, message: `Ürün N11 kuyruğuna alındı (Durum: ${n11Status}). Takip No: ${result.taskId}. Onaylanınca durum otomatik güncellenecek.` };
                 }
             }
             
-            return { success: true, message: "Ürün N11 kuyruğuna iletildi. Sonuç için birazdan senkronizasyon yapabilirsiniz." };
+            return { success: true, synced: false, message: "Ürün N11 kuyruğuna iletildi. Onaylanınca durum otomatik güncellenecek." };
         } else {
             return { success: false, message: "N11 İletim Hatası: " + result.message };
         }
@@ -764,135 +825,132 @@ export async function getN11Tasks() {
         throw new Error("Unauthorized");
     }
 
-    // Get tasks from DB
-    const tasks = await (prisma as any).n11Task.findMany({
-        include: {
-            n11Product: {
-                include: {
-                    product: {
-                        select: { name: true, sku: true, id: true }
-                    }
-                }
-            }
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50
-    });
+    const taskInclude = {
+        n11Product: { include: { product: { select: { name: true, sku: true, id: true } } } }
+    };
+    const tasks = await (prisma as any).n11Task.findMany({ include: taskInclude, orderBy: { createdAt: "desc" }, take: 50 });
 
-    // Check if any task is still PENDING and try to update it from N11
     const pendingTasks = tasks.filter((t: any) => t.status === "PENDING" || t.status === "IN_PROGRESS");
-    
-    if (pendingTasks.length > 0) {
-        const { N11Client } = await import("@/services/n11/api");
-        const client = new N11Client();
-        await client.init(); // CRITICAL: Initialize with credentials
+    if (pendingTasks.length === 0) return tasks;
 
-        for (const task of pendingTasks) {
-            try {
-                // Add a small delay between requests to avoid overloading N11 server
-                await new Promise(resolve => setTimeout(resolve, 500));
+    await resolvePendingN11Tasks(pendingTasks);
+    return await (prisma as any).n11Task.findMany({ include: taskInclude, orderBy: { createdAt: "desc" }, take: 50 });
+}
 
-                const res = await client.getTaskDetails(task.taskId);
-                if (res.success && res.data) {
-                    const rawStatus = String(res.data.status || res.data.state || res.data.result || "").toUpperCase();
-                    
-                    // Normalize status
-                    let n11Status = "PENDING";
-                    const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED", "DONE"];
-                    const failedStates = ["FAILED", "ERROR", "REJECTED", "FAIL", "CANCELLED"];
-                    const processingStates = ["IN_PROGRESS", "PROCESSING", "WORKING", "RUNNING"];
-
-                    if (successStates.includes(rawStatus)) {
-                        n11Status = "COMPLETED";
-                    } else if (failedStates.includes(rawStatus)) {
-                        n11Status = "FAILED";
-                    } else if (processingStates.includes(rawStatus)) {
-                        n11Status = "IN_PROGRESS";
-                    }
-
-                    // Check individual items for detailed status/errors
-                    const items = res.data.items || res.data.skus?.content || res.data.content || [];
-                    let detailedError = null;
-
-                    if (items.length > 0) {
-                        const anyItemFailed = items.some((item: any) => 
-                            failedStates.includes(String(item.status || "").toUpperCase())
-                        );
-                        const allItemsSuccess = items.every((item: any) => 
-                            successStates.includes(String(item.status || "").toUpperCase())
-                        );
-
-                        if (anyItemFailed) {
-                            n11Status = "FAILED";
-                            const firstFail = items.find((item: any) => failedStates.includes(String(item.status || "").toUpperCase()));
-                            detailedError = firstFail?.reasons ? (Array.isArray(firstFail.reasons) ? firstFail.reasons.join(", ") : String(firstFail.reasons)) : (firstFail?.errorDescription || firstFail?.errorMessage || "Ürün hatası");
-                        } else if (allItemsSuccess) {
-                            n11Status = "COMPLETED";
-                        }
-                    }
-
-                    if (n11Status !== task.status || detailedError) {
-                        await (prisma as any).n11Task.update({
-                            where: { id: task.id },
-                            data: { 
-                                status: n11Status,
-                                errorMessage: detailedError || (n11Status === "PENDING" ? `N11 Durumu: ${rawStatus}` : null)
-                            }
-                        });
-
-                        // If completed, update product status too
-                        if (n11Status === "COMPLETED") {
-                            await (prisma as any).n11Product.update({
-                                where: { id: task.n11ProductId },
-                                data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
-                            });
-                        }
-                    }
-                } else if (!res.success) {
-                    // Plan B: Check if product exists via SOAP using sellerCode
-                    // This is useful when REST polling is down but product was actually created
-                    const sku = task.n11Product?.sellerCode || task.n11Product?.product?.sku || task.n11Product?.product?.id;
-                    if (sku) {
-                        console.log(`Polling failed for ${task.taskId}, trying Plan B (SOAP) for SKU: ${sku}`);
-                        const soapRes = await client.getProductBySellerCode(sku);
-                        if (soapRes.success && soapRes.exists) {
-                            console.log(`Product ${sku} found via SOAP fallback! Marking task ${task.taskId} as COMPLETED.`);
-                            await (prisma as any).n11Task.update({
-                                where: { id: task.id },
-                                data: { status: "COMPLETED", errorMessage: null }
-                            });
-                            await (prisma as any).n11Product.update({
-                                where: { id: task.n11ProductId },
-                                data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
-                            });
-                        }
-                    }
-                }
-            } catch (e: any) {
-                console.error(`Task poll error for ${task.taskId}:`, e);
-                await (prisma as any).n11Task.update({
-                    where: { id: task.id },
-                    data: { errorMessage: `Sistem Hatası: ${e.message}` }
-                });
-            }
-        }
-
-        return await (prisma as any).n11Task.findMany({
-            include: {
-                n11Product: {
-                    include: {
-                        product: {
-                            select: { name: true }
-                        }
-                    }
-                }
+/**
+ * Sonucu henüz alınmamış N11 görevlerini (ürün gönderimi) sorgular; tamamlananların ürününü "senkron" işaretler.
+ * N11 ürün oluşturmayı kuyrukta işlediği için gönderimden hemen sonra sonuç gelmeyebilir; bu fonksiyon
+ * hem Görev Geçmişi ekranından hem de 15 dakikalık N11 cron'undan çağrılır.
+ */
+export async function resolvePendingN11Tasks(pendingTasks?: any[]) {
+    if (!pendingTasks) {
+        pendingTasks = await (prisma as any).n11Task.findMany({
+            where: {
+                status: { in: ["PENDING", "IN_PROGRESS"] },
+                createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
             },
+            include: { n11Product: { include: { product: { select: { name: true, sku: true, id: true } } } } },
             orderBy: { createdAt: "desc" },
-            take: 50
+            take: 50,
         });
     }
+    if (!pendingTasks || pendingTasks.length === 0) return { checked: 0 };
 
-    return tasks;
+    const { N11Client } = await import("@/services/n11/api");
+    const client = new N11Client();
+    await client.init(); // CRITICAL: Initialize with credentials
+
+    for (const task of pendingTasks) {
+        try {
+            // Add a small delay between requests to avoid overloading N11 server
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const res = await client.getTaskDetails(task.taskId);
+            if (res.success && res.data) {
+                const rawStatus = String(res.data.status || res.data.state || res.data.result || "").toUpperCase();
+                
+                // Normalize status
+                let n11Status = "PENDING";
+                const successStates = ["COMPLETED", "SUCCESS", "FINISHED", "PROCESSED", "DONE"];
+                const failedStates = ["FAILED", "ERROR", "REJECT", "REJECTED", "FAIL", "CANCELLED"];
+                const processingStates = ["IN_PROGRESS", "IN_QUEUE", "PROCESSING", "WORKING", "RUNNING"];
+
+                if (successStates.includes(rawStatus)) {
+                    n11Status = "COMPLETED";
+                } else if (failedStates.includes(rawStatus)) {
+                    n11Status = "FAILED";
+                } else if (processingStates.includes(rawStatus)) {
+                    n11Status = "IN_PROGRESS";
+                }
+
+                // Check individual items for detailed status/errors
+                const items = res.data.items || res.data.skus?.content || res.data.content || [];
+                let detailedError = null;
+
+                if (items.length > 0) {
+                    const anyItemFailed = items.some((item: any) => 
+                        failedStates.includes(String(item.status || "").toUpperCase())
+                    );
+                    const allItemsSuccess = items.every((item: any) => 
+                        successStates.includes(String(item.status || "").toUpperCase())
+                    );
+
+                    if (anyItemFailed) {
+                        n11Status = "FAILED";
+                        const firstFail = items.find((item: any) => failedStates.includes(String(item.status || "").toUpperCase()));
+                        detailedError = firstFail?.reasons ? (Array.isArray(firstFail.reasons) ? firstFail.reasons.join(", ") : String(firstFail.reasons)) : (firstFail?.errorDescription || firstFail?.errorMessage || "Ürün hatası");
+                    } else if (allItemsSuccess) {
+                        n11Status = "COMPLETED";
+                    }
+                }
+
+                if (n11Status !== task.status || detailedError) {
+                    await (prisma as any).n11Task.update({
+                        where: { id: task.id },
+                        data: { 
+                            status: n11Status,
+                            errorMessage: detailedError || (n11Status === "PENDING" ? `N11 Durumu: ${rawStatus}` : null)
+                        }
+                    });
+
+                    // If completed, update product status too
+                    if (n11Status === "COMPLETED") {
+                        await (prisma as any).n11Product.update({
+                            where: { id: task.n11ProductId },
+                            data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
+                        });
+                    }
+                }
+            } else if (!res.success) {
+                // Plan B: Check if product exists via SOAP using sellerCode
+                // This is useful when REST polling is down but product was actually created
+                const sku = task.n11Product?.sellerCode || task.n11Product?.product?.sku || task.n11Product?.product?.id;
+                if (sku) {
+                    console.log(`Polling failed for ${task.taskId}, trying Plan B (SOAP) for SKU: ${sku}`);
+                    const soapRes = await client.getProductBySellerCode(sku);
+                    if (soapRes.success && soapRes.exists) {
+                        console.log(`Product ${sku} found via SOAP fallback! Marking task ${task.taskId} as COMPLETED.`);
+                        await (prisma as any).n11Task.update({
+                            where: { id: task.id },
+                            data: { status: "COMPLETED", errorMessage: null }
+                        });
+                        await (prisma as any).n11Product.update({
+                            where: { id: task.n11ProductId },
+                            data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
+                        });
+                    }
+                }
+            }
+        } catch (e: any) {
+            console.error(`Task poll error for ${task.taskId}:`, e);
+            await (prisma as any).n11Task.update({
+                where: { id: task.id },
+                data: { errorMessage: `Sistem Hatası: ${e.message}` }
+            });
+        }
+    }
+
+    return { checked: pendingTasks.length };
 }
 
 export async function autoMatchN11ProductsAction() {
@@ -1261,5 +1319,61 @@ export async function setBulkN11ProductCategory(productIds: string[], n11Categor
     } catch (error: any) {
         console.error("setBulkN11ProductCategory error:", error);
         return { success: false, message: "Hata: " + error.message };
+    }
+}
+
+/**
+ * Ürünü stok koduyla N11'de sorgular. N11'de bulunursa kaydı "senkron" yapar ve N11'deki satış/stok durumunu döner.
+ * Görev takibi kaçmış (eski gönderim, kuyrukta kalmış) ürünlerin durumunu düzeltmek için kullanılır.
+ */
+export async function verifyN11Product(productId: string) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        return { success: false, synced: false, message: "Yetkisiz işlem." };
+    }
+
+    try {
+        const product = await prisma.product.findUnique({
+            where: { id: productId },
+            select: {
+                id: true, sku: true, barcode: true,
+                n11Product: { select: { id: true, sellerCode: true } },
+                variants: { select: { sku: true, barcode: true } },
+            },
+        });
+        if (!product) return { success: false, synced: false, message: "Ürün bulunamadı." };
+
+        const stockCode = getN11StockCodes(product)[0] || product.id;
+        const client = new N11Client();
+        const res = await client.getProductByStockCode(stockCode);
+        if (!res.success) return { success: false, synced: false, message: `N11 sorgu hatası: ${res.message}` };
+
+        if (!res.product) {
+            await (prisma as any).n11Product.updateMany({
+                where: { productId },
+                data: { isSynced: false, lastSyncError: `N11'de "${stockCode}" stok koduyla ürün bulunamadı.` },
+            });
+            return { success: true, synced: false, message: `N11'de "${stockCode}" stok koduyla ürün bulunamadı. Ürünü N11'e gönderebilirsiniz.` };
+        }
+
+        const n11 = res.product;
+        await (prisma as any).n11Product.upsert({
+            where: { productId },
+            update: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null, n11Id: String(n11.n11ProductId ?? ""), sellerCode: stockCode },
+            create: { productId, isSynced: true, lastSyncedAt: new Date(), n11Id: String(n11.n11ProductId ?? ""), sellerCode: stockCode },
+        });
+
+        const saleStatusLabels: Record<string, string> = {
+            On_Sale: "Satışta", Out_Of_Stock: "Stokta yok", Sale_Closed: "Satışa kapalı", Before_Sale: "Satış öncesi (onay bekliyor)",
+        };
+        const saleStatus = saleStatusLabels[n11.saleStatus] || n11.saleStatus || "-";
+        return {
+            success: true,
+            synced: true,
+            message: `N11'de bulundu. Durum: ${saleStatus}, Stok: ${n11.quantity ?? "-"}, Fiyat: ${n11.salePrice ?? "-"} TL`,
+        };
+    } catch (error: any) {
+        console.error("verifyN11Product error:", error);
+        return { success: false, synced: false, message: "Hata: " + error.message };
     }
 }

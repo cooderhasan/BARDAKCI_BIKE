@@ -310,6 +310,39 @@ export class N11Client {
         }
     }
 
+    /**
+     * Ürünü N11'de satışa açar/kapatır.
+     * Official Doc: POST https://api.n11.com/ms/product/tasks/product-update (status: Active | Suspended)
+     */
+    async updateProductStatus(skus: { stockCode: string; status: "Active" | "Suspended"; vatRate: number }[]) {
+        try {
+            const payload = {
+                payload: {
+                    integrator: this.creds?.integratorName || "Motovitrin",
+                    skus,
+                }
+            };
+            const data = await this.callRest("/ms/product/tasks/product-update", "POST", payload);
+            return { success: true, taskId: data.id };
+        } catch (error: any) {
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Satıcı stok koduyla N11'deki ürünü sorgular (yoksa null).
+     * Official Doc: GET https://api.n11.com/ms/product-query?stockCode=
+     */
+    async getProductByStockCode(stockCode: string) {
+        try {
+            const data = await this.callRest(`/ms/product-query?stockCode=${encodeURIComponent(stockCode)}`);
+            const product = Array.isArray(data?.content) ? data.content[0] : null;
+            return { success: true, product: product ?? null };
+        } catch (error: any) {
+            return { success: false, message: error.message, product: null };
+        }
+    }
+
     async saveProduct(product: any) {
         try {
             // Official Doc: POST https://api.n11.com/ms/product/tasks/product-create
