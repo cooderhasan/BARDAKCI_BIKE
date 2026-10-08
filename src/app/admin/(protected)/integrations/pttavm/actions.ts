@@ -886,28 +886,43 @@ export async function togglePttavmProductActive(productId: string, currentState:
       data: { isPttavmActive: newState },
     });
 
-    // Notify live ePttAVM API if active config exists
-    try {
-      const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
-      if (config) {
-        const pttProduct = await (prisma as any).pttavmProduct.findFirst({ where: { productId } });
-        const product = await prisma.product.findUnique({ where: { id: productId }, select: { barcode: true, sku: true } });
-        const pttavmId = pttProduct?.pttavmId || product?.barcode || product?.sku || productId;
+    // Barkod tabanlı stok/fiyat servisi normal senkronda çalıştığı için asıl kapatma/açma onunla yapılır.
+    // Önceden sadece /products/{id}/status çağrılıyordu; kayıtta ePttAVM ürün ID'si yoksa barkod gönderilip
+    // istek başarısız oluyor, hata sessizce yutulup ekranda "kapatıldı" gösteriliyordu.
+    const errors: string[] = [];
+    if (newState) {
+      const res = await syncPttavmStockAndPrice([productId]);
+      if (!res.success) errors.push(res.message);
+    } else {
+      // Doküman: POST /api/v1/products/stock-prices barkodla "active" ve "quantity" günceller
+      const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
+      const { failed } = await pushZeroStockToMarketplaces([productId], ["pttavm"]);
+      errors.push(...failed.map((f) => f.message));
+    }
 
-        const client = new PttavmClient({
-          apiKey: config.apiKey,
-          accessToken: config.accessToken,
-          profitMargin: config.profitMargin || 0,
-          isTestMode: Boolean(config.isTestMode),
-        });
-
-        await client.updateProductStatus(pttavmId, newState);
+    // ePttAVM ürün ID'si biliniyorsa durum servisi de çağrılır (ek güvence)
+    const pttProduct = await (prisma as any).pttavmProduct.findFirst({ where: { productId } });
+    if (pttProduct?.pttavmId) {
+      try {
+        const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+        if (config) {
+          const client = new PttavmClient({
+            apiKey: config.apiKey,
+            accessToken: config.accessToken,
+            profitMargin: config.profitMargin || 0,
+            isTestMode: Boolean(config.isTestMode),
+          });
+          await client.updateProductStatus(pttProduct.pttavmId, newState);
+        }
+      } catch (err: any) {
+        console.warn("ePttAVM API updateProductStatus warning:", err.message);
       }
-    } catch (err: any) {
-      console.warn("ePttAVM API updateProductStatus warning:", err.message);
     }
 
     revalidatePath("/admin/integrations/pttavm/products");
+    if (errors.length > 0) {
+      return { success: false, error: "ePttAVM'ye iletilemedi: " + errors.join("; ") };
+    }
     return { success: true };
   } catch (error: any) {
     return { success: false, error: "Güncelleme başarısız: " + error.message };

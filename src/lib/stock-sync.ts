@@ -263,8 +263,8 @@ export type MarketplaceKey = "trendyol" | "n11" | "hepsiburada" | "pazarama" | "
  * Kritik stok fonksiyonlarından farkı: ürünün aktif/pazaryerinde açık olma şartı aranmaz,
  * çünkü kapatma işleminden sonra bu bayraklar zaten false olur.
  */
-export async function pushZeroStockToMarketplaces(productIds: string[], marketplaces: MarketplaceKey[]): Promise<void> {
-    if (productIds.length === 0 || marketplaces.length === 0) return;
+export async function pushZeroStockToMarketplaces(productIds: string[], marketplaces: MarketplaceKey[]): Promise<{ failed: { marketplace: MarketplaceKey; message: string }[] }> {
+    if (productIds.length === 0 || marketplaces.length === 0) return { failed: [] };
     const pushers: Record<MarketplaceKey, (ids: string[], includeClosed: boolean) => Promise<void>> = {
         trendyol: pushZeroStockToTrendyol,
         n11: pushZeroStockToN11,
@@ -275,10 +275,17 @@ export async function pushZeroStockToMarketplaces(productIds: string[], marketpl
         ciceksepeti: pushZeroStockToCiceksepeti,
     };
     const results = await Promise.allSettled(marketplaces.map((m) => pushers[m](productIds, true)));
+    const failed: { marketplace: MarketplaceKey; message: string }[] = [];
     results.forEach((r, i) => {
-        if (r.status === "rejected") console.error(`❌ [Satıştan Çekme] ${marketplaces[i]} stok=0 hatası:`, r.reason?.message || r.reason);
-        else console.log(`✅ [Satıştan Çekme] ${marketplaces[i]} stok=0 gönderildi`);
+        if (r.status === "rejected") {
+            const message = r.reason?.message || String(r.reason);
+            failed.push({ marketplace: marketplaces[i], message });
+            console.error(`❌ [Satıştan Çekme] ${marketplaces[i]} stok=0 hatası:`, message);
+        } else {
+            console.log(`✅ [Satıştan Çekme] ${marketplaces[i]} stok=0 gönderildi`);
+        }
     });
+    return { failed };
 }
 
 /**
@@ -744,7 +751,10 @@ async function pushZeroStockToPttavm(productIds: string[], includeClosed = false
 
     if (items.length === 0) return;
 
-    await client.updateStockAndPrice(items);
+    const result = await client.updateStockAndPrice(items);
+    if (result && result.success === false) {
+        throw new Error(`ePttAVM stok=0 hatası: ${result.message || "Bilinmeyen"}`);
+    }
 }
 
 /**
