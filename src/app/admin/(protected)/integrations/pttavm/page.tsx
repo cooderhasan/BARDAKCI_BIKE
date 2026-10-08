@@ -1,4 +1,5 @@
 import { getPttavmConfig } from "./actions";
+import Link from "next/link";
 import { PttavmSettingsForm } from "./pttavm-settings-form";
 import { PttavmOrderSyncButton } from "./pttavm-order-sync-button";
 import { ExternalLink, Store, Box } from "lucide-react";
@@ -67,12 +68,12 @@ export default async function PttavmIntegrationPage() {
             </ul>
 
             <div className="pt-2 space-y-2">
-              <a href="/admin/integrations/pttavm/products">
+              <Link href="/admin/integrations/pttavm/products">
                 <Button className="w-full bg-[#00A896] hover:bg-[#00897B] text-white gap-2 shadow-lg shadow-teal-500/20">
                   <Box className="w-4 h-4" />
                   ePttAVM Ürünlerini Yönet
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
 

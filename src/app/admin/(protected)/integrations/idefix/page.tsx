@@ -1,5 +1,6 @@
 
 import { getIdefixConfig } from "./actions";
+import Link from "next/link";
 import { IdefixSettingsForm } from "./idefix-settings-form";
 import { IdefixSyncButton, IdefixTrackingPanel } from "./idefix-sync-button";
 import { Box, ExternalLink } from "lucide-react";
@@ -66,12 +67,12 @@ export default async function IdefixIntegrationPage() {
               <li>Barkodlu varyantlar zorunludur</li>
             </ul>
 
-            <a href="/admin/integrations/idefix/products">
+            <Link href="/admin/integrations/idefix/products">
               <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white gap-2 shadow-lg shadow-purple-500/20">
                 <Box className="w-4 h-4" />
                 Idefix Ürünlerini Yönet
               </Button>
-            </a>
+            </Link>
           </div>
 
           {/* Durum Kartı */}

@@ -1,5 +1,6 @@
 
 import { getHepsiburadaConfig } from "./actions";
+import Link from "next/link";
 import { HepsiburadaSettingsForm } from "./hepsiburada-settings-form";
 import { HepsiburadaSyncButton } from "./hepsiburada-sync-button";
 import { HepsiburadaTestOrderButton } from "./hepsiburada-test-order-button";
@@ -31,12 +32,12 @@ export default async function HepsiburadaIntegrationPage() {
                             <li>Stok ve Fiyat Eşitleme (Anlık)</li>
                         </ul>
 
-                        <a href="/admin/integrations/hepsiburada/products">
+                        <Link href="/admin/integrations/hepsiburada/products">
                             <Button className="w-full bg-[#17457C] hover:bg-[#0f3460] text-white gap-2 shadow-lg shadow-blue-500/20">
                                 <Box className="w-4 h-4" />
                                 HB Ürünlerini Yönet
                             </Button>
-                        </a>
+                        </Link>
                     </div>
 
                     <HepsiburadaSyncButton />

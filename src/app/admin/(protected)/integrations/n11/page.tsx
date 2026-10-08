@@ -1,5 +1,6 @@
 
 import { getN11Config } from "./actions";
+import Link from "next/link";
 import { N11SettingsForm } from "./n11-settings-form";
 import { N11SyncButton } from "./n11-sync-button";
 import { Box } from "lucide-react";
@@ -30,12 +31,12 @@ export default async function N11IntegrationPage() {
                             <li>Stok ve Fiyat Eşitleme (Otomatik)</li>
                         </ul>
 
-                        <a href="/admin/integrations/n11/products">
+                        <Link href="/admin/integrations/n11/products">
                             <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white gap-2 shadow-lg shadow-purple-500/20">
                                 <Box className="w-4 h-4" />
                                 N11 Ürünlerini Yönet
                             </Button>
-                        </a>
+                        </Link>
                     </div>
 
                     <N11SyncButton />

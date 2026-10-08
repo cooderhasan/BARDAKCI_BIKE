@@ -45,11 +45,36 @@ const notificationIcons: Record<string, React.ReactNode> = {
     "bank-transfer": <Landmark className="h-4 w-4 text-amber-600" />,
 };
 
+type SeenCounts = { orders: number; transfers: number };
+const SEEN_COUNTS_KEY = "admin-notification-seen-counts";
+// Yazar kasa "ka-çing" sesi; projede üretilip barındırılıyor (dış siteye bağımlılık yok)
+const NEW_ORDER_SOUND_URL = "/sounds/new-order.wav";
+
+function readSeenCounts(): SeenCounts | null {
+    try {
+        const raw = localStorage.getItem(SEEN_COUNTS_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return { orders: Number(parsed.orders) || 0, transfers: Number(parsed.transfers) || 0 };
+    } catch {
+        return null;
+    }
+}
+
+function writeSeenCounts(counts: SeenCounts) {
+    try {
+        localStorage.setItem(SEEN_COUNTS_KEY, JSON.stringify(counts));
+    } catch {
+        // Gizli sekme vb. durumlarda depolama yoksa ses mantığı oturum içi sayaçla çalışmaya devam eder
+    }
+}
+
 export function AdminHeader({ user }: AdminHeaderProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
-    const prevCounts = useRef<{ orders: number; transfers: number }>({ orders: 0, transfers: 0 });
+    const prevCounts = useRef<SeenCounts>({ orders: 0, transfers: 0 });
+    const hasCheckedCounts = useRef(false);
 
     useEffect(() => {
         async function fetchNotifications() {
@@ -77,26 +102,24 @@ export function AdminHeader({ user }: AdminHeaderProps) {
     useEffect(() => {
         if (loading) return;
 
-        const orderNotification = notifications.find(n => n.id === "orders");
-        const transferNotification = notifications.find(n => n.id === "bank-transfers");
+        const current = {
+            orders: notifications.find(n => n.id === "orders")?.count || 0,
+            transfers: notifications.find(n => n.id === "bank-transfers")?.count || 0,
+        };
 
-        const currentOrderCount = orderNotification?.count || 0;
-        const currentTransferCount = transferNotification?.count || 0;
+        // Son görülen sayılar tarayıcıda saklanır: sayfa yenilenince / yeni sekmede sayaç 0'dan
+        // başlayıp bekleyen siparişleri "yeni" sanmasın, birden fazla sekme aynı siparişe tekrar ötmesin.
+        // Hiç kayıt yoksa (ilk açılış) karşılaştıracak değer yok, ses çalınmaz
+        const previous = readSeenCounts() ?? (hasCheckedCounts.current ? prevCounts.current : null);
+        hasCheckedCounts.current = true;
 
-        // Sayı arttıysa ses çal
-        if (
-            (currentOrderCount > prevCounts.current.orders) ||
-            (currentTransferCount > prevCounts.current.transfers)
-        ) {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+        if (previous && (current.orders > previous.orders || current.transfers > previous.transfers)) {
+            const audio = new Audio(NEW_ORDER_SOUND_URL);
             audio.play().catch(e => console.log("Ses çalma hatası (Tarayıcı izni gerekiyor olabilir):", e));
         }
 
-        // Mevcut sayıları referans olarak kaydet
-        prevCounts.current = {
-            orders: currentOrderCount,
-            transfers: currentTransferCount
-        };
+        prevCounts.current = current;
+        writeSeenCounts(current);
     }, [notifications, loading]);
 
     const initials = user?.companyName
