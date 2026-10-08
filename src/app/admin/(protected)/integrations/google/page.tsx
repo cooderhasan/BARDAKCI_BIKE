@@ -193,16 +193,16 @@ export default function GoogleMerchantPage() {
         <p className="text-sm text-gray-500 mb-3">
           Bu URL'yi Google Merchant Center'da <strong>Ürünler → Veri Kaynakları → Ekle → Zamanlanmış Getirme</strong> bölümüne ekleyin.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             type="text"
             value={feedUrl}
             readOnly
-            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono text-gray-700 focus:outline-none"
+            className="w-full sm:w-auto sm:flex-1 min-w-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono text-gray-700 focus:outline-none"
           />
           <button
             onClick={copyFeedUrl}
-            className="px-4 py-2 bg-[#17457C] hover:bg-[#0f3460] text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex-1 sm:flex-none px-4 py-2 bg-[#17457C] hover:bg-[#0f3460] text-white text-sm font-medium rounded-lg transition-colors"
           >
             {copied ? "✓ Kopyalandı" : "Kopyala"}
           </button>
@@ -210,7 +210,7 @@ export default function GoogleMerchantPage() {
             href={feedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+            className="flex-1 sm:flex-none text-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
           >
             Önizle →
           </a>

@@ -60,7 +60,7 @@ export default function ReportsPage() {
                 </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {reports.map((report) => (
                     <Link key={report.href} href={report.href}>
                         <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">

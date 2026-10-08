@@ -193,7 +193,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
                     <CardTitle>Müşteri Bilgileri</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div>
                             <Label className="text-gray-500">Firma</Label>
                             <p className="font-medium">{quote.user.companyName || "-"}</p>
@@ -284,7 +284,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
             </Card>
 
             {/* Pricing & Notes */}
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle>Fiyatlandırma</CardTitle>

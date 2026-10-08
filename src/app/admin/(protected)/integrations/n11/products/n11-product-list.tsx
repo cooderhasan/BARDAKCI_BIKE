@@ -320,7 +320,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                     />
                 ) : null}
 
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-2 sm:gap-3">
                     <Button
                         variant="outline"
                         onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}

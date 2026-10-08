@@ -189,7 +189,7 @@ function N11AutoMatchButton() {
     };
 
     return (
-        <Button onClick={handleAutoMatch} disabled={loading} variant="secondary" className="w-full bg-purple-100 hover:bg-purple-200 text-purple-900 font-medium">
+        <Button onClick={handleAutoMatch} disabled={loading} variant="secondary" className="w-full h-auto min-h-9 py-2 whitespace-normal text-center bg-purple-100 hover:bg-purple-200 text-purple-900 font-medium">
             {loading ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

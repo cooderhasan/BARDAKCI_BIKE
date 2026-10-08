@@ -54,7 +54,7 @@ export function PolicyEditor({ policy, isNew = false }: { policy?: Policy, isNew
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-800 p-6 rounded-lg border">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                     <Label htmlFor="title">Başlık</Label>
                     <Input

@@ -26,7 +26,7 @@ export default async function TrendyolIntegrationPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Trendyol Entegrasyonu</h1>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                     <TrendyolSettingsForm initialData={config} options={options} />
                 </div>

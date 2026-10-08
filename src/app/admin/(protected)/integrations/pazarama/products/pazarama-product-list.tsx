@@ -720,7 +720,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
               </select>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <Button
                 size="sm"
                 variant={filterActive === "ALL" ? "default" : "outline"}

@@ -79,7 +79,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={handleSaveBike} className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="bikeTitle">Site Başlığı (Sekme İsimlendirmesi)</Label>
                     <Input
@@ -178,7 +178,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
                 </div>
 
                 {/* LOGO & VISUALS */}
-                <div className="grid gap-6 md:grid-cols-3 pt-4 border-t">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3 pt-4 border-t">
                   <div className="space-y-2">
                     <Label>Site Logosu (Açık Tema)</Label>
                     <ImageUpload
@@ -229,7 +229,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={handleSaveMotor} className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="motorTitle">Site Başlığı (Sekme İsimlendirmesi)</Label>
                     <Input
@@ -328,7 +328,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
                 </div>
 
                 {/* LOGO & VISUALS */}
-                <div className="grid gap-6 md:grid-cols-3 pt-4 border-t">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3 pt-4 border-t">
                   <div className="space-y-2">
                     <Label>Motovitrin Logosu (Açık Tema)</Label>
                     <ImageUpload

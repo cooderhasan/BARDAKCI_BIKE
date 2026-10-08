@@ -92,7 +92,7 @@ export function FAQForm({ faq, isNew = false }: { faq?: FAQ; isNew?: boolean }) 
                 />
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div className="space-y-2">
                     <Label htmlFor="category">Kategori</Label>
                     <select

@@ -143,7 +143,7 @@ export default function ProductImportPage() {
                     <CardTitle className="text-lg">Kullanım Talimatları</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="flex items-start gap-3">
                             <div className="w-8 h-8 rounded-full bg-blue-100 text-[#17457C] flex items-center justify-center font-bold text-sm">1</div>
                             <div>

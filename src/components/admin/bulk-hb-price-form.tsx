@@ -103,7 +103,7 @@ export function BulkHbPriceForm({ categories, brands }: BulkHbPriceFormProps) {
     };
 
     return (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {/* Left: Configuration */}
             <div className="space-y-6">
                 <Card className="border-blue-200 dark:border-blue-900">

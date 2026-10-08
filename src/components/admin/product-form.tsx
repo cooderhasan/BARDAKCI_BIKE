@@ -500,7 +500,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             <CardTitle>Temel Bilgiler</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Ürün Adı *</Label>
                                     <Input
@@ -521,7 +521,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 </div>
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="categoryIds">Kategoriler</Label>
                                     <CategoryTreeSelect
@@ -556,7 +556,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 </div>
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="gender">Cinsiyet</Label>
                                     <Select
@@ -699,7 +699,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* Liste Fiyatı & İndirimli Fiyat - 2 sütun */}
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="listPrice">Liste Fiyatı (₺) *</Label>
                                     <Input
@@ -789,7 +789,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     );
                                 })}
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="vatRate">KDV Oranı *</Label>
                                     <Select
@@ -809,7 +809,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
 
                             <hr />
 
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
                                 <div className="space-y-2 relative">
                                     <Label htmlFor="sku">Stok Kodu (SKU)</Label>
@@ -853,7 +853,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 </div>
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <div className="space-y-2">
                                     <Label htmlFor="stock">Stok Adedi</Label>
                                     <Input
@@ -941,7 +941,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     <strong>Bilgi:</strong> Desi = (En × Boy × Yükseklik) / 3000. Kargo firmaları ağırlık ve desi değerlerinden büyük olanı baz alır.
                                 </p>
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="weight">Ağırlık (kg)</Label>
                                     <Input
@@ -971,7 +971,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
 
                             <hr />
 
-                            <div className="grid gap-4 md:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <div className="space-y-2">
                                     <Label htmlFor="width">Genişlik (cm)</Label>
                                     <Input
@@ -1062,7 +1062,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
 
-                                            <div className="grid gap-4 md:grid-cols-4">
+                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs">Renk</Label>
                                                     <Input
@@ -1097,7 +1097,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
                                                 <div className="space-y-2 relative">
                                                     <Label className="text-xs">Varyant SKU</Label>

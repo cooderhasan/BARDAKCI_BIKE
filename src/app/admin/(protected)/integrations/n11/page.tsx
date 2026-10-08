@@ -15,7 +15,7 @@ export default async function N11IntegrationPage() {
                 <h1 className="text-3xl font-bold tracking-tight">N11 Entegrasyonu</h1>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                     <N11SettingsForm initialData={config} />
                 </div>

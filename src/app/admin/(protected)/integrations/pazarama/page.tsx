@@ -40,7 +40,7 @@ export default async function PazaramaIntegrationPage() {
         </a>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
           <PazaramaSettingsForm initialData={config} />
         </div>

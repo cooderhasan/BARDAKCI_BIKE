@@ -75,7 +75,7 @@ export default async function DealerPerformanceReportPage() {
             </div>
 
             {/* Summary */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-gray-500">
@@ -125,7 +125,7 @@ export default async function DealerPerformanceReportPage() {
 
             {/* Top 3 Highlight */}
             {dealerStats.length >= 3 && (
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {dealerStats.slice(0, 3).map((dealer, index) => (
                         <Card key={dealer.userId} className={
                             index === 0 ? "border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/20" :
