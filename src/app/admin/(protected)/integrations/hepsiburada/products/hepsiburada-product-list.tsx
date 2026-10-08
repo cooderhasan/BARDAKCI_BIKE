@@ -353,7 +353,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <Button
                         variant="outline"
                         onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}

@@ -910,8 +910,8 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                             </div>
                                         )}
 
-                                        <div className="flex flex-wrap items-center justify-between gap-2 pl-7" onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex flex-col gap-1 min-w-0 w-[150px]">
+                                        <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex flex-col gap-1 min-w-0 flex-1 max-w-[180px] [&_button]:w-full">
                                                 {renderStatusSelect(order)}
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
@@ -1117,7 +1117,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="md:hidden gap-2 shrink-0 border-orange-200 text-orange-700 mr-8"
+                                    className="md:hidden gap-2 shrink-0 border-orange-200 text-orange-700 mr-12"
                                     onClick={() => window.open(`/admin/orders/${selectedOrder.id}/print`, '_blank')}
                                 >
                                     <Printer className="h-4 w-4" />

@@ -330,7 +330,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                         />
                     </div>
                 )}
-                <div className="flex items-center gap-3 ml-auto">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:ml-auto">
                     <Link href="/admin/integrations/trendyol/batches">
                         <Button 
                             variant="outline"

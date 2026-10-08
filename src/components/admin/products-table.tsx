@@ -406,7 +406,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Marka</label>
                         <Select value={brandFilter} onValueChange={setBrandFilter}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Tümü" />
                             </SelectTrigger>
                             <SelectContent>
@@ -424,7 +424,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mağaza</label>
                         <Select value={storeFilter} onValueChange={setStoreFilter}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Tümü" />
                             </SelectTrigger>
                             <SelectContent>
@@ -440,7 +440,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Stok Durumu</label>
                         <Select value={stockStatus} onValueChange={setStockStatus}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Tümü" />
                             </SelectTrigger>
                             <SelectContent>
@@ -457,7 +457,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fiyat Durumu</label>
                         <Select value={priceStatus} onValueChange={setPriceStatus}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Tümü" />
                             </SelectTrigger>
                             <SelectContent>
@@ -471,10 +471,10 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     </div>
 
                     {/* Ürün Özelliği */}
-                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
+                    <div className="col-span-2 min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ürün Özelliği</label>
                         <Select value={featureFilter} onValueChange={setFeatureFilter}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                                 <SelectValue placeholder="Tümü" />
                             </SelectTrigger>
                             <SelectContent>

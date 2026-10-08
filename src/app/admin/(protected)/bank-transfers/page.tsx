@@ -69,7 +69,7 @@ export default function BankTransfersPage() {
       </div>
 
       {/* Filtreler */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {[
           { value: "PENDING", label: "Bekleyenler" },
           { value: "CONFIRMED", label: "Onaylananlar" },
