@@ -9,7 +9,7 @@ export default async function PazaramaIntegrationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-950/40 flex items-center justify-center text-lg shadow-sm">
             🛍️
@@ -91,7 +91,7 @@ export default async function PazaramaIntegrationPage() {
                 Mevcut Entegrasyon Durumu
               </h3>
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Durum:</span>
                   <span
                     className={`font-medium px-2 py-0.5 rounded-full text-xs ${
@@ -103,7 +103,7 @@ export default async function PazaramaIntegrationPage() {
                     {config.isActive ? "✅ Aktif" : "⚪ Pasif"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Ortam:</span>
                   <span
                     className={`font-medium px-2 py-0.5 rounded-full text-xs ${
@@ -115,7 +115,7 @@ export default async function PazaramaIntegrationPage() {
                     {config.isTestMode ? "⚠️ Test Modu (Stage)" : "🚀 Canlı Ortam"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Pazarama Kâr Marjı:</span>
                   <span className="font-semibold text-pink-700">
                     %{config.profitMargin || 0}

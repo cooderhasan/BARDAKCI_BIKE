@@ -89,30 +89,30 @@ export default async function AdminDashboardPage() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 px-4 sm:px-6">
+                        <CardTitle className="text-xs sm:text-sm font-medium text-gray-500 leading-tight">
                             Toplam Ciro
                         </CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        <TrendingUp className="h-4 w-4 shrink-0 text-green-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
+                    <CardContent className="px-4 sm:px-6">
+                        <div className="text-lg sm:text-2xl font-bold break-words">
                             {formatPrice(stats.totalRevenue)}
                         </div>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 px-4 sm:px-6">
+                        <CardTitle className="text-xs sm:text-sm font-medium text-gray-500 leading-tight">
                             Toplam Sipariş
                         </CardTitle>
-                        <ShoppingCart className="h-4 w-4 text-blue-500" />
+                        <ShoppingCart className="h-4 w-4 shrink-0 text-blue-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalOrders}</div>
+                    <CardContent className="px-4 sm:px-6">
+                        <div className="text-lg sm:text-2xl font-bold break-words">{stats.totalOrders}</div>
                         <p className="text-xs text-amber-600">
                             {stats.pendingOrders} beklemede
                         </p>
@@ -120,14 +120,14 @@ export default async function AdminDashboardPage() {
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 px-4 sm:px-6">
+                        <CardTitle className="text-xs sm:text-sm font-medium text-gray-500 leading-tight">
                             Aktif Bayiler
                         </CardTitle>
-                        <Users className="h-4 w-4 text-purple-500" />
+                        <Users className="h-4 w-4 shrink-0 text-purple-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalDealers}</div>
+                    <CardContent className="px-4 sm:px-6">
+                        <div className="text-lg sm:text-2xl font-bold break-words">{stats.totalDealers}</div>
                         {stats.pendingDealers > 0 && (
                             <p className="text-xs text-amber-600">
                                 {stats.pendingDealers} onay bekliyor
@@ -137,14 +137,14 @@ export default async function AdminDashboardPage() {
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-500">
+                    <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2 px-4 sm:px-6">
+                        <CardTitle className="text-xs sm:text-sm font-medium text-gray-500 leading-tight">
                             Aktif Ürünler
                         </CardTitle>
-                        <Package className="h-4 w-4 text-orange-500" />
+                        <Package className="h-4 w-4 shrink-0 text-orange-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalProducts}</div>
+                    <CardContent className="px-4 sm:px-6">
+                        <div className="text-lg sm:text-2xl font-bold break-words">{stats.totalProducts}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -152,9 +152,9 @@ export default async function AdminDashboardPage() {
             {/* Pending Dealers Alert */}
             {stats.pendingDealers > 0 && (
                 <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
-                    <CardContent className="flex items-center justify-between py-4">
-                        <div className="flex items-center gap-3">
-                            <Clock className="h-5 w-5 text-amber-600" />
+                    <CardContent className="flex items-center justify-between gap-3 py-4 px-4 sm:px-6">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <Clock className="h-5 w-5 shrink-0 text-amber-600" />
                             <div>
                                 <p className="font-medium text-amber-800 dark:text-amber-200">
                                     {stats.pendingDealers} bayi onay bekliyor
@@ -166,7 +166,7 @@ export default async function AdminDashboardPage() {
                         </div>
                         <Link
                             href="/admin/customers?status=PENDING"
-                            className="text-sm font-medium text-amber-700 hover:text-amber-800 dark:text-amber-300"
+                            className="shrink-0 whitespace-nowrap text-sm font-medium text-amber-700 hover:text-amber-800 dark:text-amber-300"
                         >
                             Görüntüle →
                         </Link>
@@ -177,9 +177,9 @@ export default async function AdminDashboardPage() {
             {/* Low Stock Alert */}
             {stats.lowStockCount > 0 && (
                 <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-                    <CardContent className="flex items-center justify-between py-4">
-                        <div className="flex items-center gap-3">
-                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <CardContent className="flex items-center justify-between gap-3 py-4 px-4 sm:px-6">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" />
                             <div>
                                 <p className="font-medium text-red-800 dark:text-red-200">
                                     {stats.lowStockCount} üründe stok kritik seviyede!
@@ -191,7 +191,7 @@ export default async function AdminDashboardPage() {
                         </div>
                         <Link
                             href="/admin/stock-alerts"
-                            className="text-sm font-medium text-red-700 hover:text-red-800 dark:text-red-300"
+                            className="shrink-0 whitespace-nowrap text-sm font-medium text-red-700 hover:text-red-800 dark:text-red-300"
                         >
                             Görüntüle →
                         </Link>
@@ -201,16 +201,16 @@ export default async function AdminDashboardPage() {
 
             {/* Recent Orders */}
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Son Siparişler</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6">
+                    <CardTitle className="text-base sm:text-lg">Son Siparişler</CardTitle>
                     <Link
                         href="/admin/orders"
-                        className="text-sm text-[#17457C] hover:text-blue-700"
+                        className="shrink-0 whitespace-nowrap text-sm text-[#17457C] hover:text-blue-700"
                     >
                         Tümünü Gör →
                     </Link>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                     {stats.recentOrders.length === 0 ? (
                         <p className="text-center text-gray-500 py-8">
                             Henüz sipariş bulunmuyor.
@@ -221,29 +221,29 @@ export default async function AdminDashboardPage() {
                                 <Link
                                     href={`/admin/orders`}
                                     key={order.id}
-                                    className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4 last:border-0 last:pb-0 hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded-lg transition-colors cursor-pointer group"
+                                    className="flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4 last:border-0 last:pb-0 hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded-lg transition-colors cursor-pointer group"
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+                                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                                        <div className="hidden sm:flex shrink-0 w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-full items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
                                             <ShoppingCart className="h-5 w-5 text-gray-500 group-hover:text-[#17457C] dark:group-hover:text-blue-400" />
                                         </div>
-                                        <div>
-                                            <p className="font-medium text-gray-900 dark:text-white group-hover:text-[#17457C] transition-colors">
+                                        <div className="min-w-0">
+                                            <p className="font-medium text-gray-900 dark:text-white group-hover:text-[#17457C] transition-colors truncate">
                                                 {order.orderNumber}
                                             </p>
-                                            <p className="text-sm text-gray-500">
+                                            <p className="text-xs sm:text-sm text-gray-500 truncate">
                                                 {order.user?.companyName || order.user?.email || (order as any).guestEmail || "Misafir"}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-medium text-gray-900 dark:text-white">
+                                    <div className="text-right shrink-0">
+                                        <p className="font-medium text-gray-900 dark:text-white whitespace-nowrap">
                                             {formatPrice(Number(order.total))}
                                         </p>
                                         <div className="flex flex-col items-end gap-1">
                                             <Badge
                                                 variant="secondary"
-                                                className={getOrderStatusColor(order.status)}
+                                                className={`${getOrderStatusColor(order.status)} whitespace-nowrap text-[11px] sm:text-xs`}
                                             >
                                                 {getOrderStatusLabel(order.status, (order as any).payment?.method)}
                                             </Badge>

@@ -1603,7 +1603,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
         <>
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative w-72">
+                    <div className="relative w-full sm:w-72">
                         <Input
                             placeholder="Kategori Ara..."
                             value={searchTerm}
@@ -1677,7 +1677,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                     )}
 
                     <Select value={filterMissingMapping} onValueChange={(val: any) => { setFilterMissingMapping(val); setCurrentPage(1); }}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Eşleştirme Filtresi" />
                         </SelectTrigger>
                         <SelectContent>

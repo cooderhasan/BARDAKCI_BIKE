@@ -51,6 +51,8 @@ interface Product {
     isN11Active: boolean;
     isHepsiburadaActive?: boolean;
     isBundle?: boolean;
+    images?: string[];
+    store?: "BIKE" | "MOTOR" | "BOTH";
     categories: {
         id: string;
         name: string;
@@ -264,14 +266,109 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
         }
     };
 
+    // Masaüstü tablo ve mobil kart aynı menüyü kullanır; mobilde pazaryeri aç/kapa da menüde yer alır
+    const renderActionsMenu = (product: Product, includeMarketplaces = false) => (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" disabled={loading === product.id}>
+                    <MoreHorizontal className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                    <Link href={`/admin/products/${product.id}/edit`} prefetch={true}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Düzenle
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Görüntüle
+                    </Link>
+                </DropdownMenuItem>
+                {includeMarketplaces && (
+                    <>
+                        <DropdownMenuItem onClick={() => handleToggleTrendyolStatus(product.id, product.isTrendyolActive)}>
+                            <RefreshCw className="h-4 w-4 mr-2 text-orange-600" />
+                            {product.isTrendyolActive ? "Trendyol'da Satışa Kapat" : "Trendyol'da Satışa Aç"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleN11Status(product.id, product.isN11Active)}>
+                            <RefreshCw className="h-4 w-4 mr-2 text-[#17457C]" />
+                            {product.isN11Active ? "N11'de Satışa Kapat" : "N11'de Satışa Aç"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleHepsiburadaStatus(product.id, !!product.isHepsiburadaActive)}>
+                            <RefreshCw className="h-4 w-4 mr-2 text-red-600" />
+                            {product.isHepsiburadaActive ? "Hepsiburada'da Satışa Kapat" : "Hepsiburada'da Satışa Aç"}
+                        </DropdownMenuItem>
+                    </>
+                )}
+                {product.isHepsiburadaActive && (
+                    <DropdownMenuItem
+                        onClick={() => handleHepsiburadaSync(product.id)}
+                        disabled={hbSyncing === product.id}
+                    >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${hbSyncing === product.id ? 'animate-spin' : ''}`} />
+                        HB Fiyat/Stok Güncelle
+                    </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => handleToggleStatus(product.id, product.isActive)}>
+                    {product.isActive ? "Pasif Yap" : "Aktif Yap"}
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(product.id)}>
+                    <Trash className="h-4 w-4 mr-2" />
+                    Sil
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+
+    const featureToggles = [
+        { key: "isFeatured" as const, Icon: Star, on: "text-yellow-500 fill-yellow-500", hover: "hover:text-yellow-500", titleOn: "Öne Çıkarılanlardan Kaldır", titleOff: "Öne Çıkanlara Ekle" },
+        { key: "isNew" as const, Icon: Sparkles, on: "text-blue-500 fill-blue-500", hover: "hover:text-blue-500", titleOn: "Yeni Ürün Etiketini Kaldır", titleOff: "Yeni Ürün Olarak İşaretle" },
+        { key: "isBestSeller" as const, Icon: TrendingUp, on: "text-green-500", hover: "hover:text-green-500", titleOn: "Çok Satanlardan Kaldır", titleOff: "Çok Satanlara Ekle" },
+    ];
+
+    const featureButtons = (product: Product) =>
+        featureToggles.map(({ key, Icon, on, hover, titleOn, titleOff }) => {
+            const active = product[key];
+            const isLoading = loadingFeature === `${product.id}-${key}`;
+            return (
+                <button
+                    key={key}
+                    onClick={() => handleToggleFeature(product.id, key, active)}
+                    disabled={isLoading}
+                    className={`p-1.5 rounded hover:bg-gray-100 transition-colors flex items-center justify-center ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+                    title={active ? titleOn : titleOff}
+                >
+                    <Icon className={`h-4 w-4 transition-colors ${active ? on : `text-gray-300 ${hover}`}`} />
+                </button>
+            );
+        });
+
+    const storeBadge = (store?: Product["store"]) =>
+        store === "MOTOR" ? (
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">🏍️ Motor</span>
+        ) : store === "BOTH" ? (
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">🌐 Ortak</span>
+        ) : (
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">🚲 Bisiklet</span>
+        );
+
+    const marketplaceChip = (label: string, active: boolean | undefined, activeClass: string) => (
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${active ? activeClass : "bg-gray-100 text-gray-400 line-through"}`}>
+            {label}
+        </span>
+    );
+
     return (
         <div className="space-y-4">
             {/* Action Buttons */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm text-gray-500">
                     {pagination && `${pagination.totalCount} ürün`}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <Link href="/api/products/export">
                         <Button variant="outline" size="sm">
                             <Download className="h-4 w-4 mr-2" />
@@ -288,10 +385,10 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow border border-gray-100 dark:border-gray-800">
-                <div className="flex flex-col md:flex-row md:items-end gap-4">
+            <div className="bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-lg shadow border border-gray-100 dark:border-gray-800">
+                <div className="grid grid-cols-2 gap-3 md:flex md:flex-row md:items-end md:gap-4">
                     {/* Search */}
-                    <div className="flex-1 min-w-[200px] space-y-2">
+                    <div className="col-span-2 flex-1 md:min-w-[200px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Arama</label>
                         <div className="relative">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
@@ -306,7 +403,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     </div>
 
                     {/* Brand */}
-                    <div className="w-full md:w-[180px] space-y-2">
+                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Marka</label>
                         <Select value={brandFilter} onValueChange={setBrandFilter}>
                             <SelectTrigger>
@@ -324,7 +421,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     </div>
 
                     {/* Mağaza Filtresi */}
-                    <div className="w-full md:w-[180px] space-y-2">
+                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mağaza</label>
                         <Select value={storeFilter} onValueChange={setStoreFilter}>
                             <SelectTrigger>
@@ -340,7 +437,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     </div>
 
                     {/* Stock Status */}
-                    <div className="w-full md:w-[180px] space-y-2">
+                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Stok Durumu</label>
                         <Select value={stockStatus} onValueChange={setStockStatus}>
                             <SelectTrigger>
@@ -357,7 +454,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     </div>
 
                     {/* Price Status */}
-                    <div className="w-full md:w-[180px] space-y-2">
+                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Fiyat Durumu</label>
                         <Select value={priceStatus} onValueChange={setPriceStatus}>
                             <SelectTrigger>
@@ -374,7 +471,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     </div>
 
                     {/* Ürün Özelliği */}
-                    <div className="w-full md:w-[180px] space-y-2">
+                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Ürün Özelliği</label>
                         <Select value={featureFilter} onValueChange={setFeatureFilter}>
                             <SelectTrigger>
@@ -391,11 +488,11 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-end gap-2 md:ml-auto w-full md:w-auto pt-2 md:pt-0">
-                        <Button onClick={resetFilters} variant="ghost" className="text-gray-500 hover:text-gray-700">
+                    <div className="col-span-2 flex items-end gap-2 md:ml-auto w-full md:w-auto">
+                        <Button onClick={resetFilters} variant="ghost" className="flex-1 md:flex-none text-gray-500 hover:text-gray-700">
                             Temizle
                         </Button>
-                        <Button onClick={applyFilters} className="min-w-[100px]">
+                        <Button onClick={applyFilters} className="flex-1 md:flex-none min-w-[100px]">
                             Filtrele
                         </Button>
                     </div>
@@ -404,7 +501,68 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
 
             {/* Table */}
             <div className="rounded-lg border bg-white dark:bg-gray-800 shadow">
-                <div className="overflow-x-auto">
+                {/* Mobil: kart listesi */}
+                <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+                    {products.length === 0 ? (
+                        <p className="text-center py-8 text-gray-500">Ürün bulunamadı.</p>
+                    ) : (
+                        products.map((product) => (
+                            <div key={product.id} className="p-3 flex gap-3">
+                                <div className="shrink-0 w-16 h-16 rounded-md bg-gray-50 dark:bg-gray-900 border overflow-hidden flex items-center justify-center">
+                                    {product.images?.[0] ? (
+                                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-contain" loading="lazy" />
+                                    ) : (
+                                        <Package className="h-6 w-6 text-gray-300" />
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-1.5">
+                                    <div className="flex items-start gap-1">
+                                        <Link
+                                            href={`/admin/products/${product.id}/edit`}
+                                            className="flex-1 min-w-0 text-sm font-medium leading-snug line-clamp-2 hover:text-[#17457C]"
+                                        >
+                                            {product.name}
+                                        </Link>
+                                        <div className="-mt-1 -mr-2 shrink-0">{renderActionsMenu(product, true)}</div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+                                        {storeBadge(product.store)}
+                                        {product.isBundle && (
+                                            <span className="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                                <Package className="h-3 w-3" />
+                                                Paket
+                                            </span>
+                                        )}
+                                        {product.brand?.name && <span className="truncate max-w-[120px]">{product.brand.name}</span>}
+                                        {product.sku && <span className="font-mono truncate max-w-[140px]">{product.sku}</span>}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="font-semibold text-sm">{formatPrice(Number(product.listPrice))}</span>
+                                        <Badge variant={product.stock > 10 ? "default" : "destructive"} className="text-[11px]">
+                                            Stok: {product.stock}
+                                        </Badge>
+                                        <Badge
+                                            variant={product.isActive ? "default" : "secondary"}
+                                            className={`text-[11px] ${product.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}
+                                        >
+                                            {product.isActive ? "Aktif" : "Pasif"}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex flex-wrap gap-1">
+                                            {marketplaceChip("Trendyol", product.isTrendyolActive, "bg-orange-100 text-orange-800")}
+                                            {marketplaceChip("N11", product.isN11Active, "bg-blue-100 text-blue-800")}
+                                            {marketplaceChip("HB", product.isHepsiburadaActive, "bg-red-100 text-red-800")}
+                                        </div>
+                                        <div className="flex -mr-1.5">{featureButtons(product)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -463,61 +621,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="flex gap-2 mt-1.5 items-center">
-                                                         {/* Öne Çıkan (isFeatured) */}
-                                                         <button
-                                                             onClick={() => handleToggleFeature(product.id, "isFeatured", product.isFeatured)}
-                                                             disabled={loadingFeature === `${product.id}-isFeatured`}
-                                                             className={`p-1 rounded hover:bg-gray-100 transition-colors flex items-center justify-center ${
-                                                                 loadingFeature === `${product.id}-isFeatured` ? "opacity-50 pointer-events-none" : ""
-                                                             }`}
-                                                             title={product.isFeatured ? "Öne Çıkarılanlardan Kaldır" : "Öne Çıkanlara Ekle"}
-                                                         >
-                                                             <Star
-                                                                 className={`h-4 w-4 transition-colors ${
-                                                                     product.isFeatured
-                                                                         ? "text-yellow-500 fill-yellow-500"
-                                                                         : "text-gray-300 hover:text-yellow-500"
-                                                                 }`}
-                                                             />
-                                                         </button>
-
-                                                         {/* Yeni Ürün (isNew) */}
-                                                         <button
-                                                             onClick={() => handleToggleFeature(product.id, "isNew", product.isNew)}
-                                                             disabled={loadingFeature === `${product.id}-isNew`}
-                                                             className={`p-1 rounded hover:bg-gray-100 transition-colors flex items-center justify-center ${
-                                                                 loadingFeature === `${product.id}-isNew` ? "opacity-50 pointer-events-none" : ""
-                                                             }`}
-                                                             title={product.isNew ? "Yeni Ürün Etiketini Kaldır" : "Yeni Ürün Olarak İşaretle"}
-                                                         >
-                                                             <Sparkles
-                                                                 className={`h-4 w-4 transition-colors ${
-                                                                     product.isNew
-                                                                         ? "text-blue-500 fill-blue-500"
-                                                                         : "text-gray-300 hover:text-blue-500"
-                                                                 }`}
-                                                             />
-                                                         </button>
-
-                                                         {/* Çok Satan (isBestSeller) */}
-                                                         <button
-                                                             onClick={() => handleToggleFeature(product.id, "isBestSeller", product.isBestSeller)}
-                                                             disabled={loadingFeature === `${product.id}-isBestSeller`}
-                                                             className={`p-1 rounded hover:bg-gray-100 transition-colors flex items-center justify-center ${
-                                                                 loadingFeature === `${product.id}-isBestSeller` ? "opacity-50 pointer-events-none" : ""
-                                                             }`}
-                                                             title={product.isBestSeller ? "Çok Satanlardan Kaldır" : "Çok Satanlara Ekle"}
-                                                         >
-                                                             <TrendingUp
-                                                                 className={`h-4 w-4 transition-colors ${
-                                                                     product.isBestSeller
-                                                                         ? "text-green-500"
-                                                                         : "text-gray-300 hover:text-green-500"
-                                                                 }`}
-                                                             />
-                                                         </button>
-                                                     </div>
+                                                    <div className="flex gap-1 mt-1.5 items-center">{featureButtons(product)}</div>
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -655,58 +759,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        disabled={loading === product.id}
-                                                    >
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem asChild>
-                                                        <Link href={`/admin/products/${product.id}/edit`} prefetch={true}>
-                                                            <Edit className="h-4 w-4 mr-2" />
-                                                            Düzenle
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link 
-                                                            href={`/products/${product.slug}`} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                        >
-                                                            <ExternalLink className="h-4 w-4 mr-2" />
-                                                            Görüntüle
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    {(product as any).isHepsiburadaActive && (
-                                                         <DropdownMenuItem
-                                                             onClick={() => handleHepsiburadaSync(product.id)}
-                                                             disabled={hbSyncing === product.id}
-                                                         >
-                                                             <RefreshCw className={`h-4 w-4 mr-2 ${hbSyncing === product.id ? 'animate-spin' : ''}`} />
-                                                             HB Fiyat/Stok Güncelle
-                                                         </DropdownMenuItem>
-                                                     )}
-<DropdownMenuItem
-                                                        onClick={() =>
-                                                            handleToggleStatus(product.id, product.isActive)
-                                                        }
-                                                    >
-                                                        {product.isActive ? "Pasif Yap" : "Aktif Yap"}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className="text-red-600"
-                                                        onClick={() => handleDelete(product.id)}
-                                                    >
-                                                        <Trash className="h-4 w-4 mr-2" />
-                                                        Sil
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                            {renderActionsMenu(product)}
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -717,8 +770,8 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
 
                 {/* Pagination Controls */}
                 {pagination && pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between p-4 border-t">
-                        <div className="text-sm text-gray-500">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 border-t">
+                        <div className="text-sm text-gray-500 text-center">
                             Toplam {pagination.totalCount} ürün, Sayfa {pagination.currentPage} / {pagination.totalPages}
                         </div>
                         <div className="flex gap-2">

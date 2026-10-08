@@ -34,7 +34,7 @@ export default async function YurticiIntegrationPage() {
             </div>
 
             {/* Bilgi Kartları */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-gray-900 border rounded-lg p-4 text-center">
                     <p className="text-2xl font-bold text-orange-600">createShipment</p>
                     <p className="text-xs text-gray-500 mt-1">Gönderi Oluştur</p>

@@ -92,7 +92,7 @@ export default async function CiceksepetiIntegrationPage() {
                 Mevcut Entegrasyon Durumu
               </h3>
               <div className="space-y-2.5 text-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Aktiflik Durumu:</span>
                   <span
                     className={`font-semibold px-2.5 py-0.5 rounded-full text-xs ${
@@ -105,7 +105,7 @@ export default async function CiceksepetiIntegrationPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Çalışma Ortamı:</span>
                   <span
                     className={`font-semibold px-2.5 py-0.5 rounded-full text-xs ${
@@ -118,7 +118,7 @@ export default async function CiceksepetiIntegrationPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Ek Kâr Marjı:</span>
                   <span className="font-medium text-gray-900 dark:text-gray-100">
                     %{config.profitMargin || 0}

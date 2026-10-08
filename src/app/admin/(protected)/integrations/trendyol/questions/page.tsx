@@ -14,7 +14,7 @@ export default async function TrendyolQuestionsPage() {
 
     return (
         <div className="p-6 space-y-6 max-w-5xl mx-auto">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                     <Link href="/admin/integrations/trendyol">
                         <Button variant="ghost" size="icon" className="rounded-full">

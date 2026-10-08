@@ -9,7 +9,7 @@ export default async function PttavmIntegrationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950/40 flex items-center justify-center text-lg shadow-sm">
             📮
@@ -85,7 +85,7 @@ export default async function PttavmIntegrationPage() {
                 Mevcut Entegrasyon Durumu
               </h3>
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Durum:</span>
                   <span
                     className={`font-medium px-2 py-0.5 rounded-full text-xs ${
@@ -97,13 +97,13 @@ export default async function PttavmIntegrationPage() {
                     {config.isActive ? "Aktif" : "Pasif"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Ortam:</span>
                   <span className="font-medium">
                     {config.isTestMode ? "Test (Sandbox)" : "Canlı (Production)"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Kâr Marjı:</span>
                   <span className="font-medium">%{config.profitMargin || 0}</span>
                 </div>

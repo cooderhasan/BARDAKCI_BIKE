@@ -105,7 +105,7 @@ export default async function SalesReportPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <TrendingUp className="h-6 w-6 text-[#17457C]" />
@@ -186,7 +186,7 @@ export default async function SalesReportPage() {
             {/* Overall Stats */}
             <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                 <CardContent className="py-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <p className="text-blue-100 text-sm">Toplam Ciro</p>
                             <p className="text-4xl font-bold">{formatPrice(stats.overall.total)}</p>

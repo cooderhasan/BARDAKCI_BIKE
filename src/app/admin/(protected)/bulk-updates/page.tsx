@@ -39,7 +39,7 @@ export default async function BulkUpdatesPage() {
             </div>
 
             <Tabs defaultValue="price" className="w-full">
-                <TabsList className="grid w-full grid-cols-6 max-w-[1200px]">
+                <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 max-w-[1200px]">
                     <TabsTrigger value="price">Ana Fiyat</TabsTrigger>
                     <TabsTrigger value="trendyol">Trendyol Fiyatları</TabsTrigger>
                     <TabsTrigger value="n11">N11 Fiyatları</TabsTrigger>

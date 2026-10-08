@@ -10,7 +10,7 @@ export default async function IdefixIntegrationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-lg">
             🛒
@@ -81,7 +81,7 @@ export default async function IdefixIntegrationPage() {
                 Mevcut Durum
               </h3>
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Durum:</span>
                   <span
                     className={`font-medium px-2 py-0.5 rounded-full text-xs ${
@@ -93,7 +93,7 @@ export default async function IdefixIntegrationPage() {
                     {config.isActive ? "✅ Aktif" : "⚪ Pasif"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Ortam:</span>
                   <span
                     className={`font-medium px-2 py-0.5 rounded-full text-xs ${
@@ -105,7 +105,7 @@ export default async function IdefixIntegrationPage() {
                     {config.isTestMode ? "🧪 Test (Stage)" : "🚀 Canlı (Prod)"}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-muted-foreground">Vendor ID:</span>
                   <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
                     {config.vendorId}

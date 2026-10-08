@@ -376,7 +376,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
       ) : null}
 
       {/* Ozet */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="rounded-lg border bg-card p-4">
           <p className="text-sm text-muted-foreground">Toplam Urun</p>
           <p className="text-2xl font-bold">{pagination ? pagination.totalCount.toLocaleString("tr-TR") : products.length}</p>

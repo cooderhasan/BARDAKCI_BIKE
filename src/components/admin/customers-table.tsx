@@ -271,7 +271,7 @@ export function CustomersTable({
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="flex flex-1 gap-4 w-full md:max-w-xl">
+                <div className="flex flex-col sm:flex-row flex-1 gap-3 sm:gap-4 w-full md:max-w-xl">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
@@ -282,7 +282,7 @@ export function CustomersTable({
                         />
                     </div>
                     <Select value={currentRole} onValueChange={handleRoleChange}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px]">
                             <Filter className="mr-2 h-4 w-4 text-gray-400" />
                             <SelectValue placeholder="Üyelik Tipi" />
                         </SelectTrigger>
@@ -293,7 +293,7 @@ export function CustomersTable({
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex justify-end w-full md:w-auto">
                     <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                         <DialogTrigger asChild>
                             <Button>
@@ -619,7 +619,7 @@ export function CustomersTable({
                                 </TabsContent>
 
                                 <TabsContent value="finance" className="space-y-6 pt-4">
-                                    <div className="grid grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                                             <p className="text-sm text-gray-500 mb-1">Toplam Kredi Limiti</p>
                                             <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatPrice(selectedCustomer.creditLimit)}</p>
