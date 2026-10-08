@@ -1083,3 +1083,139 @@ export async function setBulkIdefixProductCategory(productIds: string[], idefixC
         return { success: false, message: "Hata: " + error.message };
     }
 }
+
+// ==================== MARKA ARAMA ====================
+
+type IdefixBrandResult = { id: number; title: string };
+
+async function getIdefixClient(): Promise<IdefixClient | null> {
+    const config = await (prisma as any).idefixConfig.findFirst();
+    if (!config) return null;
+    return new IdefixClient({
+        apiKey: config.apiKey,
+        apiSecret: config.apiSecret,
+        vendorId: config.vendorId,
+        isTestMode: config.isTestMode ?? false,
+    });
+}
+
+/** Idefix `title` araması birebir eşleşme istediği için yaygın yazım varyantlarını üretir */
+function buildTitleVariants(query: string): string[] {
+    const trimmed = query.trim().replace(/\s+/g, " ");
+    const titleCaseTr = trimmed
+        .toLocaleLowerCase("tr")
+        .split(" ")
+        .map((w) => w.charAt(0).toLocaleUpperCase("tr") + w.slice(1))
+        .join(" ");
+    const titleCaseEn = trimmed
+        .toLowerCase()
+        .split(" ")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    return Array.from(new Set([
+        trimmed,
+        titleCaseTr,
+        titleCaseEn,
+        trimmed.toLocaleUpperCase("tr"),
+        trimmed.toUpperCase(),
+        trimmed.toLocaleLowerCase("tr"),
+        trimmed.toLowerCase(),
+    ])).filter(Boolean);
+}
+
+/**
+ * Marka adıyla birebir eşleşen Idefix markalarını bulur (hızlı, ~0.5 sn).
+ * Farklı büyük/küçük harf yazımlarını paralel dener.
+ */
+export async function findIdefixBrandsExact(query: string): Promise<{ success: boolean; data?: IdefixBrandResult[]; message?: string }> {
+    try {
+        if (!query || query.trim().length < 2) return { success: true, data: [] };
+        const client = await getIdefixClient();
+        if (!client) return { success: false, message: "Idefix entegrasyon ayarları bulunamadı." };
+
+        const results = await Promise.all(
+            buildTitleVariants(query).map((v) => client.findBrandsByTitle(v).catch(() => []))
+        );
+        const unique = new Map<number, IdefixBrandResult>();
+        results.flat().forEach((b) => unique.set(b.id, b));
+        return { success: true, data: Array.from(unique.values()) };
+    } catch (error: any) {
+        console.error("findIdefixBrandsExact error:", error);
+        return { success: false, message: "Idefix markaları alınamadı." };
+    }
+}
+
+// Idefix'te ~150 bin marka var ve isimle kısmi arama desteklenmiyor; tüm liste
+// bir kez çekilip sunucu belleğinde tutulur. Eşzamanlı istekler aynı yüklemeyi paylaşır.
+const BRAND_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const BRAND_PAGE_SIZE = 1000;
+const BRAND_FETCH_CONCURRENCY = 8;
+const BRAND_MAX_PAGES = 400;
+
+type CachedBrand = IdefixBrandResult & { search: string };
+const brandCache = globalThis as unknown as {
+    idefixBrands?: { items: CachedBrand[]; loadedAt: number };
+    idefixBrandsLoading?: Promise<CachedBrand[]>;
+};
+
+async function loadAllIdefixBrands(client: IdefixClient): Promise<CachedBrand[]> {
+    const all: CachedBrand[] = [];
+    let nextPage = 1;
+    let finished = false;
+
+    const worker = async () => {
+        while (!finished && nextPage <= BRAND_MAX_PAGES) {
+            const page = nextPage++;
+            const items = await client.getBrandsPage(page, BRAND_PAGE_SIZE);
+            items.forEach((b) => all.push({ ...b, search: b.title.toLocaleLowerCase("tr") }));
+            if (items.length < BRAND_PAGE_SIZE) finished = true;
+        }
+    };
+    await Promise.all(Array.from({ length: BRAND_FETCH_CONCURRENCY }, worker));
+    return all;
+}
+
+async function getCachedIdefixBrands(client: IdefixClient): Promise<CachedBrand[]> {
+    const cached = brandCache.idefixBrands;
+    if (cached && Date.now() - cached.loadedAt < BRAND_CACHE_TTL_MS) return cached.items;
+
+    if (!brandCache.idefixBrandsLoading) {
+        brandCache.idefixBrandsLoading = loadAllIdefixBrands(client)
+            .then((items) => {
+                brandCache.idefixBrands = { items, loadedAt: Date.now() };
+                return items;
+            })
+            .finally(() => {
+                brandCache.idefixBrandsLoading = undefined;
+            });
+    }
+    return brandCache.idefixBrandsLoading;
+}
+
+/**
+ * Tüm Idefix marka listesinde kısmi isim araması yapar.
+ * İlk çağrıda liste indirildiği için 10-30 sn sürebilir, sonraki aramalar anlıktır.
+ */
+export async function searchIdefixBrandsDeep(query: string): Promise<{ success: boolean; data?: IdefixBrandResult[]; message?: string }> {
+    try {
+        const q = query.trim().toLocaleLowerCase("tr");
+        if (q.length < 2) return { success: true, data: [] };
+        const client = await getIdefixClient();
+        if (!client) return { success: false, message: "Idefix entegrasyon ayarları bulunamadı." };
+
+        const brands = await getCachedIdefixBrands(client);
+        const matches = brands
+            .filter((b) => b.search.includes(q))
+            // Tam eşleşme ve "ile başlayan" sonuçlar üstte
+            .sort((a, b) => {
+                const rank = (x: CachedBrand) => (x.search === q ? 0 : x.search.startsWith(q) ? 1 : 2);
+                return rank(a) - rank(b) || a.title.length - b.title.length;
+            })
+            .slice(0, 30)
+            .map(({ id, title }) => ({ id, title }));
+        return { success: true, data: matches };
+    } catch (error: any) {
+        console.error("searchIdefixBrandsDeep error:", error);
+        return { success: false, message: "Idefix marka listesi alınamadı." };
+    }
+}

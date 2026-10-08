@@ -19,7 +19,11 @@ export interface IdefixCategory {
 
 export interface IdefixBrand {
   id: number;
-  name: string;
+  title: string;
+}
+
+function toIdefixBrand(raw: any): IdefixBrand {
+  return { id: Number(raw.id), title: String(raw.title ?? "") };
 }
 
 export interface IdefixProductPayload {
@@ -180,25 +184,21 @@ export class IdefixClient {
     return this.request<any[]>("GET", url);
   }
 
-  /** Marka listesini alir */
-  async getBrands(page = 1, searchText?: string): Promise<{ items: IdefixBrand[]; totalCount: number }> {
-    let url = `${this.pimBaseUrl}/brand?page=${page}&size=100`;
-    if (searchText) url += `&name=${encodeURIComponent(searchText)}`;
+  /** Marka listesinin bir sayfasini alir (API max size=1000, duz dizi doner) */
+  async getBrandsPage(page = 1, size = 1000): Promise<IdefixBrand[]> {
+    const url = `${this.pimBaseUrl}/brand?page=${page}&size=${size}`;
     const res = await this.request<any>("GET", url);
-    if (Array.isArray(res)) return { items: res, totalCount: res.length };
-    return { items: res?.items ?? [], totalCount: res?.totalCount ?? 0 };
+    return Array.isArray(res) ? res.map(toIdefixBrand) : [];
   }
 
-  /** Isimle marka arar */
-  async searchBrandByName(name: string): Promise<IdefixBrand | null> {
-    try {
-      const url = `${this.pimBaseUrl}/brand`;
-      const result = await this.request<any>("GET", url);
-      const items = Array.isArray(result) ? result : result?.items ?? [];
-      return items.find((b: any) => b.title?.toLowerCase() === name.toLowerCase()) ?? null;
-    } catch {
-      return null;
-    }
+  /**
+   * Marka adina gore arar. Idefix `title` parametresi sadece birebir (buyuk/kucuk harf duyarli)
+   * eslesme dondurdugu icin kisa/eksik yazimlarda sonuc gelmez.
+   */
+  async findBrandsByTitle(title: string): Promise<IdefixBrand[]> {
+    const url = `${this.pimBaseUrl}/brand?page=1&size=50&title=${encodeURIComponent(title)}`;
+    const res = await this.request<any>("GET", url);
+    return Array.isArray(res) ? res.map(toIdefixBrand) : [];
   }
 
   /** Saticiya ait urunleri listeler */

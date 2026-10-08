@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { createBrand, updateBrand, deleteBrand } from "@/app/admin/(protected)/brands/actions";
 import { getTrendyolBrands } from "@/app/admin/(protected)/integrations/trendyol/actions";
+import { findIdefixBrandsExact, searchIdefixBrandsDeep } from "@/app/admin/(protected)/integrations/idefix/actions";
 
 // --- Trendyol Brand Search Component ---
 interface TrendyolBrand { id: number; name: string; }
@@ -124,6 +126,164 @@ function TrendyolBrandSearch({
                     <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-orange-200 rounded-lg shadow-xl p-3 text-sm text-gray-500 text-center">
                         Sonuç bulunamadı.
                     </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// --- Idefix Brand Search Component ---
+interface IdefixBrandOption { id: number; title: string; }
+
+function IdefixBrandSearch({
+    value,
+    onChange,
+    brandName,
+}: {
+    value?: number;
+    onChange: (id: number | undefined) => void;
+    brandName: string;
+}) {
+    const [search, setSearch] = useState("");
+    const [results, setResults] = useState<IdefixBrandOption[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [deepLoading, setDeepLoading] = useState(false);
+    const [searched, setSearched] = useState(false);
+    const [selectedName, setSelectedName] = useState("");
+    const [autoMatched, setAutoMatched] = useState(false);
+    const [error, setError] = useState("");
+    const debouncedSearch = useDebounce(search, 500);
+    const debouncedBrandName = useDebounce(brandName, 700);
+
+    const runExactSearch = async (q: string) => {
+        setLoading(true);
+        setError("");
+        try {
+            const res = await findIdefixBrandsExact(q);
+            if (!res.success) { setError(res.message || "Idefix markaları alınamadı."); return []; }
+            return res.data || [];
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Kullanıcı arama kutusuna yazdıkça birebir eşleşme ara
+    useEffect(() => {
+        const q = debouncedSearch.trim();
+        if (q.length < 2) { setResults([]); setSearched(false); return; }
+        let cancelled = false;
+        runExactSearch(q).then((data) => {
+            if (cancelled) return;
+            setResults(data);
+            setSearched(true);
+        });
+        return () => { cancelled = true; };
+    }, [debouncedSearch]);
+
+    // Marka adı yazılınca ID boşsa otomatik bul; tek sonuç varsa direkt seç
+    useEffect(() => {
+        const q = debouncedBrandName.trim();
+        if (value || q.length < 2) return;
+        let cancelled = false;
+        runExactSearch(q).then((data) => {
+            if (cancelled) return;
+            if (data.length === 1) {
+                onChange(data[0].id);
+                setSelectedName(data[0].title);
+                setAutoMatched(true);
+            } else if (data.length > 1) {
+                setSearch(q);
+            }
+        });
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedBrandName]);
+
+    const handleDeepSearch = async () => {
+        const q = (search || brandName).trim();
+        if (q.length < 2) return;
+        setSearch(q);
+        setDeepLoading(true);
+        setError("");
+        try {
+            const res = await searchIdefixBrandsDeep(q);
+            if (!res.success) { setError(res.message || "Idefix marka listesi alınamadı."); return; }
+            setResults(res.data || []);
+            setSearched(true);
+        } finally {
+            setDeepLoading(false);
+        }
+    };
+
+    const handleSelect = (brand: IdefixBrandOption) => {
+        onChange(brand.id);
+        setSelectedName(brand.title);
+        setAutoMatched(false);
+        setSearch("");
+        setResults([]);
+        setSearched(false);
+    };
+
+    const handleClear = () => {
+        onChange(undefined);
+        setSelectedName("");
+        setAutoMatched(false);
+    };
+
+    const isNumericQuery = /^\d+$/.test(search.trim());
+
+    return (
+        <div className="space-y-2">
+            {value ? (
+                <div className="flex items-center gap-2 p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-sm">
+                    <span className="font-medium text-purple-800 dark:text-purple-300 flex-1 truncate">
+                        {selectedName ? `✓ ${selectedName}` : "Mevcut ID"}
+                        {autoMatched && <span className="ml-2 text-[10px] font-normal text-purple-600">(marka adından otomatik bulundu)</span>}
+                    </span>
+                    <span className="text-xs text-purple-600 font-mono">#{value}</span>
+                    <button type="button" onClick={handleClear} className="text-purple-500 hover:text-red-600"><X className="w-4 h-4" /></button>
+                </div>
+            ) : null}
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                    className="pl-8 border-purple-200 dark:border-purple-700"
+                    placeholder={value ? "Değiştirmek için Idefix'te marka arayın..." : "Idefix'te marka adıyla arayın veya ID girin..."}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+                {(loading || deepLoading) && <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-purple-500" />}
+            </div>
+            {error && <p className="text-xs text-red-500">{error}</p>}
+
+            {results.length > 0 && (
+                <div className="max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-purple-200 rounded-lg">
+                    {results.map((b) => (
+                        <button key={b.id} type="button" onClick={() => handleSelect(b)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                            <span className="truncate">{b.title}</span>
+                            <span className="text-xs text-gray-400 font-mono shrink-0">#{b.id}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {searched && results.length === 0 && !loading && !deepLoading && (
+                <p className="text-xs text-gray-500">Birebir eşleşen marka bulunamadı.</p>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+                {(search.trim().length >= 2 || brandName.trim().length >= 2) && !isNumericQuery && (
+                    <Button type="button" size="sm" variant="outline" className="h-7 text-xs border-purple-200 text-purple-700"
+                        onClick={handleDeepSearch} disabled={deepLoading}>
+                        {deepLoading ? "Tüm liste taranıyor (ilk seferde 10-30 sn)..." : "İçeren tüm markalarda ara"}
+                    </Button>
+                )}
+                {isNumericQuery && (
+                    <Button type="button" size="sm" variant="outline" className="h-7 text-xs border-purple-200 text-purple-700"
+                        onClick={() => handleSelect({ id: Number(search.trim()), title: "" })}>
+                        #{search.trim()} ID&apos;sini kullan
+                    </Button>
                 )}
             </div>
         </div>
@@ -446,16 +606,13 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                                     <p className="text-[10px] text-purple-600">N11 marka ID’si giriniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <Label htmlFor="idefixBrandId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Marka ID</Label>
-                                    <Input
-                                        id="idefixBrandId"
-                                        type="number"
-                                        value={idefixBrandId || ""}
-                                        onChange={(e) => setIdefixBrandId(e.target.value ? Number(e.target.value) : undefined)}
-                                        placeholder="Idefix marka ID'si giriniz"
-                                        className="border-purple-200 dark:border-purple-700"
+                                    <Label className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Marka ID</Label>
+                                    <IdefixBrandSearch
+                                        key={editBrand?.id ?? "new"}
+                                        value={idefixBrandId}
+                                        onChange={setIdefixBrandId}
+                                        brandName={name}
                                     />
-                                    <p className="text-[10px] text-purple-600">Idefix panelindeki Marka ID bilgisini girin.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-pink-50 dark:bg-pink-950/20 rounded-lg border border-pink-200 dark:border-pink-800">
                                     <Label className="text-pink-700 dark:text-pink-400 font-semibold text-xs uppercase tracking-wide">🌸 Pazarama Marka Eşleştirme</Label>
