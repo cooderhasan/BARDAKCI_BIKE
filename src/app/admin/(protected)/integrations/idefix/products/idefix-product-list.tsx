@@ -41,6 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   syncProductsToIdefix,
+  updateIdefixStockPrice,
   enqueueIdefixSync,
   toggleIdefixProductActive,
   createProductOnIdefix,
@@ -267,6 +268,22 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
       toast.error("Bir hata olustu.");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const [stockUpdatingId, setStockUpdatingId] = useState<string | null>(null);
+
+  // Sadece stok/fiyat gönderir (yeni ürün yüklemez); onay sonrası stok 0 kalan ürünler için
+  const handleStockPriceUpdate = async (productId: string) => {
+    setStockUpdatingId(productId);
+    try {
+      const res = await updateIdefixStockPrice(productId);
+      if (res.success) toast.success("Stok/fiyat Idefix'e gönderildi", { description: res.message, duration: 10000 });
+      else toast.error(res.message, { duration: 15000 });
+    } catch {
+      toast.error("Bir hata oluştu.");
+    } finally {
+      setStockUpdatingId(null);
     }
   };
 
@@ -660,6 +677,18 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={stockUpdatingId === product.id}
+                        onClick={() => handleStockPriceUpdate(product.id)}
+                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                        title="Sadece güncel stok ve fiyatı Idefix'e gönderir"
+                      >
+                        <RefreshCcw className={`w-3 h-3 ${stockUpdatingId === product.id ? "animate-spin" : ""}`} />
+                        Stok/Fiyat
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -674,6 +703,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                         )}
                         {isSending ? "Gonderiliyor" : "Gonder"}
                       </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

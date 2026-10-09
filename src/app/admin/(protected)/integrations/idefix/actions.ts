@@ -304,36 +304,7 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
 
     // --- 1. Onceden senkronize urunler: inventory guncelle ---
     if (alreadySyncedProducts.length > 0) {
-      const inventoryItems = alreadySyncedProducts.flatMap((p: any) => {
-        const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
-        const rawListPrice = Number(p.listPrice);
-        const comparePrice = rawListPrice >= price ? rawListPrice : price;
-        const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
-
-        const criticalStock = p.criticalStock ?? defaultCritical;
-        const availableStock = Math.max(0, (p.stock ?? 0) - criticalStock);
-
-        if (validVariants.length > 0) {
-          return validVariants.map((v: any) => {
-            const varAvailableStock = Math.max(0, (v.stock ?? 0) - criticalStock);
-            return {
-              barcode: v.barcode,
-              price,
-              comparePrice,
-              inventoryQuantity: varAvailableStock,
-            };
-          });
-        }
-        if (p.barcode) {
-          return [{
-            barcode: p.barcode,
-            price,
-            comparePrice,
-            inventoryQuantity: availableStock,
-          }];
-        }
-        return [];
-      });
+      const inventoryItems = alreadySyncedProducts.flatMap((p: any) => buildIdefixInventoryItems(p, defaultCritical));
 
       if (inventoryItems.length > 0) {
         try {
@@ -1223,4 +1194,66 @@ export async function searchIdefixBrandsDeep(query: string): Promise<{ success: 
         console.error("searchIdefixBrandsDeep error:", error);
         return { success: false, message: "Idefix marka listesi alınamadı." };
     }
+}
+
+// ==================== TEK ÜRÜN STOK/FİYAT ====================
+
+/** Idefix stok/fiyat kalemleri: toplu senkron ve tek ürün güncellemesi aynı hesabı kullanır */
+function buildIdefixInventoryItems(p: any, defaultCritical: number, forceZero = false) {
+  const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
+  const rawListPrice = Number(p.listPrice);
+  const comparePrice = rawListPrice >= price ? rawListPrice : price;
+  const validVariants = p.variants?.filter((v: any) => v.barcode) || [];
+
+  const criticalStock = p.criticalStock ?? defaultCritical;
+  const available = (stock: number) => (forceZero ? 0 : Math.max(0, (stock ?? 0) - criticalStock));
+
+  if (validVariants.length > 0) {
+    return validVariants.map((v: any) => ({ barcode: v.barcode, price, comparePrice, inventoryQuantity: available(v.stock) }));
+  }
+  if (p.barcode) {
+    return [{ barcode: p.barcode, price, comparePrice, inventoryQuantity: available(p.stock) }];
+  }
+  return [];
+}
+
+/**
+ * Tek ürünün güncel stok ve fiyatını Idefix'e gönderir (yeni ürün yüklemesi yapmaz).
+ * Idefix'te operatör onayından sonra stok 0 ile satışa geçen ürünlere stok bildirmek için kullanılır.
+ */
+export async function updateIdefixStockPrice(productId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const client = await getIdefixClient();
+    if (!client) return { success: false, message: "Idefix entegrasyon ayarları bulunamadı." };
+
+    const p: any = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { variants: true, idefixProduct: true },
+    });
+    if (!p) return { success: false, message: "Ürün bulunamadı." };
+
+    const generalSettings = await getSiteSettings("general");
+    const defaultCritical = Number(generalSettings?.defaultCriticalStock || 1);
+    // Sitede pasif veya Idefix'te kapalı ürün satılmamalı; stok 0 gider
+    const isClosed = !p.isActive || !p.isIdefixActive;
+    const items = buildIdefixInventoryItems(p, defaultCritical, isClosed);
+    if (items.length === 0) return { success: false, message: "Üründe barkod yok; Idefix'e stok gönderilemez." };
+
+    const result = await client.updateInventory(items);
+    const batchId = result?.batchRequestId;
+    await (prisma as any).idefixProduct.upsert({
+      where: { productId },
+      update: { batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
+      create: { productId, batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
+    });
+
+    const summary = items.map((i: any) => `${i.barcode}: stok ${i.inventoryQuantity}, ₺${i.price}`).join(" | ");
+    return {
+      success: true,
+      message: `${isClosed ? "Ürün kapalı olduğu için stok 0 gönderildi. " : ""}Idefix'e iletildi → ${summary}${batchId ? ` (İşlem: ${batchId})` : ""}`,
+    };
+  } catch (error: any) {
+    console.error("updateIdefixStockPrice error:", error);
+    return { success: false, message: "Idefix hatası: " + error.message };
+  }
 }
