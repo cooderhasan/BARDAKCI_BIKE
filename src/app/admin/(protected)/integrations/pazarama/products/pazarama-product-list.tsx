@@ -73,6 +73,7 @@ interface PazaramaProductListProps {
 
 export function PazaramaProductList({ initialProducts, pagination }: PazaramaProductListProps) {
   const [products, setProducts] = useState(initialProducts);
+  const [matchingPazarama, setMatchingPazarama] = useState(false);
 
   useEffect(() => {
     setProducts(initialProducts);
@@ -480,6 +481,28 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
               >
                 <RefreshCw className={`w-4 h-4 ${isPending ? "animate-spin" : ""}`} />
                 Stok/Fiyat Güncelle
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  if (!confirm("Pazarama'daki tüm onaylı ürünler çekilip kodu eşleşen ürünlerin durumu 'Onaylandı' yapılacak. Devam edilsin mi?")) return;
+                  setMatchingPazarama(true);
+                  try {
+                    const { matchPazaramaApprovedProducts } = await import("../actions");
+                    const res = await matchPazaramaApprovedProducts();
+                    if (res.success) { toast.success(res.message, { duration: 10000 }); window.location.reload(); }
+                    else toast.error(res.message);
+                  } finally {
+                    setMatchingPazarama(false);
+                  }
+                }}
+                disabled={matchingPazarama}
+                variant="outline"
+                className="border-pink-200 text-pink-700 hover:bg-pink-50 gap-2"
+                title="Pazarama'da onaylı olup listede PENDING görünen ürünlerin durumunu düzeltir"
+              >
+                <RefreshCw className={`w-4 h-4 ${matchingPazarama ? "animate-spin" : ""}`} />
+                {matchingPazarama ? "Eşleştiriliyor..." : "Pazarama ile Eşleştir"}
               </Button>
             </div>
           </div>
@@ -955,10 +978,22 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                         <TableCell className="text-right">
                           <div className="flex flex-col items-end gap-1">
                             {product.isPazaramaActive ? (
-                              <Badge className="bg-pink-100 text-pink-700 border-pink-200">
-                                <Sparkles className="w-3 h-3 mr-1 text-pink-600" />
-                                {product.pazaramaStatus || "Aktif"}
-                              </Badge>
+                              <button
+                                type="button"
+                                title="Pazarama'da durumu sorgulamak için tıklayın"
+                                onClick={async () => {
+                                  const { verifyPazaramaProduct } = await import("../actions");
+                                  const res = await verifyPazaramaProduct(product.id);
+                                  if (!res.success) { toast.error(res.message); return; }
+                                  toast.success(res.message, { duration: 10000 });
+                                  setProducts((prev: any[]) => prev.map((p: any) => (p.id === product.id ? { ...p, pazaramaStatus: res.status } : p)));
+                                }}
+                              >
+                                <Badge className="bg-pink-100 text-pink-700 border-pink-200 cursor-pointer hover:bg-pink-200">
+                                  <Sparkles className="w-3 h-3 mr-1 text-pink-600" />
+                                  {product.pazaramaStatus || "Aktif"}
+                                </Badge>
+                              </button>
                             ) : (
                               <Badge variant="outline" className="text-muted-foreground">
                                 Pasif

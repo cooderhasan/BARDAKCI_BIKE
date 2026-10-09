@@ -148,9 +148,12 @@ export function initializeWorker() {
 
                 if (job.name === "pazarama-order-sync") {
                     console.log("🔄 Otomatik Pazarama Sipariş Senkronizasyonu başlatıldı...");
-                    const { syncOrdersFromPazarama } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
+                    const { syncOrdersFromPazarama, resolvePendingPazaramaStatuses } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
                     const result = await syncOrdersFromPazarama();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    // "PENDING" kalan ürünlerin gönderim sonucunu al
+                    const statusResult = await resolvePendingPazaramaStatuses().catch((e: any) => ({ checked: 0, error: e.message }));
+                    console.log(`✅ Pazarama bekleyen durum kontrolü:`, statusResult);
                     return;
                 }
 

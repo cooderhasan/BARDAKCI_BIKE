@@ -719,6 +719,8 @@ export class PazaramaClient {
 
       // Gerçek Pazarama batch sonuç endpoint'i (productInput prefix)
       const candidateRequests = [
+        // Resmi doküman (isortagim.pazarama.com/auth/integration/batchrequest-sorgulama)
+        { url: `${this.baseUrl}/product/getProductBatchResult?BatchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
         { url: `${this.baseUrl}/productInput/getBatchRequestResult?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
         { url: `${this.baseUrl}/productInput/getBatchRequestResult`, method: "POST", body: { batchRequestId: batchId } },
         { url: `${this.baseUrl}/productInput/getBatchResult?batchRequestId=${encodeURIComponent(batchId)}`, method: "GET" },
@@ -763,6 +765,45 @@ export class PazaramaClient {
     } catch (error: any) {
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Tek ürün detayı (onay durumu, stok, fiyat).
+   * Doküman: POST /product/getProductDetail  { Code }
+   */
+  async getProductDetail(code: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const headers = await this.getHeaders();
+      const res = await fetch(`${this.baseUrl}/product/getProductDetail`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ Code: code }),
+        cache: "no-store",
+      });
+      const text = await res.text();
+      let json: any = null;
+      try { json = JSON.parse(text); } catch {}
+      if (!res.ok || !json) return { success: false, error: `(${res.status}) ${text.substring(0, 200)}` };
+      if (json.success === false || !json.data) return { success: false, error: json.userMessage || json.message || "Ürün bulunamadı" };
+      return { success: true, data: json.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Onaylı ürünleri listeler (cursor tabanlı, sayfa başı max 100).
+   * Doküman: GET /product/products/approved?Size=100&Cursor=...
+   */
+  async getApprovedProducts(cursor?: string | null): Promise<{ products: any[]; nextCursor: string | null }> {
+    const headers = await this.getHeaders();
+    const params = new URLSearchParams({ Size: "100" });
+    if (cursor) params.set("Cursor", cursor);
+    const res = await fetch(`${this.baseUrl}/product/products/approved?${params.toString()}`, { headers, cache: "no-store" });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Pazarama onaylı ürün listesi hatası (${res.status}): ${text.substring(0, 200)}`);
+    const json = JSON.parse(text);
+    return { products: json?.data?.sellerProducts || [], nextCursor: json?.data?.nextCursor || null };
   }
 
   /**

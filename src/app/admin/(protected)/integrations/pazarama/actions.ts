@@ -1259,3 +1259,120 @@ export async function assignCommercialTemplateToBrand(
     return { success: false, message: error.message || "İşlem sırasında hata oluştu." };
   }
 }
+
+// ==================== PAZARAMA DURUM TAKİBİ ====================
+// Gönderimde pazaramaStatus "PENDING" yazılıyordu ve hiçbir yer güncellemiyordu.
+// Doküman: batch sonucu sadece 4 saat sorgulanabiliyor; daha eskiler getProductDetail ile kontrol edilir.
+
+const PAZARAMA_BATCH_STATUS: Record<number, string> = { 1: "İşleniyor", 2: "Tamamlandı", 3: "Hata" };
+
+async function getPazaramaClientIfActive() {
+  const config = await (prisma as any).pazaramaConfig.findFirst();
+  if (!config || !config.isActive) return null;
+  return new PazaramaClient(config);
+}
+
+function pazaramaCodes(p: { sku?: string | null; barcode?: string | null; id: string }) {
+  // Ürün oluşturmada code = sku || id; stok senkronu barkod ve sku'yu da gönderiyor
+  return Array.from(new Set([p.sku, p.barcode, p.id].filter(Boolean) as string[]));
+}
+
+/** Tek ürünü Pazarama'da sorgular, durumu ürün kaydına yazar */
+export async function verifyPazaramaProduct(productId: string): Promise<{ success: boolean; status?: string; message: string }> {
+  try {
+    const client = await getPazaramaClientIfActive();
+    if (!client) return { success: false, message: "Pazarama entegrasyonu aktif değil." };
+    const p = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, sku: true, barcode: true } });
+    if (!p) return { success: false, message: "Ürün bulunamadı." };
+
+    for (const code of pazaramaCodes(p)) {
+      const res = await client.getProductDetail(code);
+      if (res.success && res.data) {
+        const status = res.data.stateDescription || (res.data.state === 3 ? "Onaylandı" : `Durum ${res.data.state}`);
+        await prisma.product.update({ where: { id: productId }, data: { pazaramaStatus: status } });
+        return {
+          success: true,
+          status,
+          message: `Pazarama'da bulundu (${code}). Durum: ${status}, Stok: ${res.data.stockCount ?? "-"}, Fiyat: ${res.data.salePrice ?? "-"} TL`,
+        };
+      }
+    }
+    await prisma.product.update({ where: { id: productId }, data: { pazaramaStatus: "Pazarama'da bulunamadı" } });
+    return { success: true, status: "Pazarama'da bulunamadı", message: `Pazarama'da ${pazaramaCodes(p).join(" / ")} kodlarıyla ürün bulunamadı.` };
+  } catch (error: any) {
+    return { success: false, message: "Pazarama hatası: " + error.message };
+  }
+}
+
+/** "PENDING" kalmış ürünlerin gönderim sonucunu alır (Pazarama sipariş cron'undan çağrılır) */
+export async function resolvePendingPazaramaStatuses() {
+  const client = await getPazaramaClientIfActive();
+  if (!client) return { checked: 0 };
+  const pending = await prisma.product.findMany({
+    where: { pazaramaStatus: "PENDING" },
+    select: { id: true, sku: true, barcode: true, pazaramaBatchId: true },
+    take: 50,
+  });
+
+  let updated = 0;
+  const batchCache = new Map<string, any>();
+  for (const p of pending) {
+    let status: string | null = null;
+    if (p.pazaramaBatchId) {
+      if (!batchCache.has(p.pazaramaBatchId)) {
+        const r = await client.getBatchStatus(p.pazaramaBatchId).catch(() => null);
+        batchCache.set(p.pazaramaBatchId, r?.success ? r.data?.data ?? r.data : null);
+      }
+      const batch = batchCache.get(p.pazaramaBatchId);
+      if (batch && typeof batch.status === "number") {
+        if (batch.status === 1) continue; // hâlâ işleniyor
+        const codes = pazaramaCodes(p);
+        const failed = (batch.failedProducts || []).filter((fp: any) => codes.includes(String(fp.productCode)));
+        status = failed.length > 0
+          ? `Hata: ${failed.map((fp: any) => fp.errorReason).join("; ")}`.slice(0, 250)
+          : "Gönderildi (onay bekliyor)";
+      }
+    }
+    if (!status) {
+      // Batch 4 saatten eski veya sorgulanamadı: ürünü doğrudan sorgula
+      const v = await verifyPazaramaProduct(p.id).catch(() => null);
+      if (v?.success) updated++;
+      continue;
+    }
+    await prisma.product.update({ where: { id: p.id }, data: { pazaramaStatus: status } });
+    updated++;
+  }
+  try { revalidatePath("/admin/integrations/pazarama/products"); } catch {}
+  return { checked: pending.length, updated };
+}
+
+/** Pazarama'daki tüm onaylı ürünleri çekip kodu eşleşen site ürünlerinin durumunu "Onaylandı" yapar */
+export async function matchPazaramaApprovedProducts() {
+  try {
+    const client = await getPazaramaClientIfActive();
+    if (!client) return { success: false, message: "Pazarama entegrasyonu aktif değil." };
+
+    const approved = new Set<string>();
+    let cursor: string | null = null;
+    for (let page = 0; page < 300; page++) {
+      const { products, nextCursor } = await client.getApprovedProducts(cursor);
+      for (const ap of products) if (ap.code) approved.add(String(ap.code));
+      if (!nextCursor || products.length === 0) break;
+      cursor = nextCursor;
+    }
+    if (approved.size === 0) return { success: false, message: "Pazarama'dan onaylı ürün alınamadı." };
+
+    const products = await prisma.product.findMany({ select: { id: true, sku: true, barcode: true, pazaramaStatus: true } });
+    let matched = 0;
+    for (const p of products) {
+      if (!pazaramaCodes(p).some((code) => approved.has(code))) continue;
+      if (p.pazaramaStatus === "Onaylandı") continue;
+      await prisma.product.update({ where: { id: p.id }, data: { pazaramaStatus: "Onaylandı" } });
+      matched++;
+    }
+    revalidatePath("/admin/integrations/pazarama/products");
+    return { success: true, message: `Pazarama'da ${approved.size} onaylı ürün bulundu. ${matched} ürünün durumu "Onaylandı" yapıldı.` };
+  } catch (error: any) {
+    return { success: false, message: "Pazarama hatası: " + error.message };
+  }
+}
