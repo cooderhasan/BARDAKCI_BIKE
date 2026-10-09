@@ -690,17 +690,64 @@ export async function toggleCiceksepetiProductStatus(productId: string, isCiceks
   }
 }
 
+/**
+ * Çiçeksepeti sipariş kalemindeki ürünü bulur. Önce tedarikçi stok kodu (code) ve barkod, sonra varyantlar, en son birebir ürün adı.
+ * Bulunamazsa sipariş kaybolmasın diye ilk ürüne bağlanır ama isFallback=true döner ve stok DÜŞÜLMEZ
+ * (önceden adın ilk 15 harfiyle ya da rastgele ilk ürünle eşleşip yanlış ürünün stoğu düşüyordu).
+ */
+async function findCiceksepetiOrderProduct(order: any): Promise<{ product: any; variantId: string | null; isFallback: boolean }> {
+  const codes = [order.code, order.barcode].filter(Boolean).map((x: any) => String(x).trim()).filter(Boolean);
+  if (codes.length > 0) {
+    const link = await (prisma as any).ciceksepetiProduct.findFirst({
+      where: { ciceksepetiCode: { in: codes } },
+      include: { product: true },
+    });
+    if (link?.product) return { product: link.product, variantId: null, isFallback: false };
+
+    const product = await prisma.product.findFirst({
+      where: { OR: [{ sku: { in: codes } }, { barcode: { in: codes } }] },
+    });
+    if (product) return { product, variantId: null, isFallback: false };
+
+    const variant = await prisma.productVariant.findFirst({
+      where: { OR: [{ sku: { in: codes } }, { barcode: { in: codes } }] },
+      include: { product: true },
+    });
+    if (variant?.product) return { product: variant.product, variantId: variant.id, isFallback: false };
+  }
+
+  const name = String(order.name || "").trim();
+  if (name) {
+    const byName = await prisma.product.findMany({
+      where: { name: { equals: name, mode: "insensitive" } },
+      take: 2,
+    });
+    if (byName.length === 1) return { product: byName[0], variantId: null, isFallback: false };
+  }
+
+  const fallback = await prisma.product.findFirst();
+  console.warn(`⚠️ [CS-ORDERS] Ürün bulunamadı, stok düşülmeden aktarılıyor: "${name}" (kod: ${codes.join(", ") || "-"})`);
+  return { product: fallback, variantId: null, isFallback: true };
+}
+
 export async function syncCiceksepetiOrders() {
   try {
     const client = new CiceksepetiClient();
-    const now = new Date();
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    // Çiçeksepeti tarihleri Türkiye saatine göre yorumluyor; bitişi ileri alıyoruz ki son saatlerin siparişleri kaçmasın.
+    // Aralık en fazla 2 hafta olabilir.
+    const endDate = new Date(Date.now() + 12 * 60 * 60 * 1000);
+    const startDate = new Date(endDate.getTime() - 13.5 * 24 * 60 * 60 * 1000);
 
-    const orders = await client.getOrders({
-      startDate: fourteenDaysAgo.toISOString(),
-      endDate: now.toISOString(),
+    const fetchOrders = (from: Date, to: Date) => client.getOrders({
+      startDate: from.toISOString(),
+      endDate: to.toISOString(),
       page: 0,
       pageSize: 100,
+    });
+    // İleri tarih reddedilirse eski davranışa (bitiş = şimdi) dön
+    const orders = await fetchOrders(startDate, endDate).catch((e) => {
+      console.warn("[CS-ORDERS] İleri bitiş tarihiyle istek başarısız, şimdiye göre tekrar deneniyor:", e.message);
+      return new Promise((r) => setTimeout(r, 5500)).then(() => fetchOrders(new Date(Date.now() - 13.5 * 24 * 60 * 60 * 1000), new Date()));
     });
 
     let newOrdersCount = 0;
@@ -791,42 +838,14 @@ export async function syncCiceksepetiOrders() {
 
         if (!alreadyHasItem && orderItemProductName) {
           // Yeni kalem: Ürünü veritabanında bul
-          const itemSearchCodes = [
-            (order as any).barcode,
-            (order as any).code,
-            (order as any).productCode,
-            (order as any).productId
-          ].filter(Boolean).map((s) => String(s).trim());
-
-          let itemProduct: any = null;
-          if (itemSearchCodes.length > 0) {
-            itemProduct = await prisma.product.findFirst({
-              where: {
-                OR: itemSearchCodes.flatMap((code) => [
-                  { barcode: code },
-                  { sku: code },
-                  { id: code }
-                ])
-              }
-            });
-          }
-
-          if (!itemProduct && orderItemProductName) {
-            const subTitle = orderItemProductName.substring(0, 15);
-            if (subTitle.length >= 3) {
-              itemProduct = await prisma.product.findFirst({
-                where: { name: { contains: subTitle, mode: "insensitive" } }
-              });
-            }
-          }
-
-          if (!itemProduct) {
-            itemProduct = await prisma.product.findFirst();
-          }
+          const itemMatch = await findCiceksepetiOrderProduct(order);
+          const itemProduct: any = itemMatch.product;
 
           const itemQty = Number((order as any).quantity) || 1;
           const itemPrice = Number((order as any).totalPrice || (order as any).itemPrice || 0);
-          const itemsToDecrement = itemProduct?.id ? [{ productId: itemProduct.id, quantity: itemQty }] : [];
+          const itemsToDecrement = itemProduct?.id && !itemMatch.isFallback
+            ? [{ productId: itemProduct.id, variantId: itemMatch.variantId, quantity: itemQty }]
+            : [];
 
           const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
 
@@ -836,6 +855,7 @@ export async function syncCiceksepetiOrders() {
               data: {
                 orderId: existingMainOrder.id,
                 productId: itemProduct?.id || "",
+                variantId: itemMatch.variantId,
                 quantity: itemQty,
                 unitPrice: itemPrice / (itemQty || 1),
                 productName: orderItemProductName,
@@ -889,38 +909,8 @@ export async function syncCiceksepetiOrders() {
         updatedOrdersCount++;
       } else {
         // Match product in DB for OrderItem
-        const searchCodes = [
-          (order as any).barcode,
-          (order as any).code,
-          (order as any).productCode,
-          (order as any).productId
-        ].filter(Boolean).map((s) => String(s).trim());
-
-        let product: any = null;
-        if (searchCodes.length > 0) {
-          product = await prisma.product.findFirst({
-            where: {
-              OR: searchCodes.flatMap((code) => [
-                { barcode: code },
-                { sku: code },
-                { id: code }
-              ])
-            }
-          });
-        }
-
-        if (!product && (order as any).name) {
-          const subTitle = String((order as any).name).trim().substring(0, 15);
-          if (subTitle.length >= 3) {
-            product = await prisma.product.findFirst({
-              where: { name: { contains: subTitle, mode: "insensitive" } }
-            });
-          }
-        }
-
-        if (!product) {
-          product = await prisma.product.findFirst();
-        }
+        const match = await findCiceksepetiOrderProduct(order);
+        const product: any = match.product;
 
         const qty = Number((order as any).quantity) || 1;
         const price = Number((order as any).totalPrice || (order as any).itemPrice || 0);
@@ -938,7 +928,9 @@ export async function syncCiceksepetiOrders() {
         };
 
         const orderNumFormatted = `CS-${orderNumberStr}`;
-        const itemsToDecrement = product?.id ? [{ productId: product.id, quantity: qty }] : [];
+        const itemsToDecrement = product?.id && !match.isFallback
+          ? [{ productId: product.id, variantId: match.variantId, quantity: qty }]
+          : [];
 
         const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
 
@@ -960,11 +952,12 @@ export async function syncCiceksepetiOrders() {
               trackingUrl: (order as any).shipmentTrackingUrl || null,
               source: "CICEKSEPETI",
               store: "BIKE",
-              notes: `Çiçeksepeti Sipariş No: ${orderNumberStr} | Ödeme: ${(order as any).orderPaymentType || 'Kredi Kartı'}`,
+              notes: `Çiçeksepeti Sipariş No: ${orderNumberStr} | Ödeme: ${(order as any).orderPaymentType || 'Kredi Kartı'}${match.isFallback ? ` | DİKKAT: Ürün sitede bulunamadı (kod: ${(order as any).code || (order as any).barcode || "-"}), stok düşülmedi` : ""}`,
               items: {
                 create: [
                   {
                     productId: product?.id || "",
+                    variantId: match.variantId,
                     quantity: qty,
                     unitPrice: price / (qty || 1),
                     productName: (order as any).name || "Çiçeksepeti Ürünü",
