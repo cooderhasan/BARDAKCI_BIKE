@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory, matchCiceksepetiProducts } from "../actions";
+import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory, matchCiceksepetiProducts, getCiceksepetiMatchStatus } from "../actions";
 import { toast } from "sonner";
 import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save, SlidersHorizontal } from "lucide-react";
 import Image from "next/image";
@@ -51,17 +51,40 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
   const catInputRef = useRef<HTMLInputElement>(null);
   const [matchingCs, setMatchingCs] = useState(false);
 
-  // Çiçeksepeti'nde olup listede "Gönderilmedi" görünen ürünleri stok kodu/barkodla eşleştirir
-  const handleMatchCiceksepeti = async () => {
-    if (!confirm("Çiçeksepeti'ndeki tüm ürünler çekilip stok kodu/barkodu eşleşen ürünler 'Yayında' işaretlenecek. Çiçeksepeti limiti nedeniyle her 60 ürün ~5 sn sürer (1000 ürün ≈ 1,5 dk). Devam edilsin mi?")) return;
+  // Eşleştirme sunucuda arka planda çalışır; bitene kadar 5 sn'de bir durumu sorgula
+  const pollMatchStatus = async () => {
     setMatchingCs(true);
     try {
-      const res = await matchCiceksepetiProducts();
-      if (res.success) { toast.success(res.message, { duration: 15000 }); router.refresh(); }
-      else toast.error(res.message, { duration: 15000 });
+      for (let i = 0; i < 360; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        const st = await getCiceksepetiMatchStatus().catch(() => null);
+        if (st && st.status !== "running") {
+          if (st.success) toast.success(st.message, { duration: 30000 });
+          else toast.error(st.message, { duration: 30000 });
+          router.refresh();
+          return;
+        }
+      }
     } finally {
       setMatchingCs(false);
     }
+  };
+
+  // Sayfa yenilense de devam eden eşleştirmeyi takip et
+  useEffect(() => {
+    getCiceksepetiMatchStatus().then((st) => {
+      if (st?.status === "running" && st.startedAt && Date.now() - new Date(st.startedAt).getTime() < 20 * 60 * 1000) pollMatchStatus();
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Çiçeksepeti'nde olup listede "Gönderilmedi" görünen ürünleri stok kodu/barkodla eşleştirir
+  const handleMatchCiceksepeti = async () => {
+    if (!confirm("Çiçeksepeti'ndeki tüm ürünler çekilip stok kodu/barkodu eşleşen ürünler 'Yayında' işaretlenecek. Çiçeksepeti limiti nedeniyle her 60 ürün ~5 sn sürer (1000 ürün ≈ 1,5 dk). İşlem arka planda sürer, bitince sonuç burada görünür. Devam edilsin mi?")) return;
+    const res = await matchCiceksepetiProducts();
+    if (!res.success) { toast.error(res.message); return; }
+    toast.info(res.message);
+    pollMatchStatus();
   };
 
   const filteredProducts = pagination ? products : products.filter((p) => {

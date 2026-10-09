@@ -1181,7 +1181,7 @@ export async function uploadCiceksepetiOrderInvoice(orderId: string) {
  * Çiçeksepeti'nin kullandığı stok kodu kaydedilir; böylece başka sistemden (Entegra vb.) yüklenmiş ürünlere de stok/fiyat doğru gider.
  * Ürünün "Çiçeksepeti'nde açık" ayarına dokunmaz.
  */
-export async function matchCiceksepetiProducts() {
+async function runCiceksepetiMatch() {
   try {
     const client = new CiceksepetiClient();
     const PAGE_SIZE = 60;
@@ -1266,4 +1266,32 @@ export async function matchCiceksepetiProducts() {
     console.error("matchCiceksepetiProducts error:", error);
     return { success: false, message: "Çiçeksepeti hatası: " + error.message };
   }
+}
+
+const CS_MATCH_KEY = "ciceksepeti_match_job";
+
+/**
+ * Eşleştirmeyi arka planda başlatır. Çiçeksepeti limiti (60 ürün / 5 sn) yüzünden işlem 100 sn'yi aşabiliyor;
+ * Cloudflare 100 sn'de isteği kestiği için sonuç beklenmez, durum getCiceksepetiMatchStatus ile sorgulanır.
+ */
+export async function matchCiceksepetiProducts() {
+  const current: any = (await prisma.siteSettings.findUnique({ where: { key: CS_MATCH_KEY } }))?.value;
+  if (current?.status === "running" && Date.now() - new Date(current.startedAt).getTime() < 20 * 60 * 1000) {
+    return { success: true, message: "Eşleştirme zaten çalışıyor." };
+  }
+  const save = (value: any) =>
+    prisma.siteSettings.upsert({ where: { key: CS_MATCH_KEY }, update: { value }, create: { key: CS_MATCH_KEY, value } });
+  await save({ status: "running", startedAt: new Date().toISOString() });
+
+  runCiceksepetiMatch()
+    .then((res) => save({ status: "done", success: res.success, message: res.message, finishedAt: new Date().toISOString() }))
+    .catch((e: any) => save({ status: "done", success: false, message: "Çiçeksepeti hatası: " + e.message, finishedAt: new Date().toISOString() }))
+    .catch((e) => console.error("ciceksepeti match status save error:", e));
+
+  return { success: true, message: "Eşleştirme başlatıldı." };
+}
+
+export async function getCiceksepetiMatchStatus(): Promise<{ status?: string; success?: boolean; message?: string; startedAt?: string; finishedAt?: string } | null> {
+  const row = await prisma.siteSettings.findUnique({ where: { key: CS_MATCH_KEY } });
+  return (row?.value as any) || null;
 }
