@@ -37,7 +37,8 @@ import {
     updateHepsiburadaSku, 
     enqueueHepsiburadaSync,
     setHepsiburadaProductCategory,
-    setBulkHepsiburadaProductCategory
+    setBulkHepsiburadaProductCategory,
+    matchHepsiburadaListings
 } from "../actions";
 import {
     Dialog,
@@ -149,6 +150,20 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
     }, [initialProducts]);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
     const [syncing, setSyncing] = useState(false);
+    const [matching, setMatching] = useState(false);
+
+    // HB'de olup listede "Bekliyor" görünen ürünleri (Entegra/HB panelinden eklenmiş) stok koduyla eşleştirir
+    const handleMatchListings = async () => {
+        if (!confirm("HB'deki tüm ilanlar çekilip stok kodu eşleşen ürünler 'Aktif' işaretlenecek. Bu işlem 1-2 dakika sürebilir. Devam edilsin mi?")) return;
+        setMatching(true);
+        try {
+            const res = await matchHepsiburadaListings();
+            if (res.success) { toast.success(res.message, { duration: 10000 }); window.location.reload(); }
+            else toast.error(res.message);
+        } finally {
+            setMatching(false);
+        }
+    };
     
     const [showAttrModal, setShowAttrModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -364,8 +379,19 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                         <span>Toplu Kategori Ata ({selectedIds.length})</span>
                     </Button>
 
-                    <Button 
-                        onClick={handleBulkSync} 
+                    <Button
+                        onClick={handleMatchListings}
+                        disabled={matching}
+                        variant="outline"
+                        className="border-blue-200 text-[#17457C] hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm"
+                        title="HB'de olup listede 'Bekliyor' görünen ürünleri stok koduyla eşleştirir"
+                    >
+                        <RefreshCcw className={`w-4 h-4 ${matching ? "animate-spin" : ""}`} />
+                        {matching ? "Eşleştiriliyor..." : "HB ile Eşleştir"}
+                    </Button>
+
+                    <Button
+                        onClick={handleBulkSync}
                         disabled={syncing}
                         variant="outline"
                         className="border-blue-200 text-[#17457C] hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all active:scale-95"

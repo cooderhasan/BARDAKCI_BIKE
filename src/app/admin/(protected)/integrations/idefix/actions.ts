@@ -143,6 +143,16 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
     }
 
     if (!result) {
+      // Kayıtlı numara bir stok/fiyat işlemine ait olabilir (eski kod onay durumunu bu numarayla ezerdi).
+      // Stok işlemi bulunuyorsa ürün Idefix'te listelenmiş demektir.
+      const inv = await client.getInventoryStatus(idefixProd.batchId).catch(() => null);
+      if (inv && (inv.items || inv.status || inv.batchStatus)) {
+        await (prisma as any).idefixProduct.update({
+          where: { productId },
+          data: { batchStatus: "COMPLETED", isSynced: true, lastSyncError: null, lastSyncedAt: new Date() },
+        });
+        return { success: true, data: inv, message: "Bu numara bir stok/fiyat işlemine ait; ürün Idefix'te listelenmiş. Durum 'Senkronize' yapıldı." };
+      }
       return { success: false, message: "Idefix batch sonucu henüz hazır değil veya bulunamadı." };
     }
 
@@ -310,10 +320,12 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
         try {
           const result = await client.updateInventory(inventoryItems);
           const batchId = result?.batchRequestId;
+          // Stok işlemi ürünün onay (listeleme) durumunu değiştirmez. Önceden burada batchStatus PENDING'e çekilip
+          // stok işlem numarası yazılıyordu; "Durum Sorgula" onu bulamadığı için ürünler "Beklemede"de takılıyordu.
           for (const p of alreadySyncedProducts) {
-            await (prisma as any).idefixProduct.update({
+            await (prisma as any).idefixProduct.updateMany({
               where: { productId: p.id },
-              data: { batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
+              data: { lastSyncedAt: new Date() },
             });
           }
           totalSynced += alreadySyncedProducts.length;
@@ -1241,19 +1253,45 @@ export async function updateIdefixStockPrice(productId: string): Promise<{ succe
 
     const result = await client.updateInventory(items);
     const batchId = result?.batchRequestId;
-    await (prisma as any).idefixProduct.upsert({
-      where: { productId },
-      update: { batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
-      create: { productId, batchId, batchStatus: "PENDING", lastSyncedAt: new Date() },
-    });
+    // Stok işlemi onay durumunu değiştirmez; sadece son gönderim zamanı güncellenir
+    await (prisma as any).idefixProduct.updateMany({ where: { productId }, data: { lastSyncedAt: new Date() } });
+
+    let resultNote = "";
+    if (batchId) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const inv = await client.getInventoryStatus(batchId).catch(() => null);
+      const invItem = inv?.items?.[0];
+      const st = invItem?.status || inv?.status || inv?.batchStatus;
+      const reason = invItem?.failureReasons || invItem?.failureReason || invItem?.errorMessage;
+      if (st) resultNote = ` | Idefix durumu: ${st}${reason ? ` (${typeof reason === "string" ? reason : JSON.stringify(reason)})` : ""}`;
+    }
 
     const summary = items.map((i: any) => `${i.barcode}: stok ${i.inventoryQuantity}, ₺${i.price}`).join(" | ");
     return {
       success: true,
-      message: `${isClosed ? "Ürün kapalı olduğu için stok 0 gönderildi. " : ""}Idefix'e iletildi → ${summary}${batchId ? ` (İşlem: ${batchId})` : ""}`,
+      message: `${isClosed ? "Ürün kapalı olduğu için stok 0 gönderildi. " : ""}Idefix'e iletildi → ${summary}${batchId ? ` (İşlem: ${batchId})` : ""}${resultNote}`,
     };
   } catch (error: any) {
     console.error("updateIdefixStockPrice error:", error);
     return { success: false, message: "Idefix hatası: " + error.message };
   }
+}
+
+/**
+ * "Beklemede" kalmış Idefix ürünlerinin işlem sonucunu sorgular (Idefix sipariş cron'undan çağrılır).
+ */
+export async function resolvePendingIdefixBatches() {
+  const pending = await (prisma as any).idefixProduct.findMany({
+    where: { batchStatus: "PENDING", batchId: { not: null } },
+    select: { productId: true },
+    orderBy: { lastSyncedAt: "asc" },
+    take: 50,
+  });
+  let resolved = 0;
+  for (const p of pending) {
+    const res = await checkIdefixBatchStatus(p.productId).catch(() => null);
+    if (res?.success) resolved++;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return { checked: pending.length, resolved };
 }

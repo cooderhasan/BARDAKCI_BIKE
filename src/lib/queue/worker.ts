@@ -137,9 +137,12 @@ export function initializeWorker() {
 
                 if (job.name === "idefix-order-sync") {
                     console.log("🔄 Otomatik Idefix Sipariş Senkronizasyonu başlatıldı...");
-                    const { syncOrdersFromIdefix } = await import("@/app/admin/(protected)/integrations/idefix/actions");
+                    const { syncOrdersFromIdefix, resolvePendingIdefixBatches } = await import("@/app/admin/(protected)/integrations/idefix/actions");
                     const result = await syncOrdersFromIdefix();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    // "Beklemede" kalan ürünlerin sonucunu al
+                    const batchResult = await resolvePendingIdefixBatches().catch((e: any) => ({ checked: 0, error: e.message }));
+                    console.log(`✅ Idefix bekleyen işlem kontrolü:`, batchResult);
                     return;
                 }
 

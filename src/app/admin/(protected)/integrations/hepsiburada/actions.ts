@@ -1356,3 +1356,71 @@ export async function setBulkHepsiburadaProductCategory(productIds: string[], hb
         return { success: false, message: "Hata: " + error.message };
     }
 }
+
+// ==================== HB İLAN EŞLEŞTİRME ====================
+
+/**
+ * HB'deki tüm ilanları çekip satıcı stok kodu (merchantSku) eşleşen site ürünlerini "senkron" işaretler ve HB SKU'sunu kaydeder.
+ * Entegra veya HB panelinden eklenmiş ürünler HB'de olduğu halde listede "Bekliyor" görünüyordu.
+ * Sadece eşleştirme kaydını düzeltir; ürünün "HB'de açık" ayarına dokunmaz.
+ */
+export async function matchHepsiburadaListings() {
+    try {
+        const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
+        if (!config) return { success: false, message: "Aktif Hepsiburada entegrasyonu yok." };
+
+        const client = new HepsiburadaClient({
+            username: config.username,
+            password: config.password,
+            merchantId: config.merchantId || config.username,
+            isTestMode: config.isTestMode ?? true,
+        });
+
+        const hbSkuMap = new Map<string, string>(); // merchantSku -> hepsiburadaSku
+        const LIMIT = 100;
+        for (let offset = 0, page = 0; page < 500; page++, offset += LIMIT) {
+            const res = await client.getListings(LIMIT, offset);
+            const arr = res?.listings || res?.items || (Array.isArray(res) ? res : []);
+            for (const l of arr) {
+                if (l.merchantSku && l.hepsiburadaSku) hbSkuMap.set(String(l.merchantSku), String(l.hepsiburadaSku));
+            }
+            if (arr.length < LIMIT) break;
+        }
+        if (hbSkuMap.size === 0) return { success: false, message: "HB'den ilan alınamadı." };
+
+        const products: any[] = await prisma.product.findMany({
+            select: {
+                id: true, sku: true, barcode: true,
+                variants: { select: { sku: true, barcode: true } },
+                hepsiburadaProduct: { select: { isSynced: true, merchantSku: true } },
+            },
+        });
+
+        let matched = 0;
+        let alreadySynced = 0;
+        for (const p of products) {
+            const codes = [
+                p.hepsiburadaProduct?.merchantSku, p.sku, p.barcode,
+                ...(p.variants || []).flatMap((v: any) => [v.sku, v.barcode]),
+            ].filter(Boolean) as string[];
+            const hit = codes.find((code) => hbSkuMap.has(code));
+            if (!hit) continue;
+            if (p.hepsiburadaProduct?.isSynced) { alreadySynced++; continue; }
+            await (prisma as any).hepsiburadaProduct.upsert({
+                where: { productId: p.id },
+                update: { isSynced: true, hbSku: hbSkuMap.get(hit), merchantSku: hit, lastSyncError: null, lastSyncedAt: new Date() },
+                create: { productId: p.id, isSynced: true, hbSku: hbSkuMap.get(hit), merchantSku: hit, lastSyncedAt: new Date() },
+            });
+            matched++;
+        }
+
+        revalidatePath("/admin/integrations/hepsiburada/products");
+        return {
+            success: true,
+            message: `HB'de ${hbSkuMap.size} ilan bulundu. ${matched} ürün eşleştirilip "Aktif" işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten eşleşmişti` : ""}.`,
+        };
+    } catch (error: any) {
+        console.error("matchHepsiburadaListings error:", error);
+        return { success: false, message: "HB hatası: " + error.message };
+    }
+}
