@@ -78,6 +78,8 @@ export class PttavmClient {
     }
   }
 
+  private searchQueryStyle = "";
+
   async init() {
     if (this.creds) return;
     const config = await (prisma as any).pttavmConfig.findFirst({
@@ -124,7 +126,11 @@ export class PttavmClient {
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, options);
+    // "fetch failed" tek başına sebep söylemiyor; undici asıl nedeni error.cause içinde veriyor
+    const response = await fetch(url, options).catch((e: any) => {
+      const cause = e?.cause ? ` (${e.cause.code || ""} ${e.cause.message || ""})`.replace(/\s+\)/, ")") : "";
+      throw new Error(`ePttAVM bağlantı hatası ${method} ${path}: ${e?.message || e}${cause}`);
+    });
     const rawText = await response.text().catch(() => "");
 
     if (!response.ok) {
@@ -214,8 +220,28 @@ export class PttavmClient {
    * GET /api/v1/products/search?categoryId=&subCategoryId=&isActive=&isInStock=&merchantCategoryId=&searchPage=
    */
   async searchProducts(params: { isActive: boolean; isInStock: boolean; page: number }): Promise<any[]> {
-    const q = `categoryId=&subCategoryId=&isActive=${params.isActive}&isInStock=${params.isInStock}&merchantCategoryId=&searchPage=${params.page}`;
-    const res = await this.request<any>("GET", `/api/v1/products/search?${q}`);
+    // Dokümanda kategori alanları "zorunlu" görünüyor ama tüm ilanlar isteniyor; servis boş değeri reddederse 0 ve parametresiz biçim denenir
+    const base = `isActive=${params.isActive}&isInStock=${params.isInStock}&searchPage=${params.page}`;
+    const variants = [
+      this.searchQueryStyle,
+      `categoryId=&subCategoryId=&merchantCategoryId=&${base}`,
+      `categoryId=0&subCategoryId=0&merchantCategoryId=0&${base}`,
+      base,
+    ].filter((v, i, arr): v is string => !!v && arr.indexOf(v) === i);
+    let res: any;
+    let lastErr: any;
+    for (const v of variants) {
+      const q = v.includes("searchPage=") ? v.replace(/isActive=[^&]*&isInStock=[^&]*&searchPage=\d+/, base) : v;
+      try {
+        res = await this.request<any>("GET", `/api/v1/products/search?${q}`);
+        this.searchQueryStyle = v;
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (lastErr) throw lastErr;
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.items)) return res.items;
     if (Array.isArray(res?.products)) return res.products;
