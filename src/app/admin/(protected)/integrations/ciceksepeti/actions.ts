@@ -206,7 +206,8 @@ export async function syncProductsToCiceksepeti(
         const validVariants = p.variants?.filter((v) => v.barcode || v.sku) || [];
         if (validVariants.length > 0) {
           for (const v of validVariants) {
-            const stockCode = v.barcode || v.sku;
+            // Ürün oluşturmayla aynı kural (önce SKU); barkod önce gidince Çiçeksepeti'deki ürünle eşleşmiyordu
+            const stockCode = v.sku || v.barcode;
             const varAvailableStock = Math.max(0, v.stock - criticalStock);
             if (stockCode) {
               priceStockItems.push({
@@ -218,7 +219,7 @@ export async function syncProductsToCiceksepeti(
             }
           }
         } else {
-          const stockCode = p.barcode || p.sku || p.id;
+          const stockCode = (p as any).ciceksepetiProduct?.ciceksepetiCode || p.sku || p.barcode || p.id;
           if (stockCode) {
             priceStockItems.push({
               stockCode,

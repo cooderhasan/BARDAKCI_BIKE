@@ -788,6 +788,7 @@ async function pushZeroStockToCiceksepeti(productIds: string[], includeClosed = 
             salePrice: true,
             listPrice: true,
             ciceksepetiPrice: true,
+            ciceksepetiProduct: { select: { ciceksepetiCode: true } },
             variants: { select: { barcode: true, sku: true } },
         },
     });
@@ -804,7 +805,8 @@ async function pushZeroStockToCiceksepeti(productIds: string[], includeClosed = 
         const validVariants = p.variants?.filter((v: any) => v.barcode || v.sku) || [];
         if (validVariants.length > 0) {
             for (const v of validVariants) {
-                const stockCode = v.barcode || v.sku;
+                // Çiçeksepeti ürün oluşturmayla aynı kural: önce SKU
+                const stockCode = v.sku || v.barcode;
                 if (stockCode) {
                     items.push({
                         stockCode,
@@ -814,7 +816,7 @@ async function pushZeroStockToCiceksepeti(productIds: string[], includeClosed = 
                 }
             }
         } else {
-            const stockCode = p.barcode || p.sku || p.id;
+            const stockCode = (p as any).ciceksepetiProduct?.ciceksepetiCode || p.sku || p.barcode || p.id;
             if (stockCode) {
                 items.push({
                     stockCode,
