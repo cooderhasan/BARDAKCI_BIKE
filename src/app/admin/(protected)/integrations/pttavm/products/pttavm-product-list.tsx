@@ -14,6 +14,7 @@ import {
   syncProductsToPttavm,
   syncPttavmStockAndPrice,
   checkPttavmTrackingResult,
+  inspectPttavmProduct,
   setPttavmProductCategory,
   setBulkPttavmProductCategory,
 } from "../actions";
@@ -244,6 +245,23 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
 
       if (res.success) {
         toast.success(res.message);
+      } else {
+        toast.error(res.message);
+      }
+    });
+  };
+
+  // ePttAVM'deki anlık stok ile bizim gönderdiğimizi karşılaştırır
+  const handleInspect = (productId: string) => {
+    startTransition(async () => {
+      const loadingToast = toast.loading("ePttAVM'de ürün sorgulanıyor...");
+      const res: any = await inspectPttavmProduct(productId);
+      toast.dismiss(loadingToast);
+      if (res.success) {
+        toast.info(<div className="whitespace-pre-line text-xs">{res.message}</div>, {
+          description: <div className="break-all text-[10px] opacity-70">{res.raw}</div>,
+          duration: 60000,
+        });
       } else {
         toast.error(res.message);
       }
@@ -609,6 +627,17 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
                               "Pasif"
                             )}
                           </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-teal-600 gap-1"
+                            onClick={() => handleInspect(product.id)}
+                            disabled={isPending}
+                            title="ePttAVM'deki anlık stoğu bizim gönderdiğimizle karşılaştırır"
+                          >
+                            <Search className="w-3 h-3 text-teal-600" />
+                            Kontrol
+                          </Button>
                           {product.trackingId && (
                             <Button
                               variant="ghost"

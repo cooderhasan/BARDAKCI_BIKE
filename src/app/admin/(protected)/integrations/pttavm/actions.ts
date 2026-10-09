@@ -1142,3 +1142,51 @@ export async function setBulkPttavmProductCategory(productIds: string[], pttavmC
         return { success: false, message: "Hata: " + error.message };
     }
 }
+
+/**
+ * Tek ürün için ePttAVM teşhisi: ePttAVM'deki anlık stok/aktiflik, bizim göndereceğimiz stok ve son gönderimin sonucu.
+ * Stok ePttAVM'ye yansımadığında sorunun bizde mi, ePttAVM'de mi (kilitli ürün vb.) yoksa başka bir entegratörde mi olduğunu ayırmak için.
+ */
+export async function inspectPttavmProduct(productId: string) {
+  try {
+    const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, message: "Aktif ePttAVM entegrasyonu bulunamadı." };
+    const client = new PttavmClient({ apiKey: config.apiKey, accessToken: config.accessToken, isTestMode: Boolean(config.isTestMode) });
+
+    const p: any = await prisma.product.findUnique({ where: { id: productId }, include: { pttavmProduct: true } });
+    if (!p) return { success: false, message: "Ürün bulunamadı." };
+
+    const critical = p.criticalStock ?? 0;
+    const ourQty = p.isActive && p.isPttavmActive ? (p.stock <= critical ? 0 : p.stock - critical) : 0;
+    const barcode = String(p.barcode || p.sku || "").trim();
+
+    let remote: any = null;
+    let remoteError = "";
+    try {
+      remote = await client.getProductsByBarcodes([barcode]);
+    } catch (e: any) {
+      remoteError = e.message;
+    }
+    const list: any[] = Array.isArray(remote) ? remote
+      : Array.isArray(remote?.products) ? remote.products
+      : Array.isArray(remote?.items) ? remote.items
+      : Array.isArray(remote?.data) ? remote.data
+      : remote ? [remote] : [];
+    const item = list.find((x) => String(x?.barkod ?? x?.barcode ?? "") === barcode) || list[0] || null;
+    const pick = (o: any, keys: string[]) => keys.map((k) => o?.[k]).find((v) => v !== undefined && v !== null);
+
+    const remoteQty = pick(item, ["miktar", "quantity", "stock", "stok"]);
+    const remoteActive = pick(item, ["aktif", "active", "isActive"]);
+    const remoteStatus = pick(item, ["durum", "status", "approvalStatus"]);
+    const pp = p.pttavmProduct;
+
+    const lines = [
+      `ePttAVM'de: stok ${remoteQty ?? "?"}, aktif ${remoteActive ?? "?"}${remoteStatus ? `, durum ${remoteStatus}` : ""}${remoteError ? ` (sorgu hatası: ${remoteError})` : ""}`,
+      `Bizim göndereceğimiz stok: ${ourQty} (stok ${p.stock} - kritik ${critical})`,
+      `Son gönderim: ${pp?.lastSyncedAt ? new Date(pp.lastSyncedAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }) : "-"} / ${pp?.batchStatus || "-"}${pp?.lastSyncError ? ` / ePttAVM mesajı: ${pp.lastSyncError}` : ""}`,
+    ];
+    return { success: true, message: lines.join(" | "), raw: JSON.stringify(item ?? remote ?? null).slice(0, 800) };
+  } catch (error: any) {
+    return { success: false, message: "ePttAVM kontrol hatası: " + error.message };
+  }
+}
