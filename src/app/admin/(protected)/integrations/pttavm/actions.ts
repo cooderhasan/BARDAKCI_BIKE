@@ -189,10 +189,12 @@ export async function syncPttavmStockAndPrice(productIds?: string[], options: { 
     const BATCH_SIZE = 1000;
     const trackingIds: string[] = [];
     let lastResult: any = null;
+    const batchResults: any[] = [];
 
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
       const chunk = items.slice(i, i + BATCH_SIZE);
       lastResult = await client.updateStockAndPrice(chunk);
+      batchResults.push(lastResult);
       if (lastResult?.trackingId) {
         trackingIds.push(lastResult.trackingId);
       }
@@ -202,6 +204,8 @@ export async function syncPttavmStockAndPrice(productIds?: string[], options: { 
     }
 
     const mainTrackingId = trackingIds.join(", ") || lastResult?.trackingId || null;
+    // ePttAVM HTTP 200 ile success:false dönebiliyor; bunu başarı saymıyoruz ki kuyruk tekrar denesin
+    const failedResult = batchResults.find((r) => r?.success === false);
 
     for (const p of products) {
       await (prisma as any).pttavmProduct.upsert({
@@ -227,6 +231,10 @@ export async function syncPttavmStockAndPrice(productIds?: string[], options: { 
     try {
       revalidatePath("/admin/integrations/pttavm");
     } catch {}
+
+    if (failedResult) {
+      return { success: false, message: "ePttAVM stok/fiyat güncellemesini reddetti: " + (failedResult.message || JSON.stringify(failedResult).slice(0, 300)) };
+    }
 
     return {
       success: true,

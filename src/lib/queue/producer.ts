@@ -22,6 +22,11 @@ export interface SyncJobData {
 export async function addMarketplaceSyncJob(data: SyncJobData) {
     const jobName = `sync-${data.marketplace}-${data.type}-${Date.now()}`;
     const queue = getQueue();
-    const job = await queue.add(jobName, data, DEFAULT_JOB_OPTIONS);
+    // ePttAVM aynı anda gelen istekleri bir süre reddediyor; 15 sn içinde biten 3 deneme yetmiyor ve güncelleme kayboluyordu.
+    // Bu yüzden ePttAVM işleri 1-2-4-8-16 dk arayla tekrar denenir.
+    const options = data.marketplace === "pttavm"
+        ? { ...DEFAULT_JOB_OPTIONS, attempts: 6, backoff: { type: "exponential", delay: 60000 } }
+        : DEFAULT_JOB_OPTIONS;
+    const job = await queue.add(jobName, data, options);
     return job;
 }
