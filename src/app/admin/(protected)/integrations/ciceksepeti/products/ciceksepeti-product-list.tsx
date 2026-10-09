@@ -59,7 +59,7 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
         await new Promise((r) => setTimeout(r, 5000));
         const st = await getCiceksepetiMatchStatus().catch(() => null);
         if (st && st.status !== "running") {
-          if (st.success) toast.success(st.message, { duration: 30000 });
+          if (st.success) toast.success(st.message, { duration: 60000 });
           else toast.error(st.message, { duration: 30000 });
           router.refresh();
           return;

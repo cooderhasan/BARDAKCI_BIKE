@@ -160,7 +160,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         setMatching(true);
         try {
             const res = await matchHepsiburadaListings();
-            if (res.success) { toast.success(res.message, { duration: 10000 }); router.refresh(); }
+            if (res.success) { toast.success(res.message, { duration: 60000 }); router.refresh(); }
             else toast.error(res.message);
         } finally {
             setMatching(false);

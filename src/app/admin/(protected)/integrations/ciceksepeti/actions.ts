@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
+import { isListingLive, formatListingReport } from "@/lib/marketplace-report";
 import { CiceksepetiClient } from "@/services/ciceksepeti/api";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
@@ -1196,6 +1197,14 @@ async function runCiceksepetiMatch() {
     // stok kodu / barkod -> Çiçeksepeti ürünü
     const byCode = new Map<string, any>();
     const statusCounts: Record<string, number> = {};
+    let stockKnown = true;
+    // Satışta ve stoklu ilanlar (rapor için)
+    const isLive = (r: any) => {
+      const lv = isListingLive(r);
+      if (!lv.stockKnown) stockKnown = false;
+      const st = String(r.productStatusType ?? "");
+      return lv.live && (st === "3" || /yay[ıi]nda/i.test(st)) && !/onay/i.test(st);
+    };
     for (const r of remote) {
       const st = String(r.productStatusType ?? "-");
       statusCounts[st] = (statusCounts[st] || 0) + 1;
@@ -1209,6 +1218,8 @@ async function runCiceksepetiMatch() {
         id: true,
         sku: true,
         barcode: true,
+        isActive: true,
+        isCiceksepetiActive: true,
         variants: { select: { sku: true, barcode: true } },
         ciceksepetiProduct: { select: { isSynced: true, ciceksepetiCode: true, lastSyncError: true } },
       },
@@ -1217,6 +1228,8 @@ async function runCiceksepetiMatch() {
     let matched = 0;
     let rejected = 0;
     let codeFixed = 0;
+    const matchedRemote = new Set<any>();
+    const liveButClosed: string[] = [];
     for (const p of products) {
       const variants = (p.variants || []).filter((v: any) => v.sku || v.barcode);
       const codes = variants.length > 0
@@ -1225,6 +1238,11 @@ async function runCiceksepetiMatch() {
       const hitCode = (codes.filter(Boolean) as string[]).map((x) => x.trim()).find((x) => byCode.has(x));
       if (!hitCode) continue;
       const r = byCode.get(hitCode);
+      for (const c of codes.filter(Boolean) as string[]) {
+        const rr = byCode.get(String(c).trim());
+        if (rr) matchedRemote.add(rr);
+      }
+      if (isLive(r) && !(p.isActive && p.isCiceksepetiActive)) liveButClosed.push(p.sku || hitCode);
       const status = String(r.productStatusType ?? "");
       const remoteStockCode = String(r.stockCode ?? r.StockCode ?? "").trim();
 
@@ -1257,7 +1275,12 @@ async function runCiceksepetiMatch() {
     const dist = Object.entries(statusCounts).map(([k, v]) => `${k}: ${v}`).join(", ");
     return {
       success: true,
-      message: `Çiçeksepeti'nde ${remote.length} ürün bulundu (${dist}). ${matched} ürün "Yayında" yapıldı${codeFixed ? ` (${codeFixed} üründe stok kodu Çiçeksepeti'ndekiyle düzeltildi)` : ""}${rejected ? `; ${rejected} ürün Çiçeksepeti'nde reddedilmiş` : ""}.`,
+      message: `Çiçeksepeti'nde ${remote.length} ürün bulundu (${dist}). ${matched} ürün "Yayında" yapıldı${codeFixed ? ` (${codeFixed} üründe stok kodu Çiçeksepeti'ndekiyle düzeltildi)` : ""}${rejected ? `; ${rejected} ürün Çiçeksepeti'nde reddedilmiş` : ""}.` +
+        formatListingReport(
+          remote.filter((r) => isLive(r) && !matchedRemote.has(r)).map((r) => String(r.stockCode ?? r.StockCode ?? r.barcode ?? r.productCode)),
+          liveButClosed,
+          stockKnown,
+        ),
     };
   } catch (error: any) {
     console.error("matchCiceksepetiProducts error:", error);

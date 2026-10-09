@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
+import { isListingLive, formatListingReport } from "@/lib/marketplace-report";
 import { IdefixClient } from "@/services/idefix/api";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
@@ -1329,10 +1330,19 @@ export async function matchIdefixProducts() {
     if (!client) return { success: false, message: "Idefix entegrasyon ayarları bulunamadı." };
 
     const pool = new Map<string, string>(); // barkod -> durum
+    const liveBarcodes = new Set<string>(); // satışta ve stoklu ilanlar
+    let stockKnown = true;
     const LIMIT = 100;
     for (let page = 1; page <= 300; page++) {
       const items = await client.getPoolProducts(page, LIMIT);
-      for (const it of items) if (it.barcode) pool.set(String(it.barcode), String(it.status || ""));
+      for (const it of items) {
+        if (!it.barcode) continue;
+        const status = String(it.status || "");
+        pool.set(String(it.barcode), status);
+        const lv = isListingLive(it);
+        if (!lv.stockKnown) stockKnown = false;
+        if (lv.live && IDEFIX_LIVE_STATUS.test(status) && !IDEFIX_NOT_LIVE_STATUS.test(status)) liveBarcodes.add(String(it.barcode));
+      }
       if (items.length < LIMIT) break;
     }
     if (pool.size === 0) return { success: false, message: "Idefix'ten ürün listesi alınamadı." };
@@ -1341,14 +1351,19 @@ export async function matchIdefixProducts() {
     for (const st of pool.values()) statusCounts[st || "-"] = (statusCounts[st || "-"] || 0) + 1;
 
     const products: any[] = await prisma.product.findMany({
-      select: { id: true, barcode: true, variants: { select: { barcode: true } }, idefixProduct: { select: { isSynced: true } } },
+      select: { id: true, sku: true, barcode: true, isActive: true, isIdefixActive: true, variants: { select: { barcode: true } }, idefixProduct: { select: { isSynced: true } } },
     });
     let matched = 0;
     let notLive = 0;
+    const matchedRemote = new Set<string>();
+    const liveButClosed: string[] = [];
     for (const p of products) {
       const codes = [p.barcode, ...(p.variants || []).map((v: any) => v.barcode)].filter(Boolean) as string[];
-      const hit = codes.find((code) => pool.has(code));
+      const hits = codes.filter((code) => pool.has(code));
+      hits.forEach((c) => matchedRemote.add(c));
+      const hit = hits[0];
       if (!hit) continue;
+      if (hits.some((c) => liveBarcodes.has(c)) && !(p.isActive && p.isIdefixActive)) liveButClosed.push(p.sku || hit);
       const status = pool.get(hit) || "";
       const isLive = IDEFIX_LIVE_STATUS.test(status) && !IDEFIX_NOT_LIVE_STATUS.test(status);
       if (!isLive) { notLive++; continue; }
@@ -1365,7 +1380,8 @@ export async function matchIdefixProducts() {
     const dist = Object.entries(statusCounts).map(([k, v]) => `${k}: ${v}`).join(", ");
     return {
       success: true,
-      message: `Idefix'te ${pool.size} ürün bulundu (${dist}). ${matched} ürün "Senkronize" yapıldı${notLive ? `; ${notLive} ürün Idefix'te var ama satışta görünmüyor` : ""}.`,
+      message: `Idefix'te ${pool.size} ürün bulundu (${dist}). ${matched} ürün "Senkronize" yapıldı${notLive ? `; ${notLive} ürün Idefix'te var ama satışta görünmüyor` : ""}.` +
+        formatListingReport([...liveBarcodes].filter((b) => !matchedRemote.has(b)), liveButClosed, stockKnown),
     };
   } catch (error: any) {
     console.error("matchIdefixProducts error:", error);

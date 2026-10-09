@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
+import { isListingLive, formatListingReport } from "@/lib/marketplace-report";
 import { TrendyolClient } from "@/services/trendyol/api";
 import { generateSlug } from "@/lib/helpers";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
@@ -1745,11 +1746,18 @@ export async function matchTrendyolProductsByBarcode() {
         const PAGE_SIZE = 100;
         const MAX_PAGES = 300;
         const trendyolBarcodes = new Map<string, string | null>(); // barkod -> contentId
+        const liveBarcodes = new Set<string>(); // satışta ve stoklu ilanlar
+        let stockKnown = true;
         for (let page = 0; page < MAX_PAGES; page++) {
             const data = await client.getSellersProducts(page, PAGE_SIZE);
             const content = Array.isArray(data?.content) ? data.content : [];
             for (const p of content) {
-                if (p.barcode) trendyolBarcodes.set(String(p.barcode), p.contentId ? String(p.contentId) : null);
+                if (p.barcode) {
+                    trendyolBarcodes.set(String(p.barcode), p.contentId ? String(p.contentId) : null);
+                    const lv = isListingLive(p);
+                    if (!lv.stockKnown) stockKnown = false;
+                    if (lv.live) liveBarcodes.add(String(p.barcode));
+                }
             }
             const totalPages = Number(data?.totalPages ?? 0);
             if (content.length === 0 || (totalPages && page + 1 >= totalPages)) break;
@@ -1757,15 +1765,20 @@ export async function matchTrendyolProductsByBarcode() {
         if (trendyolBarcodes.size === 0) return { success: false, message: "Trendyol'dan onaylı ürün alınamadı." };
 
         const products: any[] = await prisma.product.findMany({
-            select: { id: true, barcode: true, variants: { select: { barcode: true } }, trendyolProduct: { select: { isSynced: true } } },
+            select: { id: true, sku: true, barcode: true, isActive: true, isTrendyolActive: true, variants: { select: { barcode: true } }, trendyolProduct: { select: { isSynced: true } } },
         });
 
         let matched = 0;
         let alreadySynced = 0;
+        const matchedRemote = new Set<string>();
+        const liveButClosed: string[] = [];
         for (const p of products) {
             const codes = [p.barcode, ...(p.variants || []).map((v: any) => v.barcode)].filter(Boolean) as string[];
-            const hit = codes.find((c) => trendyolBarcodes.has(c));
+            const hits = codes.filter((c) => trendyolBarcodes.has(c));
+            hits.forEach((c) => matchedRemote.add(c));
+            const hit = hits[0];
             if (!hit) continue;
+            if (hits.some((c) => liveBarcodes.has(c)) && !(p.isActive && p.isTrendyolActive)) liveButClosed.push(p.sku || hit);
             if (p.trendyolProduct?.isSynced) { alreadySynced++; continue; }
             const contentId = trendyolBarcodes.get(hit) ?? null;
             await (prisma as any).trendyolProduct.upsert({
@@ -1779,7 +1792,8 @@ export async function matchTrendyolProductsByBarcode() {
         revalidatePath("/admin/integrations/trendyol/products");
         return {
             success: true,
-            message: `Trendyol'da ${trendyolBarcodes.size} onaylı barkod bulundu. ${matched} ürün "Senkronize" olarak işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten senkronizeydi` : ""}.`,
+            message: `Trendyol'da ${trendyolBarcodes.size} onaylı barkod bulundu. ${matched} ürün "Senkronize" olarak işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten senkronizeydi` : ""}.` +
+                formatListingReport([...liveBarcodes].filter((b) => !matchedRemote.has(b)), liveButClosed, stockKnown),
         };
     } catch (error: any) {
         console.error("matchTrendyolProductsByBarcode error:", error);

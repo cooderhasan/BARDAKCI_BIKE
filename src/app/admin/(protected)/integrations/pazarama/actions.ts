@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
+import { isListingLive, formatListingReport } from "@/lib/marketplace-report";
 import { PazaramaClient } from "@/services/pazarama/api";
 import { OrderStatus } from "@prisma/client";
 import { handlePostOrderStockSync } from "@/lib/stock-sync";
@@ -1353,25 +1354,42 @@ export async function matchPazaramaApprovedProducts() {
     if (!client) return { success: false, message: "Pazarama entegrasyonu aktif değil." };
 
     const approved = new Set<string>();
+    const liveCodes = new Set<string>(); // satışta ve stoklu ilanlar
+    let stockKnown = true;
     let cursor: string | null = null;
     for (let page = 0; page < 300; page++) {
       const { products, nextCursor } = await client.getApprovedProducts(cursor);
-      for (const ap of products) if (ap.code) approved.add(String(ap.code));
+      for (const ap of products) {
+        if (!ap.code) continue;
+        approved.add(String(ap.code));
+        const lv = isListingLive(ap);
+        if (!lv.stockKnown) stockKnown = false;
+        if (lv.live) liveCodes.add(String(ap.code));
+      }
       if (!nextCursor || products.length === 0) break;
       cursor = nextCursor;
     }
     if (approved.size === 0) return { success: false, message: "Pazarama'dan onaylı ürün alınamadı." };
 
-    const products = await prisma.product.findMany({ select: { id: true, sku: true, barcode: true, pazaramaStatus: true } });
+    const products = await prisma.product.findMany({ select: { id: true, sku: true, barcode: true, pazaramaStatus: true, isActive: true, isPazaramaActive: true } });
     let matched = 0;
+    const matchedRemote = new Set<string>();
+    const liveButClosed: string[] = [];
     for (const p of products) {
-      if (!pazaramaCodes(p).some((code) => approved.has(code))) continue;
+      const hits = pazaramaCodes(p).filter((code) => approved.has(code));
+      hits.forEach((c) => matchedRemote.add(c));
+      if (hits.length === 0) continue;
+      if (hits.some((c) => liveCodes.has(c)) && !(p.isActive && (p as any).isPazaramaActive)) liveButClosed.push(p.sku || hits[0]);
       if (p.pazaramaStatus === "Onaylandı") continue;
       await prisma.product.update({ where: { id: p.id }, data: { pazaramaStatus: "Onaylandı" } });
       matched++;
     }
     revalidatePath("/admin/integrations/pazarama/products");
-    return { success: true, message: `Pazarama'da ${approved.size} onaylı ürün bulundu. ${matched} ürünün durumu "Onaylandı" yapıldı.` };
+    return {
+      success: true,
+      message: `Pazarama'da ${approved.size} onaylı ürün bulundu. ${matched} ürünün durumu "Onaylandı" yapıldı.` +
+        formatListingReport([...liveCodes].filter((c) => !matchedRemote.has(c)), liveButClosed, stockKnown),
+    };
   } catch (error: any) {
     return { success: false, message: "Pazarama hatası: " + error.message };
   }

@@ -283,7 +283,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
     setMatchingIdefix(true);
     try {
       const res = await matchIdefixProducts();
-      if (res.success) { toast.success(res.message, { duration: 15000 }); router.refresh(); }
+      if (res.success) { toast.success(res.message, { duration: 60000 }); router.refresh(); }
       else toast.error(res.message);
     } finally {
       setMatchingIdefix(false);

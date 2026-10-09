@@ -3,6 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
+import { isListingLive, formatListingReport } from "@/lib/marketplace-report";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 import { HepsiburadaClient } from "@/services/hepsiburada/api";
 
@@ -1377,12 +1378,19 @@ export async function matchHepsiburadaListings() {
         });
 
         const hbSkuMap = new Map<string, string>(); // merchantSku -> hepsiburadaSku
+        const liveSkus = new Set<string>(); // satışta ve stoklu ilanlar
+        let stockKnown = true;
         const LIMIT = 100;
         for (let offset = 0, page = 0; page < 500; page++, offset += LIMIT) {
             const res = await client.getListings(LIMIT, offset);
             const arr = res?.listings || res?.items || (Array.isArray(res) ? res : []);
             for (const l of arr) {
-                if (l.merchantSku && l.hepsiburadaSku) hbSkuMap.set(String(l.merchantSku), String(l.hepsiburadaSku));
+                if (l.merchantSku && l.hepsiburadaSku) {
+                    hbSkuMap.set(String(l.merchantSku), String(l.hepsiburadaSku));
+                    const lv = isListingLive(l);
+                    if (!lv.stockKnown) stockKnown = false;
+                    if (lv.live) liveSkus.add(String(l.merchantSku));
+                }
             }
             if (arr.length < LIMIT) break;
         }
@@ -1390,7 +1398,7 @@ export async function matchHepsiburadaListings() {
 
         const products: any[] = await prisma.product.findMany({
             select: {
-                id: true, sku: true, barcode: true,
+                id: true, sku: true, barcode: true, isActive: true, isHepsiburadaActive: true,
                 variants: { select: { sku: true, barcode: true } },
                 hepsiburadaProduct: { select: { isSynced: true, merchantSku: true } },
             },
@@ -1398,13 +1406,18 @@ export async function matchHepsiburadaListings() {
 
         let matched = 0;
         let alreadySynced = 0;
+        const matchedRemote = new Set<string>();
+        const liveButClosed: string[] = [];
         for (const p of products) {
             const codes = [
                 p.hepsiburadaProduct?.merchantSku, p.sku, p.barcode,
                 ...(p.variants || []).flatMap((v: any) => [v.sku, v.barcode]),
             ].filter(Boolean) as string[];
-            const hit = codes.find((code) => hbSkuMap.has(code));
+            const hits = codes.filter((code) => hbSkuMap.has(code));
+            hits.forEach((c) => matchedRemote.add(c));
+            const hit = hits[0];
             if (!hit) continue;
+            if (hits.some((c) => liveSkus.has(c)) && !(p.isActive && p.isHepsiburadaActive)) liveButClosed.push(p.sku || hit);
             if (p.hepsiburadaProduct?.isSynced) { alreadySynced++; continue; }
             await (prisma as any).hepsiburadaProduct.upsert({
                 where: { productId: p.id },
@@ -1417,7 +1430,8 @@ export async function matchHepsiburadaListings() {
         revalidatePath("/admin/integrations/hepsiburada/products");
         return {
             success: true,
-            message: `HB'de ${hbSkuMap.size} ilan bulundu. ${matched} ürün eşleştirilip "Aktif" işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten eşleşmişti` : ""}.`,
+            message: `HB'de ${hbSkuMap.size} ilan bulundu. ${matched} ürün eşleştirilip "Aktif" işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten eşleşmişti` : ""}.` +
+                formatListingReport([...liveSkus].filter((s) => !matchedRemote.has(s)), liveButClosed, stockKnown),
         };
     } catch (error: any) {
         console.error("matchHepsiburadaListings error:", error);
