@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
 import { 
     Table, 
@@ -142,6 +143,7 @@ interface HepsiburadaProductListProps {
 }
 
 export function HepsiburadaProductList({ initialProducts, pagination }: HepsiburadaProductListProps) {
+    const router = useRouter();
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
 
@@ -158,7 +160,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         setMatching(true);
         try {
             const res = await matchHepsiburadaListings();
-            if (res.success) { toast.success(res.message, { duration: 10000 }); window.location.reload(); }
+            if (res.success) { toast.success(res.message, { duration: 10000 }); router.refresh(); }
             else toast.error(res.message);
         } finally {
             setMatching(false);

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, RefreshCw } from "lucide-react";
@@ -58,6 +59,7 @@ import { syncOrdersFromN11, autoMatchN11ProductsAction, importN11ExcelAction, im
 import { Download, Link2, FileSpreadsheet } from "lucide-react";
 
 function N11ExcelImportButton() {
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +98,7 @@ function N11ExcelImportButton() {
                     const res = await importN11MappingsAction(mappings);
                     if (res.success) {
                         toast.success(res.message);
-                        window.location.reload();
+                        router.refresh();
                     } else {
                         toast.error(res.message || "Eşleştirme başarısız.");
                     }
@@ -119,7 +121,7 @@ function N11ExcelImportButton() {
             const res = await importN11ExcelAction();
             if (res.success) {
                 toast.success(res.message);
-                window.location.reload();
+                router.refresh();
             } else {
                 toast.error(res.message);
             }
@@ -168,6 +170,7 @@ function N11ExcelImportButton() {
 }
 
 function N11AutoMatchButton() {
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
 
     const handleAutoMatch = async () => {
@@ -177,7 +180,7 @@ function N11AutoMatchButton() {
             const res = await autoMatchN11ProductsAction();
             if (res.success) {
                 toast.success(res.message);
-                window.location.reload();
+                router.refresh();
             } else {
                 toast.error(res.message || "Eşleştirme başarısız.");
             }

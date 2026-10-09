@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
+  const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
     setMatchingCs(true);
     try {
       const res = await matchCiceksepetiProducts();
-      if (res.success) { toast.success(res.message, { duration: 15000 }); window.location.reload(); }
+      if (res.success) { toast.success(res.message, { duration: 15000 }); router.refresh(); }
       else toast.error(res.message, { duration: 15000 });
     } finally {
       setMatchingCs(false);

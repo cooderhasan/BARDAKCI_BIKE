@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,7 @@ interface PazaramaProductListProps {
 }
 
 export function PazaramaProductList({ initialProducts, pagination }: PazaramaProductListProps) {
+  const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
   const [matchingPazarama, setMatchingPazarama] = useState(false);
 
@@ -490,7 +492,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                   try {
                     const { matchPazaramaApprovedProducts } = await import("../actions");
                     const res = await matchPazaramaApprovedProducts();
-                    if (res.success) { toast.success(res.message, { duration: 10000 }); window.location.reload(); }
+                    if (res.success) { toast.success(res.message, { duration: 10000 }); router.refresh(); }
                     else toast.error(res.message);
                   } finally {
                     setMatchingPazarama(false);

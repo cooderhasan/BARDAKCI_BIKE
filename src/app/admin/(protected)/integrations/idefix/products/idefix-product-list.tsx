@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -65,6 +66,7 @@ interface IdefixProductListProps {
 }
 
 export function IdefixProductList({ initialProducts, pagination }: IdefixProductListProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState(initialProducts);
 
@@ -281,7 +283,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
     setMatchingIdefix(true);
     try {
       const res = await matchIdefixProducts();
-      if (res.success) { toast.success(res.message, { duration: 15000 }); window.location.reload(); }
+      if (res.success) { toast.success(res.message, { duration: 15000 }); router.refresh(); }
       else toast.error(res.message);
     } finally {
       setMatchingIdefix(false);
