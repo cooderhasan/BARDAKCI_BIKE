@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
     Table, 
     TableBody, 
@@ -36,7 +37,9 @@ import {
     getTrendyolCategoryAttributes, 
     enqueueTrendyolSync,
     setTrendyolProductCategory,
-    setBulkTrendyolProductCategory
+    setBulkTrendyolProductCategory,
+    verifyTrendyolProduct,
+    matchTrendyolProductsByBarcode
 } from "../actions";
 import {
     Dialog,
@@ -69,6 +72,39 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
         setProducts(initialProducts);
     }, [initialProducts]);
     const [loadingProductId, setLoadingProductId] = useState<string | null>(null);
+    const router = useRouter();
+    const [verifyingId, setVerifyingId] = useState<string | null>(null);
+    const [matching, setMatching] = useState(false);
+
+    // "Gönderilmedi" görünen ürünü barkoduyla Trendyol'da sorgular (Entegra vb. ile gönderilmiş olabilir)
+    const handleVerify = async (productId: string) => {
+        setVerifyingId(productId);
+        try {
+            const res = await verifyTrendyolProduct(productId);
+            if (!res.success) { toast.error(res.message); return; }
+            if (res.synced) toast.success(res.message);
+            else toast.warning(res.message);
+            if (res.synced) {
+                setProducts((prev: any[]) => prev.map((p: any) =>
+                    p.id === productId ? { ...p, trendyolProduct: { ...(p.trendyolProduct || {}), isSynced: true, lastSyncedAt: new Date() } } : p
+                ));
+            }
+        } finally {
+            setVerifyingId(null);
+        }
+    };
+
+    const handleMatchAll = async () => {
+        if (!confirm("Trendyol'daki tüm onaylı ürünler çekilip barkodu eşleşen ürünler 'Senkronize' işaretlenecek. Bu işlem 1-2 dakika sürebilir. Devam edilsin mi?")) return;
+        setMatching(true);
+        try {
+            const res = await matchTrendyolProductsByBarcode();
+            if (res.success) { toast.success(res.message, { duration: 10000 }); router.refresh(); }
+            else toast.error(res.message);
+        } finally {
+            setMatching(false);
+        }
+    };
     const [syncing, setSyncing] = useState(false);
     
     // Attribute Modal State
@@ -344,6 +380,17 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
 
                     <Button
                         variant="outline"
+                        onClick={handleMatchAll}
+                        disabled={matching}
+                        className="border-orange-200 text-orange-600 hover:bg-orange-50 gap-2 h-10 px-4 rounded-xl shadow-sm"
+                        title="Trendyol'da olan ama listede 'Gönderilmedi' görünen ürünleri barkoddan eşleştirir"
+                    >
+                        <RefreshCcw className={`w-4 h-4 ${matching ? "animate-spin" : ""}`} />
+                        {matching ? "Eşleştiriliyor..." : "Trendyol ile Eşleştir"}
+                    </Button>
+
+                    <Button
+                        variant="outline"
                         onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
                         disabled={selectedIds.length === 0}
                         className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-2 h-10 px-4 rounded-xl shadow-sm transition-all"
@@ -606,10 +653,18 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                                 Senkronize
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-1 text-amber-500 text-xs font-medium">
-                                                <AlertCircle className="w-4 h-4" />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleVerify(product.id)}
+                                                disabled={verifyingId === product.id}
+                                                className="flex items-center gap-1 text-amber-500 text-xs font-medium hover:underline"
+                                                title="Trendyol'da barkodla kontrol etmek için tıklayın"
+                                            >
+                                                {verifyingId === product.id
+                                                    ? <RefreshCcw className="w-4 h-4 animate-spin" />
+                                                    : <AlertCircle className="w-4 h-4" />}
                                                 Gönderilmedi
-                                            </div>
+                                            </button>
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right">

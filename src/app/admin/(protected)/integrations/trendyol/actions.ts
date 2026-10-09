@@ -2,6 +2,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { TrendyolClient } from "@/services/trendyol/api";
 import { generateSlug } from "@/lib/helpers";
@@ -1677,5 +1678,111 @@ export async function setBulkTrendyolProductCategory(productIds: string[], trend
     } catch (error: any) {
         console.error("setBulkTrendyolProductCategory error:", error);
         return { success: false, message: "Hata: " + error.message };
+    }
+}
+
+// ==================== TRENDYOL ÜRÜN DOĞRULAMA / EŞLEŞTİRME ====================
+// Entegra veya eski yöntemlerle gönderilmiş ürünler Trendyol'da olduğu halde listede "Gönderilmedi" görünüyordu.
+// Bu işlemler sadece senkron işaretini düzeltir; ürünün "Trendyol'da açık" ayarına dokunmaz.
+
+async function getTrendyolClientFromConfig() {
+    const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
+    if (!config) return null;
+    return new TrendyolClient({ supplierId: config.supplierId, apiKey: config.apiKey, apiSecret: config.apiSecret });
+}
+
+/** Ürünü barkoduyla Trendyol'un onaylı ürünlerinde arar; bulunursa "senkron" işaretler */
+export async function verifyTrendyolProduct(productId: string) {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        return { success: false, synced: false, message: "Yetkisiz işlem." };
+    }
+    try {
+        const client = await getTrendyolClientFromConfig();
+        if (!client) return { success: false, synced: false, message: "Aktif Trendyol entegrasyonu yok." };
+
+        const product: any = await prisma.product.findUnique({
+            where: { id: productId },
+            select: { id: true, barcode: true, variants: { select: { barcode: true } } },
+        });
+        if (!product) return { success: false, synced: false, message: "Ürün bulunamadı." };
+
+        const barcode = product.variants?.find((v: any) => v.barcode)?.barcode || product.barcode;
+        if (!barcode) return { success: false, synced: false, message: "Üründe barkod yok; Trendyol'da aranamaz." };
+
+        const data = await client.getSellersProducts(0, 1, barcode);
+        const found = Array.isArray(data?.content) ? data.content.find((p: any) => p.barcode === barcode) || data.content[0] : null;
+        if (!found) {
+            return { success: true, synced: false, message: `Trendyol'un onaylı ürünlerinde "${barcode}" barkodu bulunamadı. Ürün onay bekliyor olabilir ya da hiç gönderilmemiş.` };
+        }
+
+        await (prisma as any).trendyolProduct.upsert({
+            where: { productId },
+            update: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null, trendyolId: found.contentId ? String(found.contentId) : undefined },
+            create: { productId, barcode, isSynced: true, lastSyncedAt: new Date(), trendyolId: found.contentId ? String(found.contentId) : null },
+        });
+
+        const status = found.archived ? "Arşivde" : found.onSale === false ? "Satışta değil" : "Satışta";
+        return { success: true, synced: true, message: `Trendyol'da bulundu. Durum: ${status}, Stok: ${found.quantity ?? "-"}, Fiyat: ${found.salePrice ?? "-"} TL` };
+    } catch (error: any) {
+        console.error("verifyTrendyolProduct error:", error);
+        return { success: false, synced: false, message: "Trendyol hatası: " + error.message };
+    }
+}
+
+/**
+ * Trendyol'daki tüm onaylı ürünleri sayfa sayfa çekip barkodu eşleşen site ürünlerini "senkron" işaretler.
+ */
+export async function matchTrendyolProductsByBarcode() {
+    const session = await auth();
+    if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
+        return { success: false, message: "Yetkisiz işlem." };
+    }
+    try {
+        const client = await getTrendyolClientFromConfig();
+        if (!client) return { success: false, message: "Aktif Trendyol entegrasyonu yok." };
+
+        const PAGE_SIZE = 100;
+        const MAX_PAGES = 300;
+        const trendyolBarcodes = new Map<string, string | null>(); // barkod -> contentId
+        for (let page = 0; page < MAX_PAGES; page++) {
+            const data = await client.getSellersProducts(page, PAGE_SIZE);
+            const content = Array.isArray(data?.content) ? data.content : [];
+            for (const p of content) {
+                if (p.barcode) trendyolBarcodes.set(String(p.barcode), p.contentId ? String(p.contentId) : null);
+            }
+            const totalPages = Number(data?.totalPages ?? 0);
+            if (content.length === 0 || (totalPages && page + 1 >= totalPages)) break;
+        }
+        if (trendyolBarcodes.size === 0) return { success: false, message: "Trendyol'dan onaylı ürün alınamadı." };
+
+        const products: any[] = await prisma.product.findMany({
+            select: { id: true, barcode: true, variants: { select: { barcode: true } }, trendyolProduct: { select: { isSynced: true } } },
+        });
+
+        let matched = 0;
+        let alreadySynced = 0;
+        for (const p of products) {
+            const codes = [p.barcode, ...(p.variants || []).map((v: any) => v.barcode)].filter(Boolean) as string[];
+            const hit = codes.find((c) => trendyolBarcodes.has(c));
+            if (!hit) continue;
+            if (p.trendyolProduct?.isSynced) { alreadySynced++; continue; }
+            const contentId = trendyolBarcodes.get(hit) ?? null;
+            await (prisma as any).trendyolProduct.upsert({
+                where: { productId: p.id },
+                update: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null, ...(contentId ? { trendyolId: contentId } : {}) },
+                create: { productId: p.id, barcode: hit, isSynced: true, lastSyncedAt: new Date(), trendyolId: contentId },
+            });
+            matched++;
+        }
+
+        revalidatePath("/admin/integrations/trendyol/products");
+        return {
+            success: true,
+            message: `Trendyol'da ${trendyolBarcodes.size} onaylı barkod bulundu. ${matched} ürün "Senkronize" olarak işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten senkronizeydi` : ""}.`,
+        };
+    } catch (error: any) {
+        console.error("matchTrendyolProductsByBarcode error:", error);
+        return { success: false, message: "Trendyol hatası: " + error.message };
     }
 }

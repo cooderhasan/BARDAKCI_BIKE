@@ -109,6 +109,10 @@ export function initializeWorker() {
                     console.log("🔄 Otomatik Trendyol Sipariş Senkronizasyonu başlatıldı...");
                     const result = await syncOrdersFromTrendyol();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    // Bekleyen ürün gönderim (batch) sonuçlarını al; yoksa ürünler "Gönderilmedi" kalıyordu
+                    const { syncBatchStatuses } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
+                    const batchResult = await syncBatchStatuses().catch((e: any) => ({ success: false, message: e.message }));
+                    console.log(`✅ Trendyol batch kontrolü: ${batchResult.message}`);
                     return;
                 }
 
