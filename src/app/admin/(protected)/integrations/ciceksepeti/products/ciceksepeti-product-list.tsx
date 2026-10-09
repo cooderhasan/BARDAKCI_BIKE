@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory } from "../actions";
+import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory, matchCiceksepetiProducts } from "../actions";
 import { toast } from "sonner";
 import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save, SlidersHorizontal } from "lucide-react";
 import Image from "next/image";
@@ -47,6 +47,20 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
   const [bulkCatValue, setBulkCatValue] = useState("");
   const [selectedModalProduct, setSelectedModalProduct] = useState<any | null>(null);
   const catInputRef = useRef<HTMLInputElement>(null);
+  const [matchingCs, setMatchingCs] = useState(false);
+
+  // Çiçeksepeti'nde olup listede "Gönderilmedi" görünen ürünleri stok kodu/barkodla eşleştirir
+  const handleMatchCiceksepeti = async () => {
+    if (!confirm("Çiçeksepeti'ndeki tüm ürünler çekilip stok kodu/barkodu eşleşen ürünler 'Yayında' işaretlenecek. Çiçeksepeti limiti nedeniyle her 60 ürün ~5 sn sürer (1000 ürün ≈ 1,5 dk). Devam edilsin mi?")) return;
+    setMatchingCs(true);
+    try {
+      const res = await matchCiceksepetiProducts();
+      if (res.success) { toast.success(res.message, { duration: 15000 }); window.location.reload(); }
+      else toast.error(res.message, { duration: 15000 });
+    } finally {
+      setMatchingCs(false);
+    }
+  };
 
   const filteredProducts = pagination ? products : products.filter((p) => {
     const matchesSearch =
@@ -223,6 +237,18 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMatchCiceksepeti}
+            disabled={matchingCs}
+            className="border-rose-200 text-rose-700 hover:bg-rose-50"
+            title="Çiçeksepeti'nde olup listede Gönderilmedi/Hata görünen ürünleri stok kodu ve barkodla eşleştirir"
+          >
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${matchingCs ? "animate-spin" : ""}`} />
+            {matchingCs ? "Eşleştiriliyor..." : "Çiçeksepeti ile Eşleştir"}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"

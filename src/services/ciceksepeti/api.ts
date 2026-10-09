@@ -684,6 +684,37 @@ export class CiceksepetiClient {
   }
 
   /**
+   * Çiçeksepeti'nde açılmış ürünleri listeler.
+   * Doküman: GET /api/v1/Products?Page=&PageSize= (PageSize en fazla 60, Page 1'den başlar).
+   * Limit: farklı istekler arası 5 sn, aynı istek 10 dk'da bir.
+   */
+  async getProducts(params?: { page?: number; pageSize?: number; productStatus?: number; stockCode?: string }): Promise<{ totalCount: number; products: any[] }> {
+    await this.loadConfig();
+    const q = new URLSearchParams();
+    q.set("Page", String(params?.page ?? 1));
+    q.set("PageSize", String(Math.min(params?.pageSize ?? 60, 60)));
+    if (params?.productStatus != null) q.set("ProductStatus", String(params.productStatus));
+    if (params?.stockCode) q.set("StockCode", params.stockCode);
+    const url = `${this.baseUrl}/Products?${q.toString()}`;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const res = await fetch(url, { method: "GET", headers: this.getHeaders(), cache: "no-store" });
+      if (res.status === 429) {
+        await new Promise((r) => setTimeout(r, 6000 * (attempt + 1)));
+        continue;
+      }
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        throw new Error(`Çiçeksepeti ürün listesi alınamadı (${res.status}): ${errorText.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      const products = Array.isArray(data?.products) ? data.products : Array.isArray(data) ? data : [];
+      return { totalCount: Number(data?.totalCount ?? products.length), products };
+    }
+    throw new Error("Çiçeksepeti ürün listesi: istek limiti aşıldı (429), birkaç dakika sonra tekrar deneyin.");
+  }
+
+  /**
    * Siparişleri Çek
    * POST /api/v1/Order/GetOrders
    */

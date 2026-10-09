@@ -1173,3 +1173,97 @@ export async function uploadCiceksepetiOrderInvoice(orderId: string) {
     return { success: false, message: error.message || "Çiçeksepeti fatura gönderim hatası." };
   }
 }
+
+// ==================== ÇİÇEKSEPETİ ÜRÜN EŞLEŞTİRME ====================
+
+/**
+ * Çiçeksepeti'ndeki tüm ürünleri çekip stok kodu / barkodu eşleşen site ürünlerini "Yayında" işaretler.
+ * Çiçeksepeti'nin kullandığı stok kodu kaydedilir; böylece başka sistemden (Entegra vb.) yüklenmiş ürünlere de stok/fiyat doğru gider.
+ * Ürünün "Çiçeksepeti'nde açık" ayarına dokunmaz.
+ */
+export async function matchCiceksepetiProducts() {
+  try {
+    const client = new CiceksepetiClient();
+    const PAGE_SIZE = 60;
+    const remote: any[] = [];
+    let total = 0;
+    for (let page = 1; page <= 500; page++) {
+      if (page > 1) await new Promise((r) => setTimeout(r, 5200)); // dokümandaki 5 sn limiti
+      const res = await client.getProducts({ page, pageSize: PAGE_SIZE });
+      total = res.totalCount || total;
+      remote.push(...res.products);
+      if (res.products.length < PAGE_SIZE || (total && remote.length >= total)) break;
+    }
+    if (remote.length === 0) return { success: false, message: "Çiçeksepeti'nden ürün listesi alınamadı." };
+
+    // stok kodu / barkod -> Çiçeksepeti ürünü
+    const byCode = new Map<string, any>();
+    const statusCounts: Record<string, number> = {};
+    for (const r of remote) {
+      const st = String(r.productStatusType ?? "-");
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
+      const stockCode = r.stockCode ?? r.StockCode;
+      if (stockCode) byCode.set(String(stockCode).trim(), r);
+      if (r.barcode && !byCode.has(String(r.barcode).trim())) byCode.set(String(r.barcode).trim(), r);
+    }
+
+    const products: any[] = await prisma.product.findMany({
+      select: {
+        id: true,
+        sku: true,
+        barcode: true,
+        variants: { select: { sku: true, barcode: true } },
+        ciceksepetiProduct: { select: { isSynced: true, ciceksepetiCode: true, lastSyncError: true } },
+      },
+    });
+
+    let matched = 0;
+    let rejected = 0;
+    let codeFixed = 0;
+    for (const p of products) {
+      const variants = (p.variants || []).filter((v: any) => v.sku || v.barcode);
+      const codes = variants.length > 0
+        ? variants.flatMap((v: any) => [v.sku, v.barcode])
+        : [p.ciceksepetiProduct?.ciceksepetiCode, p.sku, p.barcode];
+      const hitCode = (codes.filter(Boolean) as string[]).map((x) => x.trim()).find((x) => byCode.has(x));
+      if (!hitCode) continue;
+      const r = byCode.get(hitCode);
+      const status = String(r.productStatusType ?? "");
+      const remoteStockCode = String(r.stockCode ?? r.StockCode ?? "").trim();
+
+      // 4 / "Ret Edilmiş": Çiçeksepeti reddetmiş
+      if (status === "4" || /ret|red|reject/i.test(status)) {
+        rejected++;
+        await (prisma as any).ciceksepetiProduct.upsert({
+          where: { productId: p.id },
+          update: { isSynced: false, batchStatus: "FAILED", lastSyncError: `Çiçeksepeti'nde reddedilmiş${r.passiveDescription ? `: ${r.passiveDescription}` : ""}` },
+          create: { productId: p.id, barcode: p.barcode, ciceksepetiCode: remoteStockCode || null, isSynced: false, batchStatus: "FAILED", lastSyncError: "Çiçeksepeti'nde reddedilmiş" },
+        });
+        continue;
+      }
+
+      // Varyantsız üründe Çiçeksepeti'nin stok kodunu sakla (stok/fiyat bu kodla gidiyor)
+      const newCode = variants.length === 0 && remoteStockCode ? remoteStockCode : p.ciceksepetiProduct?.ciceksepetiCode;
+      const codeChanged = variants.length === 0 && remoteStockCode && remoteStockCode !== (p.ciceksepetiProduct?.ciceksepetiCode || p.sku || p.barcode);
+      if (p.ciceksepetiProduct?.isSynced && !p.ciceksepetiProduct?.lastSyncError && !codeChanged) continue;
+
+      await (prisma as any).ciceksepetiProduct.upsert({
+        where: { productId: p.id },
+        update: { isSynced: true, batchStatus: "SUCCESS", lastSyncError: null, lastSyncedAt: new Date(), ciceksepetiCode: newCode || undefined },
+        create: { productId: p.id, barcode: p.barcode, ciceksepetiCode: newCode || p.sku || p.barcode, isSynced: true, batchStatus: "SUCCESS", lastSyncedAt: new Date() },
+      });
+      matched++;
+      if (codeChanged) codeFixed++;
+    }
+
+    revalidatePath("/admin/integrations/ciceksepeti/products");
+    const dist = Object.entries(statusCounts).map(([k, v]) => `${k}: ${v}`).join(", ");
+    return {
+      success: true,
+      message: `Çiçeksepeti'nde ${remote.length} ürün bulundu (${dist}). ${matched} ürün "Yayında" yapıldı${codeFixed ? ` (${codeFixed} üründe stok kodu Çiçeksepeti'ndekiyle düzeltildi)` : ""}${rejected ? `; ${rejected} ürün Çiçeksepeti'nde reddedilmiş` : ""}.`,
+    };
+  } catch (error: any) {
+    console.error("matchCiceksepetiProducts error:", error);
+    return { success: false, message: "Çiçeksepeti hatası: " + error.message };
+  }
+}
