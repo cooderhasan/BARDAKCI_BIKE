@@ -163,8 +163,9 @@ export async function syncPttavmStockAndPrice(productIds?: string[], options: { 
             isCargoFromSupplier: true,
           });
         }
-      } else if (p.barcode || p.sku) {
-        const barcodeVal = (p.barcode || p.sku || "").trim();
+      } else if (p.pttavmProduct?.barcode || p.barcode || p.sku) {
+        // ePttAVM'deki ilan kodu öncelikli: Entegra'nın açtığı ilanlar EAN ile değil kendi kodlarıyla ("bm-...-29526") tanınıyor
+        const barcodeVal = (p.pttavmProduct?.barcode || p.barcode || p.sku || "").trim();
         items.push({
           barcode: barcodeVal,
           active: p.isActive && availableStock > 0,
@@ -1170,7 +1171,7 @@ export async function inspectPttavmProduct(productId: string) {
 
     const critical = p.criticalStock ?? 0;
     const ourQty = p.isActive && p.isPttavmActive ? (p.stock <= critical ? 0 : p.stock - critical) : 0;
-    const barcode = String(p.barcode || p.sku || "").trim();
+    const barcode = String(p.pttavmProduct?.barcode || p.barcode || p.sku || "").trim();
 
     let remote: any = null;
     let remoteError = "";
@@ -1193,6 +1194,7 @@ export async function inspectPttavmProduct(productId: string) {
     const pp = p.pttavmProduct;
 
     const lines = [
+      `ePttAVM kodu: ${barcode}`,
       `ePttAVM'de: stok ${remoteQty ?? "?"}, aktif ${remoteActive ?? "?"}${remoteStatus ? `, durum ${remoteStatus}` : ""}${remoteError ? ` (sorgu hatası: ${remoteError})` : ""}`,
       `Bizim göndereceğimiz stok: ${ourQty} (stok ${p.stock} - kritik ${critical})`,
       `Son gönderim: ${pp?.lastSyncedAt ? new Date(pp.lastSyncedAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }) : "-"} / ${pp?.batchStatus || "-"}${pp?.lastSyncError ? ` / ePttAVM mesajı: ${pp.lastSyncError}` : ""}`,
@@ -1201,4 +1203,119 @@ export async function inspectPttavmProduct(productId: string) {
   } catch (error: any) {
     return { success: false, message: "ePttAVM kontrol hatası: " + error.message };
   }
+}
+
+// ==================== ePttAVM İLAN EŞLEŞTİRME ====================
+
+const PTT_MATCH_KEY = "pttavm_match_job";
+
+const pttSlug = (s: string) =>
+  s.toLocaleLowerCase("tr-TR")
+    .replace(/[ıİ]/g, "i").replace(/[ğĞ]/g, "g").replace(/[üÜ]/g, "u").replace(/[şŞ]/g, "s").replace(/[öÖ]/g, "o").replace(/[çÇ]/g, "c")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+/**
+ * ePttAVM'deki tüm ilanları çekip site ürünleriyle eşleştirir ve ilanın ePttAVM'deki kodunu kaydeder.
+ * Entegra'nın açtığı ilanlarda ePttAVM kodu EAN değil "sku-slug-ENTEGRAID" (ör. bm-lpk-mc-000310185-00-29526);
+ * stok/fiyat EAN ile gönderildiğinde ePttAVM ilanı bulamıyor ve hiçbir şey güncellenmiyordu.
+ * Ürünün "ePttAVM'de açık" ayarına dokunmaz.
+ */
+async function runPttavmMatch() {
+  const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
+  if (!config) return { success: false, message: "Aktif ePttAVM entegrasyonu bulunamadı." };
+  const client = new PttavmClient({ apiKey: config.apiKey, accessToken: config.accessToken, isTestMode: Boolean(config.isTestMode) });
+
+  // Tüm ilanlar (aktif/pasif, stoklu/stoksuz)
+  const remote = new Map<string, any>();
+  for (const isActive of [true, false]) {
+    for (const isInStock of [true, false]) {
+      let prevFirst = "";
+      for (let page = 1; page <= 500; page++) {
+        const items = await client.searchProducts({ isActive, isInStock, page });
+        if (items.length === 0) break;
+        const first = String(items[0]?.barkod ?? "");
+        if (first && first === prevFirst) break; // sayfa parametresi yok sayılırsa sonsuz döngüye girme
+        prevFirst = first;
+        for (const it of items) if (it?.barkod) remote.set(String(it.barkod), it);
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+  }
+  if (remote.size === 0) return { success: false, message: "ePttAVM'den ilan listesi alınamadı." };
+
+  const products: any[] = await prisma.product.findMany({
+    select: {
+      id: true, sku: true, barcode: true, isActive: true, isPttavmActive: true,
+      variants: { select: { id: true } },
+      pttavmProduct: { select: { barcode: true } },
+    },
+  });
+  const byBarcode = new Map<string, any>();
+  const bySku = new Map<string, any>();
+  const bySlug = new Map<string, any>();
+  for (const p of products) {
+    if (p.barcode) byBarcode.set(String(p.barcode).trim(), p);
+    if (p.sku) {
+      bySku.set(String(p.sku).trim(), p);
+      bySlug.set(pttSlug(String(p.sku)), p);
+    }
+  }
+
+  let matched = 0;
+  let codeFixed = 0;
+  let unmatched = 0;
+  let liveButClosed = 0;
+  const seen = new Set<string>();
+  for (const [code, it] of remote) {
+    const gtin = String(it.gtin ?? "").trim();
+    const slugBase = code.replace(/-\d+$/, "");
+    const p = byBarcode.get(code) || bySku.get(code) || (gtin && byBarcode.get(gtin)) || bySlug.get(slugBase) || bySlug.get(code);
+    if (!p) { unmatched++; continue; }
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    matched++;
+
+    const isLive = it.aktif === true && Number(it.miktar) > 0;
+    if (isLive && !(p.isActive && p.isPttavmActive)) liveButClosed++;
+
+    // Varyantlı ürünlerde stok varyant barkodlarıyla gidiyor; ana kod yalnızca varyantsız ürünlerde kullanılır
+    if (p.variants.length > 0) continue;
+    if (p.pttavmProduct?.barcode === code) continue;
+    await (prisma as any).pttavmProduct.upsert({
+      where: { productId: p.id },
+      update: { barcode: code, pttavmId: it.urunId ? String(it.urunId) : undefined },
+      create: { productId: p.id, barcode: code, pttavmId: it.urunId ? String(it.urunId) : null, isSynced: true, batchStatus: "COMPLETED" },
+    });
+    if (code !== p.barcode) codeFixed++;
+  }
+
+  return {
+    success: true,
+    message: `ePttAVM'de ${remote.size} ilan bulundu. ${matched} ilan site ürünüyle eşleşti, ${codeFixed} üründe ePttAVM kodu kaydedildi (stok artık bu kodla gidecek)` +
+      `${unmatched ? `; ${unmatched} ilan eşleşmedi` : ""}` +
+      `${liveButClosed ? `; DİKKAT: ${liveButClosed} ilan ePttAVM'de satışta ama sitede ePttAVM'si kapalı (bunlara stok gitmiyor)` : ""}.`,
+  };
+}
+
+export async function matchPttavmProducts() {
+  const current: any = (await prisma.siteSettings.findUnique({ where: { key: PTT_MATCH_KEY } }))?.value;
+  if (current?.status === "running" && Date.now() - new Date(current.startedAt).getTime() < 20 * 60 * 1000) {
+    return { success: true, message: "Eşleştirme zaten çalışıyor." };
+  }
+  const save = (value: any) =>
+    prisma.siteSettings.upsert({ where: { key: PTT_MATCH_KEY }, update: { value }, create: { key: PTT_MATCH_KEY, value } });
+  await save({ status: "running", startedAt: new Date().toISOString() });
+
+  // Cloudflare 100 sn'de isteği kestiği için arka planda çalışır; durum getPttavmMatchStatus ile sorgulanır
+  runPttavmMatch()
+    .then((res) => save({ status: "done", success: res.success, message: res.message, finishedAt: new Date().toISOString() }))
+    .catch((e: any) => save({ status: "done", success: false, message: "ePttAVM hatası: " + e.message, finishedAt: new Date().toISOString() }))
+    .catch((e) => console.error("pttavm match status save error:", e));
+
+  return { success: true, message: "Eşleştirme başlatıldı." };
+}
+
+export async function getPttavmMatchStatus(): Promise<{ status?: string; success?: boolean; message?: string; startedAt?: string } | null> {
+  const row = await prisma.siteSettings.findUnique({ where: { key: PTT_MATCH_KEY } });
+  return (row?.value as any) || null;
 }

@@ -702,7 +702,7 @@ async function pushZeroStockToPttavm(productIds: string[], includeClosed = false
             isActive: true,
             isPttavmActive: true,
         },
-        select: { id: true, barcode: true, sku: true, salePrice: true, listPrice: true, pttavmPrice: true, vatRate: true, variants: { select: { barcode: true } } },
+        select: { id: true, barcode: true, sku: true, salePrice: true, listPrice: true, pttavmPrice: true, vatRate: true, variants: { select: { barcode: true } }, pttavmProduct: { select: { barcode: true } } },
     });
 
     if (products.length === 0) return;
@@ -733,9 +733,10 @@ async function pushZeroStockToPttavm(productIds: string[], includeClosed = false
                     isCargoFromSupplier: true,
                 });
             }
-        } else if (p.barcode) {
+        } else if ((p as any).pttavmProduct?.barcode || p.barcode) {
             items.push({
-                barcode: p.barcode,
+                // ePttAVM'deki ilan kodu (Entegra'nın açtığı ilanlarda EAN değil "bm-...-29526" gibi bir kod)
+                barcode: (p as any).pttavmProduct?.barcode || p.barcode,
                 active: false,
                 quantity: 0,
                 priceWithoutVAT,

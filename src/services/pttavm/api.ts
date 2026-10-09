@@ -210,6 +210,20 @@ export class PttavmClient {
   }
 
   /**
+   * Stok Kontrol Listesi: mağazadaki ilanları sayfa sayfa döner (barkod, gtin, miktar, aktif...).
+   * GET /api/v1/products/search?categoryId=&subCategoryId=&isActive=&isInStock=&merchantCategoryId=&searchPage=
+   */
+  async searchProducts(params: { isActive: boolean; isInStock: boolean; page: number }): Promise<any[]> {
+    const q = `categoryId=&subCategoryId=&isActive=${params.isActive}&isInStock=${params.isInStock}&merchantCategoryId=&searchPage=${params.page}`;
+    const res = await this.request<any>("GET", `/api/v1/products/search?${q}`);
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.items)) return res.items;
+    if (Array.isArray(res?.products)) return res.products;
+    if (Array.isArray(res?.data)) return res.data;
+    return [];
+  }
+
+  /**
    * Barkod ile Toplu Ürün Bilgisi Sorgulama
    * POST /api/v1/products/get-by-barcodes
    */

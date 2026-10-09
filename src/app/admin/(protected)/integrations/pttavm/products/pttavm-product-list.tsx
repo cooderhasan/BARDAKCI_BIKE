@@ -15,6 +15,8 @@ import {
   syncPttavmStockAndPrice,
   checkPttavmTrackingResult,
   inspectPttavmProduct,
+  matchPttavmProducts,
+  getPttavmMatchStatus,
   setPttavmProductCategory,
   setBulkPttavmProductCategory,
 } from "../actions";
@@ -251,6 +253,43 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
     });
   };
 
+  const [matchingPtt, setMatchingPtt] = useState(false);
+
+  // Eşleştirme sunucuda arka planda çalışır; bitene kadar 5 sn'de bir durumu sorgula
+  const pollPttMatch = async () => {
+    setMatchingPtt(true);
+    try {
+      for (let i = 0; i < 360; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        const st = await getPttavmMatchStatus().catch(() => null);
+        if (st && st.status !== "running") {
+          if (st.success) toast.success(st.message, { duration: 60000 });
+          else toast.error(st.message, { duration: 30000 });
+          router.refresh();
+          return;
+        }
+      }
+    } finally {
+      setMatchingPtt(false);
+    }
+  };
+
+  useEffect(() => {
+    getPttavmMatchStatus().then((st) => {
+      if (st?.status === "running" && st.startedAt && Date.now() - new Date(st.startedAt).getTime() < 20 * 60 * 1000) pollPttMatch();
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ePttAVM ilanlarını site ürünleriyle eşleştirip ilanın ePttAVM kodunu kaydeder
+  const handleMatchPttavm = async () => {
+    if (!confirm("ePttAVM'deki tüm ilanlar çekilip site ürünleriyle eşleştirilecek; ilanın ePttAVM kodu kaydedilecek (Entegra'nın açtığı ilanlara stok bu sayede gidecek). İşlem arka planda sürer, bitince sonuç burada görünür. Devam edilsin mi?")) return;
+    const res = await matchPttavmProducts();
+    if (!res.success) { toast.error(res.message); return; }
+    toast.info(res.message);
+    pollPttMatch();
+  };
+
   // ePttAVM'deki anlık stok ile bizim gönderdiğimizi karşılaştırır
   const handleInspect = (productId: string) => {
     startTransition(async () => {
@@ -338,6 +377,18 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMatchPttavm}
+            disabled={matchingPtt}
+            className="border-teal-200 text-teal-700 hover:bg-teal-50 gap-1.5"
+            title="ePttAVM ilanlarını site ürünleriyle eşleştirir ve ilanın ePttAVM kodunu kaydeder"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${matchingPtt ? "animate-spin" : ""}`} />
+            {matchingPtt ? "Eşleştiriliyor..." : "ePttAVM ile Eşleştir"}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
