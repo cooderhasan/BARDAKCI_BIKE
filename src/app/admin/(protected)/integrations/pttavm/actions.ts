@@ -205,24 +205,36 @@ export async function syncPttavmStockAndPrice(productIds?: string[], options: { 
 
     const mainTrackingId = trackingIds.join(", ") || lastResult?.trackingId || null;
     // ePttAVM HTTP 200 ile success:false dönebiliyor; bunu başarı saymıyoruz ki kuyruk tekrar denesin
-    const failedResult = batchResults.find((r) => r?.success === false);
+    const failedResults = batchResults.filter((r) => r?.success === false);
+    // "Aynı isteği ancak 5 dakika sonra..." = birebir aynı veri zaten gönderilmiş; hata sayılmaz, tekrar denenmez
+    const isDuplicate = (r: any) => /5 dakika|aynı isteği/i.test(String(r?.message || ""));
+    const failedResult = failedResults.find((r) => !isDuplicate(r));
+    if (failedResults.length > 0 && !failedResult) {
+      return { success: true, message: "Aynı stok/fiyat ePttAVM'ye son 5 dakikada zaten gönderilmiş." };
+    }
+    const sendOk = !failedResult;
 
     for (const p of products) {
       await (prisma as any).pttavmProduct.upsert({
         where: { productId: p.id },
-        update: {
+        // Başarısız gönderim önceki başarılı gönderimin takip numarasını silmesin
+        update: sendOk ? {
           trackingId: mainTrackingId,
-          isSynced: lastResult?.success ?? true,
-          batchStatus: lastResult?.success ? "COMPLETED" : "FAILED",
+          isSynced: true,
+          batchStatus: "COMPLETED",
           lastSyncedAt: new Date(),
           lastSyncError: lastResult?.message || null,
+        } : {
+          batchStatus: "FAILED",
+          lastSyncedAt: new Date(),
+          lastSyncError: failedResult?.message || "ePttAVM isteği reddetti",
         },
         create: {
           productId: p.id,
           barcode: p.barcode,
           trackingId: mainTrackingId,
-          isSynced: lastResult?.success ?? true,
-          batchStatus: lastResult?.success ? "COMPLETED" : "FAILED",
+          isSynced: sendOk,
+          batchStatus: sendOk ? "COMPLETED" : "FAILED",
           lastSyncedAt: new Date(),
         },
       });
