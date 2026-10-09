@@ -807,9 +807,13 @@ export async function syncCiceksepetiOrders() {
       // Map Çiçeksepeti status to main OrderStatus enum (PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED)
       let mappedStatus: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" = "CONFIRMED";
       const statusStr = (csState || "").toLowerCase();
-      if (statusStr.includes("teslim") || (order as any).orderItemStatusId === 7) {
+      const csStatusId = Number((order as any).orderItemStatusId);
+      if (statusStr.includes("teslim") || csStatusId === 7) {
         mappedStatus = "DELIVERED";
-      } else if (statusStr.includes("kargo") || (order as any).orderItemStatusId === 5 || (order as any).orderItemStatusId === 11) {
+      } else if (csStatusId === 11 || statusStr.includes("verilecek")) {
+        // 11 = "Kargoya Verilecek": paket henüz kargoya verilmedi; "Kargolandı" görünüyordu
+        mappedStatus = "PROCESSING";
+      } else if (statusStr.includes("kargo") || csStatusId === 5) {
         mappedStatus = "SHIPPED";
       } else if (statusStr.includes("iptal") || statusStr.includes("iade")) {
         mappedStatus = "CANCELLED";
