@@ -266,11 +266,8 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
         where.isIdefixActive = true;
       }
     } else {
-      // Toplu gonderimde tum aktif urunlerin isIdefixActive alanini true yap
-      await prisma.product.updateMany({
-        where: { isActive: true },
-        data: { isIdefixActive: true },
-      });
+      // Toplu senkron sadece Idefix'te açık ürünleri gönderir. Önceden burada TÜM aktif ürünler Idefix'te
+      // açık yapılıyordu: kapatılan ürünler yeniden açılıyor ve binlerce ürün Idefix'e yüklenmeye çalışılıyordu.
       where.isIdefixActive = true;
     }
 
