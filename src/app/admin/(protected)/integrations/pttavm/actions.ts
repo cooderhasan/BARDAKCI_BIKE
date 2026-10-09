@@ -1227,18 +1227,27 @@ async function runPttavmMatch() {
 
   // Tüm ilanlar (aktif/pasif, stoklu/stoksuz)
   const remote = new Map<string, any>();
+  const fetchStats: string[] = [];
   for (const isActive of [true, false]) {
     for (const isInStock of [true, false]) {
       let prevFirst = "";
+      let pages = 0;
+      let count = 0;
+      let reported: any = "?";
       for (let page = 1; page <= 500; page++) {
         const items = await client.searchProducts({ isActive, isInStock, page });
         if (items.length === 0) break;
         const first = String(items[0]?.barkod ?? "");
         if (first && first === prevFirst) break; // sayfa parametresi yok sayılırsa sonsuz döngüye girme
         prevFirst = first;
+        if (page === 1) reported = items[0]?.rowCount ?? "?";
+        pages++;
+        count += items.length;
         for (const it of items) if (it?.barkod) remote.set(String(it.barkod), it);
         await new Promise((r) => setTimeout(r, 300));
       }
+      // Liste eksik dönerse hangi filtrede kesildiği görülsün
+      fetchStats.push(`${isActive ? "aktif" : "pasif"}/${isInStock ? "stoklu" : "stoksuz"}: ${count} ilan, ${pages} sayfa, ePttAVM toplamı ${reported}`);
     }
   }
   if (remote.size === 0) return { success: false, message: "ePttAVM'den ilan listesi alınamadı." };
@@ -1265,6 +1274,7 @@ async function runPttavmMatch() {
   let codeFixed = 0;
   let unmatched = 0;
   let liveButClosed = 0;
+  const liveButClosedSkus: string[] = [];
   const seen = new Set<string>();
   for (const [code, it] of remote) {
     const gtin = String(it.gtin ?? "").trim();
@@ -1276,7 +1286,10 @@ async function runPttavmMatch() {
     matched++;
 
     const isLive = it.aktif === true && Number(it.miktar) > 0;
-    if (isLive && !(p.isActive && p.isPttavmActive)) liveButClosed++;
+    if (isLive && !(p.isActive && p.isPttavmActive)) {
+      liveButClosed++;
+      if (liveButClosedSkus.length < 20) liveButClosedSkus.push(p.sku || p.barcode || p.id);
+    }
 
     // Varyantlı ürünlerde stok varyant barkodlarıyla gidiyor; ana kod yalnızca varyantsız ürünlerde kullanılır
     if (p.variants.length > 0) continue;
@@ -1293,7 +1306,8 @@ async function runPttavmMatch() {
     success: true,
     message: `ePttAVM'de ${remote.size} ilan bulundu. ${matched} ilan site ürünüyle eşleşti, ${codeFixed} üründe ePttAVM kodu kaydedildi (stok artık bu kodla gidecek)` +
       `${unmatched ? `; ${unmatched} ilan eşleşmedi` : ""}` +
-      `${liveButClosed ? `; DİKKAT: ${liveButClosed} ilan ePttAVM'de satışta ama sitede ePttAVM'si kapalı (bunlara stok gitmiyor)` : ""}.`,
+      `${liveButClosed ? `; DİKKAT: ${liveButClosed} ilan ePttAVM'de satışta ama sitede ePttAVM'si kapalı (bunlara stok gitmiyor): ${liveButClosedSkus.join(", ")}` : ""}.` +
+      ` [${fetchStats.join(" | ")}]`,
   };
 }
 
