@@ -1234,16 +1234,18 @@ async function runPttavmMatch() {
       let pages = 0;
       let count = 0;
       let reported: any = "?";
-      for (let page = 1; page <= 500; page++) {
+      // searchPage 0'dan başlıyor (1'den başlayınca her filtrede ilk 1000 ilan atlanıyordu); rowCount = toplam ilan
+      for (let page = 0; page <= 500; page++) {
         const items = await client.searchProducts({ isActive, isInStock, page });
         if (items.length === 0) break;
         const first = String(items[0]?.barkod ?? "");
         if (first && first === prevFirst) break; // sayfa parametresi yok sayılırsa sonsuz döngüye girme
         prevFirst = first;
-        if (page === 1) reported = items[0]?.rowCount ?? "?";
+        if (page === 0) reported = items[0]?.rowCount ?? "?";
         pages++;
         count += items.length;
         for (const it of items) if (it?.barkod) remote.set(String(it.barkod), it);
+        if (typeof reported === "number" && count >= reported) break;
         await new Promise((r) => setTimeout(r, 300));
       }
       // Liste eksik dönerse hangi filtrede kesildiği görülsün
