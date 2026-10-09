@@ -1041,7 +1041,8 @@ export async function autoMatchN11ProductsAction() {
                         });
                     }
 
-                    if (!match.isN11Active) {
+                    // Sadece ilk kez eşleşen ürün N11'de açılır; daha önce bağlı olup kullanıcının kapattığı ürün tekrar açılmaz
+                    if (!match.isN11Active && !existingLink?.isSynced) {
                         await prisma.product.update({
                             where: { id: match.id },
                             data: { isN11Active: true }
@@ -1103,7 +1104,7 @@ export async function importN11ExcelAction(base64ExcelContent?: string) {
         }
 
         const existingN11 = await (prisma as any).n11Product.findMany({
-            select: { id: true, productId: true }
+            select: { id: true, productId: true, isSynced: true }
         });
         const existingMap = new Map<string, any>();
         existingN11.forEach((e: any) => existingMap.set(e.productId, e));
@@ -1141,7 +1142,8 @@ export async function importN11ExcelAction(base64ExcelContent?: string) {
                     });
                 }
 
-                if (!match.isN11Active) {
+                // Daha önce bağlı olup kullanıcının kapattığı ürün tekrar açılmaz
+                if (!match.isN11Active && !existing?.isSynced) {
                     productIdsToActivate.push(match.id);
                 }
             }
@@ -1197,7 +1199,7 @@ export async function importN11MappingsAction(mappings: { sku: string; sellerCod
         }
 
         const existingN11 = await (prisma as any).n11Product.findMany({
-            select: { id: true, productId: true }
+            select: { id: true, productId: true, isSynced: true }
         });
         const existingMap = new Map<string, any>();
         existingN11.forEach((e: any) => existingMap.set(e.productId, e));
@@ -1235,7 +1237,8 @@ export async function importN11MappingsAction(mappings: { sku: string; sellerCod
                     });
                 }
 
-                if (!match.isN11Active) {
+                // Daha önce bağlı olup kullanıcının kapattığı ürün tekrar açılmaz
+                if (!match.isN11Active && !existing?.isSynced) {
                     productIdsToActivate.push(match.id);
                 }
             }

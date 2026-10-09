@@ -226,8 +226,11 @@ export function initializeWorker() {
                     const ciceksepetiConfig = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
                     if (ciceksepetiConfig && job.data.productIds && job.data.productIds.length > 0) {
                         const { syncProductsToCiceksepeti } = await import("@/app/admin/(protected)/integrations/ciceksepeti/actions");
-                        const result = await syncProductsToCiceksepeti(job.data.productIds);
-                        if (!result.success) throw new Error(result.message);
+                        // Sipariş/stok işleri sadece fiyat-stok servisini kullanmalı. Önceden tam ürün gönderimi (onaya gönderme)
+                        // yapılıyordu: kategorisi eşlenmemiş üründe hata verip stok hiç düşmüyor, diğerlerinde ürün tekrar onaya gidiyordu.
+                        const result: any = await syncProductsToCiceksepeti(job.data.productIds, job.data.type === "products" ? "all" : "prices");
+                        // Ürün Çiçeksepeti'nde kapalıysa yapılacak iş yok; hata sayılıp tekrar denenmesin
+                        if (!result.success && !/aktif ürün bulunamadı/i.test(result.error || "")) throw new Error(result.message || result.error);
                         console.log(`✅ Tamamlandı: Çiçeksepeti Sync - ${result.message}`);
                     }
                 }

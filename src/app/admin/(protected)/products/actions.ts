@@ -553,6 +553,11 @@ export async function updateProduct(productId: string, formData: FormData) {
                 const { syncPttavmStockAndPrice } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
                 syncPttavmStockAndPrice([productId]).catch(console.error);
             }
+            // Çiçeksepeti formdan kaydedilince hiç güncellenmiyordu (stok/fiyat değişikliği gitmiyordu)
+            if (validatedData.isCiceksepetiActive && (validatedData as any).isActive !== false) {
+                const { syncProductsToCiceksepeti } = await import("@/app/admin/(protected)/integrations/ciceksepeti/actions");
+                syncProductsToCiceksepeti([productId], "prices").catch(console.error);
+            }
             
             // Yedek olarak kuyruğa da ekle (Redis/worker çalışıyorsa ikinci güvence)
             const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
