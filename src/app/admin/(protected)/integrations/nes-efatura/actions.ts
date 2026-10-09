@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { revalidatePath } from "next/cache";
+import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { NesClient } from "@/services/nes/api";
 import type { UblReceiverInfo, UblInvoiceLine, UblInvoiceOptions } from "@/services/nes/ubl-builder";
 

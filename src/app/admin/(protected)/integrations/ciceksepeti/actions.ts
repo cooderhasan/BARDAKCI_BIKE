@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { revalidatePath } from "next/cache";
+import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { CiceksepetiClient } from "@/services/ciceksepeti/api";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 

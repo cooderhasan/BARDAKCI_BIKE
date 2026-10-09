@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { revalidatePath } from "next/cache";
+import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { PazaramaClient } from "@/services/pazarama/api";
 import { OrderStatus } from "@prisma/client";
 import { handlePostOrderStockSync } from "@/lib/stock-sync";

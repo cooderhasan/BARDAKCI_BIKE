@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { TrendyolClient } from "@/services/trendyol/api";
 import { generateSlug } from "@/lib/helpers";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
