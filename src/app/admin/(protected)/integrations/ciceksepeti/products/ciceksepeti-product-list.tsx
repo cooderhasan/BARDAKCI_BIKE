@@ -113,14 +113,18 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
   }
 
   async function handleToggleStatus(productId: string, currentActive: boolean) {
-    const res = await toggleCiceksepetiProductStatus(productId, !currentActive);
+    const res: any = await toggleCiceksepetiProductStatus(productId, !currentActive);
+    // Sitede durum her durumda değişir; Çiçeksepeti'ye iletim sonucu ayrıca bildirilir
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, isCiceksepetiActive: !currentActive } : p))
+    );
     if (res.success) {
-      toast.success(!currentActive ? "Ürün Çiçeksepeti satışına açıldı." : "Ürün Çiçeksepeti satışına kapatıldı.");
-      setProducts((prev) =>
-        prev.map((p) => (p.id === productId ? { ...p, isCiceksepetiActive: !currentActive } : p))
-      );
+      toast.success(!currentActive ? "Ürün Çiçeksepeti satışına açıldı." : "Ürün Çiçeksepeti satışına kapatıldı.", {
+        description: res.message,
+        duration: 15000,
+      });
     } else {
-      toast.error(res.error || "İşlem başarısız.");
+      toast.error(res.error || "İşlem başarısız.", { duration: 20000 });
     }
   }
 

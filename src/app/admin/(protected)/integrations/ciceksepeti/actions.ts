@@ -599,13 +599,78 @@ export async function getCiceksepetiProducts({
   }
 }
 
-/** Kapatınca Çiçeksepeti'ye stok 0, açınca güncel fiyat/stok gönderir (arka planda) */
-export async function syncCiceksepetiSaleState(productId: string, isOpen: boolean) {
-  if (isOpen) {
-    syncProductsToCiceksepeti([productId], "prices").catch(console.error);
-  } else {
-    const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
-    pushZeroStockToMarketplaces([productId], ["ciceksepeti"]).catch(console.error);
+/**
+ * Kapatınca Çiçeksepeti'ye stok 0, açınca güncel stok gönderir ve Çiçeksepeti'nin işlem (batch) sonucunu döner.
+ * Çiçeksepeti isteği kuyruğa aldığı için HTTP 200 başarı anlamına gelmez; asıl sonuç batch-status'tan okunur.
+ */
+export async function syncCiceksepetiSaleState(productId: string, isOpen: boolean): Promise<{ success: boolean; message: string }> {
+  try {
+    const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, message: "Aktif Çiçeksepeti yapılandırması bulunamadı." };
+
+    const p: any = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { variants: true, ciceksepetiProduct: true },
+    });
+    if (!p) return { success: false, message: "Ürün bulunamadı." };
+
+    const generalSettings = await getSiteSettings("general");
+    const defaultCritical = Number((generalSettings as any)?.defaultCriticalStock || 10);
+    const criticalStock = p.criticalStock ?? defaultCritical;
+    const profitMargin = config.profitMargin || 0;
+    const basePrice = Number(p.ciceksepetiPrice || p.salePrice || p.listPrice);
+    const salesPrice = Math.round((profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice) * 100) / 100;
+    const rawList = Math.round((Number(p.listPrice) || salesPrice) * 100) / 100;
+    const listPrice = rawList >= salesPrice ? rawList : salesPrice;
+    const sellable = isOpen && p.isActive;
+
+    const items: { stockCode: string; salesPrice: number; listPrice: number; stockQuantity: number }[] = [];
+    const variants = (p.variants || []).filter((v: any) => v.sku || v.barcode);
+    if (variants.length > 0) {
+      for (const v of variants) {
+        items.push({ stockCode: v.sku || v.barcode, salesPrice, listPrice, stockQuantity: sellable ? Math.max(0, v.stock - criticalStock) : 0 });
+      }
+    } else {
+      const stockCode = p.ciceksepetiProduct?.ciceksepetiCode || p.sku || p.barcode || p.id;
+      items.push({ stockCode, salesPrice, listPrice, stockQuantity: sellable ? Math.max(0, p.stock - criticalStock) : 0 });
+    }
+
+    const client = new CiceksepetiClient({
+      apiKey: config.apiKey,
+      supplierId: config.supplierId,
+      profitMargin,
+      isActive: true,
+      isTestMode: Boolean(config.isTestMode),
+    });
+    const sent = await client.updatePricesAndStocks(items as any);
+    const summary = `Gönderilen: ${items.map((i) => `${i.stockCode}=${i.stockQuantity}`).join(", ")}`;
+
+    // Çiçeksepeti kuyruğu kısa sürede işleyebiliyor; sonucu görmek için kısa bekleyip batch durumunu sor
+    if (sent.batchId && sent.batchId !== "SUCCESS") {
+      await new Promise((r) => setTimeout(r, 4000));
+      try {
+        const st = await client.getBatchStatus(sent.batchId);
+        const raw = st.raw || {};
+        const itemErrors = (raw.items || [])
+          .flatMap((it: any) => (it.failureReasons || it.errors || []).map((e: any) => (typeof e === "string" ? e : e.message || JSON.stringify(e))))
+          .filter(Boolean);
+        const errors = [...(st.errors || []), ...itemErrors];
+        const itemStatuses = (raw.items || []).map((it: any) => it.status).filter(Boolean).join(", ");
+        const detail = `Batch ${sent.batchId}: ${itemStatuses || st.status}${errors.length ? " | Hata: " + errors.join("; ") : ""}`;
+        await (prisma as any).ciceksepetiProduct.upsert({
+          where: { productId },
+          update: { batchRequestId: sent.batchId, lastSyncError: errors.length ? errors.join("; ") : null, lastSyncedAt: new Date() },
+          create: { productId, batchRequestId: sent.batchId, lastSyncError: errors.length ? errors.join("; ") : null, lastSyncedAt: new Date() },
+        });
+        return { success: errors.length === 0, message: `${summary} | ${detail}` };
+      } catch (e: any) {
+        return { success: true, message: `${summary} | Batch ${sent.batchId} kuyrukta (durum sorgulanamadı: ${e.message})` };
+      }
+    }
+    return { success: true, message: `${summary} | Çiçeksepeti isteği kabul etti` };
+  } catch (error: any) {
+    console.error("syncCiceksepetiSaleState error:", error);
+    return { success: false, message: error.message };
   }
 }
 
@@ -615,10 +680,11 @@ export async function toggleCiceksepetiProductStatus(productId: string, isCiceks
       where: { id: productId },
       data: { isCiceksepetiActive },
     });
-    await syncCiceksepetiSaleState(productId, isCiceksepetiActive);
+    const sync = await syncCiceksepetiSaleState(productId, isCiceksepetiActive);
     revalidatePath("/admin/integrations/ciceksepeti/products");
     revalidatePath("/admin/products");
-    return { success: true };
+    // Durum sitede değişti; Çiçeksepeti sonucu ayrıca gösterilir
+    return sync.success ? { success: true, message: sync.message } : { success: false, error: "Çiçeksepeti: " + sync.message };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

@@ -72,6 +72,7 @@ export interface CiceksepetiBatchResult {
   errors?: string[];
   itemCount?: number;
   creationDate?: string;
+  raw?: any; // Batch sorgusunun ham cevabı (ürün bazlı hata nedenleri için)
 }
 
 export interface CiceksepetiOrderItem {

@@ -679,6 +679,7 @@ export class CiceksepetiClient {
       status: data.status || "COMPLETED",
       errors: data.errors || data.messages || [],
       itemCount: data.itemCount || 0,
+      raw: data,
     };
   }
 
