@@ -202,6 +202,18 @@ export class IdefixClient {
   }
 
   /** Saticiya ait urunleri listeler */
+  /**
+   * Idefix'e gönderilmiş tüm ürünler (Ürünlerim Listesi).
+   * Doküman: GET /pim/pool/{vendorId}/list?page=&limit=&barcode=&state=
+   */
+  async getPoolProducts(page = 1, limit = 100, barcode?: string): Promise<any[]> {
+    const vendorId = this.creds?.vendorId;
+    let url = `${this.pimBaseUrl}/pool/${vendorId}/list?page=${page}&limit=${limit}`;
+    if (barcode) url += `&barcode=${encodeURIComponent(barcode)}`;
+    const res = await this.request<any>("GET", url);
+    return Array.isArray(res?.products) ? res.products : Array.isArray(res) ? res : [];
+  }
+
   async getMyProducts(page = 1, limit = 50): Promise<any> {
     const vendorId = this.creds?.vendorId;
     const url = `${this.pimBaseUrl}/catalog/${vendorId}/products?page=${page}&limit=${limit}`;

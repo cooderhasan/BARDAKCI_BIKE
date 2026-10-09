@@ -341,7 +341,23 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
     if (newProducts.length > 0) {
       const BATCH_SIZE = 50;
       for (let i = 0; i < newProducts.length; i += BATCH_SIZE) {
-        const chunkProducts = newProducts.slice(i, i + BATCH_SIZE);
+        const rawChunk = newProducts.slice(i, i + BATCH_SIZE);
+        // Idefix kuralı: fiyat 0 ya da >= 10 TL olmalı. Tek bir hatalı fiyat tüm paketi reddettiriyordu;
+        // bu ürünler pakete alınmaz, hata sadece kendilerine yazılır.
+        const invalidPrice = (p: any) => {
+          const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
+          return price > 0 && price < 10;
+        };
+        for (const p of rawChunk.filter(invalidPrice)) {
+          const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
+          await (prisma as any).idefixProduct.upsert({
+            where: { productId: p.id },
+            update: { lastSyncError: `Idefix fiyatı 10 TL'den düşük olamaz (fiyat: ${price} TL).`, batchStatus: "FAILED" },
+            create: { productId: p.id, lastSyncError: `Idefix fiyatı 10 TL'den düşük olamaz (fiyat: ${price} TL).`, batchStatus: "FAILED" },
+          });
+          totalFailed++;
+        }
+        const chunkProducts = rawChunk.filter((p: any) => !invalidPrice(p));
         const batchListingItems = chunkProducts.flatMap((p: any) => {
           const price = Number(p.idefixPrice ?? p.salePrice ?? p.listPrice);
           const rawListPrice = Number(p.listPrice);
@@ -1294,4 +1310,65 @@ export async function resolvePendingIdefixBatches() {
     await new Promise((r) => setTimeout(r, 300));
   }
   return { checked: pending.length, resolved };
+}
+
+// ==================== IDEFIX ÜRÜN EŞLEŞTİRME ====================
+
+// Idefix havuz durumları dokümanda listelenmiyor; satışta/eşleşmiş sayılanlar
+const IDEFIX_LIVE_STATUS = /match|approv|onay|live|active|sale|publish|complet/i;
+const IDEFIX_NOT_LIVE_STATUS = /not_match|unmatch|declin|reject|fail|red|wait|pending/i;
+
+/**
+ * Idefix'teki tüm ürünleri (Ürünlerim Listesi) çekip barkodu eşleşen site ürünlerini "Senkronize" işaretler.
+ * Senkronize olmayan ürünler toplu senkronda yeni ürün sanılıp tekrar yüklenmeye çalışılıyordu.
+ * Ürünün "Idefix'te açık" ayarına dokunmaz.
+ */
+export async function matchIdefixProducts() {
+  try {
+    const client = await getIdefixClient();
+    if (!client) return { success: false, message: "Idefix entegrasyon ayarları bulunamadı." };
+
+    const pool = new Map<string, string>(); // barkod -> durum
+    const LIMIT = 100;
+    for (let page = 1; page <= 300; page++) {
+      const items = await client.getPoolProducts(page, LIMIT);
+      for (const it of items) if (it.barcode) pool.set(String(it.barcode), String(it.status || ""));
+      if (items.length < LIMIT) break;
+    }
+    if (pool.size === 0) return { success: false, message: "Idefix'ten ürün listesi alınamadı." };
+
+    const statusCounts: Record<string, number> = {};
+    for (const st of pool.values()) statusCounts[st || "-"] = (statusCounts[st || "-"] || 0) + 1;
+
+    const products: any[] = await prisma.product.findMany({
+      select: { id: true, barcode: true, variants: { select: { barcode: true } }, idefixProduct: { select: { isSynced: true } } },
+    });
+    let matched = 0;
+    let notLive = 0;
+    for (const p of products) {
+      const codes = [p.barcode, ...(p.variants || []).map((v: any) => v.barcode)].filter(Boolean) as string[];
+      const hit = codes.find((code) => pool.has(code));
+      if (!hit) continue;
+      const status = pool.get(hit) || "";
+      const isLive = IDEFIX_LIVE_STATUS.test(status) && !IDEFIX_NOT_LIVE_STATUS.test(status);
+      if (!isLive) { notLive++; continue; }
+      if (p.idefixProduct?.isSynced) continue;
+      await (prisma as any).idefixProduct.upsert({
+        where: { productId: p.id },
+        update: { isSynced: true, batchStatus: "COMPLETED", lastSyncError: null, lastSyncedAt: new Date() },
+        create: { productId: p.id, isSynced: true, batchStatus: "COMPLETED", lastSyncedAt: new Date() },
+      });
+      matched++;
+    }
+
+    revalidatePath("/admin/integrations/idefix/products");
+    const dist = Object.entries(statusCounts).map(([k, v]) => `${k}: ${v}`).join(", ");
+    return {
+      success: true,
+      message: `Idefix'te ${pool.size} ürün bulundu (${dist}). ${matched} ürün "Senkronize" yapıldı${notLive ? `; ${notLive} ürün Idefix'te var ama satışta görünmüyor` : ""}.`,
+    };
+  } catch (error: any) {
+    console.error("matchIdefixProducts error:", error);
+    return { success: false, message: "Idefix hatası: " + error.message };
+  }
 }

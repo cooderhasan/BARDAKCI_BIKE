@@ -42,6 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   syncProductsToIdefix,
   updateIdefixStockPrice,
+  matchIdefixProducts,
   enqueueIdefixSync,
   toggleIdefixProductActive,
   createProductOnIdefix,
@@ -272,6 +273,20 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
   };
 
   const [stockUpdatingId, setStockUpdatingId] = useState<string | null>(null);
+  const [matchingIdefix, setMatchingIdefix] = useState(false);
+
+  // Idefix'te olup listede senkronize görünmeyen ürünleri barkodla eşleştirir
+  const handleMatchIdefix = async () => {
+    if (!confirm("Idefix'teki tüm ürünler çekilip barkodu eşleşen ürünler 'Senkronize' işaretlenecek. Bu işlem 1-2 dakika sürebilir. Devam edilsin mi?")) return;
+    setMatchingIdefix(true);
+    try {
+      const res = await matchIdefixProducts();
+      if (res.success) { toast.success(res.message, { duration: 15000 }); window.location.reload(); }
+      else toast.error(res.message);
+    } finally {
+      setMatchingIdefix(false);
+    }
+  };
 
   // Sadece stok/fiyat gönderir (yeni ürün yüklemez); onay sonrası stok 0 kalan ürünler için
   const handleStockPriceUpdate = async (productId: string) => {
@@ -418,6 +433,17 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
         >
           <Tag className="w-4 h-4 text-purple-600" />
           <span>Toplu Kategori Ata ({selectedIds.length})</span>
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={handleMatchIdefix}
+          disabled={matchingIdefix}
+          className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-2"
+          title="Idefix'te olup listede senkronize görünmeyen ürünleri barkodla eşleştirir"
+        >
+          <RefreshCcw className={`w-4 h-4 ${matchingIdefix ? "animate-spin" : ""}`} />
+          {matchingIdefix ? "Eşleştiriliyor..." : "Idefix ile Eşleştir"}
         </Button>
 
         <Button
