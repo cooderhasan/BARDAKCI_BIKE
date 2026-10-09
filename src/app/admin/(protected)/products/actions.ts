@@ -528,16 +528,19 @@ export async function updateProduct(productId: string, formData: FormData) {
                 const isOpen = (validatedData as any).isActive !== false && (validatedData as any)[flag];
                 return wasOpen && !isOpen;
             });
-            if (closedMarketplaces.length > 0) {
+            // HB normal senkronu kapalı ürüne stok 0 gönderdiği için HB ayrıca aşağıda senkronlanır
+            const zeroPushMarketplaces = closedMarketplaces.filter((m) => m !== "hepsiburada");
+            if (zeroPushMarketplaces.length > 0) {
                 const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
-                pushZeroStockToMarketplaces([productId], closedMarketplaces).catch(console.error);
+                pushZeroStockToMarketplaces([productId], zeroPushMarketplaces).catch(console.error);
             }
+            const hbClosed = closedMarketplaces.includes("hepsiburada");
 
             // Doğrudan senkronizasyon fonksiyonlarını çağır (arka planda, kullanıcıyı bekletmeden)
             if (validatedData.isTrendyolActive) syncProductsToTrendyol([productId], "prices").catch(console.error);
             // N11 kapatıldıysa da çağrılır ki ürün N11'de satıştan çekilsin
             if (validatedData.isN11Active || (oldProduct as any)?.isN11Active) syncProductsToN11([productId], { syncSaleStatus: true }).catch(console.error);
-            if (validatedData.isHepsiburadaActive) syncProductsToHepsiburada([productId]).catch(console.error);
+            if (validatedData.isHepsiburadaActive || hbClosed) syncProductsToHepsiburada([productId]).catch(console.error);
             if (validatedData.isPazaramaActive) {
                 const { syncPazaramaStockAndPrice } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
                 syncPazaramaStockAndPrice([productId]).catch(console.error);
@@ -620,8 +623,11 @@ const ALL_MARKETPLACES = ["trendyol", "n11", "hepsiburada", "pazarama", "idefix"
 async function syncAllMarketplacesForProduct(productId: string, isActive: boolean) {
     const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
     if (!isActive) {
+        // HB hariç: HB'nin stok=0 fonksiyonu tüm ilanları tarayıp eşleştirdiği için yavaş ve canlıda doğrulanmadı.
+        // HB'ye aşağıdaki normal senkron gider; o, pasif ürüne stok 0 gönderir (canlıda doğrulandı).
         const { pushZeroStockToMarketplaces } = await import("@/lib/stock-sync");
-        pushZeroStockToMarketplaces([productId], [...ALL_MARKETPLACES]).catch(console.error);
+        pushZeroStockToMarketplaces([productId], ALL_MARKETPLACES.filter((m) => m !== "hepsiburada")).catch(console.error);
+        await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds: [productId] }).catch(console.error);
     } else {
         for (const marketplace of ALL_MARKETPLACES) {
             if (marketplace === "n11") continue;
