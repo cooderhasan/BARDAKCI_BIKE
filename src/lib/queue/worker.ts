@@ -83,6 +83,16 @@ export async function setupRepeatableJobs() {
         jobId: 'review-email-send-cron'
     });
     console.log("⏰ Review/Satisfaction Email Cron (1h) registered.");
+
+    // "Gelince Haber Ver": günde bir kez, stoğa giren ürünleri bekleyenlere e-posta
+    await queue.add("stock-notify-send", {}, {
+        repeat: {
+            pattern: '0 11 * * *',
+            tz: 'Europe/Istanbul',
+        },
+        jobId: 'stock-notify-send-cron'
+    });
+    console.log("⏰ Stock Notification Email Cron (daily 11:00) registered.");
 }
 
 export function initializeWorker() {
@@ -162,6 +172,13 @@ export function initializeWorker() {
                     const { syncOrdersFromPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
                     const result = await syncOrdersFromPttavm();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    return;
+                }
+
+                if (job.name === "stock-notify-send") {
+                    const { processStockNotifications } = await import("@/lib/stock-notifications");
+                    const result = await processStockNotifications();
+                    console.log(`✅ Gelince Haber Ver: ${result.message}`);
                     return;
                 }
 

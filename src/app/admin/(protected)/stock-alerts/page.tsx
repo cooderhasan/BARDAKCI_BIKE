@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { AlertTriangle, Package, Search, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { StockNotificationsPanel } from "@/components/admin/stock-notifications-panel";
 
 interface LowStockProduct {
     id: string;
@@ -121,6 +122,9 @@ export default function StockAlertsPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Gelince Haber Ver talepleri */}
+            <StockNotificationsPanel />
 
             {/* Search */}
             <div className="flex items-center gap-4">

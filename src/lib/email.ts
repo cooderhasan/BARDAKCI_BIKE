@@ -6,6 +6,7 @@ import { AbandonedCartNotificationEmail } from '@/emails/abandoned-cart-notifica
 import { InvoiceNotificationEmail } from '@/emails/invoice-notification';
 import { PasswordResetEmail } from '@/emails/password-reset';
 import { ReviewRequestEmail, type ReviewRequestItem } from '@/emails/review-request';
+import { BackInStockEmail } from '@/emails/back-in-stock';
 import { generateOrderContracts } from './pdf-generator';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
@@ -392,3 +393,45 @@ export async function sendReviewRequestEmail(props: SendReviewRequestProps) {
     }
 }
 
+
+interface SendBackInStockProps {
+    to: string;
+    productName: string;
+    productUrl: string;
+    imageUrl?: string | null;
+    price?: number | null;
+    variantLabel?: string | null;
+    store?: "BIKE" | "MOTOR";
+}
+
+/** "Gelince Haber Ver" e-postası. Resend kotası için admin'e BCC atılmaz. */
+export async function sendBackInStockEmail(props: SendBackInStockProps) {
+    if (!process.env.RESEND_API_KEY) {
+        console.warn('RESEND_API_KEY is not set. Back-in-stock email skipped.');
+        return { success: false, error: 'API key missing' };
+    }
+    const store = props.store || "BIKE";
+    try {
+        const { data, error } = await resend.emails.send({
+            from: store === "BIKE" ? 'Bardakcı Bisiklet <siparis@bardakcibike.com.tr>' : 'Motovitrin <siparis@bardakcibike.com.tr>',
+            to: [props.to],
+            subject: `Beklediğiniz ürün stoklarımızda: ${props.productName}`,
+            react: BackInStockEmail({
+                productName: props.productName,
+                productUrl: props.productUrl,
+                imageUrl: props.imageUrl,
+                price: props.price,
+                variantLabel: props.variantLabel,
+                store,
+            }),
+        });
+        if (error) {
+            console.error('Back-in-stock email error:', error);
+            return { success: false, error };
+        }
+        return { success: true, data };
+    } catch (error) {
+        console.error('Back-in-stock email failed:', error);
+        return { success: false, error };
+    }
+}

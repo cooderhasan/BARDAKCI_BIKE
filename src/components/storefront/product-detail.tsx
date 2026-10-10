@@ -18,6 +18,7 @@ import { WishlistButton } from "@/components/products/wishlist-button";
 import { ReviewForm } from "@/components/products/review-form";
 import { ReviewList } from "@/components/products/review-list";
 import { ShippingInfoBanner } from "./shipping-info-banner";
+import { StockNotifyForm } from "./stock-notify-form";
 import {
     Tabs,
     TabsContent,
@@ -599,6 +600,16 @@ export function ProductDetail({
                                         {/* Dynamic Shipping Banner */}
                                         <ShippingInfoBanner />
 
+                                        {/* Seçilen beden/renk tükenmişse "Gelince Haber Ver" */}
+                                        {hasVariants && currentVariant && currentVariant.stock <= 0 && (
+                                            <StockNotifyForm
+                                                key={currentVariant.id}
+                                                productId={product.id}
+                                                variantId={currentVariant.id}
+                                                variantLabel={[currentVariant.color, currentVariant.size].filter(Boolean).join(" / ") || null}
+                                            />
+                                        )}
+
                                         {/* Stock indicator */}
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -685,9 +696,12 @@ export function ProductDetail({
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="bg-red-50 dark:bg-red-900/20 text-red-600 p-4 rounded-lg text-center text-sm font-bold border border-red-100 dark:border-red-900/30">
-                                        Bu ürün şu an stoklarımızda bulunmamaktadır.
-                                    </div>
+                                    <>
+                                        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 p-4 rounded-lg text-center text-sm font-bold border border-red-100 dark:border-red-900/30">
+                                            Bu ürün şu an stoklarımızda bulunmamaktadır.
+                                        </div>
+                                        <StockNotifyForm productId={product.id} />
+                                    </>
                                 )}
                             </div>
 
