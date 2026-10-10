@@ -559,6 +559,12 @@ export async function updateProduct(productId: string, formData: FormData) {
                 syncProductsToCiceksepeti([productId], "prices").catch(console.error);
             }
             
+            // Bu ürünü içeren paketlerin stoğu yeniden hesaplanır ve pazaryerlerine gönderilir
+            // (önceden alt ürün stoğu elle değişince paketler eski stokla satışta kalıyordu)
+            const { recalcBundleStocks, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+            const parentBundles = (await recalcBundleStocks(prisma, [productId])).filter((id) => id !== productId);
+            if (parentBundles.length > 0) handlePostOrderStockSync(parentBundles).catch(console.error);
+
             // Yedek olarak kuyruğa da ekle (Redis/worker çalışıyorsa ikinci güvence)
             const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
             await addMarketplaceSyncJob({ marketplace: "trendyol", type: "prices", productIds: [productId] }).catch(console.error);

@@ -26,6 +26,37 @@ export interface OrderStockItem {
 }
 
 /**
+ * Stoğu değişen ürünleri içeren paketlerin (ve paketin kendisinin) stoğunu alt ürünlerden yeniden hesaplar.
+ * Paket stoğu önceden yalnızca paket kaydedilince hesaplanıyordu; alt ürün satılınca/değişince paket eski stokla
+ * pazaryerlerine gidiyordu. Hesaplanan paket ID'lerini döner (pazaryeri senkronuna eklensin diye).
+ */
+export async function recalcBundleStocks(db: any, changedProductIds: string[]): Promise<string[]> {
+    if (changedProductIds.length === 0) return [];
+    const bundles = await db.product.findMany({
+        where: {
+            isBundle: true,
+            OR: [
+                { id: { in: changedProductIds } },
+                { bundleItems: { some: { childProductId: { in: changedProductIds } } } },
+            ],
+        },
+        select: {
+            id: true,
+            stock: true,
+            bundleItems: { select: { quantity: true, childProduct: { select: { stock: true } } } },
+        },
+    });
+    const bundleIds: string[] = [];
+    for (const b of bundles) {
+        if (!b.bundleItems || b.bundleItems.length === 0) continue;
+        const stock = Math.max(0, Math.min(...b.bundleItems.map((bi: any) => Math.floor((bi.childProduct?.stock || 0) / (bi.quantity || 1)))));
+        if (stock !== b.stock) await db.product.update({ where: { id: b.id }, data: { stock } });
+        bundleIds.push(b.id);
+    }
+    return bundleIds;
+}
+
+/**
  * Sipariş verildiğinde veya pazaryerinden sipariş çekildiğinde stok düşürme işlemi.
  * - Paket (Bundle) ürünlerin her bir alt ürün stoku düşülür.
  * - Varyantlı ürünlerin varyant stoku düşülür.
@@ -92,6 +123,9 @@ export async function decrementOrderStock(
             affectedIds.add(product.id);
         }
     }
+
+    // Alt ürünü düşen diğer paketler de güncellensin ve pazaryerlerine gitsin
+    for (const id of await recalcBundleStocks(tx, Array.from(affectedIds))) affectedIds.add(id);
 
     return Array.from(affectedIds);
 }
@@ -163,6 +197,9 @@ export async function restoreOrderStock(
             affectedIds.add(product.id);
         }
     }
+
+    // İade edilen alt ürünü içeren paketler de güncellensin
+    for (const id of await recalcBundleStocks(tx, Array.from(affectedIds))) affectedIds.add(id);
 
     return Array.from(affectedIds);
 }
