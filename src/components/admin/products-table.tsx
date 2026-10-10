@@ -96,6 +96,7 @@ const featureOptions = [
     { value: "new", label: "Yeni Ürünler" },
     { value: "bestseller", label: "Çok Satanlar" },
     { value: "discounted", label: "İndirimli Ürünler" },
+    { value: "bundle", label: "Paket Ürünler" },
 ];
 
 export function ProductsTable({ products: initialProducts, brands, pagination }: ProductsTableProps) {

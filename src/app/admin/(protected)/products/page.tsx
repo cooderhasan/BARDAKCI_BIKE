@@ -62,6 +62,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         where.isBestSeller = true;
     } else if (feature === "discounted") {
         where.salePrice = { gt: 0 };
+    } else if (feature === "bundle") {
+        where.isBundle = true;
     }
 
     // Parallel Fetch: Products + Total Count + Brands
