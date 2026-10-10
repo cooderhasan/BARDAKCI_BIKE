@@ -5,6 +5,31 @@ import prisma from "@/lib/db";
 import { sendAbandonedCartEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Müşterinin son 30 günde satın aldığı ürünler (üye ya da aynı e-postayla misafir sipariş).
+ * Ödeme sonrası sepeti temizlenmemiş müşterilere "sepetinizde ürün unuttunuz" denmesin diye sepetten düşülür.
+ */
+async function getRecentlyPurchasedKeys(userId: string, email?: string | null): Promise<Set<string>> {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const orders = await prisma.order.findMany({
+        where: {
+            createdAt: { gte: since },
+            status: { notIn: ["WAITING_FOR_PAYMENT", "CANCELLED"] },
+            OR: [{ userId }, ...(email ? [{ guestEmail: { equals: email, mode: "insensitive" as const } }] : [])],
+        },
+        select: { items: { select: { productId: true, variantId: true } } },
+    });
+    const keys = new Set<string>();
+    for (const o of orders) for (const i of o.items) {
+        keys.add(`${i.productId}|${i.variantId || ""}`);
+        keys.add(`${i.productId}|*`);
+    }
+    return keys;
+}
+
+const isPurchased = (keys: Set<string>, item: { productId: string; variantId?: string | null }) =>
+    keys.has(`${item.productId}|${item.variantId || ""}`) || (!item.variantId && keys.has(`${item.productId}|*`));
+
 export async function getAbandonedCartsAction() {
     try {
         const session = await auth();
@@ -59,7 +84,15 @@ export async function getAbandonedCartsAction() {
             },
         });
 
+        const purchased = new Map<string, Set<string>>();
+        for (const cart of rawCarts as any[]) {
+            if (cart.user?.id) purchased.set(cart.user.id, await getRecentlyPurchasedKeys(cart.user.id, cart.user.email));
+        }
+
         const carts = rawCarts
+            // Satın alınmış ürünler sepetten düşülür; geriye ürün kalmayan sepet listelenmez
+            .map((cart: any) => ({ ...cart, items: cart.items.filter((i: any) => !isPurchased(purchased.get(cart.user?.id) || new Set(), i)) }))
+            .filter((cart: any) => cart.items.length > 0)
             .map((cart: any) => {
                 const lastActivity = new Date(Math.max(...cart.items.map((i: any) => Math.max(new Date(i.updatedAt).getTime(), new Date(i.createdAt).getTime()))));
                 const lastOrderAt = cart.user?.orders?.[0]?.createdAt ? new Date(cart.user.orders[0].createdAt) : null;
@@ -112,6 +145,13 @@ export async function sendCartReminderAction(cartId: string) {
 
         if (!cart || !cart.user || cart.items.length === 0) {
             return { success: false, error: "Geçerli bir sepet bulunamadı veya e-posta adresi eksik." };
+        }
+
+        // Satın alınmış ürünler için hatırlatma gönderilmez
+        const purchasedKeys = await getRecentlyPurchasedKeys(cart.userId, cart.user.email);
+        cart.items = cart.items.filter((i: any) => !isPurchased(purchasedKeys, i)) as any;
+        if (cart.items.length === 0) {
+            return { success: false, error: "Müşteri sepetindeki ürünleri zaten satın almış." };
         }
 
         // Son 24 saat içinde zaten hatırlatma gönderildi mi kontrol et

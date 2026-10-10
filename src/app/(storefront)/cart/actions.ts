@@ -27,20 +27,28 @@ export async function syncCart(items: StoreCartItem[]) {
             });
         }
 
-        // Transactions to clear and add new items
-        await prisma.$transaction([
-            prisma.cartItem.deleteMany({
-                where: { cartId: cart.id },
-            }),
-            prisma.cartItem.createMany({
-                data: items.map((item) => ({
-                    cartId: cart!.id,
-                    productId: item.productId,
-                    variantId: item.variantId || null,
-                    quantity: item.quantity,
-                })),
-            }),
-        ]);
+        // Sadece değişen ürünler güncellenir. Önceden her senkronda tüm ürünler silinip yeniden oluşturuluyordu;
+        // siteye girmek bile sepetin "son işlem" zamanını sıfırlıyor, Sepette Bekleyenler raporu yanılıyordu.
+        const keyOf = (productId: string, variantId?: string | null) => `${productId}|${variantId || ""}`;
+        const existing = await prisma.cartItem.findMany({ where: { cartId: cart.id } });
+        const existingByKey = new Map(existing.map((e) => [keyOf(e.productId, e.variantId), e]));
+        const incomingByKey = new Map<string, StoreCartItem>();
+        for (const item of items) incomingByKey.set(keyOf(item.productId, item.variantId), item);
+
+        const ops: any[] = [];
+        const removedIds = existing.filter((e) => !incomingByKey.has(keyOf(e.productId, e.variantId))).map((e) => e.id);
+        if (removedIds.length) ops.push(prisma.cartItem.deleteMany({ where: { id: { in: removedIds } } }));
+        for (const [key, item] of incomingByKey) {
+            const ex = existingByKey.get(key);
+            if (!ex) {
+                ops.push(prisma.cartItem.create({
+                    data: { cartId: cart!.id, productId: item.productId, variantId: item.variantId || null, quantity: item.quantity },
+                }));
+            } else if (ex.quantity !== item.quantity) {
+                ops.push(prisma.cartItem.update({ where: { id: ex.id }, data: { quantity: item.quantity } }));
+            }
+        }
+        if (ops.length) await prisma.$transaction(ops);
 
         console.log("SYNC_CART: Sync successful.");
         return { success: true };
