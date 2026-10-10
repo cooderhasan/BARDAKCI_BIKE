@@ -777,11 +777,12 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
  */
 /**
  * Yorum e-postasının markası. Siparişe mağaza bilgisi eskiden yazılmadığı için (hep BIKE) motor sitesinden gelmiş
- * eski siparişleri ürünlerinden tanırız: ürünlerin hepsi motor ürünüyse Moto Vitrin sayılır.
+ * eski siparişleri ürünlerinden tanırız: ortak (BOTH) ürünler yok sayılır; motor ürünü varsa ve bisiklete özel ürün
+ * yoksa Moto Vitrin sayılır. Sadece ortak ürün içeren eski siparişler ayırt edilemez, Bardakcı Bisiklet kalır.
  */
 function reviewStoreOf(order: { store?: string | null; items: { product?: { store?: string | null } | null }[] }): "BIKE" | "MOTOR" {
     if (order.store === "MOTOR") return "MOTOR";
-    const stores = order.items.map((i) => i.product?.store).filter(Boolean);
+    const stores = order.items.map((i) => i.product?.store).filter((st) => st && st !== "BOTH");
     return stores.length > 0 && stores.every((st) => st === "MOTOR") ? "MOTOR" : "BIKE";
 }
 
