@@ -52,7 +52,7 @@ export const BackInStockEmail = ({
                                             <span style={{ color: accentColor }}>BİSİKLET</span>
                                         </>
                                     ) : (
-                                        <span style={{ color: brandColor }}>MOTOVİTRİN</span>
+                                        <span style={{ color: brandColor }}>MOTO VİTRİN</span>
                                     )}
                                 </Text>
                             </Section>

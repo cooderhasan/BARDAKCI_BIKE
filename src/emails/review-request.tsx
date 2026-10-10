@@ -42,7 +42,7 @@ export const ReviewRequestEmail = ({
     whatsappNumber = "0554 014 41 42",
 }: ReviewRequestEmailProps) => {
     const isBike = store === "BIKE";
-    const brandName = isBike ? "Bardakcı Bisiklet" : "Motovitrin";
+    const brandName = isBike ? "Bardakcı Bisiklet" : "Moto Vitrin";
     const brandColor = isBike ? "#17457C" : "#D32F2F";
     const accentColor = isBike ? "#F27A1A" : "#E53935";
     const rawPhone = whatsappNumber.replace(/\D/g, "");
@@ -77,7 +77,7 @@ export const ReviewRequestEmail = ({
                                             <span style={{ color: accentColor }}>BİSİKLET</span>
                                         </>
                                     ) : (
-                                        <span style={{ color: brandColor }}>MOTOVİTRİN</span>
+                                        <span style={{ color: brandColor }}>MOTO VİTRİN</span>
                                     )}
                                 </Text>
                                 <Text style={{ margin: "4px 0 0 0", fontSize: "11px", fontWeight: "700", color: "#64748b", letterSpacing: "2.5px", textTransform: "uppercase" }}>

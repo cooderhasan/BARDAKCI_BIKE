@@ -358,7 +358,7 @@ export async function sendReviewRequestEmail(props: SendReviewRequestProps) {
     // Motovitrin de aktif: marka, link ve WhatsApp numarası siparişin mağazasına göre
     const store = props.store || "BIKE";
     const siteUrl = getStoreSiteUrl(store);
-    const brandName = store === "MOTOR" ? "Motovitrin" : "Bardakcı Bisiklet";
+    const brandName = store === "MOTOR" ? "Moto Vitrin" : "Bardakcı Bisiklet";
     const storeSettings = await getStoreSettings(store).catch(() => null);
 
     try {
@@ -411,7 +411,7 @@ export async function sendBackInStockEmail(props: SendBackInStockProps) {
     const store = props.store || "BIKE";
     try {
         const { data, error } = await resend.emails.send({
-            from: store === "BIKE" ? 'Bardakcı Bisiklet <siparis@bardakcibike.com.tr>' : 'Motovitrin <siparis@bardakcibike.com.tr>',
+            from: store === "BIKE" ? 'Bardakcı Bisiklet <siparis@bardakcibike.com.tr>' : 'Moto Vitrin <siparis@bardakcibike.com.tr>',
             to: [props.to],
             subject: `Beklediğiniz ürün stoklarımızda: ${props.productName}`,
             react: BackInStockEmail({
