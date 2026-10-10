@@ -15,14 +15,12 @@ export async function getAbandonedCartsAction() {
         // 2 saatten eski olan sepetleri getirelim
         const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-        const carts = await prisma.cart.findMany({
+        // Not: Cart.updatedAt sepete ürün eklenince değişmiyor (ürünler ayrı tabloda); son işlem ürünlerden hesaplanır
+        const rawCarts = await prisma.cart.findMany({
             where: {
                 items: {
                     some: {} // Sepetinde en az 1 ürün olanlar
                 },
-                updatedAt: {
-                    lte: twoHoursAgo // En son 2 saat önce güncellenmiş (yani bırakılmış)
-                }
             },
             select: {
                 id: true,
@@ -34,7 +32,14 @@ export async function getAbandonedCartsAction() {
                         id: true,
                         email: true,
                         companyName: true,
-                        phone: true
+                        phone: true,
+                        // Sepetten sonra sipariş verdiyse sepet terk edilmiş sayılmaz (ödemesi tamamlanmamış/iptal hariç)
+                        orders: {
+                            where: { status: { notIn: ["WAITING_FOR_PAYMENT", "CANCELLED"] } },
+                            orderBy: { createdAt: "desc" },
+                            take: 1,
+                            select: { createdAt: true },
+                        },
                     }
                 },
                 items: {
@@ -52,10 +57,18 @@ export async function getAbandonedCartsAction() {
                     }
                 }
             },
-            orderBy: {
-                updatedAt: "desc"
-            }
         });
+
+        const carts = rawCarts
+            .map((cart: any) => {
+                const lastActivity = new Date(Math.max(...cart.items.map((i: any) => Math.max(new Date(i.updatedAt).getTime(), new Date(i.createdAt).getTime()))));
+                const lastOrderAt = cart.user?.orders?.[0]?.createdAt ? new Date(cart.user.orders[0].createdAt) : null;
+                return { ...cart, updatedAt: lastActivity, lastOrderAt };
+            })
+            // Son sepet değişikliğinden sonra sipariş verenler listeden çıkar (sipariş sonrası sepeti temizlenmemiş olabilir)
+            .filter((cart: any) => cart.updatedAt <= twoHoursAgo && !(cart.lastOrderAt && cart.lastOrderAt >= cart.updatedAt))
+            .map(({ lastOrderAt, user, ...cart }: any) => ({ ...cart, user: user ? { id: user.id, email: user.email, companyName: user.companyName, phone: user.phone } : user }))
+            .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
         return { success: true, carts };
     } catch (error) {
