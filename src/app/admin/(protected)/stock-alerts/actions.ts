@@ -8,13 +8,39 @@ async function requireAdmin() {
     return !!session?.user && (session.user.role === "ADMIN" || session.user.role === "OPERATOR");
 }
 
-/** "Gelince Haber Ver" talepleri: en çok beklenen ürünler (hangi ürünü önce tedarik etmeli) */
+type NotificationRow = { id: string; productId: string; productName: string; email: string; variantLabel: string | null; createdAt: string; notifiedAt: string | null };
+
+/** "Gelince Haber Ver" talepleri: en çok beklenen ürünler (hangi ürünü önce tedarik etmeli) ve tek tek talepler */
 export async function getStockNotificationSummary(): Promise<{
     pendingTotal: number;
     sentLast30Days: number;
     products: { productId: string; name: string; sku: string | null; stock: number; waiting: number }[];
+    pendingList: NotificationRow[];
+    sentList: NotificationRow[];
 }> {
-    if (!(await requireAdmin())) return { pendingTotal: 0, sentLast30Days: 0, products: [] };
+    if (!(await requireAdmin())) return { pendingTotal: 0, sentLast30Days: 0, products: [], pendingList: [], sentList: [] };
+
+    // Tek tek talepler: kim, hangi ürün/seçenek, ne zaman (bekleyen + son gönderilen)
+    const rowSelect = {
+        id: true, productId: true, email: true, variantId: true, createdAt: true, notifiedAt: true,
+        product: { select: { name: true, variants: { select: { id: true, color: true, size: true } } } },
+    } as const;
+    const toRow = (n: any): NotificationRow => {
+        const v = n.variantId ? n.product?.variants?.find((x: any) => x.id === n.variantId) : null;
+        return {
+            id: n.id,
+            productId: n.productId,
+            productName: n.product?.name || "-",
+            email: n.email,
+            variantLabel: v ? [v.color, v.size].filter(Boolean).join(" / ") || null : null,
+            createdAt: n.createdAt.toISOString(),
+            notifiedAt: n.notifiedAt ? n.notifiedAt.toISOString() : null,
+        };
+    };
+    const [pendingRows, sentRows] = await Promise.all([
+        prisma.stockNotification.findMany({ where: { notifiedAt: null }, orderBy: { createdAt: "desc" }, take: 100, select: rowSelect }),
+        prisma.stockNotification.findMany({ where: { notifiedAt: { not: null } }, orderBy: { notifiedAt: "desc" }, take: 50, select: rowSelect }),
+    ]);
 
     const [grouped, pendingTotal, sentLast30Days] = await Promise.all([
         prisma.stockNotification.groupBy({
@@ -37,6 +63,8 @@ export async function getStockNotificationSummary(): Promise<{
     return {
         pendingTotal,
         sentLast30Days,
+        pendingList: pendingRows.map(toRow),
+        sentList: sentRows.map(toRow),
         products: grouped
             .map((g) => {
                 const p = byId.get(g.productId);
