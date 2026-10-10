@@ -550,6 +550,8 @@ export async function syncOrdersFromPttavm() {
 
         const orderItemsPayload: any[] = [];
         let totalNetOrderAmount = 0;
+        const fallbackIndexes = new Set<number>();
+        const unmatchedNames: string[] = [];
 
         for (const rawItem of lineItems) {
           const rawTitle = String(rawItem.urun || rawItem.urunAdi || item.urunAdi || "ePttAVM Ürünü").trim();
@@ -568,9 +570,16 @@ export async function syncOrdersFromPttavm() {
           totalNetOrderAmount += netTotal;
 
           let dbProd: any = null;
+          let isFallback = false;
+
+          // 0. ePttAVM ilan kodu ("ePttAVM ile Eşleştir"in kaydettiği; Entegra ilanlarında "bm-...-29526" gibi)
+          if (barcode) {
+            const link = await (prisma as any).pttavmProduct.findFirst({ where: { barcode }, include: { product: true } });
+            if (link?.product) dbProd = link.product;
+          }
 
           // 1. Exact match on barcode or sku
-          if (barcode) {
+          if (!dbProd && barcode) {
             dbProd = await prisma.product.findFirst({
               where: { OR: [{ barcode }, { sku: barcode }] },
             });
@@ -583,19 +592,15 @@ export async function syncOrdersFromPttavm() {
             }
 
             // 1b. Core numeric SKU extraction (e.g. "bm-lpk-mc-000310150-00-29817" -> "000310150")
+            // Sadece SKU'da ve tek eşleşme varsa: barkodlarda "içerir" araması alakasız ürünü buluyordu
             if (!dbProd) {
               const coreNum = (barcode.match(/\d{5,}/) || [])[0];
               if (coreNum) {
-                dbProd = await prisma.product.findFirst({
-                  where: { OR: [{ sku: { contains: coreNum, mode: "insensitive" } }, { barcode: { contains: coreNum, mode: "insensitive" } }] },
+                const bySku = await prisma.product.findMany({
+                  where: { sku: { contains: coreNum, mode: "insensitive" } },
+                  take: 2,
                 });
-                if (!dbProd) {
-                  const variant = await prisma.productVariant.findFirst({
-                    where: { OR: [{ sku: { contains: coreNum, mode: "insensitive" } }, { barcode: { contains: coreNum, mode: "insensitive" } }] },
-                    include: { product: true },
-                  });
-                  if (variant?.product) dbProd = variant.product;
-                }
+                if (bySku.length === 1) dbProd = bySku[0];
               }
             }
           }
@@ -656,22 +661,24 @@ export async function syncOrdersFromPttavm() {
             }
           }
 
-          // 3. Title match fallback
+          // 3. Birebir aynı ürün adı (tek eşleşme). Önceden adın İLK KELİMESİYLE ("Billas" gibi) herhangi bir ürün seçiliyordu.
           if (!dbProd && rawTitle && rawTitle !== "ePttAVM Ürünü") {
-            const firstWord = rawTitle.split(" ")[0];
-            if (firstWord.length >= 3) {
-              dbProd = await prisma.product.findFirst({
-                where: { name: { contains: firstWord, mode: "insensitive" } },
-              });
-            }
+            const sameName = await prisma.product.findMany({
+              where: { name: { equals: rawTitle.trim(), mode: "insensitive" } },
+              take: 2,
+            });
+            if (sameName.length === 1) dbProd = sameName[0];
           }
 
-          // 4. Fallback product
+          // 4. Sipariş kaybolmasın diye ilk ürüne bağlanır ama stoğu DÜŞÜLMEZ
           if (!dbProd) {
             dbProd = await prisma.product.findFirst();
+            isFallback = true;
+            unmatchedNames.push(`${rawTitle} (barkod: ${barcode || "-"})`);
           }
 
           if (dbProd) {
+            if (isFallback) fallbackIndexes.add(orderItemsPayload.length);
             orderItemsPayload.push({
               productId: dbProd.id,
               quantity: qty,
@@ -728,6 +735,7 @@ export async function syncOrdersFromPttavm() {
                   appliedDiscountRate: 0,
                   vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
                   guestEmail: customerEmail,
+                  notes: unmatchedNames.length ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi: ${unmatchedNames.join("; ")}` : undefined,
                   shippingAddress: shippingAddressObj,
                   items: {
                     create: orderItemsPayload,
@@ -735,7 +743,10 @@ export async function syncOrdersFromPttavm() {
                 },
               });
 
-              return decrementOrderStock(tx, orderItemsPayload.map(i => ({ productId: i.productId, quantity: i.quantity })));
+              return decrementOrderStock(
+                tx,
+                orderItemsPayload.filter((_, i) => !fallbackIndexes.has(i)).map(i => ({ productId: i.productId, quantity: i.quantity }))
+              );
             });
 
             if (affectedProductIds.length > 0) {

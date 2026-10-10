@@ -498,6 +498,10 @@ export async function syncOrdersFromTrendyol() {
             }> = [];
             let total = 0;
             let missingBarcodeForThisOrder = false;
+            // Sitede bulunamayan kalemler siparişe "ilk ürün" ile bağlanır ama stoğu DÜŞÜLMEZ
+            // (önceden rastgele ilk ürünün stoğu düşüyordu; ör. Fat bike iç lastik siparişi pedal stoğunu düşürdü)
+            const fallbackIndexes = new Set<number>();
+            const unmatchedNames: string[] = [];
 
             for (const line of tOrder.lines) {
                 let productId = "";
@@ -522,14 +526,18 @@ export async function syncOrdersFromTrendyol() {
                     }
                 }
 
+                let isFallback = false;
                 if (!productId) {
                     const fallbackProd = await prisma.product.findFirst();
                     if (fallbackProd) {
                         productId = fallbackProd.id;
+                        isFallback = true;
+                        unmatchedNames.push(`${line.productName} (barkod: ${line.barcode})`);
                     }
                 }
 
                 if (productId) {
+                    if (isFallback) fallbackIndexes.add(resolvedItems.length);
                     resolvedItems.push({
                         productId,
                         variantId,
@@ -568,6 +576,7 @@ export async function syncOrdersFromTrendyol() {
                             cargoCompany: tOrder.cargoProviderName,
                             cargoTrackingNumber: tOrder.cargoTrackingNumber?.toString(),
                             shipmentPackageId: tOrder.id?.toString(),
+                            notes: unmatchedNames.length ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi: ${unmatchedNames.join("; ")}` : undefined,
                             shippingAddress: {
                                 fullName: tOrder.shipmentAddress?.fullName ?? tOrder.customerFirstName + " " + tOrder.customerLastName,
                                 address: tOrder.shipmentAddress?.fullAddress ?? "",
@@ -584,11 +593,13 @@ export async function syncOrdersFromTrendyol() {
                     const { decrementOrderStock } = await import("@/lib/stock-sync");
                     return decrementOrderStock(
                         tx,
-                        resolvedItems.map(item => ({
-                            productId: item.productId,
-                            variantId: item.variantId,
-                            quantity: item.quantity,
-                        }))
+                        resolvedItems
+                            .filter((_, i) => !fallbackIndexes.has(i))
+                            .map(item => ({
+                                productId: item.productId,
+                                variantId: item.variantId,
+                                quantity: item.quantity,
+                            }))
                     );
                 });
 

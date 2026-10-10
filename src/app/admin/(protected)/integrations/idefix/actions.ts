@@ -918,8 +918,10 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
               }
             }
 
-            // Eğer ürün barkoddan birebir eşleşemediyse de siparişi kaybetme, ilk ürüne bağla
+            // Eğer ürün barkoddan birebir eşleşemediyse de siparişi kaybetme, ilk ürüne bağla (stoğu düşülmez)
+            let isFallbackOrder = false;
             if (orderItemsPayload.length === 0 && (item.items || []).length > 0) {
+              isFallbackOrder = true;
               const firstRawItem = item.items[0];
               const fallbackProd = await prisma.product.findFirst();
               if (fallbackProd) {
@@ -953,6 +955,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                     appliedDiscountRate: 0,
                     vatAmount: subtotal * 0.2,
                     guestEmail: customerEmail,
+                    notes: isFallbackOrder ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi (barkod: ${item.items?.[0]?.barcode || "-"})` : undefined,
                     shippingAddress: {
                       fullName: customerName,
                       addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
@@ -966,6 +969,8 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                   },
                 });
 
+                // Rastgele bağlanan ürünün stoğu düşülmez (önceden ilk ürünün stoğu düşüyordu)
+                if (isFallbackOrder) return [] as string[];
                 return decrementOrderStock(tx, orderItemsPayload.map(i => ({ productId: i.productId, quantity: i.quantity })));
               });
 

@@ -300,6 +300,8 @@ export async function syncOrdersFromN11() {
             const orderItems: any[] = [];
             const lineIds: number[] = [];
             const affectedProductIds: string[] = [];
+            const fallbackIndexes = new Set<number>();
+            const unmatchedNames: string[] = [];
             let total = 0;
             let totalVat = 0;
             let totalDiscount = 0;
@@ -397,24 +399,25 @@ export async function syncOrdersFromN11() {
                     }
                 }
 
-                // 3) Title search fallback
+                // 3) Birebir aynı ürün adı (tek eşleşme). Önceden adın ilk 15 harfiyle arıyordu; "Billas 3.00 -18 " gibi
+                // ortak başlangıçlı ürünlerde yanlış ürünün stoğu düşebiliyordu.
                 if (!product && line.productName) {
-                    const titleSub = String(line.productName).trim().substring(0, 15);
-                    if (titleSub.length >= 3) {
-                        product = await prisma.product.findFirst({
-                            where: {
-                                name: { contains: titleSub, mode: "insensitive" },
-                            },
-                        });
-                    }
+                    const sameName = await prisma.product.findMany({
+                        where: { name: { equals: String(line.productName).trim(), mode: "insensitive" } },
+                        take: 2,
+                    });
+                    if (sameName.length === 1) product = sameName[0];
                 }
 
-                // 4) Ultimate fallback to any active product so Prisma relation constraint is met
+                // 4) Sipariş kaybolmasın diye ilk ürüne bağlanır ama stoğu DÜŞÜLMEZ
+                let isFallback = false;
                 if (!product) {
                     product = await prisma.product.findFirst();
+                    isFallback = true;
+                    unmatchedNames.push(`${line.productName || line.title || "-"} (kod: ${searchCodes.join(", ") || "-"})`);
                 }
 
-                if (product) {
+                if (product && !isFallback) {
                     affectedProductIds.push(product.id);
                 }
 
@@ -429,6 +432,7 @@ export async function syncOrdersFromN11() {
                 const lineVatRate = Number(line.vatRate) || 20;
                 const lineVatAmount = lineInvoiceAmount - (lineInvoiceAmount / (1 + lineVatRate / 100));
 
+                if (isFallback) fallbackIndexes.add(orderItems.length);
                 orderItems.push({
                     productId: product ? product.id : (await prisma.product.findFirst())?.id || "",
                     quantity: lineQty,
@@ -467,6 +471,7 @@ export async function syncOrdersFromN11() {
                                 district: pkg.shippingAddress?.district || pkg.district || ""
                             },
                             items: { create: orderItems },
+                            notes: unmatchedNames.length ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi: ${unmatchedNames.join("; ")}` : undefined,
                             source: "N11",
                             cargoTrackingNumber: pkg.cargoTrackingNumber || pkg.shipmentTrackingNumber || null,
                             shipmentPackageId: String(pkg.id || orderNumStr),
@@ -478,11 +483,13 @@ export async function syncOrdersFromN11() {
                     const { decrementOrderStock } = await import("@/lib/stock-sync");
                     return decrementOrderStock(
                         tx,
-                        orderItems.map(item => ({
-                            productId: item.productId,
-                            variantId: (item as any).variantId,
-                            quantity: item.quantity,
-                        }))
+                        orderItems
+                            .filter((_, i) => !fallbackIndexes.has(i))
+                            .map(item => ({
+                                productId: item.productId,
+                                variantId: (item as any).variantId,
+                                quantity: item.quantity,
+                            }))
                     );
                 });
 
