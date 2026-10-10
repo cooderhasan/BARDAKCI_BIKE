@@ -5,9 +5,10 @@
 import { prisma } from "@/lib/db";
 import { sendBackInStockEmail } from "@/lib/email";
 
+// Motovitrin şimdilik motor.bardakcibike.com.tr'de; alan adı yönlendirmesi yapılınca MOTOR_SITE_URL ile değiştirilir
 const SITE_URLS: Record<"BIKE" | "MOTOR", string> = {
     BIKE: "https://www.bardakcibike.com.tr",
-    MOTOR: "https://www.motovitrin.com",
+    MOTOR: (process.env.MOTOR_SITE_URL || "https://motor.bardakcibike.com.tr").replace(/\/+$/, ""),
 };
 
 // Resend ücretsiz planı günde 100 e-posta; sipariş/kargo e-postalarına yer kalsın diye günlük üst sınır
@@ -25,9 +26,8 @@ export async function processStockNotifications(): Promise<{ sent: number; faile
         return { sent: 0, failed: 0, deferred: 0, message: `Günlük sınır (${DAILY_LIMIT}) dolu, yarın devam edilecek.` };
     }
 
-    // Motovitrin sitesi henüz yayında değil: şimdilik yalnızca Bardakcı Bike talepleri işlenir
     const pending = await prisma.stockNotification.findMany({
-        where: { notifiedAt: null, store: "BIKE", product: { isActive: true } },
+        where: { notifiedAt: null, product: { isActive: true } },
         orderBy: { createdAt: "asc" },
         take: 2000,
         include: {
