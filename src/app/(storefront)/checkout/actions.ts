@@ -6,6 +6,7 @@ import { generateOrderNumber } from "@/lib/helpers";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email";
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 import { decrementOrderStock } from "@/lib/stock-sync";
+import { getStoreType } from "@/lib/store-helper";
 
 interface OrderItem {
     productId: string;
@@ -208,6 +209,7 @@ export async function createOrder(data: CreateOrderData) {
         const orderNumber = generateOrderNumber();
 
         // Create order with transaction
+        const orderStore = await getStoreType();
         const transactionResult = await prisma.$transaction(async (tx) => {
             // Check Critical Limit for Current Account (only for logged in users)
             if (paymentMethod === "CURRENT_ACCOUNT" && userId) {
@@ -244,6 +246,8 @@ export async function createOrder(data: CreateOrderData) {
             const newOrder = await tx.order.create({
                 data: {
                     orderNumber: orderNumber,
+                    // Siparişin verildiği site (Bardakcı Bike / Moto Vitrin); önceden hep varsayılan BIKE kaydediliyordu
+                    store: orderStore,
                     userId: userId || undefined, // undefined for guest orders
                     guestEmail: data.guestEmail || undefined,
                     subtotal,

@@ -698,6 +698,7 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
                                 images: true,
                                 salePrice: true,
                                 listPrice: true,
+                                store: true,
                             },
                         },
                     },
@@ -746,7 +747,7 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
             to: recipientEmail,
             customerName,
             orderNumber: order.orderNumber,
-            store: order.store === "MOTOR" ? "MOTOR" : "BIKE",
+            store: reviewStoreOf(order),
             items: reviewItems,
         });
 
@@ -774,6 +775,16 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
  * Teslimatının üzerinden 24 saat geçmiş ve henüz yorum e-postası gönderilmemiş
  * WEB siparişlerine (Bardakcı Bike ve Motovitrin) otomatik yorum talep e-postası gönderir.
  */
+/**
+ * Yorum e-postasının markası. Siparişe mağaza bilgisi eskiden yazılmadığı için (hep BIKE) motor sitesinden gelmiş
+ * eski siparişleri ürünlerinden tanırız: ürünlerin hepsi motor ürünüyse Moto Vitrin sayılır.
+ */
+function reviewStoreOf(order: { store?: string | null; items: { product?: { store?: string | null } | null }[] }): "BIKE" | "MOTOR" {
+    if (order.store === "MOTOR") return "MOTOR";
+    const stores = order.items.map((i) => i.product?.store).filter(Boolean);
+    return stores.length > 0 && stores.every((st) => st === "MOTOR") ? "MOTOR" : "BIKE";
+}
+
 export async function processDueReviewEmails() {
     try {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -805,6 +816,7 @@ export async function processDueReviewEmails() {
                                 images: true,
                                 salePrice: true,
                                 listPrice: true,
+                                store: true,
                             },
                         },
                     },
@@ -857,7 +869,7 @@ export async function processDueReviewEmails() {
                     to: recipientEmail,
                     customerName,
                     orderNumber: order.orderNumber,
-                    store: order.store === "MOTOR" ? "MOTOR" : "BIKE",
+                    store: reviewStoreOf(order),
                     items: reviewItems,
                 });
 
