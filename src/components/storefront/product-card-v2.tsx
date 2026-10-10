@@ -132,20 +132,12 @@ export function ProductCardV2({
 
                 {/* Image Section - Cleaner Aspect Ratio */}
                 <div className="relative aspect-square bg-white p-4 flex items-center justify-center">
-                    {/* Badges Stack Left */}
-                    <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
-                        {(isDealer && discountRate > 0 || hasSalePrice) && (
-                            <div className="bg-[#E31E24] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm animate-in fade-in duration-300">
-                                %{Math.max(discountRate, saleDiscountRate)} İNDİRİM
-                            </div>
-                        )}
-                        {product.isFreeShipping && (
-                            <div className="bg-emerald-600 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded-full shadow-sm whitespace-nowrap animate-in fade-in duration-300 flex items-center gap-1">
-                                <Truck className="w-3.5 h-3.5" />
-                                <span>ÜCRETSİZ KARGO</span>
-                            </div>
-                        )}
-                    </div>
+                    {/* İndirim rozeti: mobilde küçük ve sadece "%18" (dar kartta görseli kapatıyordu) */}
+                    {(isDealer && discountRate > 0 || hasSalePrice) && (
+                        <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 bg-[#E31E24] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-0.5 md:px-2 md:py-1 rounded-full shadow-sm animate-in fade-in duration-300">
+                            %{Math.max(discountRate, saleDiscountRate)}<span className="hidden md:inline"> İNDİRİM</span>
+                        </div>
+                    )}
                     {/* Badge */}
                     {badge && (
                         <div className="absolute top-3 right-3 z-10 bg-[#17457C] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
@@ -179,12 +171,20 @@ export function ProductCardV2({
 
                 {/* Content Section */}
                 <div className="p-4 flex-1 flex flex-col bg-white dark:bg-gray-800/50">
-                    {/* Brand */}
-                    {product.brand && (
-                        <div className="mb-2">
-                            <span className="inline-block bg-[#17457C]/5 dark:bg-[#17457C]/20 text-[#17457C] dark:text-blue-300 font-extrabold text-[9px] md:text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md truncate max-w-full" title={product.brand.name}>
-                                {product.brand.name}
-                            </span>
+                    {/* Brand + Ücretsiz Kargo (kargo etiketi görselin üstünden buraya alındı) */}
+                    {(product.brand || product.isFreeShipping) && (
+                        <div className="mb-2 flex flex-wrap items-center gap-1">
+                            {product.brand && (
+                                <span className="inline-block bg-[#17457C]/5 dark:bg-[#17457C]/20 text-[#17457C] dark:text-blue-300 font-extrabold text-[9px] md:text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md truncate max-w-full" title={product.brand.name}>
+                                    {product.brand.name}
+                                </span>
+                            )}
+                            {product.isFreeShipping && (
+                                <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-bold text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                    <Truck className="w-3 h-3" />
+                                    Ücretsiz Kargo
+                                </span>
+                            )}
                         </div>
                     )}
 
