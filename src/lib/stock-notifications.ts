@@ -4,12 +4,7 @@
  */
 import { prisma } from "@/lib/db";
 import { sendBackInStockEmail } from "@/lib/email";
-
-// Motovitrin şimdilik motor.bardakcibike.com.tr'de; alan adı yönlendirmesi yapılınca MOTOR_SITE_URL ile değiştirilir
-const SITE_URLS: Record<"BIKE" | "MOTOR", string> = {
-    BIKE: "https://www.bardakcibike.com.tr",
-    MOTOR: (process.env.MOTOR_SITE_URL || "https://motor.bardakcibike.com.tr").replace(/\/+$/, ""),
-};
+import { getStoreSiteUrl } from "@/lib/site-urls";
 
 // Resend ücretsiz planı günde 100 e-posta; sipariş/kargo e-postalarına yer kalsın diye günlük üst sınır
 const DAILY_LIMIT = Number(process.env.STOCK_NOTIFY_DAILY_LIMIT || 40);
@@ -50,7 +45,7 @@ export async function processStockNotifications(): Promise<{ sent: number; faile
         if (!inStock) continue;
         if (remaining <= 0) { deferred++; continue; }
 
-        const siteUrl = SITE_URLS[n.store === "MOTOR" ? "MOTOR" : "BIKE"];
+        const siteUrl = getStoreSiteUrl(n.store);
         const rawImage = p.images?.[0] || null;
         const imageUrl = rawImage ? (rawImage.startsWith("http") ? rawImage : `${siteUrl}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`) : null;
         const price = Number(p.salePrice ?? p.listPrice ?? 0) || null;

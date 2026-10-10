@@ -71,8 +71,14 @@ export const ReviewRequestEmail = ({
                             {/* Brand Header */}
                             <Section style={{ textAlign: "center", paddingBottom: "18px", marginBottom: "20px", borderBottom: "1px solid #f1f5f9" }}>
                                 <Text style={{ margin: "0", fontSize: "24px", fontWeight: "900", letterSpacing: "1.5px", textTransform: "uppercase", lineHeight: "1.2" }}>
-                                    <span style={{ color: brandColor }}>BARDAKCI</span>{" "}
-                                    <span style={{ color: accentColor }}>BİSİKLET</span>
+                                    {isBike ? (
+                                        <>
+                                            <span style={{ color: brandColor }}>BARDAKCI</span>{" "}
+                                            <span style={{ color: accentColor }}>BİSİKLET</span>
+                                        </>
+                                    ) : (
+                                        <span style={{ color: brandColor }}>MOTOVİTRİN</span>
+                                    )}
                                 </Text>
                                 <Text style={{ margin: "4px 0 0 0", fontSize: "11px", fontWeight: "700", color: "#64748b", letterSpacing: "2.5px", textTransform: "uppercase" }}>
                                     {isBike ? "BİSİKLET & EKİPMAN DÜNYASI" : "MOTOSİKLET YEDEK PARÇA & AKSESUAR"}

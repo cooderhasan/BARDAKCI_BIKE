@@ -717,13 +717,6 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
             };
         }
 
-        // Multi-store guard: Only BIKE store for now
-        if (order.store !== "BIKE") {
-            return { 
-                success: false, 
-                error: "Motovitrin (MOTOR) mağazası yorum e-postası Ocak ayında devreye alınacaktır. Şu an sadece Bisiklet siparişleri için aktiftir." 
-            };
-        }
 
         // Recipient email
         const recipientEmail = order.user?.email || order.guestEmail || (order.shippingAddress as any)?.email;
@@ -753,7 +746,7 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
             to: recipientEmail,
             customerName,
             orderNumber: order.orderNumber,
-            store: "BIKE",
+            store: order.store === "MOTOR" ? "MOTOR" : "BIKE",
             items: reviewItems,
         });
 
@@ -779,17 +772,16 @@ export async function sendOrderReviewRequestEmail(orderId: string) {
 
 /**
  * Teslimatının üzerinden 24 saat geçmiş ve henüz yorum e-postası gönderilmemiş
- * WEB siparişlerine (sadece BIKE mağazası için) otomatik yorum talep e-postası gönderir.
+ * WEB siparişlerine (Bardakcı Bike ve Motovitrin) otomatik yorum talep e-postası gönderir.
  */
 export async function processDueReviewEmails() {
     try {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-        // Find eligible orders: WEB source, BIKE store, DELIVERED status, delivered >= 24h ago, not sent yet
+        // Find eligible orders: WEB source, DELIVERED status, delivered >= 24h ago, not sent yet
         const eligibleOrders = await prisma.order.findMany({
             where: {
                 source: "WEB",
-                store: "BIKE", // Motovitrin is excluded until January
                 status: "DELIVERED",
                 deliveredAt: {
                     lte: twentyFourHoursAgo,
@@ -865,7 +857,7 @@ export async function processDueReviewEmails() {
                     to: recipientEmail,
                     customerName,
                     orderNumber: order.orderNumber,
-                    store: "BIKE",
+                    store: order.store === "MOTOR" ? "MOTOR" : "BIKE",
                     items: reviewItems,
                 });
 

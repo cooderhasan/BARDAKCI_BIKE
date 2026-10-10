@@ -7,6 +7,8 @@ import { InvoiceNotificationEmail } from '@/emails/invoice-notification';
 import { PasswordResetEmail } from '@/emails/password-reset';
 import { ReviewRequestEmail, type ReviewRequestItem } from '@/emails/review-request';
 import { BackInStockEmail } from '@/emails/back-in-stock';
+import { getStoreSiteUrl } from './site-urls';
+import { getStoreSettings } from './store-helper';
 import { generateOrderContracts } from './pdf-generator';
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_123456789");
@@ -353,30 +355,26 @@ export async function sendReviewRequestEmail(props: SendReviewRequestProps) {
         return { success: false, error: 'API key missing' };
     }
 
-    // MULTI-STORE GUARD:
-    // Motovitrin (store === "MOTOR") will launch in January with separate copy and branding.
-    // For now, only send review emails for Bardakçı Bisiklet (store === "BIKE").
+    // Motovitrin de aktif: marka, link ve WhatsApp numarası siparişin mağazasına göre
     const store = props.store || "BIKE";
-    if (store === "MOTOR") {
-        console.log(`ℹ️ Motovitrin (MOTOR) mağazası yorum e-postası henüz aktif değil (Ocak ayında devreye alınacak). Sipariş: #${props.orderNumber} atlandı.`);
-        return { success: false, skipped: true, reason: 'MOTOR_STORE_INACTIVE_UNTIL_JANUARY' };
-    }
-
-    const siteUrl = "https://www.bardakcibike.com.tr";
+    const siteUrl = getStoreSiteUrl(store);
+    const brandName = store === "MOTOR" ? "Motovitrin" : "Bardakcı Bisiklet";
+    const storeSettings = await getStoreSettings(store).catch(() => null);
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Bardakcı Bisiklet <siparis@bardakcibike.com.tr>',
+            from: `${brandName} <siparis@bardakcibike.com.tr>`,
             to: [props.to],
             // BCC admin so store management can monitor customer feedback emails
             bcc: ADMIN_EMAIL ? [ADMIN_EMAIL] : undefined,
-            subject: `#${props.orderNumber} Numaralı Siparişiniz Hakkında - Bardakcı Bisiklet`,
+            subject: `#${props.orderNumber} Numaralı Siparişiniz Hakkında - ${brandName}`,
             react: ReviewRequestEmail({
                 orderNumber: props.orderNumber,
                 customerName: props.customerName,
                 items: props.items,
-                store: "BIKE",
+                store,
                 siteUrl,
+                ...(storeSettings?.phone ? { whatsappNumber: storeSettings.phone } : {}),
             }),
         });
 
