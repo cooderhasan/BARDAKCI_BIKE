@@ -416,6 +416,7 @@ model OrderItem {
   discountRate Decimal         @db.Decimal(5, 2)
   vatRate      Int
   lineTotal    Decimal         @db.Decimal(12, 2)
+  stockDeducted Boolean        @default(true) // false: pazaryeri ürünü sitede bulunamadı, yer tutucu ürüne bağlandı; stok düşülmedi/iade edilmez
   returnRequest ReturnRequest[]
 
   @@map("order_items")

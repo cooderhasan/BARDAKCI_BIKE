@@ -495,6 +495,7 @@ export async function syncOrdersFromTrendyol() {
                 discountRate: number;
                 vatRate: number;
                 lineTotal: number;
+                stockDeducted?: boolean;
             }> = [];
             let total = 0;
             let missingBarcodeForThisOrder = false;
@@ -546,7 +547,8 @@ export async function syncOrdersFromTrendyol() {
                         unitPrice: line.price,
                         discountRate: 0,
                         vatRate: 20,
-                        lineTotal: line.price * line.quantity
+                        lineTotal: line.price * line.quantity,
+                        stockDeducted: !isFallback,
                     });
                     total += line.price * line.quantity;
                 } else {

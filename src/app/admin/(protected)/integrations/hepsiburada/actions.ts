@@ -327,15 +327,13 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                         // Kısmen eklenmiş (örneğin sadece 1 ürünü gelmiş, diğeri eşleşmediği için alınmamış)
                         // Henüz faturası da kesilmemişse, silip eksiksiz şekilde tekrar oluşturalım.
                         
-                        // Önce eski siparişin düştüğü stokları geri verelim (mükerrer stok düşmesini engellemek için)
-                        for (const oldItem of existing.items) {
-                            await prisma.product.update({
-                                where: { id: oldItem.productId },
-                                data: { stock: { increment: oldItem.quantity } }
-                            });
-                        }
-                        // Siparişi silelim
-                        await prisma.order.delete({ where: { id: existing.id } });
+                        // Önce eski siparişin düştüğü stokları geri verelim (mükerrer stok düşmesini engellemek için).
+                        // restoreOrderStock varyant/paketi doğru işler, yer tutucu ürüne bağlı (stockDeducted=false) kalemleri atlar.
+                        const { restoreOrderStock } = await import("@/lib/stock-sync");
+                        await prisma.$transaction(async (tx) => {
+                            await restoreOrderStock(tx, existing.items);
+                            await tx.order.delete({ where: { id: existing.id } });
+                        });
                     } else {
                         skippedCount++;
                         continue;
@@ -355,6 +353,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                 let packageId = String(items[0].packageNumber || items[0].id || "");
 
                 const stockUpdates: {id: string, qty: number}[] = [];
+                const unmatchedNames: string[] = [];
 
                 for (const item of items) {
                     let product = null;
@@ -449,8 +448,10 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                         productName: productName,
                         lineTotal: lineTotal,
                         vatRate: vatRate,
-                        discountRate: 0
+                        discountRate: 0,
+                        stockDeducted: !isFallback,
                     });
+                    if (isFallback) unmatchedNames.push(`${productName} (kod: ${merchantSkuVal || item.sku || item.barcode || "-"})`);
 
                     totalOrderLineTotal += lineTotal;
                     vatAmountTotal += lineTotal * (vatRate / (100 + vatRate));
@@ -494,6 +495,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                             items: {
                                 create: orderItemsToCreate
                             },
+                            notes: unmatchedNames.length ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi: ${unmatchedNames.join("; ")}` : undefined,
                             source: "HEPSIBURADA",
                             cargoCompany: cargoCompany,
                             shipmentPackageId: packageId,
@@ -508,6 +510,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                             productId: item.productId,
                             variantId: item.variantId,
                             quantity: item.quantity,
+                            stockDeducted: item.stockDeducted,
                         }))
                     );
                 });

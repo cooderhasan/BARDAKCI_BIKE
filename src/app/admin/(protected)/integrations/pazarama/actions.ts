@@ -814,6 +814,7 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
       const stockUpdates: { productId?: string; variantId?: string; quantity: number }[] = [];
       let total = 0;
       let totalVat = 0;
+      const unmatchedNames: string[] = [];
 
       for (const item of pOrder.items || []) {
         const barcodeOrSku = (item.barcode || item.sku || "").trim();
@@ -846,13 +847,14 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
           }
         }
 
+        // Birebir aynı ürün adı (tek eşleşme). Önceden "içeren" aramasıyla alakasız ürün seçilebiliyordu.
         if (!product && item.productName) {
-          product = await prisma.product.findFirst({
-            where: {
-              name: { contains: item.productName, mode: "insensitive" },
-            },
+          const sameName = await prisma.product.findMany({
+            where: { name: { equals: String(item.productName).trim(), mode: "insensitive" } },
+            take: 2,
           });
-          if (product) {
+          if (sameName.length === 1) {
+            product = sameName[0];
             productId = product.id;
           }
         }
@@ -884,7 +886,9 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
             lineTotal: lineInvoiceAmount,
             vatRate,
             discountRate: 0,
+            stockDeducted: !isFallback,
           });
+          if (isFallback) unmatchedNames.push(`${item.productName || "-"} (kod: ${barcodeOrSku || "-"})`);
 
           total += lineInvoiceAmount;
           totalVat += lineVat;
@@ -917,6 +921,7 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
                 phone: pOrder.customerPhone || "",
                 postalCode: pOrder.deliveryAddress?.postalCode || "",
               },
+              notes: unmatchedNames.length ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi: ${unmatchedNames.join("; ")}` : undefined,
               items: { create: resolvedItems },
               cargoCompany: (pOrder as any).cargoCompany || (pOrder as any).cargoProviderName || null,
               cargoTrackingNumber: (pOrder as any).cargoTrackingNumber || null,

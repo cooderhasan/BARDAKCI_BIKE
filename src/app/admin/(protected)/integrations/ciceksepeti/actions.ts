@@ -865,6 +865,7 @@ export async function syncCiceksepetiOrders() {
                 unitPrice: itemPrice / (itemQty || 1),
                 productName: orderItemProductName,
                 variantInfo: `CS-ITEM-${uniqueKey}`, // orderItemId'yi takip etmek için
+                stockDeducted: !itemMatch.isFallback,
                 lineTotal: itemPrice,
                 vatRate: Number((order as any).tax || 20),
                 discountRate: 0,
@@ -967,6 +968,7 @@ export async function syncCiceksepetiOrders() {
                     unitPrice: price / (qty || 1),
                     productName: (order as any).name || "Çiçeksepeti Ürünü",
                     variantInfo: `CS-ITEM-${uniqueKey}`,
+                    stockDeducted: !match.isFallback,
                     lineTotal: price,
                     vatRate: Number((order as any).tax || 20),
                     discountRate: 0

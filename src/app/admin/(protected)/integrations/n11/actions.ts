@@ -440,7 +440,8 @@ export async function syncOrdersFromN11() {
                     productName: line.productName || line.title || "N11 Ürünü",
                     lineTotal: lineInvoiceAmount,
                     vatRate: lineVatRate,
-                    discountRate: lineGross > 0 ? Math.round((lineDiscountAmount / lineGross) * 10000) / 100 : 0
+                    discountRate: lineGross > 0 ? Math.round((lineDiscountAmount / lineGross) * 10000) / 100 : 0,
+                    stockDeducted: !isFallback,
                 });
                 total += lineInvoiceAmount;
                 totalVat += lineVatAmount;

@@ -23,6 +23,8 @@ export interface OrderStockItem {
     productId: string;
     variantId?: string | null;
     quantity: number;
+    /** false ise kalem yer tutucu ürüne bağlıdır: stok düşülmez, iptalde iade edilmez */
+    stockDeducted?: boolean | null;
 }
 
 /**
@@ -70,7 +72,7 @@ export async function decrementOrderStock(
     const affectedIds = new Set<string>();
 
     for (const item of items) {
-        if (!item.productId || item.quantity <= 0) continue;
+        if (!item.productId || item.quantity <= 0 || item.stockDeducted === false) continue;
 
         const product = await tx.product.findUnique({
             where: { id: item.productId },
@@ -144,7 +146,7 @@ export async function restoreOrderStock(
     const affectedIds = new Set<string>();
 
     for (const item of items) {
-        if (!item.productId || item.quantity <= 0) continue;
+        if (!item.productId || item.quantity <= 0 || item.stockDeducted === false) continue;
 
         const product = await tx.product.findUnique({
             where: { id: item.productId },

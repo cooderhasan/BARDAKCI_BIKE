@@ -687,6 +687,7 @@ export async function syncOrdersFromPttavm() {
               lineTotal: netTotal,
               vatRate: Number(rawItem.kdvOrani || 20),
               discountRate: 0,
+              stockDeducted: !isFallback,
             });
           }
         }
@@ -787,7 +788,7 @@ export async function syncOrdersFromPttavm() {
 
                 // If status changed to CANCELLED, restore stock
                 if (statusChanged && targetOrderStatus === "CANCELLED" && existingOrder.status !== "CANCELLED") {
-                  affected = await restoreOrderStock(tx, existingOrder.items.map(i => ({ productId: i.productId, quantity: i.quantity })));
+                  affected = await restoreOrderStock(tx, existingOrder.items.map(i => ({ productId: i.productId, quantity: i.quantity, stockDeducted: i.stockDeducted })));
                 }
 
                 return affected;

@@ -935,6 +935,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                   lineTotal: itemPrice * qty,
                   vatRate: 20,
                   discountRate: 0,
+                  stockDeducted: false,
                 });
               }
             }
