@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -100,6 +101,7 @@ function generateSlug(text: string): string {
 }
 
 export async function parseExcelFile(formData: FormData): Promise<ParseResult> {
+    await requireAdmin();
     const file = formData.get("file") as File;
 
     if (!file) {
@@ -164,6 +166,7 @@ export async function parseExcelFile(formData: FormData): Promise<ParseResult> {
 }
 
 export async function importProducts(formData: FormData): Promise<ImportResult> {
+    await requireAdmin();
     const file = formData.get("file") as File;
 
     if (!file) {

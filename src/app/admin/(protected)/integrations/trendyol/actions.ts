@@ -1,5 +1,6 @@
 
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -13,6 +14,7 @@ import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 // due to the dev server lock, but the runtime works if DB schema is updated.
 
 export async function getTrendyolConfig() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst();
         return { success: true, data: config };
@@ -22,6 +24,7 @@ export async function getTrendyolConfig() {
 }
 
 export async function saveTrendyolConfig(prevState: any, formData: FormData) {
+    await requireAdmin();
     try {
         const supplierId = formData.get("supplierId") as string;
         const apiKey = formData.get("apiKey") as string;
@@ -59,6 +62,7 @@ export async function saveTrendyolConfig(prevState: any, formData: FormData) {
 }
 
 export async function testTrendyolConnection() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst();
         if (!config) return { success: false, message: "Ayarlar bulunamadı." };
@@ -84,6 +88,7 @@ export async function testTrendyolConnection() {
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 
 export async function enqueueTrendyolSync() {
+    await requireAdmin();
     try {
         await addMarketplaceSyncJob({ marketplace: "trendyol", type: "products" });
         return { success: true, message: "Senkronizasyon işlemi kuyruğa alındı. Arka planda işlenecektir." };
@@ -93,6 +98,7 @@ export async function enqueueTrendyolSync() {
 }
 
 export async function syncProductsToTrendyol(productIds?: string[], type: "products" | "prices" | "stocks" = "products") {
+    await requireAdmin();
     try {
         // 1. Check Config
         const config = await (prisma as any).trendyolConfig.findFirst({
@@ -351,6 +357,7 @@ export async function syncProductsToTrendyol(productIds?: string[], type: "produ
 }
 
 export async function getTrendyolBrands(search: string = "") {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -379,6 +386,7 @@ export async function getTrendyolBrands(search: string = "") {
 }
 
 export async function getTrendyolCategories() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -421,6 +429,7 @@ export async function getTrendyolCategories() {
 }
 
 export async function syncOrdersFromTrendyol() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -630,6 +639,7 @@ export async function syncOrdersFromTrendyol() {
     }
 }
 export async function getTrendyolCategoryAttributes(categoryId: number) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -745,6 +755,7 @@ export async function getTrendyolCategoryAttributes(categoryId: number) {
 }
 
 export async function sendProductToTrendyol(productId: string, attributeMappings: any[], targetCategoryId?: number) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -1075,6 +1086,7 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
 }
 
 export async function checkTrendyolBatchRequest(batchRequestId: string) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -1093,6 +1105,7 @@ export async function checkTrendyolBatchRequest(batchRequestId: string) {
 }
 
 export async function getTrendyolCargoAndAddresses() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst();
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -1143,6 +1156,7 @@ export async function getTrendyolCargoAndAddresses() {
 }
 
 export async function syncBatchStatuses() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -1251,6 +1265,7 @@ export async function syncBatchStatuses() {
     }
 }
 export async function getTrendyolSellersProducts(page = 0, size = 50) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -1270,6 +1285,7 @@ export async function getTrendyolSellersProducts(page = 0, size = 50) {
 }
 
 export async function importTrendyolProduct(tProduct: any, targetCategoryId?: string, discountRate: number = 20) {
+    await requireAdmin();
     try {
         // Find if product exists by barcode
         let existingProduct = await prisma.product.findFirst({
@@ -1381,6 +1397,7 @@ export async function importTrendyolProduct(tProduct: any, targetCategoryId?: st
 }
 
 export async function getTrendyolShippingLabel(orderId: string) {
+    await requireAdmin();
     try {
         const order = await prisma.order.findUnique({
             where: { id: orderId },
@@ -1568,6 +1585,7 @@ export async function getTrendyolShippingLabel(orderId: string) {
  * Bu işlem barkodun oluşması için tetikleyicidir.
  */
 export async function updateTrendyolOrderToPicking(orderNumber: string) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -1623,6 +1641,7 @@ export async function getTrendyolQuestions(params: {
     page?: number;
     size?: number;
 } = {}) {
+    await requireAdmin();
     try {
         const client = new TrendyolClient();
         const data = await client.getQuestions(params);
@@ -1634,6 +1653,7 @@ export async function getTrendyolQuestions(params: {
 }
 
 export async function answerTrendyolQuestion(questionId: string | number, text: string) {
+    await requireAdmin();
     try {
         const client = new TrendyolClient();
         const result = await client.answerQuestion(questionId, text);
@@ -1653,6 +1673,7 @@ export async function answerTrendyolQuestion(questionId: string | number, text: 
  * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
  */
 export async function setTrendyolProductCategory(productId: string, trendyolCategoryId: number | null) {
+    await requireAdmin();
     try {
         await (prisma as any).trendyolProduct.upsert({
             where: { productId },
@@ -1675,6 +1696,7 @@ export async function setTrendyolProductCategory(productId: string, trendyolCate
  * Toplu ürünlere Trendyol kategori override set etme
  */
 export async function setBulkTrendyolProductCategory(productIds: string[], trendyolCategoryId: number) {
+    await requireAdmin();
     try {
         for (const productId of productIds) {
             await (prisma as any).trendyolProduct.upsert({
@@ -1707,6 +1729,7 @@ async function getTrendyolClientFromConfig() {
 
 /** Ürünü barkoduyla Trendyol'un onaylı ürünlerinde arar; bulunursa "senkron" işaretler */
 export async function verifyTrendyolProduct(productId: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         return { success: false, synced: false, message: "Yetkisiz işlem." };
@@ -1748,6 +1771,7 @@ export async function verifyTrendyolProduct(productId: string) {
  * Trendyol'daki tüm onaylı ürünleri sayfa sayfa çekip barkodu eşleşen site ürünlerini "senkron" işaretler.
  */
 export async function matchTrendyolProductsByBarcode() {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         return { success: false, message: "Yetkisiz işlem." };

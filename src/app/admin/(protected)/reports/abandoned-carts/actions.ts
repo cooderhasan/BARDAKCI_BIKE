@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
@@ -31,6 +32,7 @@ const isPurchased = (keys: Set<string>, item: { productId: string; variantId?: s
     keys.has(`${item.productId}|${item.variantId || ""}`) || (!item.variantId && keys.has(`${item.productId}|*`));
 
 export async function getAbandonedCartsAction() {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -111,6 +113,7 @@ export async function getAbandonedCartsAction() {
 }
 
 export async function sendCartReminderAction(cartId: string) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {

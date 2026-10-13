@@ -1,9 +1,11 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 
 export async function getGeminiConfig() {
+  await requireAdmin();
   try {
     const config = await prisma.geminiConfig.findFirst();
     return { success: true, data: config };
@@ -13,6 +15,7 @@ export async function getGeminiConfig() {
 }
 
 export async function saveGeminiConfig(formData: FormData) {
+  await requireAdmin();
   const provider = formData.get("provider") as string;
   const apiKey = formData.get("apiKey") as string;
   const openRouterApiKey = formData.get("openRouterApiKey") as string;

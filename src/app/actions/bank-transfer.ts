@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -57,6 +58,7 @@ export async function submitBankTransferNotification(data: {
 
 // Admin: Tüm havale bildirimlerini listele
 export async function getBankTransferNotifications(status?: string) {
+  await requireAdmin();
   const session = await auth();
   if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
     return [];
@@ -90,6 +92,7 @@ export async function getBankTransferNotifications(status?: string) {
 
 // Admin: Bildirimi onayla
 export async function confirmBankTransfer(notificationId: string) {
+  await requireAdmin();
   const session = await auth();
   if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
     return { success: false, message: "Yetersiz yetki." };
@@ -135,6 +138,7 @@ export async function confirmBankTransfer(notificationId: string) {
 
 // Admin: Bildirimi reddet
 export async function rejectBankTransfer(notificationId: string, adminNote?: string) {
+  await requireAdmin();
   const session = await auth();
   if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
     return { success: false, message: "Yetersiz yetki." };
@@ -158,6 +162,7 @@ export async function rejectBankTransfer(notificationId: string, adminNote?: str
 
 // Müşteri: Siparişin havale bildirimlerini getir
 export async function getOrderBankTransfers(orderId: string) {
+  await requireAdmin();
   try {
     return await (prisma as any).bankTransferNotification.findMany({
       where: { orderId },

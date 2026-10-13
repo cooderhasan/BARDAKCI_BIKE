@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -12,6 +13,7 @@ const cargoSchema = z.object({
 });
 
 export async function createCargoCompany(formData: FormData) {
+    await requireAdmin();
     const session = await auth();
     if (session?.user.role !== "ADMIN" && session?.user.role !== "OPERATOR") {
         return { success: false, error: "Yetkisiz işlem." };
@@ -43,6 +45,7 @@ export async function createCargoCompany(formData: FormData) {
 }
 
 export async function toggleCargoCompany(id: string, currentState: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (session?.user.role !== "ADMIN" && session?.user.role !== "OPERATOR") {
         return { success: false, error: "Yetkisiz işlem." };
@@ -63,6 +66,7 @@ export async function toggleCargoCompany(id: string, currentState: boolean) {
 }
 
 export async function deleteCargoCompany(id: string) {
+    await requireAdmin();
     const session = await auth();
     if (session?.user.role !== "ADMIN") {
         return { success: false, error: "Sadece yöneticiler silebilir." };
@@ -82,6 +86,7 @@ export async function deleteCargoCompany(id: string) {
 }
 
 export async function toggleDesiActive(id: string, currentState: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (session?.user.role !== "ADMIN" && session?.user.role !== "OPERATOR") {
         return { success: false, error: "Yetkisiz işlem." };
@@ -110,6 +115,7 @@ interface DesiPriceRangeInput {
 }
 
 export async function saveDesiPriceRanges(cargoCompanyId: string, ranges: DesiPriceRangeInput[]) {
+    await requireAdmin();
     const session = await auth();
     if (session?.user.role !== "ADMIN" && session?.user.role !== "OPERATOR") {
         return { success: false, error: "Yetkisiz işlem." };
@@ -138,6 +144,7 @@ export async function saveDesiPriceRanges(cargoCompanyId: string, ranges: DesiPr
 }
 
 export async function getDesiPriceRanges(cargoCompanyId: string) {
+    await requireAdmin();
     // Raw query ile verileri çekiyoruz
     const ranges = await prisma.$queryRaw<any[]>`SELECT * FROM "desi_price_ranges" WHERE "cargoCompanyId" = ${cargoCompanyId} ORDER BY "minDesi" ASC`;
 

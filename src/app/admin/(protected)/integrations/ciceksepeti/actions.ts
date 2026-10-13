@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -7,6 +8,7 @@ import { CiceksepetiClient } from "@/services/ciceksepeti/api";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
 export async function getCiceksepetiConfig() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).ciceksepetiConfig.findFirst();
     return config || null;
@@ -17,6 +19,7 @@ export async function getCiceksepetiConfig() {
 }
 
 export async function saveCiceksepetiConfig(formData: FormData) {
+  await requireAdmin();
   try {
     const apiKey = (formData.get("apiKey") as string)?.trim();
     const supplierId = (formData.get("supplierId") as string)?.trim() || null;
@@ -76,6 +79,7 @@ export async function testCiceksepetiConnection(params?: {
   supplierId?: string;
   isTestMode?: boolean;
 }) {
+  await requireAdmin();
   try {
     if (params?.apiKey) {
       const client = new CiceksepetiClient({
@@ -95,6 +99,7 @@ export async function testCiceksepetiConnection(params?: {
 }
 
 export async function getCiceksepetiCategories() {
+  await requireAdmin();
   try {
     const client = new CiceksepetiClient();
     return await client.getCategories();
@@ -105,6 +110,7 @@ export async function getCiceksepetiCategories() {
 }
 
 export async function searchCiceksepetiCategories(query: string) {
+  await requireAdmin();
   try {
     if (!query || query.trim().length < 2) return [];
     const client = new CiceksepetiClient();
@@ -143,6 +149,7 @@ export async function syncProductsToCiceksepeti(
     operatorContacts?: any[];
   }
 ) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -554,6 +561,7 @@ export async function getCiceksepetiProducts({
   search?: string;
   store?: string;
 } = {}) {
+  await requireAdmin();
   try {
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -605,6 +613,7 @@ export async function getCiceksepetiProducts({
  * Çiçeksepeti isteği kuyruğa aldığı için HTTP 200 başarı anlamına gelmez; asıl sonuç batch-status'tan okunur.
  */
 export async function syncCiceksepetiSaleState(productId: string, isOpen: boolean): Promise<{ success: boolean; message: string }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, message: "Aktif Çiçeksepeti yapılandırması bulunamadı." };
@@ -676,6 +685,7 @@ export async function syncCiceksepetiSaleState(productId: string, isOpen: boolea
 }
 
 export async function toggleCiceksepetiProductStatus(productId: string, isCiceksepetiActive: boolean) {
+  await requireAdmin();
   try {
     await prisma.product.update({
       where: { id: productId },
@@ -732,6 +742,7 @@ async function findCiceksepetiOrderProduct(order: any): Promise<{ product: any; 
 }
 
 export async function syncCiceksepetiOrders() {
+  await requireAdmin();
   try {
     const client = new CiceksepetiClient();
     // Çiçeksepeti tarihleri Türkiye saatine göre yorumluyor; bitişi ileri alıyoruz ki son saatlerin siparişleri kaçmasın.
@@ -1007,6 +1018,7 @@ export async function syncCiceksepetiOrders() {
 }
 
 export async function getCiceksepetiCategoryAttributes(categoryId: string, ciceksepetiCategoryId: string) {
+  await requireAdmin();
   try {
     const client = new CiceksepetiClient();
     const liveAttrs = await client.getCategoryAttributes(ciceksepetiCategoryId);
@@ -1049,6 +1061,7 @@ export async function saveCiceksepetiCategoryAttributes(
     values?: any;
   }[]
 ) {
+  await requireAdmin();
   try {
     for (const mapItem of mappings) {
       await (prisma as any).ciceksepetiCategoryAttribute.upsert({
@@ -1088,6 +1101,7 @@ export async function saveCiceksepetiCategoryAttributes(
 
 // Ürün bazında Çiçeksepeti Kategori ID ayarlama
 export async function setCiceksepetiProductCategory(productId: string, ciceksepetiCategoryId: string | null) {
+  await requireAdmin();
   try {
     await (prisma as any).ciceksepetiProduct.upsert({
       where: { productId },
@@ -1109,6 +1123,7 @@ export async function setCiceksepetiProductCategory(productId: string, ciceksepe
 
 // Toplu olarak birden fazla ürüne aynı Çiçeksepeti Kategori ID ata
 export async function setBulkCiceksepetiProductCategory(productIds: string[], ciceksepetiCategoryId: string) {
+  await requireAdmin();
   try {
     let updated = 0;
     for (const productId of productIds) {
@@ -1136,6 +1151,7 @@ export async function setBulkCiceksepetiProductCategory(productIds: string[], ci
  * Siparişe ait kesilmiş faturanın linkini Çiçeksepeti'ye yükler / e-posta kuyruğuna gönderir.
  */
 export async function uploadCiceksepetiOrderInvoice(orderId: string) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -1297,6 +1313,7 @@ const CS_MATCH_KEY = "ciceksepeti_match_job";
  * Cloudflare 100 sn'de isteği kestiği için sonuç beklenmez, durum getCiceksepetiMatchStatus ile sorgulanır.
  */
 export async function matchCiceksepetiProducts() {
+  await requireAdmin();
   const current: any = (await prisma.siteSettings.findUnique({ where: { key: CS_MATCH_KEY } }))?.value;
   if (current?.status === "running" && Date.now() - new Date(current.startedAt).getTime() < 20 * 60 * 1000) {
     return { success: true, message: "Eşleştirme zaten çalışıyor." };
@@ -1314,6 +1331,7 @@ export async function matchCiceksepetiProducts() {
 }
 
 export async function getCiceksepetiMatchStatus(): Promise<{ status?: string; success?: boolean; message?: string; startedAt?: string; finishedAt?: string } | null> {
+  await requireAdmin();
   const row = await prisma.siteSettings.findUnique({ where: { key: CS_MATCH_KEY } });
   return (row?.value as any) || null;
 }

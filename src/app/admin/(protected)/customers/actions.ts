@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -10,6 +11,7 @@ export async function updateCustomerStatus(
     status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED",
     role?: "CUSTOMER" | "DEALER"
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -41,6 +43,7 @@ export async function updateCustomerDiscountGroup(
     customerId: string,
     discountGroupId: string
 ) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -105,6 +108,7 @@ export async function createCustomer(data: {
     password: string;
     discountGroupId: string;
 }) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -147,6 +151,7 @@ export async function updateCustomerCreditLimit(
     customerId: string,
     creditLimit: number
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -181,6 +186,7 @@ export async function updateCustomerCreditLimit(
 }
 
 export async function getCustomerTransactions(userId: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -206,6 +212,7 @@ export async function addCustomerTransaction(data: {
     documentNo?: string;
     processType: "ADJUSTMENT" | "OPENING_BALANCE" | "PAYMENT";
 }) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");

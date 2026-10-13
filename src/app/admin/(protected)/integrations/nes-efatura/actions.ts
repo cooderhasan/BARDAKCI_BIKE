@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -8,6 +9,7 @@ import type { UblReceiverInfo, UblInvoiceLine, UblInvoiceOptions } from "@/servi
 // ============= CONFIG YÖNETIMI =============
 
 export async function getNesConfig() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).nesEInvoiceConfig.findFirst();
         return { success: true, data: config };
@@ -17,6 +19,7 @@ export async function getNesConfig() {
 }
 
 export async function saveNesConfig(prevState: any, formData: FormData) {
+    await requireAdmin();
     try {
         const apiKey = formData.get("apiKey") as string;
         const senderAlias = formData.get("senderAlias") as string;
@@ -73,6 +76,7 @@ export async function saveNesConfig(prevState: any, formData: FormData) {
 }
 
 export async function testNesConnection() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).nesEInvoiceConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif NES ayarı bulunamadı. Önce ayarları kaydedin ve 'Aktif' yapın." };
@@ -102,6 +106,7 @@ export async function testNesConnection() {
  * Sipariş verisinden NES API'ye e-Fatura veya e-Arşiv fatura gönderir
  */
 export async function sendOrderInvoiceNes(orderId: string) {
+    await requireAdmin();
     try {
         // 1. NES Config kontrolü
         const config = await (prisma as any).nesEInvoiceConfig.findFirst({ where: { isActive: true } });
@@ -630,6 +635,7 @@ function buildInvoiceLines(order: any): UblInvoiceLine[] {
  * Böylece NES üzerinden iptal edilen faturanın yerine sistemden tekrar doğru fatura kesilebilir.
  */
 export async function resetOrderInvoice(orderId: string) {
+    await requireAdmin();
     try {
         await prisma.order.update({
             where: { id: orderId },

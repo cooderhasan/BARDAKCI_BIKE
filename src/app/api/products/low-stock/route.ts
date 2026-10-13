@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { isAdminRequest } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
+    if (!(await isAdminRequest())) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
     try {
         // Stok kritik seviyenin altında veya sıfır olan ürünleri getir
         const lowStockProducts = await prisma.$queryRaw<Array<{

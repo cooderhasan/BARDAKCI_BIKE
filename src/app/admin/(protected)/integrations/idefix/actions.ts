@@ -1,5 +1,6 @@
 
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -10,6 +11,7 @@ import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 // ==================== CONFIG ====================
 
 export async function getIdefixConfig() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst();
     return { success: true, data: config };
@@ -19,6 +21,7 @@ export async function getIdefixConfig() {
 }
 
 export async function saveIdefixConfig(prevState: any, formData: FormData) {
+  await requireAdmin();
   try {
     const apiKey = formData.get("apiKey") as string;
     const apiSecret = formData.get("apiSecret") as string;
@@ -57,6 +60,7 @@ export async function saveIdefixConfig(prevState: any, formData: FormData) {
 }
 
 export async function testIdefixConnection() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst();
     if (!config) return { success: false, message: "Ayarlar bulunamadi." };
@@ -92,6 +96,7 @@ function flattenIdefixCategories(nodes: any[], parentPath = ""): Array<{ id: num
 }
 
 export async function getIdefixCategories(): Promise<{ success: boolean; data?: Array<{ id: number; name: string }>; message?: string }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst();
     if (!config) return { success: false, message: "Idefix entegrasyonu bulunamadi." };
@@ -119,6 +124,7 @@ export async function getIdefixCategories(): Promise<{ success: boolean; data?: 
  * Batch sonucunu Idefix'ten sorgular ve veritabanını günceller.
  */
 export async function checkIdefixBatchStatus(productId: string): Promise<{ success: boolean; data?: any; message: string }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
@@ -224,6 +230,7 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 
 export async function enqueueIdefixSync() {
+  await requireAdmin();
   try {
     await addMarketplaceSyncJob({ marketplace: "idefix" as any, type: "products" });
     return {
@@ -247,6 +254,7 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
   synced?: number;
   failed?: number;
 }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst({
       where: { isActive: true },
@@ -452,6 +460,7 @@ export async function getIdefixAddressesAndCargo(): Promise<{
   cargoCompanies?: any[];
   message?: string;
 }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
@@ -491,6 +500,7 @@ export async function createProductOnIdefix(productId: string, payload: {
   returnAddressId?: number;
   cargoCompanyId?: number;
 }): Promise<{ success: boolean; message: string }> {
+  await requireAdmin();
   try {
     console.log("[IDEFIX-CREATE] ===== BASLIYOR =====");
     console.log("[IDEFIX-CREATE] productId:", productId);
@@ -710,6 +720,7 @@ export async function createProductOnIdefix(productId: string, payload: {
  * Urun Eslestirme Onaylama (Merchant Approve) — Idefix'te waiting_vendor_approve olan urunleri onaylar.
  */
 export async function approveIdefixProductMatch(productId: string): Promise<{ success: boolean; message: string }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
@@ -764,6 +775,7 @@ export async function submitIdefixTrackingCode(shipmentId: string, payload: {
   trackingUrl: string;
   trackingNumber: string;
 }): Promise<{ success: boolean; message: string }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
@@ -799,6 +811,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
   message: string;
   count?: number;
 }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
@@ -1005,6 +1018,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
 }
 
 export async function getIdefixOrders(page = 1, limit = 20) {
+  await requireAdmin();
   try {
     const orders = await (prisma as any).idefixOrder.findMany({
       orderBy: { createdAt: "desc" },
@@ -1019,6 +1033,7 @@ export async function getIdefixOrders(page = 1, limit = 20) {
 }
 
 export async function getIdefixProducts() {
+  await requireAdmin();
   try {
     const products = await prisma.product.findMany({
       include: { brand: true, categories: true, idefixProduct: true, variants: true },
@@ -1031,6 +1046,7 @@ export async function getIdefixProducts() {
 }
 
 export async function toggleIdefixProductActive(productId: string, isActive: boolean) {
+  await requireAdmin();
   try {
     await prisma.product.update({
       where: { id: productId },
@@ -1055,6 +1071,7 @@ export async function toggleIdefixProductActive(productId: string, isActive: boo
  * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
  */
 export async function setIdefixProductCategory(productId: string, idefixCategoryId: string | null) {
+    await requireAdmin();
     try {
         await (prisma as any).idefixProduct.upsert({
             where: { productId },
@@ -1076,6 +1093,7 @@ export async function setIdefixProductCategory(productId: string, idefixCategory
  * Toplu ürünlere Idefix kategori override set etme
  */
 export async function setBulkIdefixProductCategory(productIds: string[], idefixCategoryId: string) {
+    await requireAdmin();
     try {
         for (const productId of productIds) {
             await (prisma as any).idefixProduct.upsert({
@@ -1139,6 +1157,7 @@ function buildTitleVariants(query: string): string[] {
  * Farklı büyük/küçük harf yazımlarını paralel dener.
  */
 export async function findIdefixBrandsExact(query: string): Promise<{ success: boolean; data?: IdefixBrandResult[]; message?: string }> {
+    await requireAdmin();
     try {
         if (!query || query.trim().length < 2) return { success: true, data: [] };
         const client = await getIdefixClient();
@@ -1208,6 +1227,7 @@ async function getCachedIdefixBrands(client: IdefixClient): Promise<CachedBrand[
  * İlk çağrıda liste indirildiği için 10-30 sn sürebilir, sonraki aramalar anlıktır.
  */
 export async function searchIdefixBrandsDeep(query: string): Promise<{ success: boolean; data?: IdefixBrandResult[]; message?: string }> {
+    await requireAdmin();
     try {
         const q = query.trim().toLocaleLowerCase("tr");
         if (q.length < 2) return { success: true, data: [] };
@@ -1257,6 +1277,7 @@ function buildIdefixInventoryItems(p: any, defaultCritical: number, forceZero = 
  * Idefix'te operatör onayından sonra stok 0 ile satışa geçen ürünlere stok bildirmek için kullanılır.
  */
 export async function updateIdefixStockPrice(productId: string): Promise<{ success: boolean; message: string }> {
+  await requireAdmin();
   try {
     const client = await getIdefixClient();
     if (!client) return { success: false, message: "Idefix entegrasyon ayarları bulunamadı." };
@@ -1304,6 +1325,7 @@ export async function updateIdefixStockPrice(productId: string): Promise<{ succe
  * "Beklemede" kalmış Idefix ürünlerinin işlem sonucunu sorgular (Idefix sipariş cron'undan çağrılır).
  */
 export async function resolvePendingIdefixBatches() {
+  await requireAdmin();
   const pending = await (prisma as any).idefixProduct.findMany({
     where: { batchStatus: "PENDING", batchId: { not: null } },
     select: { productId: true },
@@ -1331,6 +1353,7 @@ const IDEFIX_NOT_LIVE_STATUS = /not_match|unmatch|declin|reject|fail|red|wait|pe
  * Ürünün "Idefix'te açık" ayarına dokunmaz.
  */
 export async function matchIdefixProducts() {
+  await requireAdmin();
   try {
     const client = await getIdefixClient();
     if (!client) return { success: false, message: "Idefix entegrasyon ayarları bulunamadı." };

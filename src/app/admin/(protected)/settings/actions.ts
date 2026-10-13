@@ -1,10 +1,12 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
 export async function updateSiteSettings(key: string, value: Record<string, string>) {
+    await requireAdmin();
     try {
         await prisma.siteSettings.upsert({
             where: { key },
@@ -21,6 +23,7 @@ export async function updateSiteSettings(key: string, value: Record<string, stri
 }
 
 export async function getSiteSettings(key: string) {
+    await requireAdmin();
     const settings = await prisma.siteSettings.findUnique({
         where: { key },
     });
@@ -28,6 +31,7 @@ export async function getSiteSettings(key: string) {
 }
 
 export async function bulkUpdateAllProductsCriticalStockAction(criticalStock: number) {
+    await requireAdmin();
     try {
         const val = Number(criticalStock) || 1;
         const result = await prisma.product.updateMany({

@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -7,6 +8,7 @@ import { PttavmClient, PttavmStockPriceItem, PttavmProductUpsertItem } from "@/s
 // ==================== CONFIG ACTIONS ====================
 
 export async function getPttavmConfig() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst();
     return { success: true, data: config };
@@ -16,6 +18,7 @@ export async function getPttavmConfig() {
 }
 
 export async function savePttavmConfig(prevState: any, formData: FormData) {
+  await requireAdmin();
   try {
     const apiKey = (formData.get("apiKey") as string || "").trim();
     const accessToken = (formData.get("accessToken") as string || "").trim();
@@ -56,6 +59,7 @@ export async function savePttavmConfig(prevState: any, formData: FormData) {
 }
 
 export async function testPttavmConnection() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst();
     if (!config || !config.apiKey || !config.accessToken) {
@@ -92,6 +96,7 @@ function sanitizeVatRate(rawVat?: number | null): number {
 // ==================== STOK VE FİYAT SENKRONİZASYONU ====================
 
 export async function syncPttavmStockAndPrice(productIds?: string[], options: { activate?: boolean } = {}) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -262,6 +267,7 @@ export async function syncPttavmStockAndPrice(productIds?: string[], options: { 
 // ==================== ÜRÜN EKLEME / GÜNCELLEME (UPSERT) ====================
 
 export async function syncProductsToPttavm(productIds?: string[]) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -457,6 +463,7 @@ export async function syncProductsToPttavm(productIds?: string[]) {
 // ==================== SİPARİŞ SENKRONİZASYONU ====================
 
 export async function syncOrdersFromPttavm() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -836,6 +843,7 @@ export async function getPttavmProducts({
   search?: string;
   store?: string;
 } = {}) {
+  await requireAdmin();
   try {
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -912,6 +920,7 @@ export async function getPttavmProducts({
 }
 
 export async function togglePttavmProductActive(productId: string, currentState: boolean) {
+  await requireAdmin();
   try {
     const newState = !currentState;
     await prisma.product.update({
@@ -967,6 +976,7 @@ export async function togglePttavmProductActive(productId: string, currentState:
   * GET /api/v1/products/tracking-result/{trackingId}
   */
 export async function checkPttavmTrackingResult(trackingId: string) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -991,6 +1001,7 @@ export async function checkPttavmTrackingResult(trackingId: string) {
   * POST /api/v1/products/get-by-barcodes
   */
 export async function getProductsByBarcodesPttavm(barcodes: string[]) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -1011,6 +1022,7 @@ export async function getProductsByBarcodesPttavm(barcodes: string[]) {
 }
 
 export async function getPttavmCategories() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, data: [] };
@@ -1071,6 +1083,7 @@ export async function getPttavmCategories() {
  * POST /api/v1/orders/{orderId}/invoice
  */
 export async function uploadInvoiceToPttavm(orderNumber: string, invoiceUrl: string, pdfBase64?: string): Promise<{ success: boolean; message: string }> {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -1128,6 +1141,7 @@ export async function uploadInvoiceToPttavm(orderNumber: string, invoiceUrl: str
  * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
  */
 export async function setPttavmProductCategory(productId: string, pttavmCategoryId: number | null) {
+    await requireAdmin();
     try {
         await (prisma as any).pttavmProduct.upsert({
             where: { productId },
@@ -1149,6 +1163,7 @@ export async function setPttavmProductCategory(productId: string, pttavmCategory
  * Toplu ürünlere ePttAVM kategori override set etme
  */
 export async function setBulkPttavmProductCategory(productIds: string[], pttavmCategoryId: number) {
+    await requireAdmin();
     try {
         for (const productId of productIds) {
             await (prisma as any).pttavmProduct.upsert({
@@ -1173,6 +1188,7 @@ export async function setBulkPttavmProductCategory(productIds: string[], pttavmC
  * Stok ePttAVM'ye yansımadığında sorunun bizde mi, ePttAVM'de mi (kilitli ürün vb.) yoksa başka bir entegratörde mi olduğunu ayırmak için.
  */
 export async function inspectPttavmProduct(productId: string) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, message: "Aktif ePttAVM entegrasyonu bulunamadı." };
@@ -1326,6 +1342,7 @@ async function runPttavmMatch() {
 }
 
 export async function matchPttavmProducts() {
+  await requireAdmin();
   const current: any = (await prisma.siteSettings.findUnique({ where: { key: PTT_MATCH_KEY } }))?.value;
   if (current?.status === "running" && Date.now() - new Date(current.startedAt).getTime() < 20 * 60 * 1000) {
     return { success: true, message: "Eşleştirme zaten çalışıyor." };
@@ -1344,6 +1361,7 @@ export async function matchPttavmProducts() {
 }
 
 export async function getPttavmMatchStatus(): Promise<{ status?: string; success?: boolean; message?: string; startedAt?: string } | null> {
+  await requireAdmin();
   const row = await prisma.siteSettings.findUnique({ where: { key: PTT_MATCH_KEY } });
   return (row?.value as any) || null;
 }

@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -28,6 +29,7 @@ export async function previewBulkUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ): Promise<PreviewResult[]> {
+    await requireAdmin();
     // 1. Build where clause
     const where: any = {};
     if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
@@ -83,6 +85,7 @@ export async function executeBulkUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user?.id) {
         throw new Error("Unauthorized");
@@ -160,6 +163,7 @@ export async function previewBulkStockUpdate(
     criteria: BulkUpdateCriteria,
     params: StockUpdateParams
 ): Promise<StockPreviewResult[]> {
+    await requireAdmin();
     const where: any = {};
     if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
     if (criteria.categoryId && criteria.categoryId !== "ALL") {
@@ -206,6 +210,7 @@ export async function executeBulkStockUpdate(
     criteria: BulkUpdateCriteria,
     params: StockUpdateParams
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user?.id) {
         throw new Error("Unauthorized");
@@ -277,6 +282,7 @@ export async function previewBulkTrendyolPriceUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ): Promise<TrendyolPricePreviewResult[]> {
+    await requireAdmin();
     const where: any = {
         isTrendyolActive: true,
         barcode: { not: null }
@@ -328,6 +334,7 @@ export async function executeBulkTrendyolPriceUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user?.id) {
         throw new Error("Unauthorized");
@@ -396,6 +403,7 @@ export async function previewBulkN11PriceUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ): Promise<N11PricePreviewResult[]> {
+    await requireAdmin();
     const where: any = {
         isN11Active: true,
         OR: [
@@ -450,6 +458,7 @@ export async function executeBulkN11PriceUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user?.id) {
         throw new Error("Unauthorized");
@@ -519,6 +528,7 @@ export async function previewBulkHepsiburadaPriceUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ): Promise<HepsiburadaPricePreviewResult[]> {
+    await requireAdmin();
     const where: any = {
         isHepsiburadaActive: true,
     };
@@ -569,6 +579,7 @@ export async function executeBulkHepsiburadaPriceUpdate(
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user?.id) {
         throw new Error("Unauthorized");
@@ -652,6 +663,7 @@ export async function previewBulkPriceTransfer(
     criteria: PriceTransferCriteria,
     params: PriceTransferParams
 ): Promise<PriceTransferPreviewResult[]> {
+    await requireAdmin();
     const where: any = {};
 
     if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
@@ -736,6 +748,7 @@ export async function executeBulkPriceTransfer(
     criteria: PriceTransferCriteria,
     params: PriceTransferParams
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user?.id) {
         throw new Error("Unauthorized");

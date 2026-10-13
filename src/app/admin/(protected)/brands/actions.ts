@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
@@ -17,6 +18,7 @@ function slugify(text: string): string {
 }
 
 export async function getBrands() {
+    await requireAdmin();
     return prisma.brand.findMany({
         orderBy: { name: "asc" },
         include: {
@@ -30,6 +32,7 @@ export async function getBrands() {
 import { StoreType } from "@prisma/client";
 
 export async function createBrand(data: { name: string; logoUrl?: string; store?: StoreType; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null; pazaramaBrandId?: string | number | null }) {
+    await requireAdmin();
     await prisma.brand.create({
         data: {
             name: data.name,
@@ -47,6 +50,7 @@ export async function createBrand(data: { name: string; logoUrl?: string; store?
 }
 
 export async function updateBrand(id: string, data: { name?: string; logoUrl?: string; store?: StoreType; isActive?: boolean; trendyolBrandId?: number | null; n11BrandId?: number | null; hbBrandId?: string | null; idefixBrandId?: string | number | null; pazaramaBrandId?: string | number | null }) {
+    await requireAdmin();
     const updateData: any = { ...data };
     if (data.name) {
         updateData.slug = slugify(data.name);
@@ -65,6 +69,7 @@ export async function updateBrand(id: string, data: { name?: string; logoUrl?: s
 }
 
 export async function deleteBrand(id: string) {
+    await requireAdmin();
     await prisma.brand.delete({
         where: { id },
     });

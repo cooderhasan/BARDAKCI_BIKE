@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -12,6 +13,7 @@ export async function updateQuotePrices(
     validDays: number,
     adminNotes?: string
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -72,6 +74,7 @@ export async function updateQuoteStatus(
     quoteId: string,
     status: "PENDING" | "REVIEWING" | "QUOTED" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "CONVERTED"
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -90,6 +93,7 @@ export async function updateQuoteStatus(
 
 // Teklifi siparişe dönüştür
 export async function convertQuoteToOrder(quoteId: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");

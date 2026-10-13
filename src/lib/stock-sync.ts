@@ -9,7 +9,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
+import { getSiteSettings } from "@/lib/settings";
 
 interface StockCheckResult {
     productId: string;
@@ -213,7 +213,7 @@ export async function restoreOrderStock(
 export async function checkCriticalStockLevels(productIds: string[]): Promise<StockCheckResult[]> {
     if (productIds.length === 0) return [];
 
-    const generalSettings = await getSiteSettings("general");
+    const generalSettings = await getSiteSettings();
     const defaultCritical = Number((generalSettings as any)?.defaultCriticalStock || 10);
 
     const products = await prisma.product.findMany({

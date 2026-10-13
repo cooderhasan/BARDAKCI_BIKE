@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -6,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { StoreType } from "@prisma/client";
 
 export async function getStoreSettingsData(store: "BIKE" | "MOTOR") {
+  await requireAdmin();
   try {
     const settings = await (prisma as any).storeSettings.findUnique({
       where: { store },
@@ -33,6 +35,7 @@ export async function saveStoreSettingsData(
     metaPixelId?: string;
   }
 ) {
+  await requireAdmin();
   const session = await auth();
   if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
     return { success: false, message: "Yetkisiz erişim." };

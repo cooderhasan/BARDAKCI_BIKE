@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -16,6 +17,7 @@ export async function updateOrderStatus(
     orderId: string,
     status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED"
 ) {
+    await requireAdmin();
     try {
         const session = await auth();
 
@@ -90,6 +92,7 @@ export async function updateOrderStatus(
 }
 
 export async function markOrderAsPrinted(orderId: string) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -113,6 +116,7 @@ export async function markOrderAsPrinted(orderId: string) {
 }
 
 export async function markOrdersAsPrinted(orderIds: string[]) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -136,6 +140,7 @@ export async function markOrdersAsPrinted(orderIds: string[]) {
 }
 
 export async function updateOrderTracking(orderId: string, trackingUrl: string) {
+    await requireAdmin();
     try {
         const session = await auth();
 
@@ -195,6 +200,7 @@ export async function bulkUpdateOrderStatus(
     orderIds: string[],
     status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED"
 ) {
+    await requireAdmin();
     try {
         const session = await auth();
 
@@ -260,6 +266,7 @@ async function getYKConfig(): Promise<YKCredentials | null> {
  * Admin "YK'ya Gönder" butonuna bastığında çağrılır.
  */
 export async function sendOrderToYurtici(orderId: string) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -369,6 +376,7 @@ export async function sendOrderToYurtici(orderId: string) {
  * YK'da kayıtlı gönderiyi iptal eder.
  */
 export async function cancelYKOrder(orderId: string) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -414,6 +422,7 @@ export async function cancelYKOrder(orderId: string) {
  * YK'dan kargo durumunu sorgular ve DB'yi günceller.
  */
 export async function queryYKOrder(orderId: string) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -488,6 +497,7 @@ export async function queryYKOrder(orderId: string) {
  * (Teslim edilmemiş ve iptal edilmemiş olanları sorgular)
  */
 export async function syncAllYKOrders() {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -602,6 +612,7 @@ export async function saveYurticiConfig(data: {
     isTestMode: boolean;
     isActive: boolean;
 }) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
@@ -627,6 +638,7 @@ export async function saveYurticiConfig(data: {
  * Birden fazla siparişi toplu olarak Yurtiçi Kargo'ya gönderir.
  */
 export async function bulkSendOrdersToYurtici(orderIds: string[]) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -673,6 +685,7 @@ export async function bulkSendOrdersToYurtici(orderIds: string[]) {
  * 3. Sipariş DELIVERED durumunda olmalı
  */
 export async function sendOrderReviewRequestEmail(orderId: string) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {

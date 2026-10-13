@@ -1,5 +1,6 @@
 
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -7,6 +8,7 @@ import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 
 export async function getN11Config() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst();
         return { success: true, data: config };
@@ -16,6 +18,7 @@ export async function getN11Config() {
 }
 
 export async function saveN11Config(prevState: any, formData: FormData) {
+    await requireAdmin();
     try {
         const apiKey = formData.get("apiKey") as string;
         const apiSecret = formData.get("apiSecret") as string;
@@ -52,6 +55,7 @@ export async function saveN11Config(prevState: any, formData: FormData) {
 }
 
 export async function testN11Connection() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst();
         if (!config) return { success: false, message: "Ayarlar bulunamadı." };
@@ -78,6 +82,7 @@ import { N11Client } from "@/services/n11/api";
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 
 export async function enqueueN11Sync() {
+    await requireAdmin();
     try {
         await addMarketplaceSyncJob({ marketplace: "n11", type: "products" });
         return { success: true, message: "Senkronizasyon işlemi kuyruğa alındı. Arka planda işlenecektir." };
@@ -87,6 +92,7 @@ export async function enqueueN11Sync() {
 }
 
 export async function syncProductsToN11(productIds?: string[], options: { syncSaleStatus?: boolean } = {}) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -244,6 +250,7 @@ async function syncN11SaleStatus(client: N11Client, productIds: string[]): Promi
 }
 
 export async function syncOrdersFromN11() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -526,6 +533,7 @@ export async function syncOrdersFromN11() {
     }
 }
 export async function getN11CategoryAttributes(categoryId: number) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -543,6 +551,7 @@ export async function getN11CategoryAttributes(categoryId: number) {
 }
 
 export async function getN11Categories(parentId?: number) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -566,6 +575,7 @@ export async function getN11Categories(parentId?: number) {
 
 // Full list for searching (This might be slow if many categories, but needed for flat search)
 export async function getFlatN11Categories() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -583,6 +593,7 @@ export async function getFlatN11Categories() {
 }
 
 export async function sendProductToN11(productId: string, attributes: any[]) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -828,6 +839,7 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
 }
 
 export async function getN11Tasks() {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -851,6 +863,7 @@ export async function getN11Tasks() {
  * hem Görev Geçmişi ekranından hem de 15 dakikalık N11 cron'undan çağrılır.
  */
 export async function resolvePendingN11Tasks(pendingTasks?: any[]) {
+    await requireAdmin();
     if (!pendingTasks) {
         pendingTasks = await (prisma as any).n11Task.findMany({
             where: {
@@ -962,6 +975,7 @@ export async function resolvePendingN11Tasks(pendingTasks?: any[]) {
 }
 
 export async function autoMatchN11ProductsAction() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif N11 entegrasyonu bulunamadı." };
@@ -1078,6 +1092,7 @@ export async function autoMatchN11ProductsAction() {
 }
 
 export async function importN11ExcelAction(base64ExcelContent?: string) {
+    await requireAdmin();
     try {
         const path = await import("path");
         const fs = await import("fs");
@@ -1192,6 +1207,7 @@ export async function importN11ExcelAction(base64ExcelContent?: string) {
 }
 
 export async function importN11MappingsAction(mappings: { sku: string; sellerCode: string; n11Id?: string | null }[]) {
+    await requireAdmin();
     try {
         if (!mappings || mappings.length === 0) {
             return { success: false, message: "Eşleştirilecek ürün verisi bulunamadı." };
@@ -1293,6 +1309,7 @@ export async function importN11MappingsAction(mappings: { sku: string; sellerCod
  * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
  */
 export async function setN11ProductCategory(productId: string, n11CategoryId: number | null) {
+    await requireAdmin();
     try {
         await (prisma as any).n11Product.upsert({
             where: { productId },
@@ -1314,6 +1331,7 @@ export async function setN11ProductCategory(productId: string, n11CategoryId: nu
  * Toplu ürünlere N11 kategori override set etme
  */
 export async function setBulkN11ProductCategory(productIds: string[], n11CategoryId: number) {
+    await requireAdmin();
     try {
         for (const productId of productIds) {
             await (prisma as any).n11Product.upsert({
@@ -1338,6 +1356,7 @@ export async function setBulkN11ProductCategory(productIds: string[], n11Categor
  * Görev takibi kaçmış (eski gönderim, kuyrukta kalmış) ürünlerin durumunu düzeltmek için kullanılır.
  */
 export async function verifyN11Product(productId: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         return { success: false, synced: false, message: "Yetkisiz işlem." };

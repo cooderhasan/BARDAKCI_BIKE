@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -11,6 +12,7 @@ import { syncProductsToN11 } from "../integrations/n11/actions";
 import { syncProductsToHepsiburada } from "../integrations/hepsiburada/actions";
 
 export async function createProduct(formData: FormData) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -235,6 +237,7 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(productId: string, formData: FormData) {
+    await requireAdmin();
     try {
         const session = await auth();
         if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
@@ -589,6 +592,7 @@ export async function updateProduct(productId: string, formData: FormData) {
 }
 
 export async function deleteProduct(productId: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -613,6 +617,7 @@ export async function deleteProduct(productId: string) {
 
 
 export async function toggleProductStatus(productId: string, isActive: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -650,6 +655,7 @@ async function syncAllMarketplacesForProduct(productId: string, isActive: boolea
 }
 
 export async function toggleTrendyolStatus(productId: string, isTrendyolActive: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -680,6 +686,7 @@ export async function toggleTrendyolStatus(productId: string, isTrendyolActive: 
 }
 
 export async function toggleCiceksepetiStatus(productId: string, isCiceksepetiActive: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -698,6 +705,7 @@ export async function toggleCiceksepetiStatus(productId: string, isCiceksepetiAc
 }
 
 export async function toggleN11Status(productId: string, isN11Active: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -722,6 +730,7 @@ export async function toggleN11Status(productId: string, isN11Active: boolean) {
 }
 
 export async function toggleHepsiburadaStatus(productId: string, isHepsiburadaActive: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -746,6 +755,7 @@ export async function toggleHepsiburadaStatus(productId: string, isHepsiburadaAc
 }
 
 export async function syncProductToMarketplaces(productId: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -797,6 +807,7 @@ export async function syncProductToMarketplaces(productId: string) {
 }
 
 export async function fixAllSlugs() {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         return { success: false, message: "Unauthorized" };
@@ -855,6 +866,7 @@ export async function fixAllSlugs() {
 // ==================== BUNDLE (PAKET ÜRÜN) ====================
 
 export async function searchProductsForBundle(query: string, excludeProductId?: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -905,6 +917,7 @@ export async function toggleProductFeature(
     feature: "isFeatured" | "isNew" | "isBestSeller", 
     value: boolean
 ) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -926,6 +939,7 @@ export async function toggleProductFeature(
 }
 
 export async function syncBundleProductStock(bundleProductId: string) {
+    await requireAdmin();
     const bundleItems = await prisma.bundleItem.findMany({
         where: { bundleProductId },
         include: { childProduct: { select: { id: true, stock: true } } },

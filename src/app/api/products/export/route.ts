@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { isAdminRequest } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
 import * as XLSX from "xlsx";
 
 export async function GET() {
+    if (!(await isAdminRequest())) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
     try {
         const products = await prisma.product.findMany({
             orderBy: { createdAt: "desc" },

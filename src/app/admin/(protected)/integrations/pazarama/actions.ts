@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -10,6 +11,7 @@ import { handlePostOrderStockSync } from "@/lib/stock-sync";
 // ==================== CONFIG ACTIONS ====================
 
 export async function getPazaramaConfig() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     return { success: true, data: config };
@@ -19,6 +21,7 @@ export async function getPazaramaConfig() {
 }
 
 export async function savePazaramaConfig(prevState: any, formData: FormData) {
+  await requireAdmin();
   try {
     const apiKey = formData.get("apiKey") as string;
     const apiSecret = formData.get("apiSecret") as string;
@@ -58,6 +61,7 @@ export async function savePazaramaConfig(prevState: any, formData: FormData) {
 }
 
 export async function testPazaramaConnection() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config) {
@@ -74,6 +78,7 @@ export async function testPazaramaConnection() {
 import { DEFAULT_PAZARAMA_CATEGORIES } from "@/lib/pazarama-categories-seed";
 
 export async function getPazaramaCategories() {
+  await requireAdmin();
   try {
     // 1. Önce siteSettings'deki özel yüklenmiş/yapıştırılmış Pazarama kategorilerini kontrol et
     const saved = await prisma.siteSettings.findUnique({
@@ -120,6 +125,7 @@ export async function getPazaramaCategories() {
 }
 
 export async function getPazaramaBrands() {
+  await requireAdmin();
   try {
     // 1. Önce siteSettings'deki özel yüklenmiş/yapıştırılmış Pazarama markalarını kontrol et
     const saved = await prisma.siteSettings.findUnique({
@@ -161,6 +167,7 @@ export async function getPazaramaBrands() {
  * kopyaladığı veriyi yapıştırdığında çalışır.
  */
 export async function savePazaramaCategoriesBulk(rawInput: string) {
+  await requireAdmin();
   try {
     if (!rawInput || !rawInput.trim()) {
       return { success: false, message: "Lütfen yapıştırılacak veri giriniz." };
@@ -244,6 +251,7 @@ export async function savePazaramaCategoriesBulk(rawInput: string) {
  * Pazarama Marka Listesini Metin/Excel/JSON Şeklinde Toplu Kaydeder.
  */
 export async function savePazaramaBrandsBulk(rawInput: string) {
+  await requireAdmin();
   try {
     if (!rawInput || !rawInput.trim()) {
       return { success: false, message: "Lütfen yapıştırılacak veri giriniz." };
@@ -325,6 +333,7 @@ export async function savePazaramaBrandsBulk(rawInput: string) {
  * Pazarama API'sinden Canlı Olarak Tüm Kategori ve Marka Ağacını Çeker ve Veritabanında ÖnBelleğe Alır.
  */
 export async function syncPazaramaCategoriesAndBrandsFromApi() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config || !config.apiKey || !config.apiSecret) {
@@ -440,6 +449,7 @@ export async function getPazaramaProducts({
   store?: string;
   brandId?: string;
 } = {}) {
+  await requireAdmin();
   try {
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -526,6 +536,7 @@ export async function getPazaramaProducts({
 }
 
 export async function togglePazaramaProductActive(productId: string, currentState: boolean) {
+  await requireAdmin();
   try {
     await prisma.product.update({
       where: { id: productId },
@@ -547,6 +558,7 @@ export async function syncProductsToPazarama(
   commercialId?: string,
   securityDescription?: string
 ) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config || !config.isActive) {
@@ -640,6 +652,7 @@ export async function syncProductsToPazarama(
 }
 
 export async function getPazaramaCategoryAttributes(categoryId: string) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config) {
@@ -659,6 +672,7 @@ export async function getPazaramaCategoryAttributes(categoryId: string) {
 }
 
 export async function syncPazaramaStockAndPrice(productIds: string[]) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config || !config.isActive) {
@@ -715,6 +729,7 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
 }
 
 export async function checkPazaramaBatchStatus(batchId: string) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config || !config.isActive) {
@@ -738,6 +753,7 @@ export async function getPazaramaOrders(params?: {
   endDate?: string;
   orderNumber?: string;
 }) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst();
     if (!config || !config.isActive) {
@@ -771,6 +787,7 @@ function mapPazaramaStatusToOrderStatus(statusStr: string): OrderStatus {
 }
 
 export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -970,6 +987,7 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
  * Siparişe ait kesilmiş faturanın linkini Pazarama'ya yükler / gönderir.
  */
 export async function uploadPazaramaOrderInvoice(orderId: string) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -1019,6 +1037,7 @@ export async function uploadPazaramaOrderInvoice(orderId: string) {
  * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
  */
 export async function setPazaramaProductCategory(productId: string, pazaramaCategoryId: string | null) {
+  await requireAdmin();
   try {
     const cleanId = pazaramaCategoryId?.trim() || null;
     await (prisma as any).pazaramaProduct.upsert({
@@ -1046,6 +1065,7 @@ export async function setPazaramaProductCategory(productId: string, pazaramaCate
  * Toplu ürünlere Pazarama kategori override set etme
  */
 export async function setBulkPazaramaProductCategory(productIds: string[], pazaramaCategoryId: string) {
+  await requireAdmin();
   try {
     const cleanId = pazaramaCategoryId.trim();
     for (const productId of productIds) {
@@ -1076,6 +1096,7 @@ export async function setBulkPazaramaProductCategory(productIds: string[], pazar
  * (Önce API'den çeker, başarısız olursa veritabanı önbelleğine bakar)
  */
 export async function getPazaramaCommercialTemplates() {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -1128,6 +1149,7 @@ export async function assignCommercialTemplateToProducts(
   commercialId: string,
   securityDescription?: string
 ) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -1182,6 +1204,7 @@ export async function assignCommercialTemplateToProducts(
  * Sistemdeki kayıtlı markaları getirir (Filtreleme ve toplu marka ataması için)
  */
 export async function getStoreBrands() {
+  await requireAdmin();
   try {
     const brands = await prisma.brand.findMany({
       select: { id: true, name: true },
@@ -1202,6 +1225,7 @@ export async function assignCommercialTemplateToBrand(
   commercialId: string,
   securityDescription?: string
 ) {
+  await requireAdmin();
   try {
     const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -1285,6 +1309,7 @@ function pazaramaCodes(p: { sku?: string | null; barcode?: string | null; id: st
 
 /** Tek ürünü Pazarama'da sorgular, durumu ürün kaydına yazar */
 export async function verifyPazaramaProduct(productId: string): Promise<{ success: boolean; status?: string; message: string }> {
+  await requireAdmin();
   try {
     const client = await getPazaramaClientIfActive();
     if (!client) return { success: false, message: "Pazarama entegrasyonu aktif değil." };
@@ -1312,6 +1337,7 @@ export async function verifyPazaramaProduct(productId: string): Promise<{ succes
 
 /** "PENDING" kalmış ürünlerin gönderim sonucunu alır (Pazarama sipariş cron'undan çağrılır) */
 export async function resolvePendingPazaramaStatuses() {
+  await requireAdmin();
   const client = await getPazaramaClientIfActive();
   if (!client) return { checked: 0 };
   const pending = await prisma.product.findMany({
@@ -1354,6 +1380,7 @@ export async function resolvePendingPazaramaStatuses() {
 
 /** Pazarama'daki tüm onaylı ürünleri çekip kodu eşleşen site ürünlerinin durumunu "Onaylandı" yapar */
 export async function matchPazaramaApprovedProducts() {
+  await requireAdmin();
   try {
     const client = await getPazaramaClientIfActive();
     if (!client) return { success: false, message: "Pazarama entegrasyonu aktif değil." };

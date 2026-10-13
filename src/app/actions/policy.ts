@@ -1,4 +1,5 @@
 'use server'
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
@@ -37,6 +38,7 @@ export async function getPolicy(slug: string, storeTypeOverride?: ActiveStore) {
 }
 
 export async function updatePolicy(slug: string, title: string, content: string) {
+    await requireAdmin();
     try {
         await prisma.policy.upsert({
             where: { slug },
@@ -93,6 +95,7 @@ export async function getAllPolicies(storeTypeOverride?: ActiveStore) {
 }
 
 export async function deletePolicy(slug: string) {
+    await requireAdmin();
     try {
         await prisma.policy.delete({
             where: { slug },

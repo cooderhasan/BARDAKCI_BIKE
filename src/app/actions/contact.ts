@@ -1,4 +1,5 @@
 'use server'
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
@@ -92,12 +93,14 @@ export async function submitContactForm(prevState: ContactState, formData: FormD
 }
 
 export async function getContactMessages() {
+    await requireAdmin();
     return await prisma.contactMessage.findMany({
         orderBy: { createdAt: "desc" },
     })
 }
 
 export async function markMessageAsRead(id: string) {
+    await requireAdmin();
     try {
         await prisma.contactMessage.update({
             where: { id },
@@ -112,6 +115,7 @@ export async function markMessageAsRead(id: string) {
 }
 
 export async function deleteMessage(id: string) {
+    await requireAdmin();
     try {
         await prisma.contactMessage.delete({
             where: { id }

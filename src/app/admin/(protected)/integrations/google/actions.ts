@@ -1,9 +1,11 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 
 export async function getGoogleConfig() {
+  await requireAdmin();
   try {
     const setting = await prisma.siteSettings.findUnique({
       where: { key: "google_merchant_config" },
@@ -15,6 +17,7 @@ export async function getGoogleConfig() {
 }
 
 export async function saveGoogleConfig(prevState: any, formData: FormData) {
+  await requireAdmin();
   try {
     const merchantId = formData.get("merchantId") as string;
     const siteUrl = formData.get("siteUrl") as string;
@@ -36,6 +39,7 @@ export async function updateCategoryGoogleMapping(
   categoryId: string,
   googleProductCategory: string | null
 ) {
+  await requireAdmin();
   try {
     await prisma.category.update({
       where: { id: categoryId },
@@ -50,6 +54,7 @@ export async function updateCategoryGoogleMapping(
 }
 
 export async function getCategories() {
+  await requireAdmin();
   return prisma.category.findMany({
     orderBy: { name: "asc" },
     where: { isActive: true },
@@ -57,6 +62,7 @@ export async function getCategories() {
 }
 
 export async function getGoogleFeedStats() {
+  await requireAdmin();
   try {
     const totalActive = await (prisma as any).product.count({
       where: { isActive: true, isGoogleActive: true },
@@ -80,6 +86,7 @@ export async function getGoogleFeedStats() {
 }
 
 export async function bulkActivateGoogle() {
+  await requireAdmin();
   try {
     const result = await (prisma as any).product.updateMany({
       where: { isActive: true },
@@ -93,6 +100,7 @@ export async function bulkActivateGoogle() {
 }
 
 export async function bulkDeactivateGoogle() {
+  await requireAdmin();
   try {
     const result = await (prisma as any).product.updateMany({
       where: { isGoogleActive: true },
@@ -106,6 +114,7 @@ export async function bulkDeactivateGoogle() {
 }
 
 export async function bulkMapCategoriesToGoogle() {
+  await requireAdmin();
   try {
     const categories = await prisma.category.findMany();
     let updatedCount = 0;

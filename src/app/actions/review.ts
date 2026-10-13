@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -88,6 +89,7 @@ export async function getReviewStats(productId: string) {
 }
 
 export async function getAdminReviews(status?: "PENDING" | "APPROVED" | "REJECTED") {
+    await requireAdmin();
     const session = await auth();
     if (session?.user?.role !== "ADMIN") {
         throw new Error("Unauthorized");
@@ -117,6 +119,7 @@ export async function getAdminReviews(status?: "PENDING" | "APPROVED" | "REJECTE
 }
 
 export async function updateReviewStatus(reviewId: string, status: "APPROVED" | "REJECTED") {
+    await requireAdmin();
     const session = await auth();
     if (session?.user?.role !== "ADMIN") {
         return { success: false, error: "Unauthorized" };

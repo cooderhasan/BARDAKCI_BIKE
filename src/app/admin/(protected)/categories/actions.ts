@@ -1,9 +1,11 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 
 export async function getCategories() {
+    await requireAdmin();
     return prisma.category.findMany({
         orderBy: { order: "asc" },
         include: {
@@ -15,6 +17,7 @@ export async function getCategories() {
 }
 
 export async function createCategory(data: { name: string; slug: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; pttavmCategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; ciceksepetiCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string }) {
+    await requireAdmin();
     try {
         await prisma.category.create({
             data: {
@@ -49,6 +52,7 @@ export async function createCategory(data: { name: string; slug: string; store?:
 }
 
 export async function updateCategory(id: string, data: { name?: string; slug?: string; store?: "BIKE" | "MOTOR" | "BOTH"; order?: number; isActive?: boolean; parentId?: string | null; imageUrl?: string; menuImageUrl?: string; isFeatured?: boolean; isInHeader?: boolean; headerOrder?: number; trendyolCategoryId?: number | null; n11CategoryId?: number | null; pttavmCategoryId?: number | null; hbCategoryId?: string | null; idefixCategoryId?: string | number | null; pazaramaCategoryId?: string | number | null; ciceksepetiCategoryId?: string | number | null; googleProductCategory?: string | null; description?: string | null }) {
+    await requireAdmin();
     try {
         const updateData: Record<string, any> = {};
         
@@ -92,6 +96,7 @@ export async function updateCategory(id: string, data: { name?: string; slug?: s
 }
 
 export async function deleteCategory(id: string) {
+    await requireAdmin();
     await prisma.category.delete({
         where: { id },
     });
@@ -100,6 +105,7 @@ export async function deleteCategory(id: string) {
 }
 
 export async function toggleCategoryStatus(id: string, isActive: boolean) {
+    await requireAdmin();
     await prisma.category.update({
         where: { id },
         data: { isActive },
@@ -108,6 +114,7 @@ export async function toggleCategoryStatus(id: string, isActive: boolean) {
 }
 
 export async function updateCategoriesSidebarOrder(updates: { id: string; order: number }[]) {
+    await requireAdmin();
     await prisma.$transaction(
         updates.map((update) =>
             prisma.category.update({
@@ -121,6 +128,7 @@ export async function updateCategoriesSidebarOrder(updates: { id: string; order:
 }
 
 export async function updateCategoriesHeaderOrder(updates: { id: string; headerOrder: number }[]) {
+    await requireAdmin();
     await prisma.$transaction(
         updates.map((update) =>
             prisma.category.update({
@@ -135,6 +143,7 @@ export async function updateCategoriesHeaderOrder(updates: { id: string; headerO
 }
 
 export async function fixHeaderOrderAction(targetStore: "BIKE" | "MOTOR" | "ALL" = "ALL") {
+    await requireAdmin();
     try {
         const getPriority = (name: string, store: string): number => {
             const n = (name || "").toLocaleLowerCase("tr-TR").trim();
@@ -229,6 +238,7 @@ export async function fixHeaderOrderAction(targetStore: "BIKE" | "MOTOR" | "ALL"
 }
 
 export async function mergeTireCategoriesAction() {
+    await requireAdmin();
     try {
         const mainParent = await prisma.category.findFirst({
             where: { slug: { in: ["motosiklet-yedek-parca-1", "motosiklet-yedek-parca"] } }
@@ -331,6 +341,7 @@ export async function mergeTireCategoriesAction() {
 }
 
 export async function getCategoryProductsAction(categoryId: string) {
+    await requireAdmin();
     try {
         const products = await prisma.product.findMany({
             where: {
@@ -369,6 +380,7 @@ export async function getCategoryProductsAction(categoryId: string) {
 }
 
 export async function moveProductToCategoryAction(productId: string, targetCategoryId: string) {
+    await requireAdmin();
     try {
         await prisma.product.update({
             where: { id: productId },
@@ -390,6 +402,7 @@ export async function moveProductToCategoryAction(productId: string, targetCateg
 }
 
 export async function moveAllProductsAndMergeCategoryAction(sourceCategoryId: string, targetCategoryId: string, deleteSource: boolean = false) {
+    await requireAdmin();
     try {
         const updateLegacy = await prisma.product.updateMany({
             where: { categoryId: sourceCategoryId },

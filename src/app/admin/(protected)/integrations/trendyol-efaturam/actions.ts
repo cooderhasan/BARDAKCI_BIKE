@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -9,6 +10,7 @@ import {
 } from "@/services/trendyol-efaturam/api";
 
 export async function getEFaturamConfig() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolEFaturamConfig.findFirst();
         return { success: true, data: config };
@@ -18,6 +20,7 @@ export async function getEFaturamConfig() {
 }
 
 export async function saveEFaturamConfig(prevState: any, formData: FormData) {
+    await requireAdmin();
     try {
         const username = formData.get("username") as string;
         const password = formData.get("password") as string;
@@ -52,6 +55,7 @@ export async function saveEFaturamConfig(prevState: any, formData: FormData) {
 }
 
 export async function testEFaturamConnection() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolEFaturamConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif ayar bulunamadı. Önce ayarları kaydedin ve 'Aktif' yapın." };
@@ -73,6 +77,7 @@ export async function testEFaturamConnection() {
 }
 
 export async function testEFaturamPrefixes() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).trendyolEFaturamConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif ayar bulunamadı." };
@@ -245,6 +250,7 @@ function buildInvoicePayload(order: any): any {
 }
 
 export async function sendOrderInvoice(orderId: string) {
+    await requireAdmin();
     try {
         // 1. Config kontrolü
         const config = await (prisma as any).trendyolEFaturamConfig.findFirst({ where: { isActive: true } });

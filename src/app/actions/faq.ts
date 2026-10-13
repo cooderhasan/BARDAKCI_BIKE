@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -6,6 +7,7 @@ import { ActiveStore, getStoreType } from "@/lib/store-helper";
 import { getDefaultFAQs, adaptFAQForStore } from "@/lib/default-faqs";
 
 export async function getFAQ(id: string) {
+    await requireAdmin();
     try {
         return await prisma.fAQ.findUnique({
             where: { id },
@@ -46,6 +48,7 @@ export async function createFAQ(data: {
     order: number;
     isActive: boolean;
 }) {
+    await requireAdmin();
     try {
         await prisma.fAQ.create({
             data,
@@ -69,6 +72,7 @@ export async function updateFAQ(
         isActive: boolean;
     }
 ) {
+    await requireAdmin();
     try {
         await prisma.fAQ.update({
             where: { id },
@@ -84,6 +88,7 @@ export async function updateFAQ(
 }
 
 export async function deleteFAQ(id: string) {
+    await requireAdmin();
     try {
         await prisma.fAQ.delete({
             where: { id },
@@ -98,6 +103,7 @@ export async function deleteFAQ(id: string) {
 }
 
 export async function toggleFAQStatus(id: string, isActive: boolean) {
+    await requireAdmin();
     try {
         await prisma.fAQ.update({
             where: { id },

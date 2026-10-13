@@ -1,4 +1,5 @@
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -14,6 +15,7 @@ export async function createBlogPost(data: {
     isActive?: boolean;
     readTime?: number;
 }) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -62,6 +64,7 @@ export async function updateBlogPost(id: string, data: {
     isActive?: boolean;
     readTime?: number;
 }) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -91,6 +94,7 @@ export async function updateBlogPost(id: string, data: {
 }
 
 export async function deleteBlogPost(id: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -114,6 +118,7 @@ export async function deleteBlogPost(id: string) {
 }
 
 export async function toggleBlogPostStatus(id: string, isActive: boolean) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -137,6 +142,7 @@ export async function toggleBlogPostStatus(id: string, isActive: boolean) {
 }
 
 export async function searchProductsForBlog(query: string) {
+    await requireAdmin();
     const session = await auth();
     if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "OPERATOR")) {
         throw new Error("Unauthorized");
@@ -182,6 +188,7 @@ export async function searchProductsForBlog(query: string) {
 }
 
 export async function getProductsByIds(ids: string[]) {
+    await requireAdmin();
     if (!ids || ids.length === 0) return [];
     
     const products = await prisma.product.findMany({

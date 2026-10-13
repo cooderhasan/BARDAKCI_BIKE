@@ -1,5 +1,6 @@
 
 "use server";
+import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -8,6 +9,7 @@ import { getSiteSettings } from "@/app/admin/(protected)/settings/actions";
 import { HepsiburadaClient } from "@/services/hepsiburada/api";
 
 export async function getHepsiburadaConfig() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst();
         return { success: true, data: config };
@@ -17,6 +19,7 @@ export async function getHepsiburadaConfig() {
 }
 
 export async function saveHepsiburadaConfig(prevState: any, formData: FormData) {
+    await requireAdmin();
     try {
         const username = formData.get("username") as string; // Merchant ID
         const password = formData.get("password") as string; // Secret Key
@@ -54,6 +57,7 @@ export async function saveHepsiburadaConfig(prevState: any, formData: FormData) 
 }
 
 export async function testHepsiburadaConnection() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst();
         if (!config) return { success: false, message: "Ayarlar bulunamadı." };
@@ -83,6 +87,7 @@ export async function testHepsiburadaConnection() {
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 
 export async function enqueueHepsiburadaSync() {
+    await requireAdmin();
     try {
         await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "products" });
         return { success: true, message: "Senkronizasyon işlemi kuyruğa alındı. Arka planda işlenecektir." };
@@ -92,6 +97,7 @@ export async function enqueueHepsiburadaSync() {
 }
 
 export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -539,6 +545,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
 }
 
 export async function syncProductsToHepsiburada(productIds?: string[]) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -733,6 +740,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
 
 
 export async function getHepsiburadaCategories() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -780,6 +788,7 @@ async function getHBCategoriesCached(): Promise<any[]> {
 }
 
 export async function searchHepsiburadaCategories(query: string) {
+    await requireAdmin();
     try {
         if (!query || query.length < 2) return { success: true, data: [] };
 
@@ -810,6 +819,7 @@ export async function searchHepsiburadaCategories(query: string) {
 }
 
 export async function getHepsiburadaCategoryAttributes(categoryId: string) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -840,6 +850,7 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
 }
 
 export async function getHepsiburadaAttributeValues(categoryId: string, attributeId: string) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -886,6 +897,7 @@ export async function getHepsiburadaAttributeValues(categoryId: string, attribut
 }
 
 export async function updateHepsiburadaSku(productId: string, hbSku: string, hbMerchantSku?: string) {
+    await requireAdmin();
     try {
         const updateData: any = {
             hbSku: hbSku || "",
@@ -933,6 +945,7 @@ function getAbsoluteImageUrl(url: string): string {
 }
 
 export async function sendProductToHepsiburada(productId: string, attributes: any[]) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
@@ -1088,6 +1101,7 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
  * Sadece isTestMode true iken çalışır
  */
 export async function createHepsiburadaTestOrder() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif bir SIT (Test) bağlantısı bulunamadı." };
@@ -1201,6 +1215,7 @@ export async function createHepsiburadaTestOrder() {
  * SIT Siparişlerini Listele
  */
 export async function getHepsiburadaSitOrders() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif SIT bağlantısı bulunamadı.", orders: [] };
@@ -1256,6 +1271,7 @@ export async function getHepsiburadaSitOrders() {
  * Adım 2: Siparişteki kalemleri paketler
  */
 export async function packageHepsiburadaOrder(orderNumber: string, lineItemIds: string[]) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif SIT bağlantısı bulunamadı." };
@@ -1285,6 +1301,7 @@ export async function packageHepsiburadaOrder(orderNumber: string, lineItemIds: 
  * Adım 3: Paketlenmiş siparişe fatura linki iletir
  */
 export async function sendHepsiburadaInvoiceLink(packageNumber: string, orderNumber: string, invoiceUrl?: string) {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true, isTestMode: true } });
         if (!config) return { success: false, message: "Aktif SIT bağlantısı bulunamadı." };
@@ -1321,6 +1338,7 @@ export async function sendHepsiburadaInvoiceLink(packageNumber: string, orderNum
  * null geçilirse override kaldırılır, site kategori eşleşmesine düşer
  */
 export async function setHepsiburadaProductCategory(productId: string, hbCategoryId: string | null) {
+    await requireAdmin();
     try {
         await (prisma as any).hepsiburadaProduct.upsert({
             where: { productId },
@@ -1342,6 +1360,7 @@ export async function setHepsiburadaProductCategory(productId: string, hbCategor
  * Toplu ürünlere Hepsiburada kategori override set etme
  */
 export async function setBulkHepsiburadaProductCategory(productIds: string[], hbCategoryId: string) {
+    await requireAdmin();
     try {
         for (const productId of productIds) {
             await (prisma as any).hepsiburadaProduct.upsert({
@@ -1369,6 +1388,7 @@ export async function setBulkHepsiburadaProductCategory(productIds: string[], hb
  * Sadece eşleştirme kaydını düzeltir; ürünün "HB'de açık" ayarına dokunmaz.
  */
 export async function matchHepsiburadaListings() {
+    await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif Hepsiburada entegrasyonu yok." };
