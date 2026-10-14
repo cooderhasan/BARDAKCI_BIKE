@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { OrdersTable } from "@/components/admin/orders-table";
 import { OrderStatus } from "@prisma/client";
+import { formatPrice } from "@/lib/helpers";
 
 interface OrdersPageProps {
     searchParams: Promise<{
@@ -28,8 +29,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const source = params.source;
     const invoice = params.invoice;
     const printed = params.printed;
-    const startDate = params.startDate ? new Date(params.startDate) : undefined;
-    const endDate = params.endDate ? new Date(params.endDate) : undefined;
+    // Tarihler Türkiye saatine göre gün başı/sonu (sunucu UTC; önceden 00:00-03:00 arası siparişler önceki güne düşüyordu)
+    const trDay = (s: string, end: boolean) =>
+        /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T${end ? "23:59:59.999" : "00:00:00"}+03:00`) : new Date(s);
+    const startDate = params.startDate ? trDay(params.startDate, false) : undefined;
+    const endDate = params.endDate ? trDay(params.endDate, true) : undefined;
 
     // Auto-fix missing marketplace source tags for past orders
     await prisma.order.updateMany({
@@ -127,9 +131,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             dateFilter.gte = startDate;
         }
         if (endDate) {
-            const endOfDay = new Date(endDate);
-            endOfDay.setHours(23, 59, 59, 999);
-            dateFilter.lte = endOfDay;
+            dateFilter.lte = endDate;
         }
         andClauses.push({ createdAt: dateFilter });
     }
@@ -137,7 +139,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const where = andClauses.length > 0 ? { AND: andClauses } : {};
 
     // Parallel Fetch: Orders + Total Count
-    const [orders, totalCount] = await Promise.all([
+    const [orders, totalCount, summaryGroups] = await Promise.all([
         prisma.order.findMany({
             where,
             include: {
@@ -158,7 +160,38 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             take: limit,
         }),
         prisma.order.count({ where }),
+        // Filtreye uyan TÜM siparişlerin (sadece bu sayfanın değil) kaynak/durum bazında adet ve tutarı
+        prisma.order.groupBy({
+            by: ["source", "status"],
+            where,
+            _sum: { total: true },
+            _count: { _all: true },
+        }),
     ]);
+
+    // İptal ve ödemesi tamamlanmamış siparişler ciroya katılmaz, ayrıca gösterilir
+    const summary = {
+        count: 0, total: 0,
+        cancelledCount: 0, cancelledTotal: 0,
+        unpaidCount: 0, unpaidTotal: 0,
+        bySource: new Map<string, { count: number; total: number }>(),
+    };
+    for (const g of summaryGroups as any[]) {
+        const n = g._count?._all || 0;
+        const t = Number(g._sum?.total || 0);
+        if (g.status === "CANCELLED") { summary.cancelledCount += n; summary.cancelledTotal += t; continue; }
+        if (g.status === "WAITING_FOR_PAYMENT") { summary.unpaidCount += n; summary.unpaidTotal += t; continue; }
+        summary.count += n;
+        summary.total += t;
+        const key = g.source || "WEB";
+        const cur = summary.bySource.get(key) || { count: 0, total: 0 };
+        summary.bySource.set(key, { count: cur.count + n, total: cur.total + t });
+    }
+    const sourceLabels: Record<string, string> = {
+        WEB: "Site", TRENDYOL: "Trendyol", N11: "N11", HEPSIBURADA: "Hepsiburada", IDEFIX: "Idefix",
+        PAZARAMA: "Pazarama", PTTAVM: "ePttAVM", CICEKSEPETI: "Çiçeksepeti",
+    };
+    const bySource = Array.from(summary.bySource.entries()).sort((a, b) => b[1].total - a[1].total);
 
     const totalPages = Math.ceil(totalCount / limit);
 
@@ -209,6 +242,36 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     totalCount,
                 }}
             />
+
+            {/* Filtre özeti: seçili tarih/pazaryeri/durum için toplam */}
+            <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                    <span className="text-sm font-medium text-gray-500">
+                        Filtreye uyan siparişler
+                        {params.startDate || params.endDate ? ` (${params.startDate || "…"} – ${params.endDate || "…"})` : ""}
+                    </span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        {summary.count} sipariş · {formatPrice(summary.total)}
+                    </span>
+                </div>
+                {bySource.length > 1 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        {bySource.map(([src, v]) => (
+                            <span key={src} className="rounded-lg bg-gray-50 px-2.5 py-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                <span className="font-semibold">{sourceLabels[src] || src}</span>: {v.count} · {formatPrice(v.total)}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                {(summary.cancelledCount > 0 || summary.unpaidCount > 0) && (
+                    <p className="mt-2 text-xs text-gray-500">
+                        Toplama dahil değil:
+                        {summary.cancelledCount > 0 ? ` ${summary.cancelledCount} iptal (${formatPrice(summary.cancelledTotal)})` : ""}
+                        {summary.cancelledCount > 0 && summary.unpaidCount > 0 ? "," : ""}
+                        {summary.unpaidCount > 0 ? ` ${summary.unpaidCount} ödeme bekleyen (${formatPrice(summary.unpaidTotal)})` : ""}
+                    </p>
+                )}
+            </div>
         </div>
     );
 }
