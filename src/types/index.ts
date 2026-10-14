@@ -150,6 +150,8 @@ export interface OrderWithItems {
         discountRate: number;
         vatRate: number;
         lineTotal: number;
+        /** false: pazaryeri ürünü sitede bulunamadı, yer tutucu ürüne bağlandı (stok düşülmedi) */
+        stockDeducted?: boolean;
         product: {
             id: string;
             sku: string | null;

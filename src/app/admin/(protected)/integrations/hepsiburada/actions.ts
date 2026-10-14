@@ -416,7 +416,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
 
                     // 4. Sitede tanımlı olmayan ürünler için fallback (varsayılan) ürün kullanalım ki sipariş kaybolmasın
                     if (!product) {
-                        const fallbackProd = await prisma.product.findFirst();
+                        const fallbackProd = await (await import("@/lib/unmatched-product")).getUnmatchedProduct();
                         if (fallbackProd) {
                             product = fallbackProd;
                             isFallback = true;

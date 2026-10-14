@@ -931,12 +931,12 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
               }
             }
 
-            // Eğer ürün barkoddan birebir eşleşemediyse de siparişi kaybetme, ilk ürüne bağla (stoğu düşülmez)
+            // Eğer ürün barkoddan birebir eşleşemediyse de siparişi kaybetme, "Tanımsız Ürün"e bağla (stoğu düşülmez)
             let isFallbackOrder = false;
             if (orderItemsPayload.length === 0 && (item.items || []).length > 0) {
               isFallbackOrder = true;
               const firstRawItem = item.items[0];
-              const fallbackProd = await prisma.product.findFirst();
+              const fallbackProd = await (await import("@/lib/unmatched-product")).getUnmatchedProduct();
               if (fallbackProd) {
                 const itemPrice = Number(firstRawItem.price ?? firstRawItem.discountedTotalPrice ?? 0);
                 const qty = Number(firstRawItem.quantity ?? 1);
@@ -983,7 +983,7 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                   },
                 });
 
-                // Rastgele bağlanan ürünün stoğu düşülmez (önceden ilk ürünün stoğu düşüyordu)
+                // "Tanımsız Ürün"e bağlanan kalemin stoğu düşülmez
                 if (isFallbackOrder) return [] as string[];
                 return decrementOrderStock(tx, orderItemsPayload.map(i => ({ productId: i.productId, quantity: i.quantity })));
               });

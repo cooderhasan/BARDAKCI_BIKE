@@ -538,7 +538,7 @@ export async function syncOrdersFromTrendyol() {
 
                 let isFallback = false;
                 if (!productId) {
-                    const fallbackProd = await prisma.product.findFirst();
+                    const fallbackProd = await (await import("@/lib/unmatched-product")).getUnmatchedProduct();
                     if (fallbackProd) {
                         productId = fallbackProd.id;
                         isFallback = true;

@@ -1371,7 +1371,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                             {selectedOrder.items.map((item) => (
                                                 <TableRow key={item.id} className="hover:bg-gray-50">
                                                     <TableCell className="py-2">
-                                                        {item.product?.images?.[0] ? (
+                                                        {item.stockDeducted !== false && item.product?.images?.[0] ? (
                                                             <img
                                                                 src={item.product.images[0]}
                                                                 alt={item.productName}
@@ -1386,10 +1386,14 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                                                         <div className="flex flex-col gap-1.5">
                                                             <span className="font-medium text-gray-900 dark:text-gray-100 min-w-[160px] max-w-[550px] inline-block whitespace-normal">{item.productName}</span>
                                                             <div className="flex items-center gap-2 flex-wrap">
-                                                                {item.product?.sku && (
+                                                                {/* Sitede bulunamayan pazaryeri ürünü yer tutucu ürüne bağlanır; onun kodu/resmi gösterilmez */}
+                                                                {item.stockDeducted === false && (
+                                                                    <span className="text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Sitede eşleşmedi · stok düşülmedi</span>
+                                                                )}
+                                                                {item.stockDeducted !== false && item.product?.sku && (
                                                                     <span className="text-xs text-gray-500 font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">SKU: {item.product.sku}</span>
                                                                 )}
-                                                                {item.product && (
+                                                                {item.stockDeducted !== false && item.product && (
                                                                     <>
                                                                         <a
                                                                             href={`/products/${item.product.slug}`}

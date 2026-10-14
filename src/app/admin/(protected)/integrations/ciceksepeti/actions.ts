@@ -703,7 +703,7 @@ export async function toggleCiceksepetiProductStatus(productId: string, isCiceks
 
 /**
  * Çiçeksepeti sipariş kalemindeki ürünü bulur. Önce tedarikçi stok kodu (code) ve barkod, sonra varyantlar, en son birebir ürün adı.
- * Bulunamazsa sipariş kaybolmasın diye ilk ürüne bağlanır ama isFallback=true döner ve stok DÜŞÜLMEZ
+ * Bulunamazsa sipariş kaybolmasın diye "Tanımsız Ürün"e bağlanır, isFallback=true döner ve stok DÜŞÜLMEZ
  * (önceden adın ilk 15 harfiyle ya da rastgele ilk ürünle eşleşip yanlış ürünün stoğu düşüyordu).
  */
 async function findCiceksepetiOrderProduct(order: any): Promise<{ product: any; variantId: string | null; isFallback: boolean }> {
@@ -736,7 +736,7 @@ async function findCiceksepetiOrderProduct(order: any): Promise<{ product: any; 
     if (byName.length === 1) return { product: byName[0], variantId: null, isFallback: false };
   }
 
-  const fallback = await prisma.product.findFirst();
+  const fallback = await (await import("@/lib/unmatched-product")).getUnmatchedProduct();
   console.warn(`⚠️ [CS-ORDERS] Ürün bulunamadı, stok düşülmeden aktarılıyor: "${name}" (kod: ${codes.join(", ") || "-"})`);
   return { product: fallback, variantId: null, isFallback: true };
 }

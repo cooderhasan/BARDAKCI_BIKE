@@ -877,9 +877,9 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
         }
 
         let isFallback = false;
-        // Eğer ürün sitede henüz yoksa siparişin kaybolmaması için ilk ürüne bağla
+        // Eğer ürün sitede henüz yoksa siparişin kaybolmaması için "Tanımsız Ürün"e bağla (stoğu düşülmez)
         if (!product) {
-          const fallbackProd = await prisma.product.findFirst();
+          const fallbackProd = await (await import("@/lib/unmatched-product")).getUnmatchedProduct();
           if (fallbackProd) {
             product = fallbackProd;
             productId = fallbackProd.id;

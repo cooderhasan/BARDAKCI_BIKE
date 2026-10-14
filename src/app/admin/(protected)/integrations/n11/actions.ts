@@ -416,10 +416,10 @@ export async function syncOrdersFromN11() {
                     if (sameName.length === 1) product = sameName[0];
                 }
 
-                // 4) Sipariş kaybolmasın diye ilk ürüne bağlanır ama stoğu DÜŞÜLMEZ
+                // 4) Sipariş kaybolmasın diye "Tanımsız Ürün"e bağlanır, stoğu DÜŞÜLMEZ
                 let isFallback = false;
                 if (!product) {
-                    product = await prisma.product.findFirst();
+                    product = await (await import("@/lib/unmatched-product")).getUnmatchedProduct();
                     isFallback = true;
                     unmatchedNames.push(`${line.productName || line.title || "-"} (kod: ${searchCodes.join(", ") || "-"})`);
                 }
@@ -441,7 +441,7 @@ export async function syncOrdersFromN11() {
 
                 if (isFallback) fallbackIndexes.add(orderItems.length);
                 orderItems.push({
-                    productId: product ? product.id : (await prisma.product.findFirst())?.id || "",
+                    productId: product ? product.id : (await (await import("@/lib/unmatched-product")).getUnmatchedProduct()).id,
                     quantity: lineQty,
                     unitPrice: lineUnitPrice,
                     productName: line.productName || line.title || "N11 Ürünü",

@@ -677,9 +677,9 @@ export async function syncOrdersFromPttavm() {
             if (sameName.length === 1) dbProd = sameName[0];
           }
 
-          // 4. Sipariş kaybolmasın diye ilk ürüne bağlanır ama stoğu DÜŞÜLMEZ
+          // 4. Sipariş kaybolmasın diye "Tanımsız Ürün"e bağlanır, stoğu DÜŞÜLMEZ
           if (!dbProd) {
-            dbProd = await prisma.product.findFirst();
+            dbProd = await (await import("@/lib/unmatched-product")).getUnmatchedProduct();
             isFallback = true;
             unmatchedNames.push(`${rawTitle} (barkod: ${barcode || "-"})`);
           }
