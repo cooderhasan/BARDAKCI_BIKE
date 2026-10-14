@@ -807,6 +807,10 @@ function PazaramaCategorySearch({
     const [results, setResults] = useState<PazaramaCat[]>([]);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [selectedName, setSelectedName] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    // Eski sürümde uydurma "paz-cat-*" kodları seçilebiliyordu; Pazarama'da karşılıkları yok
+    const isLegacyFakeId = String(value || "").startsWith("paz-cat-");
 
     const flattenPazaramaCategories = (cats: any[], prefix = ""): PazaramaCat[] => {
         let result: PazaramaCat[] = [];
@@ -836,8 +840,10 @@ function PazaramaCategorySearch({
             if (res.success && res.data && res.data.length > 0) {
                 const flattened = flattenPazaramaCategories(res.data);
                 setAllCategories(flattened);
+                setLoadError(null);
                 return flattened;
             }
+            setLoadError((res as any).message || "Pazarama kategori listesi alınamadı.");
             return [];
         } catch {
             return [];
@@ -868,12 +874,14 @@ function PazaramaCategorySearch({
     const handleSelect = (cat: PazaramaCat) => {
         onChange(cat.id);
         setSearch(cat.id);
+        setSelectedName(cat.name);
         setResults([]);
         setOpen(false);
     };
 
     const handleClear = () => {
         onChange(undefined);
+        setSelectedName(null);
         setSearch("");
         setResults([]);
         setOpen(false);
@@ -896,6 +904,16 @@ function PazaramaCategorySearch({
                     </button>
                 )}
             </div>
+
+            {selectedName && String(value || "") === search && (
+                <p className="text-[11px] text-pink-700">Seçili: {selectedName}</p>
+            )}
+            {isLegacyFakeId && (
+                <p className="text-[11px] font-medium text-red-600">
+                    Bu eski, geçersiz bir kod (Pazarama&apos;da yok). Kategoriyi adıyla arayıp yeniden seçin.
+                </p>
+            )}
+            {loadError && <p className="text-[11px] text-red-600">{loadError}</p>}
 
             {open && results.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-pink-200 rounded-lg shadow-xl">

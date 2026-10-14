@@ -147,106 +147,51 @@ export class PazaramaClient {
   }
 
   /**
-   * Fetch Pazarama category tree
-   * Real endpoint from Pazarama docs: /category/getCategoryWithAttributes
+   * Pazarama kategori listesi (dokümantasyon: GET /category/getCategoryTree).
+   * Yanıt düz liste; ürün sadece leaf=true kategorilere açılabildiği için onlar döner.
+   * Ad, üst kategorilerle birlikte tam yol olarak verilir ("Spor > Bisiklet > Bisiklet Pedalı").
    */
   async getCategories(): Promise<PazaramaCategory[]> {
-    try {
-      const headers = await this.getHeaders();
-      const endpoints = [
-        { url: `${this.baseUrl}/category/getCategoryWithAttributes`, method: "GET" },
-        { url: `${this.baseUrl}/category/getCategoryWithAttributes`, method: "POST" },
-        { url: `${this.baseUrl}/category/get-categories`, method: "GET" },
-        { url: `${this.baseUrl}/category/get-categories`, method: "POST" },
-        { url: `${this.baseUrl}/category/getCategories`, method: "GET" },
-      ];
-
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(ep.url, {
-            method: ep.method,
-            headers,
-            ...(ep.method === "POST" ? { body: JSON.stringify({}) } : {}),
-            cache: "no-store",
-          });
-
-          if (!res.ok) continue;
-
-          const data = await res.json();
-          const list =
-            data?.data?.categories ||
-            data?.data ||
-            data?.result?.categories ||
-            data?.result ||
-            (Array.isArray(data) ? data : null);
-
-          if (Array.isArray(list) && list.length > 0) {
-            return list as PazaramaCategory[];
-          }
-        } catch (e) {
-          // try next endpoint
-        }
-      }
-
-      return [];
-    } catch (error) {
-      console.error("Pazarama getCategories error:", error);
-      return [];
-    }
+    const headers = await this.getHeaders();
+    const res = await fetch(`${this.baseUrl}/category/getCategoryTree`, { method: "GET", headers, cache: "no-store" });
+    const text = await res.text().catch(() => "");
+    if (!res.ok) throw new Error(`Pazarama kategori listesi alınamadı (HTTP ${res.status}): ${text.slice(0, 200)}`);
+    const data = JSON.parse(text);
+    const list: any[] = Array.isArray(data?.data) ? data.data : [];
+    return list
+      .filter((c) => c && c.leaf === true && c.id)
+      .map((c) => {
+        const path = (Array.isArray(c.parentCategories) ? c.parentCategories : [])
+          .map((x: any) => String(x || "").trim())
+          .filter(Boolean);
+        const name = String(c.displayName || c.name || "").trim();
+        if (name && path[path.length - 1] !== name) path.push(name);
+        return { id: String(c.id), name: path.join(" > ") || name } as PazaramaCategory;
+      });
   }
 
   /**
-   * Fetch Pazarama brand list
+   * Pazarama marka listesi (dokümantasyon: GET /brand/getBrands?Page=&Size=).
+   * Size verilmezse Pazarama sadece 10 marka döndürüyor; sayfa sayfa hepsi alınır.
    */
   async getBrands(): Promise<Array<{ id: string; name: string }>> {
-    try {
-      const headers = await this.getHeaders();
-      const endpoints = [
-        { url: `${this.baseUrl}/brand/getBrands`, method: "GET" },
-        { url: `${this.baseUrl}/brand/getBrands`, method: "POST" },
-        { url: `${this.baseUrl}/brand/getBrandList`, method: "GET" },
-        { url: `${this.baseUrl}/brand/getBrandList`, method: "POST" },
-        { url: `${this.baseUrl}/brand/get`, method: "GET" },
-        { url: `${this.baseUrl}/brand/getAll`, method: "GET" },
-      ];
-
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(ep.url, {
-            method: ep.method,
-            headers,
-            ...(ep.method === "POST" ? { body: JSON.stringify({}) } : {}),
-            cache: "no-store",
-          });
-
-          if (!res.ok) continue;
-
-          const data = await res.json();
-          const list =
-            data?.data?.brands ||
-            data?.data ||
-            data?.result?.brands ||
-            data?.result ||
-            (Array.isArray(data) ? data : null);
-
-          if (Array.isArray(list) && list.length > 0) {
-            return list
-              .map((b: any) => ({
-                id: String(b.id || b.brandId || b.code || "").trim(),
-                name: String(b.name || b.brandName || b.title || "").trim(),
-              }))
-              .filter((b) => b.id && b.name);
-          }
-        } catch (e) {
-          // try next endpoint
-        }
+    const headers = await this.getHeaders();
+    const size = 5000;
+    const all: Array<{ id: string; name: string }> = [];
+    for (let page = 1; page <= 50; page++) {
+      const res = await fetch(`${this.baseUrl}/brand/getBrands?Page=${page}&Size=${size}`, { method: "GET", headers, cache: "no-store" });
+      const text = await res.text().catch(() => "");
+      if (!res.ok) throw new Error(`Pazarama marka listesi alınamadı (HTTP ${res.status}): ${text.slice(0, 200)}`);
+      const parsed = JSON.parse(text);
+      const list: any[] = Array.isArray(parsed?.data) ? parsed.data : [];
+      for (const b of list) {
+        const id = String(b?.id || "").trim();
+        const name = String(b?.name || "").trim();
+        if (id && name) all.push({ id, name });
       }
-
-      return [];
-    } catch (error) {
-      console.error("Pazarama getBrands error:", error);
-      return [];
+      if (list.length < size) break;
     }
+    return all;
   }
 
   /**

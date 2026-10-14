@@ -75,90 +75,59 @@ export async function testPazaramaConnection() {
   }
 }
 
-import { DEFAULT_PAZARAMA_CATEGORIES } from "@/lib/pazarama-categories-seed";
+// Pazarama kategori/marka listeleri API'den çekilip 24 saat SiteSettings'te saklanır (her aramada büyük liste çekilmesin).
+const PAZARAMA_LIST_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function getCachedPazaramaList(
+  key: string,
+  fetchLive: (client: PazaramaClient) => Promise<Array<{ id: string; name: string }>>,
+  isValid: (items: any[]) => boolean,
+): Promise<{ items: Array<{ id: string; name: string }>; source: string; error?: string }> {
+  const saved = await prisma.siteSettings.findUnique({ where: { key } });
+  const value: any = saved?.value;
+  const cached: any[] = Array.isArray(value?.items) ? value.items : [];
+  const cacheUsable = cached.length > 0 && isValid(cached);
+  const fresh = value?.updatedAt && Date.now() - new Date(value.updatedAt).getTime() < PAZARAMA_LIST_TTL_MS;
+  if (cacheUsable && fresh) return { items: cached, source: "database" };
+
+  try {
+    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
+    if (!config) throw new Error("Aktif Pazarama entegrasyonu bulunamadı.");
+    const live = await fetchLive(new PazaramaClient(config));
+    if (live.length > 0) {
+      const stored = { items: live, updatedAt: new Date().toISOString() };
+      await prisma.siteSettings.upsert({ where: { key }, create: { key, value: stored }, update: { value: stored } });
+      return { items: live, source: "api" };
+    }
+    throw new Error("Pazarama boş liste döndürdü.");
+  } catch (e: any) {
+    if (cacheUsable) return { items: cached, source: "database", error: e?.message };
+    return { items: [], source: "none", error: e?.message };
+  }
+}
 
 export async function getPazaramaCategories() {
   await requireAdmin();
-  try {
-    // 1. Önce siteSettings'deki özel yüklenmiş/yapıştırılmış Pazarama kategorilerini kontrol et
-    const saved = await prisma.siteSettings.findUnique({
-      where: { key: "pazarama_categories" },
-    });
-
-    if (
-      saved &&
-      saved.value &&
-      Array.isArray((saved.value as any).items) &&
-      (saved.value as any).items.length > 0
-    ) {
-      return {
-        success: true,
-        data: (saved.value as any).items,
-        source: "database",
-      };
-    }
-
-    // 2. Canlı API'den çekmeyi dene
-    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
-    if (config) {
-      const client = new PazaramaClient(config);
-      const apiCategories = await client.getCategories();
-      if (apiCategories && apiCategories.length > 0) {
-        return { success: true, data: apiCategories, source: "api" };
-      }
-    }
-
-    // 3. Varsayılan hazır tohum kategorilerine düş
-    return {
-      success: true,
-      message: "Özel kayıtlı liste bulunamadığı için hazır kategoriler gösteriliyor.",
-      data: DEFAULT_PAZARAMA_CATEGORIES,
-      source: "seed",
-    };
-  } catch (error: any) {
-    return {
-      success: true,
-      data: DEFAULT_PAZARAMA_CATEGORIES,
-      source: "seed",
-    };
+  // Eski sürümdeki uydurma "paz-cat-*" kodları Pazarama'da yok; böyle bir liste kayıtlıysa geçersiz sayılır
+  const res = await getCachedPazaramaList(
+    "pazarama_categories",
+    (client) => client.getCategories(),
+    (items) => !items.some((c: any) => String(c?.id || "").startsWith("paz-cat-")),
+  );
+  if (res.items.length === 0) {
+    return { success: false, data: [], source: res.source, message: `Pazarama kategori listesi alınamadı: ${res.error || "bilinmeyen hata"}` };
   }
+  return { success: true, data: res.items, source: res.source };
 }
 
 export async function getPazaramaBrands() {
   await requireAdmin();
-  try {
-    // 1. Önce siteSettings'deki özel yüklenmiş/yapıştırılmış Pazarama markalarını kontrol et
-    const saved = await prisma.siteSettings.findUnique({
-      where: { key: "pazarama_brands" },
-    });
-
-    if (
-      saved &&
-      saved.value &&
-      Array.isArray((saved.value as any).items) &&
-      (saved.value as any).items.length > 0
-    ) {
-      return {
-        success: true,
-        data: (saved.value as any).items,
-        source: "database",
-      };
-    }
-
-    // 2. Canlı API'den çekmeyi dene
-    const config = await (prisma as any).pazaramaConfig.findFirst({ where: { isActive: true } });
-    if (config) {
-      const client = new PazaramaClient(config);
-      const apiBrands = await client.getBrands();
-      if (apiBrands && apiBrands.length > 0) {
-        return { success: true, data: apiBrands, source: "api" };
-      }
-    }
-
-    return { success: true, data: [], source: "none" };
-  } catch (error: any) {
-    return { success: false, data: [] };
+  // Eski sürüm sayfa boyutu vermediği için sadece 10 marka kaydediyordu; bu kadar az kayıt geçersiz sayılır
+  const res = await getCachedPazaramaList("pazarama_brands", (client) => client.getBrands(), (items) => items.length > 10);
+  if (res.items.length === 0) {
+    return { success: false, data: [], message: `Pazarama marka listesi alınamadı: ${res.error || "bilinmeyen hata"}` };
   }
+  return { success: true, data: res.items, source: res.source };
 }
 
 /**
