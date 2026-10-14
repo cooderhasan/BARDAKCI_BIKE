@@ -831,8 +831,16 @@ function PazaramaCategorySearch({
         return result;
     };
 
+    // Her tuşta yeni istek gitmesin: liste yüklenirken gelen aramalar aynı isteği bekler
+    const inflight = useRef<Promise<PazaramaCat[]> | null>(null);
     const fetchCategories = async () => {
         if (allCategories.length > 0) return allCategories;
+        if (inflight.current) return inflight.current;
+        inflight.current = loadCategories().finally(() => { inflight.current = null; });
+        return inflight.current;
+    };
+
+    const loadCategories = async (): Promise<PazaramaCat[]> => {
         setLoading(true);
         try {
             const { getPazaramaCategories } = await import("@/app/admin/(protected)/integrations/pazarama/actions");
@@ -846,6 +854,7 @@ function PazaramaCategorySearch({
             setLoadError((res as any).message || "Pazarama kategori listesi alınamadı.");
             return [];
         } catch {
+            setLoadError("Pazarama kategori listesi yüklenemedi, biraz sonra tekrar deneyin.");
             return [];
         } finally {
             setLoading(false);
