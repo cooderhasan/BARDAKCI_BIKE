@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { OrdersTable } from "@/components/admin/orders-table";
 import { OrderStatus } from "@prisma/client";
 import { formatPrice } from "@/lib/helpers";
+import { ORDER_SOURCE_LABELS } from "@/lib/order-sources";
 
 interface OrdersPageProps {
     searchParams: Promise<{
@@ -187,10 +188,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         const cur = summary.bySource.get(key) || { count: 0, total: 0 };
         summary.bySource.set(key, { count: cur.count + n, total: cur.total + t });
     }
-    const sourceLabels: Record<string, string> = {
-        WEB: "Site", TRENDYOL: "Trendyol", N11: "N11", HEPSIBURADA: "Hepsiburada", IDEFIX: "Idefix",
-        PAZARAMA: "Pazarama", PTTAVM: "ePttAVM", CICEKSEPETI: "Çiçeksepeti",
-    };
+    const sourceLabels = ORDER_SOURCE_LABELS;
     const bySource = Array.from(summary.bySource.entries()).sort((a, b) => b[1].total - a[1].total);
 
     const totalPages = Math.ceil(totalCount / limit);
