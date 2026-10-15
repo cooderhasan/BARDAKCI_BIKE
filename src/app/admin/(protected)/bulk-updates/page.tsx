@@ -1,11 +1,9 @@
 import { prisma } from "@/lib/db";
 import { BulkPriceForm } from "@/components/admin/bulk-price-form";
 import { BulkStockForm } from "@/components/admin/bulk-stock-form";
-import { BulkTrendyolPriceForm } from "@/components/admin/bulk-trendyol-price-form";
+import { BulkMarketplacePriceForm } from "@/components/admin/bulk-marketplace-price-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { BulkN11PriceForm } from "@/components/admin/bulk-n11-price-form";
-import { BulkHbPriceForm } from "@/components/admin/bulk-hb-price-form";
 import { BulkPriceTransferForm } from "@/components/admin/bulk-price-transfer-form";
 
 export default async function BulkUpdatesPage() {
@@ -39,25 +37,17 @@ export default async function BulkUpdatesPage() {
             </div>
 
             <Tabs defaultValue="price" className="w-full">
-                <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 max-w-[1200px]">
+                <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-4 max-w-[900px]">
                     <TabsTrigger value="price">Ana Fiyat</TabsTrigger>
-                    <TabsTrigger value="trendyol">Trendyol Fiyatları</TabsTrigger>
-                    <TabsTrigger value="n11">N11 Fiyatları</TabsTrigger>
-                    <TabsTrigger value="hepsiburada">HB Fiyatları</TabsTrigger>
+                    <TabsTrigger value="marketplace">Pazaryeri Fiyatları</TabsTrigger>
                     <TabsTrigger value="transfer" className="text-emerald-700 bg-emerald-50/50">Fiyat Transferi</TabsTrigger>
                     <TabsTrigger value="stock">Stoklar</TabsTrigger>
                 </TabsList>
                 <TabsContent value="price" className="mt-6">
                     <BulkPriceForm categories={categories} brands={brands} />
                 </TabsContent>
-                <TabsContent value="trendyol" className="mt-6">
-                    <BulkTrendyolPriceForm categories={categories} brands={brands} />
-                </TabsContent>
-                <TabsContent value="n11" className="mt-6">
-                    <BulkN11PriceForm categories={categories} brands={brands} />
-                </TabsContent>
-                <TabsContent value="hepsiburada" className="mt-6">
-                    <BulkHbPriceForm categories={categories} brands={brands} />
+                <TabsContent value="marketplace" className="mt-6">
+                    <BulkMarketplacePriceForm categories={categories} brands={brands} />
                 </TabsContent>
                 <TabsContent value="transfer" className="mt-6">
                     <BulkPriceTransferForm categories={categories} brands={brands} />

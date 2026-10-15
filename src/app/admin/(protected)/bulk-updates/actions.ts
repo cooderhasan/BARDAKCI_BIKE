@@ -301,66 +301,75 @@ export async function executeBulkStockUpdate(
     }
 }
 
-// ==================== TRENDYOL PRICE UPDATE ====================
+// ==================== PAZARYERİ FİYATLARI (7 pazaryeri tek yerden) ====================
+// Önceden sadece Trendyol / N11 / HB için ayrı ayrı vardı; Idefix, Pazarama, ePttAVM, Çiçeksepeti yoktu.
 
-export interface TrendyolPricePreviewResult {
+export type MarketplaceKey = "trendyol" | "n11" | "hepsiburada" | "idefix" | "pazarama" | "pttavm" | "ciceksepeti";
+
+const MARKETPLACE_PRICE_CONFIG: Record<MarketplaceKey, { priceField: string; activeField: string; label: string; extraWhere?: any }> = {
+    trendyol: { priceField: "trendyolPrice", activeField: "isTrendyolActive", label: "Trendyol", extraWhere: { barcode: { not: null } } },
+    n11: { priceField: "n11Price", activeField: "isN11Active", label: "N11", extraWhere: { OR: [{ barcode: { not: null } }, { sku: { not: null } }] } },
+    hepsiburada: { priceField: "hepsiburadaPrice", activeField: "isHepsiburadaActive", label: "Hepsiburada" },
+    idefix: { priceField: "idefixPrice", activeField: "isIdefixActive", label: "Idefix" },
+    pazarama: { priceField: "pazaramaPrice", activeField: "isPazaramaActive", label: "Pazarama" },
+    pttavm: { priceField: "pttavmPrice", activeField: "isPttavmActive", label: "ePttAVM" },
+    ciceksepeti: { priceField: "ciceksepetiPrice", activeField: "isCiceksepetiActive", label: "Çiçeksepeti" },
+};
+
+export interface MarketplacePricePreviewResult {
     id: string;
     name: string;
     oldPrice: number;
     newPrice: number;
     sku: string | null;
     barcode: string | null;
+    /** Pazaryeri fiyatı girilmemişti; mevcut fiyat olarak liste fiyatı kullanıldı */
+    fromListPrice: boolean;
 }
 
-export async function previewBulkTrendyolPriceUpdate(
+export async function previewBulkMarketplacePriceUpdate(
+    marketplace: MarketplaceKey,
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
-): Promise<TrendyolPricePreviewResult[]> {
+): Promise<MarketplacePricePreviewResult[]> {
     await requireAdmin();
-    const where: any = {
-        ...buildBaseWhere(criteria),
-        isTrendyolActive: true,
-        barcode: { not: null }
-    };
+    const cfg = MARKETPLACE_PRICE_CONFIG[marketplace];
+    if (!cfg) throw new Error("Geçersiz pazaryeri.");
 
-    const products = await prisma.product.findMany({
+    // Sadece o pazaryerinde aktif ürünler
+    const where: any = { ...buildBaseWhere(criteria), [cfg.activeField]: true, ...(cfg.extraWhere || {}) };
+
+    const products: any[] = await prisma.product.findMany({
         where,
-        select: {
-            id: true,
-            name: true,
-            trendyolPrice: true,
-            listPrice: true,
-            sku: true,
-            barcode: true,
-        },
+        select: { id: true, name: true, sku: true, barcode: true, listPrice: true, [cfg.priceField]: true } as any,
     });
 
     return products.map((p) => {
-        // Trendyol price defaults to listPrice if not set
-        const oldPrice = p.trendyolPrice ? Number(p.trendyolPrice) : Number(p.listPrice);
+        const own = p[cfg.priceField] != null ? Number(p[cfg.priceField]) : 0;
+        // Pazaryeri fiyatı boşsa o pazaryerine zaten liste fiyatı gidiyor; hesap ondan yapılır
+        const oldPrice = own > 0 ? own : Number(p.listPrice);
         let newPrice = oldPrice;
-
         if (params.type === "PERCENTAGE") {
             const amount = oldPrice * (params.value / 100);
             newPrice = params.operation === "INCREASE" ? oldPrice + amount : oldPrice - amount;
         } else {
             newPrice = params.operation === "INCREASE" ? oldPrice + params.value : oldPrice - params.value;
         }
-
         if (newPrice < 0) newPrice = 0;
-
         return {
             id: p.id,
             name: p.name,
             oldPrice,
             newPrice: Number(newPrice.toFixed(2)),
             sku: p.sku,
-            barcode: p.barcode
+            barcode: p.barcode,
+            fromListPrice: !(own > 0),
         };
     });
 }
 
-export async function executeBulkTrendyolPriceUpdate(
+export async function executeBulkMarketplacePriceUpdate(
+    marketplace: MarketplaceKey,
     criteria: BulkUpdateCriteria,
     params: PriceUpdateParams
 ) {
@@ -369,8 +378,10 @@ export async function executeBulkTrendyolPriceUpdate(
     if (!session?.user?.id) {
         throw new Error("Unauthorized");
     }
+    const cfg = MARKETPLACE_PRICE_CONFIG[marketplace];
+    if (!cfg) throw new Error("Geçersiz pazaryeri.");
 
-    const preview = await previewBulkTrendyolPriceUpdate(criteria, params);
+    const preview = await previewBulkMarketplacePriceUpdate(marketplace, criteria, params);
     const CHUNK_SIZE = 50;
 
     try {
@@ -380,279 +391,29 @@ export async function executeBulkTrendyolPriceUpdate(
                 chunk.map((item) =>
                     prisma.product.update({
                         where: { id: item.id },
-                        data: { trendyolPrice: item.newPrice },
+                        data: { [cfg.priceField]: item.newPrice } as any,
                     })
                 )
             );
         }
 
-        // Log the action
         await prisma.adminLog.create({
             data: {
-                action: "BULK_TRENDYOL_PRICE_UPDATE",
-                details: `Updated ${preview.length} products' Trendyol prices. Criteria: ${JSON.stringify(criteria)}, Params: ${JSON.stringify(params)}`,
+                action: `BULK_${marketplace.toUpperCase()}_PRICE_UPDATE`,
+                details: `Updated ${preview.length} products' ${cfg.label} prices. Criteria: ${JSON.stringify(criteria)}, Params: ${JSON.stringify(params)}`,
                 entityId: "BULK",
                 entityType: "PRODUCT",
                 adminId: session.user.id,
             }
         });
 
-        // Add Marketplace Sync Job
-        try {
-            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-            const productIds = preview.map(p => p.id);
-            if (productIds.length > 0) {
-                await addMarketplaceSyncJob({ 
-                    marketplace: "trendyol", 
-                    type: "prices", 
-                    productIds 
-                });
-            }
-        } catch (e) {
-            console.error("Bulk Trendyol price sync queue error:", e);
-        }
+        // Sadece bu pazaryerine gönderilir
+        await enqueuePriceSync(preview.map(p => p.id), [marketplace]);
 
         return { success: true, count: preview.length };
     } catch (error) {
-        console.error("Bulk Trendyol price update error:", error);
-        throw new Error("Trendyol toplu fiyat güncelleme sırasında hata oluştu.");
-    }
-}
-// ==================== N11 PRICE UPDATE ====================
-
-export interface N11PricePreviewResult {
-    id: string;
-    name: string;
-    oldPrice: number;
-    newPrice: number;
-    sku: string | null;
-    barcode: string | null;
-}
-
-export async function previewBulkN11PriceUpdate(
-    criteria: BulkUpdateCriteria,
-    params: PriceUpdateParams
-): Promise<N11PricePreviewResult[]> {
-    await requireAdmin();
-    const where: any = {
-        ...buildBaseWhere(criteria),
-        isN11Active: true,
-        OR: [
-            { barcode: { not: null } },
-            { sku: { not: null } }
-        ]
-    };
-
-    const products = await prisma.product.findMany({
-        where,
-        select: {
-            id: true,
-            name: true,
-            n11Price: true,
-            listPrice: true,
-            sku: true,
-            barcode: true,
-        },
-    });
-
-    return products.map((p) => {
-        // N11 price defaults to listPrice if not set
-        const oldPrice = p.n11Price ? Number(p.n11Price) : Number(p.listPrice);
-        let newPrice = oldPrice;
-
-        if (params.type === "PERCENTAGE") {
-            const amount = oldPrice * (params.value / 100);
-            newPrice = params.operation === "INCREASE" ? oldPrice + amount : oldPrice - amount;
-        } else {
-            newPrice = params.operation === "INCREASE" ? oldPrice + params.value : oldPrice - params.value;
-        }
-
-        if (newPrice < 0) newPrice = 0;
-
-        return {
-            id: p.id,
-            name: p.name,
-            oldPrice,
-            newPrice: Number(newPrice.toFixed(2)),
-            sku: p.sku,
-            barcode: p.barcode
-        };
-    });
-}
-
-export async function executeBulkN11PriceUpdate(
-    criteria: BulkUpdateCriteria,
-    params: PriceUpdateParams
-) {
-    await requireAdmin();
-    const session = await auth();
-    if (!session?.user?.id) {
-        throw new Error("Unauthorized");
-    }
-
-    const preview = await previewBulkN11PriceUpdate(criteria, params);
-    const CHUNK_SIZE = 50;
-
-    try {
-        for (let i = 0; i < preview.length; i += CHUNK_SIZE) {
-            const chunk = preview.slice(i, i + CHUNK_SIZE);
-            await prisma.$transaction(
-                chunk.map((item) =>
-                    prisma.product.update({
-                        where: { id: item.id },
-                        data: { n11Price: item.newPrice },
-                    })
-                )
-            );
-        }
-
-        // Log the action
-        await prisma.adminLog.create({
-            data: {
-                action: "BULK_N11_PRICE_UPDATE",
-                details: `Updated ${preview.length} products' N11 prices. Criteria: ${JSON.stringify(criteria)}, Params: ${JSON.stringify(params)}`,
-                entityId: "BULK",
-                entityType: "PRODUCT",
-                adminId: session.user.id,
-            }
-        });
-
-        // Add Marketplace Sync Job
-        try {
-            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-            const productIds = preview.map(p => p.id);
-            if (productIds.length > 0) {
-                await addMarketplaceSyncJob({ 
-                    marketplace: "n11", 
-                    type: "stocks", // Use stocks type for now as it handles both price/stock in N11
-                    productIds 
-                });
-            }
-        } catch (e) {
-            console.error("Bulk N11 price sync queue error:", e);
-        }
-
-        return { success: true, count: preview.length };
-    } catch (error) {
-        console.error("Bulk N11 price update error:", error);
-        throw new Error("N11 toplu fiyat güncelleme sırasında hata oluştu.");
-    }
-}
-
-// ==================== HEPSIBURADA PRICE UPDATE ====================
-
-export interface HepsiburadaPricePreviewResult {
-    id: string;
-    name: string;
-    oldPrice: number;
-    newPrice: number;
-    sku: string | null;
-    barcode: string | null;
-}
-
-export async function previewBulkHepsiburadaPriceUpdate(
-    criteria: BulkUpdateCriteria,
-    params: PriceUpdateParams
-): Promise<HepsiburadaPricePreviewResult[]> {
-    await requireAdmin();
-    const where: any = {
-        ...buildBaseWhere(criteria),
-        isHepsiburadaActive: true,
-    };
-
-    const products = await prisma.product.findMany({
-        where,
-        select: {
-            id: true,
-            name: true,
-            hepsiburadaPrice: true,
-            listPrice: true,
-            sku: true,
-            barcode: true,
-        },
-    });
-
-    return products.map((p) => {
-        // Hepsiburada price defaults to listPrice if not set
-        const oldPrice = p.hepsiburadaPrice ? Number(p.hepsiburadaPrice) : Number(p.listPrice);
-        let newPrice = oldPrice;
-
-        if (params.type === "PERCENTAGE") {
-            const amount = oldPrice * (params.value / 100);
-            newPrice = params.operation === "INCREASE" ? oldPrice + amount : oldPrice - amount;
-        } else {
-            newPrice = params.operation === "INCREASE" ? oldPrice + params.value : oldPrice - params.value;
-        }
-
-        if (newPrice < 0) newPrice = 0;
-
-        return {
-            id: p.id,
-            name: p.name,
-            oldPrice,
-            newPrice: Number(newPrice.toFixed(2)),
-            sku: p.sku,
-            barcode: p.barcode
-        };
-    });
-}
-
-export async function executeBulkHepsiburadaPriceUpdate(
-    criteria: BulkUpdateCriteria,
-    params: PriceUpdateParams
-) {
-    await requireAdmin();
-    const session = await auth();
-    if (!session?.user?.id) {
-        throw new Error("Unauthorized");
-    }
-
-    const preview = await previewBulkHepsiburadaPriceUpdate(criteria, params);
-    const CHUNK_SIZE = 50;
-
-    try {
-        for (let i = 0; i < preview.length; i += CHUNK_SIZE) {
-            const chunk = preview.slice(i, i + CHUNK_SIZE);
-            await prisma.$transaction(
-                chunk.map((item) =>
-                    prisma.product.update({
-                        where: { id: item.id },
-                        data: { hepsiburadaPrice: item.newPrice },
-                    })
-                )
-            );
-        }
-
-        // Log the action
-        await prisma.adminLog.create({
-            data: {
-                action: "BULK_HEPSIBURADA_PRICE_UPDATE",
-                details: `Updated ${preview.length} products' Hepsiburada prices. Criteria: ${JSON.stringify(criteria)}, Params: ${JSON.stringify(params)}`,
-                entityId: "BULK",
-                entityType: "PRODUCT",
-                adminId: session.user.id,
-            }
-        });
-
-        // Add Marketplace Sync Job
-        try {
-            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-            const productIds = preview.map(p => p.id);
-            if (productIds.length > 0) {
-                await addMarketplaceSyncJob({ 
-                    marketplace: "hepsiburada", 
-                    type: "stocks", 
-                    productIds 
-                });
-            }
-        } catch (e) {
-            console.error("Bulk Hepsiburada price sync queue error:", e);
-        }
-
-        return { success: true, count: preview.length };
-    } catch (error) {
-        console.error("Bulk Hepsiburada price update error:", error);
-        throw new Error("Hepsiburada toplu fiyat güncelleme sırasında hata oluştu.");
+        console.error(`Bulk ${cfg.label} price update error:`, error);
+        throw new Error(`${cfg.label} toplu fiyat güncelleme sırasında hata oluştu.`);
     }
 }
 
