@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { AuthLogo } from "./auth-logo";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Link from "next/link";
-import Image from "next/image";
 import { Lock, KeyRound, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface ResetPasswordFormProps {
@@ -29,15 +29,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
             <div className="w-full max-w-md relative">
                 <div className="backdrop-blur-xl bg-white/80 dark:bg-gray-800/80 rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 overflow-hidden">
                     <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-8 py-10 text-center">
-                        <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg overflow-hidden relative">
-                            {logoUrl ? (
-                                <Image src={logoUrl} alt={siteName || "Logo"} fill className="object-contain p-2" />
-                            ) : (
-                                <span className="text-[#17457C] font-black text-3xl">
-                                    {(siteName || "L").charAt(0).toUpperCase()}
-                                </span>
-                            )}
-                        </div>
+                        <AuthLogo logoUrl={logoUrl} siteName={siteName} variant="onDark" />
                         <h1 className="text-2xl font-bold text-white mb-1">Şifre Sıfırla</h1>
                     </div>
                     <div className="px-8 py-8 text-center space-y-4">
@@ -106,20 +98,7 @@ export function ResetPasswordForm({ logoUrl, siteName }: ResetPasswordFormProps)
                 {/* Header Section */}
                 <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-8 py-10 text-center">
                     {/* Logo */}
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform hover:scale-105 transition-transform overflow-hidden relative">
-                        {logoUrl ? (
-                            <Image
-                                src={logoUrl}
-                                alt={siteName || "Logo"}
-                                fill
-                                className="object-contain p-2"
-                            />
-                        ) : (
-                            <span className="text-[#17457C] font-black text-3xl">
-                                {(siteName || "L").charAt(0).toUpperCase()}
-                            </span>
-                        )}
-                    </div>
+                    <AuthLogo logoUrl={logoUrl} siteName={siteName} variant="onDark" />
                     <h1 className="text-2xl font-bold text-white mb-1">
                         Yeni Şifre Belirle
                     </h1>

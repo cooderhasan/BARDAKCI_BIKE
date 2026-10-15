@@ -1,4 +1,5 @@
 import { getSiteSettings } from "@/lib/settings";
+import { getStoreType, getStoreSettings } from "@/lib/store-helper";
 import { LoginForm } from "@/components/auth/login-form";
 import { Suspense } from "react";
 
@@ -9,8 +10,10 @@ export const metadata = {
 
 export default async function LoginPage() {
     const settings = await getSiteSettings();
-    const logoUrl = settings.logoUrl as string | undefined;
-    const siteName = settings.siteName as string | undefined;
+    // Mağazaya özel logo/ad (motor sitesinde Moto Vitrin); yoksa genel ayarlar
+    const storeSettings = await getStoreSettings(await getStoreType());
+    const logoUrl = (storeSettings.logoUrl || settings.logoUrl) as string | undefined;
+    const siteName = (storeSettings.siteTitle || settings.siteName) as string | undefined;
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 py-8">

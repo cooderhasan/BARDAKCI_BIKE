@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { AuthLogo } from "./auth-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Link from "next/link";
-import Image from "next/image";
 import { Mail, ArrowLeft, Send, CheckCircle2 } from "lucide-react";
 
 interface ForgotPasswordFormProps {
@@ -52,20 +52,7 @@ export function ForgotPasswordForm({ logoUrl, siteName }: ForgotPasswordFormProp
                 {/* Header Section */}
                 <div className="bg-gradient-to-r from-[#17457C] to-[#0f3460] px-8 py-10 text-center">
                     {/* Logo */}
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform hover:scale-105 transition-transform overflow-hidden relative">
-                        {logoUrl ? (
-                            <Image
-                                src={logoUrl}
-                                alt={siteName || "Logo"}
-                                fill
-                                className="object-contain p-2"
-                            />
-                        ) : (
-                            <span className="text-[#17457C] font-black text-3xl">
-                                {(siteName || "L").charAt(0).toUpperCase()}
-                            </span>
-                        )}
-                    </div>
+                    <AuthLogo logoUrl={logoUrl} siteName={siteName} variant="onDark" />
                     <h1 className="text-2xl font-bold text-white mb-1">
                         Şifremi Unuttum
                     </h1>

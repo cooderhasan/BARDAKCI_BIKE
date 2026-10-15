@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AuthLogo } from "./auth-logo";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import Link from "next/link";
-import Image from "next/image";
 import { CheckCircle2, Building2 } from "lucide-react";
 import { registerUser } from "@/app/register/actions";
 import { SearchablePicker } from "@/components/ui/searchable-picker";
@@ -140,20 +140,7 @@ export function RegisterForm({ logoUrl, siteName, isMotor = false }: RegisterFor
     return (
         <Card className="w-full max-w-lg">
             <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-[#17457C] rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden relative shadow-md">
-                    {logoUrl ? (
-                        <Image
-                            src={logoUrl}
-                            alt={siteName || "Logo"}
-                            fill
-                            className="object-contain p-2 bg-white"
-                        />
-                    ) : (
-                        <span className="text-white font-bold text-2xl">
-                            {(siteName || "M").charAt(0).toUpperCase()}
-                        </span>
-                    )}
-                </div>
+                <AuthLogo logoUrl={logoUrl} siteName={siteName} variant="onLight" />
                 <CardTitle className="text-2xl">Üye Kaydı</CardTitle>
                 <CardDescription>
                     Alışverişe başlamak için hemen üye olun.
