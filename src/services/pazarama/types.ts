@@ -72,6 +72,7 @@ export interface PazaramaOrder {
   customerPhone?: string;
   customerEmail?: string;
   recipientName?: string;
+  itemStatuses?: (string | null)[];
   shipmentCode?: string | null;
   cargoCompany?: string | null;
   cargoTrackingNumber?: string | null;

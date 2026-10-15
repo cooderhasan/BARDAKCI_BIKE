@@ -620,6 +620,8 @@ export class PazaramaClient {
               customerName: o.customerName || o.shipmentAddress?.nameSurname || (o.shipmentAddress ? `${o.shipmentAddress.firstName || ""} ${o.shipmentAddress.lastName || ""}`.trim() : "") || "",
               customerPhone: o.shipmentAddress?.phoneNumber || o.customerPhone || "",
               customerEmail: o.customerEmail || o.shipmentAddress?.customerEmail || "",
+              // Gerçek durum kalemde (orderItemStatus); sipariş seviyesindeki orderStatus güncellenmeyebiliyor
+              itemStatuses: (o.items || o.orderItems || []).map((i: any) => (i?.orderItemStatus != null ? String(i.orderItemStatus) : null)),
               // Teslim alacak kişi satın alandan farklı olabilir
               recipientName: o.shipmentAddress?.nameSurname || "",
               // Kargo: anlaşmalı kargoda etiket barkodu kalemdeki shipmentCode (PZ...), firma/takip no cargo nesnesinde

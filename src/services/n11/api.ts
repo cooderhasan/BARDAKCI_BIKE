@@ -174,11 +174,12 @@ export class N11Client {
 
     // --- Order Service ---
 
-    async getOrders(status?: string) {
+    async getOrders(status?: string, page?: number) {
         try {
             // Updated to official endpoint: /rest/delivery/v1/shipmentPackages
             const statusParam = status ? `status=${status}&` : "";
-            const data = await this.callRest(`/rest/delivery/v1/shipmentPackages?${statusParam}size=100&orderByDirection=DESC`);
+            const pageParam = page ? `page=${page}&` : "";
+            const data = await this.callRest(`/rest/delivery/v1/shipmentPackages?${statusParam}${pageParam}size=100&orderByDirection=DESC`);
             return { success: true, ...data };
         } catch (error: any) {
             return { success: false, message: error.message };

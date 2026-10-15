@@ -131,6 +131,9 @@ export function initializeWorker() {
                     const { syncOrdersFromHepsiburada } = await import("@/app/admin/(protected)/integrations/hepsiburada/actions");
                     const result = await syncOrdersFromHepsiburada();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    // Durumu takılı kalan siparişleri HB'ye sorup ileri taşı (sadece ileri, stoğa dokunmaz)
+                    const { runHepsiburadaStatusCatchUp } = await import("@/lib/order-status-runners");
+                    console.log(`✅ HB durum güncelleme:`, await runHepsiburadaStatusCatchUp().catch((e: any) => ({ error: e.message })));
                     return;
                 }
 
@@ -142,6 +145,8 @@ export function initializeWorker() {
                     // Kuyrukta kalan ürün gönderimlerinin sonucunu al (sarı ünlem kalmasın)
                     const taskResult = await resolvePendingN11Tasks().catch((e) => ({ checked: 0, error: e.message }));
                     console.log(`✅ N11 bekleyen görev kontrolü:`, taskResult);
+                    const { runN11StatusCatchUp } = await import("@/lib/order-status-runners");
+                    console.log(`✅ N11 durum güncelleme:`, await runN11StatusCatchUp().catch((e: any) => ({ error: e.message })));
                     return;
                 }
 
@@ -153,6 +158,8 @@ export function initializeWorker() {
                     // "Beklemede" kalan ürünlerin sonucunu al
                     const batchResult = await resolvePendingIdefixBatches().catch((e: any) => ({ checked: 0, error: e.message }));
                     console.log(`✅ Idefix bekleyen işlem kontrolü:`, batchResult);
+                    const { runIdefixStatusCatchUp } = await import("@/lib/order-status-runners");
+                    console.log(`✅ Idefix durum güncelleme:`, await runIdefixStatusCatchUp().catch((e: any) => ({ error: e.message })));
                     return;
                 }
 
@@ -164,6 +171,8 @@ export function initializeWorker() {
                     // "PENDING" kalan ürünlerin gönderim sonucunu al
                     const statusResult = await resolvePendingPazaramaStatuses().catch((e: any) => ({ checked: 0, error: e.message }));
                     console.log(`✅ Pazarama bekleyen durum kontrolü:`, statusResult);
+                    const { runPazaramaStatusCatchUp } = await import("@/lib/order-status-runners");
+                    console.log(`✅ Pazarama durum güncelleme:`, await runPazaramaStatusCatchUp().catch((e: any) => ({ error: e.message })));
                     return;
                 }
 

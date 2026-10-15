@@ -7,6 +7,7 @@ import { isListingLive, formatListingReport } from "@/lib/marketplace-report";
 import { PazaramaClient } from "@/services/pazarama/api";
 import { OrderStatus } from "@prisma/client";
 import { handlePostOrderStockSync } from "@/lib/stock-sync";
+import { leastAdvanced, mapPazaramaItemStatus, orderStatusRank } from "@/lib/order-status-sync";
 
 // ==================== CONFIG ACTIONS ====================
 
@@ -789,9 +790,18 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
       const pzCargoCompany = String(pOrder.cargoCompany || "").trim() || null;
       const pzTrackingUrl = String(pOrder.cargoTrackingUrl || "").trim() || null;
 
+      // Gerçek durum kalemde; sipariş seviyesindeki durum "Alındı"da kalabiliyor
+      const itemNext = leastAdvanced((pOrder.itemStatuses || []).map(mapPazaramaItemStatus));
+
       if (existing) {
         const patch: any = {};
-        if (existing.status !== newStatus) patch.status = newStatus;
+        if (newStatus === OrderStatus.CANCELLED) {
+          if (existing.status !== newStatus) patch.status = newStatus; // iptal: önceki davranış korunur
+        } else if (itemNext && (orderStatusRank(itemNext) ?? -1) > (orderStatusRank(existing.status) ?? 99)) {
+          // Sadece ileri: önceden sipariş seviyesindeki "Alındı" ilerlemiş siparişi geri çekebiliyordu
+          patch.status = itemNext;
+          if (itemNext === "DELIVERED") patch.deliveredAt = new Date();
+        }
         // Sonradan oluşan kargo bilgisini tamamla
         if (pzBarcode && existing.cargoTrackingNumber !== pzBarcode) patch.cargoTrackingNumber = pzBarcode;
         if (pzCargoCompany && existing.cargoCompany !== pzCargoCompany) patch.cargoCompany = pzCargoCompany;
@@ -899,7 +909,7 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
             data: {
               orderNumber: orderNum,
               source: "PAZARAMA",
-              status: newStatus,
+              status: newStatus === OrderStatus.CANCELLED ? newStatus : ((itemNext as OrderStatus) || newStatus),
               total,
               subtotal: total - totalVat,
               discountAmount: 0,
