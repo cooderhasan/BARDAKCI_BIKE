@@ -167,7 +167,7 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
                                             <div className="grid grid-cols-[100px_1fr] items-start">
                                                 <span className="font-bold text-gray-500 uppercase">Adres:</span>
                                                 <span className="font-bold text-gray-900 leading-tight">
-                                                    {shippingAddress?.address || order.user?.address || "Belirtilmedi"}
+                                                    {shippingAddress?.address || shippingAddress?.addressText || order.user?.address || "Belirtilmedi"}
                                                 </span>
                                             </div>
                                             <div className="grid grid-cols-[100px_1fr]">
@@ -197,7 +197,7 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
                                             </div>
                                             <div className="grid grid-cols-[100px_1fr] items-start">
                                                 <span className="font-bold text-gray-900 leading-tight">
-                                                    {shippingAddress?.address || order.user?.address || "Belirtilmedi"}
+                                                    {shippingAddress?.address || shippingAddress?.addressText || order.user?.address || "Belirtilmedi"}
                                                 </span>
                                             </div>
                                             {shippingAddress?.taxNumber && (
@@ -301,10 +301,10 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
                                                         )}
                                                     </td>
                                                     <td className="py-2.5 px-3 text-center font-mono font-bold text-xs text-gray-800">
-                                                        {item.variant?.sku || item.product?.sku || "-"}
+                                                        {item.stockDeducted === false ? "Sitede eşleşmedi" : (item.variant?.sku || item.product?.sku || "-")}
                                                     </td>
                                                     <td className="py-2.5 px-3 text-center font-mono text-xs text-gray-600">
-                                                        {item.variant?.barcode || item.product?.barcode || "-"}
+                                                        {item.stockDeducted === false ? "-" : (item.variant?.barcode || item.product?.barcode || "-")}
                                                     </td>
                                                     <td className="py-2.5 px-3 text-right">
                                                         <span className="inline-block bg-black text-white text-xs font-black px-2.5 py-0.5 rounded-full">

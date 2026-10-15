@@ -91,7 +91,7 @@ export default async function ShippingLabelPage({ params }: { params: Promise<{ 
                         <div className="n11-header">Alıcı Bilgileri</div>
                         <div className="text-sm space-y-1">
                             <p className="font-bold text-base">Ad/Soyad: <span className="ml-4">{shippingAddress?.fullName || "Müşteri"}</span></p>
-                            <p>Adres: <span className="ml-8">{shippingAddress?.address || "-"}</span></p>
+                            <p>Adres: <span className="ml-8">{shippingAddress?.address || shippingAddress?.addressText || "-"}</span></p>
                             <div className="grid grid-cols-3">
                                 <p>Semt: <span className="ml-10">{shippingAddress?.district || "-"}</span></p>
                                 <p>Şehir: <span className="ml-10">{shippingAddress?.city || "-"}</span></p>
@@ -228,7 +228,7 @@ export default async function ShippingLabelPage({ params }: { params: Promise<{ 
                             {shippingAddress?.fullName || shippingAddress?.name || order.user?.companyName || order.user?.email || (order as any).guestEmail || "Müşteri"}
                         </div>
                         <div className="text-lg font-medium whitespace-pre-wrap leading-snug mb-2">
-                            {shippingAddress?.address || order.user?.address || "Adres bilgisi yok"}
+                            {shippingAddress?.address || shippingAddress?.addressText || order.user?.address || "Adres bilgisi yok"}
                         </div>
                         <div className="text-xl font-bold uppercase">
                             {shippingAddress?.district || order.user?.district} / {shippingAddress?.city || order.user?.city}

@@ -874,6 +874,37 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
             where: { orderNumber },
           });
 
+          // Kargo: platform anlaşmalı gönderide etiketteki barkod cargoKey'de, satıcı kargo kodu bildirdiyse cargoTrackingNumber'da gelir
+          const idefixBarcode = String(item.cargoKey || item.cargoTrackingNumber || "").trim() || null;
+          const idefixCargoCompany = String(item.cargoCompany || item.cargoProfileName || "").trim() || null;
+          const idefixTrackingUrl = String(item.cargoTrackingUrl || "").trim() || null;
+          // Teslim alacak kişi (alıcı) satın alandan farklı olabilir: shippingAddress.fullName esas alınır
+          const shipTo = item.shippingAddress || item.invoiceAddress || {};
+          const recipientName = String(shipTo.fullName || `${shipTo.firstName ?? ""} ${shipTo.lastName ?? ""}`.trim() || item.customerContactName || "Idefix Müşterisi");
+          const invoiceTo = item.invoiceAddress || {};
+          const idefixAddress = {
+            fullName: recipientName,
+            address: shipTo.fullAddress || shipTo.address1 || "",
+            addressText: shipTo.fullAddress || shipTo.address1 || "",
+            city: shipTo.city || "",
+            district: shipTo.county || "",
+            phone: shipTo.phone || "",
+            taxNumber: invoiceTo.taxNumber || invoiceTo.identificationNumber || undefined,
+            taxOffice: invoiceTo.taxOffice || undefined,
+          };
+
+          if (existingOrder) {
+            // Daha önce aktarılmış siparişte sonradan oluşan kargo bilgisini ve eksik adresi tamamla
+            const patch: any = {};
+            if (idefixBarcode && existingOrder.cargoTrackingNumber !== idefixBarcode) patch.cargoTrackingNumber = idefixBarcode;
+            if (idefixCargoCompany && existingOrder.cargoCompany !== idefixCargoCompany) patch.cargoCompany = idefixCargoCompany;
+            if (idefixTrackingUrl && existingOrder.trackingUrl !== idefixTrackingUrl) patch.trackingUrl = idefixTrackingUrl;
+            if (!(existingOrder.shippingAddress as any)?.address && idefixAddress.address) patch.shippingAddress = idefixAddress;
+            if (Object.keys(patch).length > 0) {
+              await prisma.order.update({ where: { id: existingOrder.id }, data: patch });
+            }
+          }
+
           if (!existingOrder) {
             const shippingAddr = item.shippingAddress || item.invoiceAddress || {};
             const customerName = item.customerContactName || shippingAddr.fullName || `${shippingAddr.firstName ?? ''} ${shippingAddr.lastName ?? ''}`.trim() || "Idefix Müşterisi";
@@ -970,13 +1001,10 @@ export async function syncOrdersFromIdefix(specificOrderNumber?: string): Promis
                     vatAmount: subtotal * 0.2,
                     guestEmail: customerEmail,
                     notes: isFallbackOrder ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi (barkod: ${item.items?.[0]?.barcode || "-"})` : undefined,
-                    shippingAddress: {
-                      fullName: customerName,
-                      addressText: shippingAddr.fullAddress || shippingAddr.address1 || "Idefix Adresi",
-                      city: shippingAddr.city || "Türkiye",
-                      district: shippingAddr.county || "",
-                      phone: customerPhone,
-                    },
+                    shippingAddress: idefixAddress,
+                    cargoCompany: idefixCargoCompany,
+                    cargoTrackingNumber: idefixBarcode,
+                    trackingUrl: idefixTrackingUrl,
                     items: {
                       create: orderItemsPayload,
                     },
