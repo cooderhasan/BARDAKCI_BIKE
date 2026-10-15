@@ -16,7 +16,7 @@ import { CategoryTreeSelect } from "@/components/ui/category-tree-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createProduct, updateProduct, syncProductToMarketplaces, searchProductsForBundle } from "@/app/admin/(protected)/products/actions";
 import { generateSlug, generateSKU, generateBarcode } from "@/lib/helpers";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Plus, X, ImageIcon, Trash2, Loader2, RefreshCcw, Package, RefreshCw, Brain, Search, AlertTriangle, Copy } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -403,8 +403,50 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         toast.success(`${firstFilledField.label} fiyatı (${Number(priceToApply).toLocaleString("tr-TR")}₺) → ${Object.keys(updates).length} pazaryerine uygulandı.`);
     };
 
+    const marketplaceColors: Record<string, string> = {
+        trendyolPrice: "text-orange-600",
+        n11Price: "text-purple-600",
+        hepsiburadaPrice: "text-orange-600",
+        idefixPrice: "text-purple-600",
+        pazaramaPrice: "text-pink-600",
+        pttavmPrice: "text-teal-600",
+        ciceksepetiPrice: "text-rose-600",
+    };
+
+    // Pazaryeri gönderim seçimlerinin hepsini aç/kapat (Google dahil)
+    const setAllMarketplacesActive = (value: boolean) => {
+        const updates: any = { isGoogleActive: value };
+        marketplacePriceFields.forEach(f => { updates[f.activeKey] = value; });
+        setFormData(prev => ({ ...prev, ...updates }));
+    };
+
+    // Yeni ürün eklerken son eklenen ürünün mağaza / KDV / pazaryeri seçimleri hatırlanır (sadece bu tarayıcıda)
+    const REMEMBER_KEY = "admin_new_product_defaults";
+    const rememberKeys = ["store", "vatRate", "isGoogleActive", ...marketplacePriceFields.map(f => f.activeKey)];
+    const [rememberedApplied, setRememberedApplied] = useState(false);
+    useEffect(() => {
+        if (product) return;
+        try {
+            const raw = localStorage.getItem(REMEMBER_KEY);
+            if (!raw) return;
+            const saved = JSON.parse(raw);
+            const updates: any = {};
+            for (const k of rememberKeys) if (saved && k in saved) updates[k] = saved[k];
+            if (Object.keys(updates).length > 0) {
+                setFormData(prev => ({ ...prev, ...updates }));
+                setRememberedApplied(true);
+            }
+        } catch { /* tarayıcı depolaması yoksa varsayılanlarla devam */ }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // "Kaydet ve Yeni Ekle" butonu ile gönderildiyse kayıttan sonra boş yeni ürün formu açılır
+    const saveAndNewRef = useRef(false);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const saveAndNew = saveAndNewRef.current;
+        saveAndNewRef.current = false;
 
         // Pazaryeri fiyat validasyonu: Diğer pazaryerlerinde fiyat varken boş olan varsa uyar
         const filledMarketplaces = marketplacePriceFields.filter(f => {
@@ -458,7 +500,17 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
             if (result?.success) {
                 toast.success(product ? "Ürün güncellendi" : "Ürün oluşturuldu");
                 if (!product) {
+                    try {
+                        const toSave: any = {};
+                        for (const k of rememberKeys) toSave[k] = (formData as any)[k];
+                        localStorage.setItem(REMEMBER_KEY, JSON.stringify(toSave));
+                    } catch { /* yoksay */ }
                     setTimeout(() => {
+                        if (saveAndNew) {
+                            // Aynı sayfa olduğu için formu tamamen sıfırlamak adına yeniden yüklenir
+                            window.location.assign("/admin/products/new");
+                            return;
+                        }
                         router.push("/admin/products");
                         router.refresh();
                     }, 1000);
@@ -698,8 +750,8 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             <CardTitle>Fiyatlandırma & Stok</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            {/* Liste Fiyatı & İndirimli Fiyat - 2 sütun */}
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            {/* Liste Fiyatı, İndirimli Fiyat, KDV - tek satır */}
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <div className="space-y-2">
                                     <Label htmlFor="listPrice">Liste Fiyatı (₺) *</Label>
                                     <Input
@@ -724,72 +776,6 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     />
                                     <p className="text-[10px] text-gray-500">Girilirse bu fiyat geçerli olur, liste fiyatı üstü çizili görünür.</p>
                                 </div>
-                            </div>
-
-                            {/* Pazaryeri Fiyatları - Alt alta tek sütun */}
-                            <div className="border rounded-lg p-4 bg-gray-50/50 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        🏪 Pazaryeri Fiyatları
-                                    </h4>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={applyPriceToAllMarketplaces}
-                                        className="text-xs h-7 gap-1"
-                                    >
-                                        <Copy className="h-3 w-3" />
-                                        Boş Olanlara İlk Fiyatı Uygula
-                                    </Button>
-                                </div>
-                                <p className="text-[10px] text-gray-500 -mt-1">
-                                    Boş bırakılan pazaryerlerine liste fiyatı gönderilir. Komisyon eklenmiş fiyatları girmeyi unutmayın!
-                                </p>
-
-                                {marketplacePriceFields.map((field) => {
-                                    const price = (formData as any)[field.key];
-                                    const isEmpty = !price || price === "" || Number(price) === 0;
-                                    const isActive = (formData as any)[field.activeKey];
-                                    const hasAnyOtherFilled = marketplacePriceFields.some(f => {
-                                        if (f.key === field.key) return false;
-                                        const v = (formData as any)[f.key];
-                                        return v && v !== "" && Number(v) > 0;
-                                    });
-                                    const showWarning = isEmpty && hasAnyOtherFilled;
-
-                                    const colorMap: Record<string, { label: string; border: string; focus: string }> = {
-                                        trendyolPrice: { label: "text-orange-600", border: "border-orange-200", focus: "focus:border-orange-500" },
-                                        n11Price: { label: "text-purple-600", border: "border-purple-200", focus: "focus:border-purple-500" },
-                                        hepsiburadaPrice: { label: "text-orange-600", border: "border-orange-200", focus: "focus:border-orange-500" },
-                                        idefixPrice: { label: "text-purple-600", border: "border-purple-200", focus: "focus:border-purple-500" },
-                                        pazaramaPrice: { label: "text-pink-600", border: "border-pink-200", focus: "focus:border-pink-500" },
-                                        pttavmPrice: { label: "text-teal-600", border: "border-teal-200", focus: "focus:border-teal-500" },
-                                        ciceksepetiPrice: { label: "text-rose-600", border: "border-rose-200", focus: "focus:border-rose-500" },
-                                    };
-                                    const colors = colorMap[field.key] || { label: "text-gray-600", border: "border-gray-200", focus: "focus:border-gray-500" };
-
-                                    return (
-                                        <div key={field.key} className={`flex items-center gap-3 rounded-md px-3 py-2 ${showWarning ? "bg-amber-50 border border-amber-300" : "bg-white border border-gray-200"}`}>
-                                            <Label htmlFor={field.key} className={`${colors.label} font-medium w-40 shrink-0 text-sm flex items-center gap-1.5`}>
-                                                {showWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
-                                                {field.label}
-                                                {isActive && <span className="text-[9px] bg-green-100 text-green-700 px-1 rounded">AKTİF</span>}
-                                            </Label>
-                                            <Input
-                                                id={field.key}
-                                                type="number"
-                                                step="0.01"
-                                                value={price}
-                                                onChange={(e) => handleChange(field.key, e.target.value)}
-                                                placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺ (Liste)`}
-                                                className={`${colors.border} ${colors.focus} h-9`}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="vatRate">KDV Oranı *</Label>
                                     <Select
@@ -807,10 +793,99 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 </div>
                             </div>
 
+                            {/* Pazaryerleri: gönderim seçimi + fiyat tek yerde (önceden seçim Ayarlar sekmesindeydi) */}
+                            <div className="border rounded-lg p-4 bg-gray-50/50 dark:bg-gray-900/30 space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex flex-wrap items-center gap-2">
+                                        🏪 Pazaryerleri
+                                        {rememberedApplied && (
+                                            <span className="text-[10px] font-normal text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">son eklenen ürünün seçimleri getirildi</span>
+                                        )}
+                                    </h4>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setAllMarketplacesActive(true)}>
+                                            Hepsini Seç
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setAllMarketplacesActive(false)}>
+                                            Hepsini Kaldır
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={applyPriceToAllMarketplaces}
+                                            className="text-xs h-7 gap-1"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            Boş Olanlara İlk Fiyatı Uygula
+                                        </Button>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-gray-500 -mt-1">
+                                    İşaretli pazaryerlerine gönderilir. Boş bırakılan fiyat yerine liste fiyatı gönderilir; komisyon eklenmiş fiyatları girmeyi unutmayın!
+                                </p>
+
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                    {marketplacePriceFields.map((field) => {
+                                        const price = (formData as any)[field.key];
+                                        const isEmpty = !price || price === "" || Number(price) === 0;
+                                        const isActive = Boolean((formData as any)[field.activeKey]);
+                                        const hasAnyOtherFilled = marketplacePriceFields.some(f => {
+                                            if (f.key === field.key) return false;
+                                            const v = (formData as any)[f.key];
+                                            return v && v !== "" && Number(v) > 0;
+                                        });
+                                        const showWarning = isEmpty && hasAnyOtherFilled;
+                                        const color = marketplaceColors[field.key] || "text-gray-700";
+
+                                        return (
+                                            <div key={field.key} className={`rounded-md border px-2.5 py-2 space-y-1.5 ${showWarning ? "bg-amber-50 border-amber-300" : isActive ? "bg-white dark:bg-gray-800 border-gray-300" : "bg-white/60 dark:bg-gray-800/50 border-gray-200"}`}>
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <Checkbox
+                                                        checked={isActive}
+                                                        onCheckedChange={(c) => handleChange(field.activeKey, c === true)}
+                                                    />
+                                                    <span className={`text-sm font-semibold ${color}`}>{field.label}</span>
+                                                    {showWarning && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 ml-auto" />}
+                                                </label>
+                                                <Input
+                                                    id={field.key}
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={price}
+                                                    onChange={(e) => handleChange(field.key, e.target.value)}
+                                                    placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺`}
+                                                    className="h-8 text-sm"
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                    {/* Google Shopping: fiyat boşsa liste fiyatı kullanılır (eski davranış) */}
+                                    <div className={`rounded-md border px-2.5 py-2 space-y-1.5 ${formData.isGoogleActive ? "bg-white dark:bg-gray-800 border-gray-300" : "bg-white/60 dark:bg-gray-800/50 border-gray-200"}`}>
+                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                            <Checkbox
+                                                checked={Boolean(formData.isGoogleActive)}
+                                                onCheckedChange={(c) => handleChange("isGoogleActive", c === true)}
+                                            />
+                                            <span className="text-sm font-semibold text-blue-700">🛒 Google Shopping</span>
+                                        </label>
+                                        <Input
+                                            id="googlePrice"
+                                            type="number"
+                                            step="0.01"
+                                            value={formData.googlePrice}
+                                            onChange={(e) => handleChange("googlePrice", e.target.value)}
+                                            placeholder="Boş = Liste fiyatı"
+                                            className="h-8 text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
                             <hr />
 
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
+                            {/* Kodlar ve stok: iki satır, üçer alan */}
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <div className="space-y-2 relative">
                                     <Label htmlFor="sku">Stok Kodu (SKU)</Label>
                                     <Input
@@ -818,6 +893,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         value={formData.sku}
                                         onChange={(e) => handleChange("sku", e.target.value)}
                                         placeholder="PRD-001"
+                                        className="pr-11"
                                     />
                                     <Button
                                         type="button"
@@ -838,6 +914,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         value={formData.barcode}
                                         onChange={(e) => handleChange("barcode", e.target.value)}
                                         placeholder="869..."
+                                        className="pr-11"
                                     />
                                     <Button
                                         type="button"
@@ -849,11 +926,18 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     >
                                         <RefreshCcw className="h-4 w-4" />
                                     </Button>
-
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="origin">Menşei</Label>
+                                    <Input
+                                        id="origin"
+                                        value={formData.origin}
+                                        onChange={(e) => handleChange("origin", e.target.value)}
+                                        placeholder="Türkiye"
+                                    />
+                                </div>
+
                                 <div className="space-y-2">
                                     <Label htmlFor="stock">Stok Adedi</Label>
                                     <Input
@@ -878,7 +962,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         onChange={(e) => handleChange("criticalStock", e.target.value)}
                                         placeholder="10"
                                     />
-                                    <p className="text-xs text-gray-500">Stok bu seviyeye düştüğünde uyarı gösterilir</p>
+                                    <p className="text-xs text-gray-500">Stok bu seviyeye düşünce uyarı verilir</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="minQuantity">Min. Sipariş Adedi</Label>
@@ -889,16 +973,6 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         onChange={(e) => handleChange("minQuantity", e.target.value)}
                                     />
                                 </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="origin">Menşei</Label>
-                                <Input
-                                    id="origin"
-                                    value={formData.origin}
-                                    onChange={(e) => handleChange("origin", e.target.value)}
-                                    placeholder="Türkiye"
-                                />
                             </div>
                         </CardContent>
                     </Card>
@@ -1386,15 +1460,26 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             <CardTitle>Görünürlük & Etiketler</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base">Aktif Durum</Label>
-                                    <p className="text-sm text-muted-foreground">Ürün mağazada görünür olsun mu?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isActive}
-                                    onCheckedChange={(c) => handleChange("isActive", c)}
-                                />
+                            {/* Aktif + etiketler tek satırda */}
+                            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                                {([
+                                    { key: "isActive", label: "Aktif", hint: "Mağazada görünür" },
+                                    { key: "isFeatured", label: "Öne Çıkan", hint: "Ana sayfa vitrini" },
+                                    { key: "isNew", label: "Yeni Ürün", hint: "\"Yeni\" etiketi" },
+                                    { key: "isBestSeller", label: "Çok Satan", hint: "\"Çok Satan\" etiketi" },
+                                ] as const).map((opt) => (
+                                    <label key={opt.key} className="flex items-start gap-2 p-3 border rounded-lg bg-white dark:bg-gray-800 cursor-pointer select-none">
+                                        <Checkbox
+                                            className="mt-0.5"
+                                            checked={Boolean((formData as any)[opt.key])}
+                                            onCheckedChange={(c) => handleChange(opt.key, c === true)}
+                                        />
+                                        <span className="leading-tight">
+                                            <span className="block text-sm font-medium">{opt.label}</span>
+                                            <span className="block text-[11px] text-muted-foreground">{opt.hint}</span>
+                                        </span>
+                                    </label>
+                                ))}
                             </div>
 
                             {/* Mağaza Seçimi (Çoklu Mağaza Yapısı) */}
@@ -1414,271 +1499,11 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 </select>
                             </div>
 
-                            <hr />
-                            <h3 className="font-semibold text-gray-900 dark:text-white">Pazar Yeri Görünürlüğü</h3>
+                            <p className="text-xs text-muted-foreground">
+                                Pazaryerlerine gönderim seçimi ve fiyatları <strong>Fiyat &amp; Stok</strong> sekmesindedir.
+                            </p>
 
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-orange-50 dark:bg-orange-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-orange-700 dark:text-orange-300">Trendyol Satış</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü Trendyol'a gönder?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isTrendyolActive}
-                                    onCheckedChange={(c) => handleChange("isTrendyolActive", c)}
-                                />
-                            </div>
-
-                            {formData.isTrendyolActive && (
-                                <div className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg bg-orange-50/40 dark:bg-orange-950/10 space-y-1.5">
-                                    <Label htmlFor="trendyolCategoryId" className="text-xs font-semibold text-orange-800 dark:text-orange-300">
-                                        Trendyol Özel Kategori ID (Opsiyonel Override)
-                                    </Label>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Boş bırakılırsa ürünün site kategorisindeki eşleşen Trendyol kategorisi kullanılır. Buraya ID girilirse (örn: 1045) ürün Trendyol'a bu özel kategoriyle gönderilir.
-                                    </p>
-                                    <Input
-                                        id="trendyolCategoryId"
-                                        type="number"
-                                        value={formData.trendyolCategoryId}
-                                        onChange={(e) => handleChange("trendyolCategoryId", e.target.value)}
-                                        placeholder="Örn: 1045"
-                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-purple-700 dark:text-purple-300">N11 Satış</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü N11'e gönder?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isN11Active}
-                                    onCheckedChange={(c) => handleChange("isN11Active", c)}
-                                />
-                            </div>
-
-                            {formData.isN11Active && (
-                                <div className="p-4 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/30 dark:bg-purple-950/10 space-y-3">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="n11CategoryId" className="text-purple-700 dark:text-purple-300 font-semibold text-xs flex items-center gap-1.5">
-                                            <span>N11 Özel Kategori ID (Opsiyonel Override)</span>
-                                        </Label>
-                                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                            Boş bırakılırsa site kategori eşleşmesi kullanılır. Belirli bir alt kategoriye göndermek için N11 Kategori ID girin.
-                                        </p>
-                                        <Input
-                                            id="n11CategoryId"
-                                            type="number"
-                                            value={formData.n11CategoryId}
-                                            onChange={(e) => handleChange("n11CategoryId", e.target.value)}
-                                            placeholder="Örn: 100223"
-                                            className="h-8 text-xs border-purple-200 dark:border-purple-800 focus:border-purple-500 bg-white dark:bg-gray-800 font-mono"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="n11CatalogId" className="text-purple-700 dark:text-purple-300 font-semibold flex items-center gap-1.5">
-                                            <span>N11 Katalog (Buybox) ID</span>
-                                        </Label>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            Eğer ürün barkodu N11 kurallarına (sadece numerik olması gerekir) uymuyorsa, ürünü N11 kataloğundaki bir ürünle eşleştirmek için N11 Katalog ID'sini girebilirsiniz.
-                                        </p>
-                                        <Input
-                                            id="n11CatalogId"
-                                            type="text"
-                                            value={formData.n11CatalogId}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                if (/^\d*$/.test(val)) {
-                                                    handleChange("n11CatalogId", val);
-                                                }
-                                            }}
-                                            placeholder="Örn: 123456789"
-                                            className="border-purple-200 dark:border-purple-800 focus:border-purple-500 bg-white dark:bg-gray-800 font-mono"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-orange-50 dark:bg-orange-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-orange-700 dark:text-orange-300">Hepsiburada Satış</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü Hepsiburada'ya gönder?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isHepsiburadaActive}
-                                    onCheckedChange={(c) => handleChange("isHepsiburadaActive", c)}
-                                />
-                            </div>
-
-                            {formData.isHepsiburadaActive && (
-                                <div className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg bg-orange-50/40 dark:bg-orange-950/10 space-y-1.5">
-                                    <Label htmlFor="hbCategoryId" className="text-xs font-semibold text-orange-800 dark:text-orange-300">
-                                        Hepsiburada Özel Kategori ID (Opsiyonel Override)
-                                    </Label>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
-                                    </p>
-                                    <Input
-                                        id="hbCategoryId"
-                                        type="text"
-                                        value={formData.hbCategoryId}
-                                        onChange={(e) => handleChange("hbCategoryId", e.target.value)}
-                                        placeholder="Örn: 2147483647 veya kategori ID"
-                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-purple-700 dark:text-purple-300">Idefix Satış</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü Idefix'e gönder?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isIdefixActive}
-                                    onCheckedChange={(c) => handleChange("isIdefixActive", c)}
-                                />
-                            </div>
-
-                            {formData.isIdefixActive && (
-                                <div className="p-3 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/40 dark:bg-purple-950/10 space-y-1.5">
-                                    <Label htmlFor="idefixCategoryId" className="text-xs font-semibold text-purple-800 dark:text-purple-300">
-                                        Idefix Özel Kategori ID (Opsiyonel Override)
-                                    </Label>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
-                                    </p>
-                                    <Input
-                                        id="idefixCategoryId"
-                                        type="text"
-                                        value={formData.idefixCategoryId}
-                                        onChange={(e) => handleChange("idefixCategoryId", e.target.value)}
-                                        placeholder="Örn: 12345"
-                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-pink-50 dark:bg-pink-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-pink-700 dark:text-pink-300">🌸 Pazarama Satış</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü Pazarama'ya gönder?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isPazaramaActive}
-                                    onCheckedChange={(c) => handleChange("isPazaramaActive", c)}
-                                />
-                            </div>
-
-                            {formData.isPazaramaActive && (
-                                <div className="p-3 border border-pink-200 dark:border-pink-800 rounded-lg bg-pink-50/40 dark:bg-pink-950/10 space-y-1.5">
-                                    <Label htmlFor="pazaramaCategoryId" className="text-xs font-semibold text-pink-800 dark:text-pink-300">
-                                        🌸 Pazarama Özel Kategori ID (Opsiyonel Override)
-                                    </Label>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
-                                    </p>
-                                    <Input
-                                        id="pazaramaCategoryId"
-                                        type="text"
-                                        value={formData.pazaramaCategoryId}
-                                        onChange={(e) => handleChange("pazaramaCategoryId", e.target.value)}
-                                        placeholder="Örn: 10101 veya kategori ID"
-                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-teal-50 dark:bg-teal-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-teal-700 dark:text-teal-300">📮 ePttAVM Satış</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü ePttAVM'ye gönder?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isPttavmActive}
-                                    onCheckedChange={(c) => handleChange("isPttavmActive", c)}
-                                />
-                            </div>
-
-                            {formData.isPttavmActive && (
-                                <div className="p-3 border border-teal-200 dark:border-teal-800 rounded-lg bg-teal-50/40 dark:bg-teal-950/10 space-y-1.5">
-                                    <Label htmlFor="pttavmCategoryId" className="text-xs font-semibold text-teal-800 dark:text-teal-300">
-                                        ePttAVM Özel Kategori ID (Opsiyonel Override)
-                                    </Label>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
-                                    </p>
-                                    <Input
-                                        id="pttavmCategoryId"
-                                        type="number"
-                                        value={formData.pttavmCategoryId}
-                                        onChange={(e) => handleChange("pttavmCategoryId", e.target.value)}
-                                        placeholder="Örn: 567"
-                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-rose-50 dark:bg-rose-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-rose-700 dark:text-rose-300">🌸 Çiçeksepeti Satış</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü Çiçeksepeti'ye gönder?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isCiceksepetiActive}
-                                    onCheckedChange={(c) => handleChange("isCiceksepetiActive", c)}
-                                />
-                            </div>
-
-                            {formData.isCiceksepetiActive && (
-                                <div className="p-3 border border-rose-200 dark:border-rose-800 rounded-lg bg-rose-50/40 dark:bg-rose-950/10 space-y-1.5">
-                                    <Label htmlFor="ciceksepetiCategoryId" className="text-xs font-semibold text-rose-800 dark:text-rose-300">
-                                        Çiçeksepeti Özel Kategori ID (Opsiyonel Override)
-                                    </Label>
-                                    <p className="text-[11px] text-muted-foreground">
-                                        Boş bırakılırsa site kategori eşleşmesi kullanılır.
-                                    </p>
-                                    <Input
-                                        id="ciceksepetiCategoryId"
-                                        type="text"
-                                        value={formData.ciceksepetiCategoryId}
-                                        onChange={(e) => handleChange("ciceksepetiCategoryId", e.target.value)}
-                                        placeholder="Örn: 14604"
-                                        className="h-8 text-xs bg-white dark:bg-gray-800 font-mono"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-blue-700 dark:text-blue-300">🛒 Google Shopping Feed</Label>
-                                    <p className="text-sm text-muted-foreground">Bu ürünü Google Merchant Center feed'ine ekle?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isGoogleActive}
-                                    onCheckedChange={(c) => handleChange("isGoogleActive", c)}
-                                />
-                            </div>
-
-                            {formData.isGoogleActive && (
-                                <div className="p-4 border border-blue-200 rounded-lg bg-blue-50/50 space-y-3">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="googlePrice" className="text-blue-700">Google Fiyatı (₺) <span className="font-normal text-gray-500">— Boş bırakılırsa liste fiyatı kullanılır</span></Label>
-                                        <Input
-                                            id="googlePrice"
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.googlePrice}
-                                            onChange={(e) => handleChange("googlePrice", e.target.value)}
-                                            placeholder="Varsayılan: Liste Fiyatı"
-                                            className="border-blue-200 focus:border-blue-500"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10 mt-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/10">
                                 <div className="space-y-0.5">
                                     <Label className="text-base text-blue-700 dark:text-blue-300">Pazar Yeri Senkronizasyonu</Label>
                                     <p className="text-sm text-muted-foreground">Fiyat ve stok bilgisini şimdi pazar yerlerine gönder.</p>
@@ -1695,38 +1520,63 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                 </Button>
                             </div>
 
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base">Öne Çıkan</Label>
-                                    <p className="text-sm text-muted-foreground">Ana sayfada vitrine eklensin mi?</p>
+                            {/* Nadiren kullanılan pazaryeri özel kategori kodları: kapalı gelir, değer girilmişse açık gelir */}
+                            <details
+                                className="border rounded-lg bg-white dark:bg-gray-800 group"
+                                open={Boolean(formData.trendyolCategoryId || formData.n11CategoryId || formData.n11CatalogId || formData.hbCategoryId || formData.idefixCategoryId || formData.pazaramaCategoryId || formData.pttavmCategoryId || formData.ciceksepetiCategoryId)}
+                            >
+                                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100">
+                                    Gelişmiş: pazaryeri özel kategori kodları
+                                    <span className="block text-[11px] font-normal text-muted-foreground">Boş bırakılırsa site kategorisinin eşleştiği pazaryeri kategorisi kullanılır.</span>
+                                </summary>
+                                <div className="grid grid-cols-1 gap-3 px-4 pb-4 md:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="trendyolCategoryId" className="text-xs font-semibold text-orange-700">Trendyol Kategori ID</Label>
+                                        <Input id="trendyolCategoryId" type="number" value={formData.trendyolCategoryId} onChange={(e) => handleChange("trendyolCategoryId", e.target.value)} placeholder="Örn: 1045" className="h-8 text-xs font-mono" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="n11CategoryId" className="text-xs font-semibold text-purple-700">N11 Kategori ID</Label>
+                                        <Input id="n11CategoryId" type="number" value={formData.n11CategoryId} onChange={(e) => handleChange("n11CategoryId", e.target.value)} placeholder="Örn: 100223" className="h-8 text-xs font-mono" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="n11CatalogId" className="text-xs font-semibold text-purple-700">N11 Katalog (Buybox) ID</Label>
+                                        <Input
+                                            id="n11CatalogId"
+                                            type="text"
+                                            value={formData.n11CatalogId}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (/^\d*$/.test(val)) {
+                                                    handleChange("n11CatalogId", val);
+                                                }
+                                            }}
+                                            placeholder="Örn: 123456789"
+                                            className="h-8 text-xs font-mono"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">Barkod N11 kuralına (sadece rakam) uymuyorsa ürünü N11 kataloğundaki ürünle eşleştirmek için.</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="hbCategoryId" className="text-xs font-semibold text-orange-700">Hepsiburada Kategori ID</Label>
+                                        <Input id="hbCategoryId" type="text" value={formData.hbCategoryId} onChange={(e) => handleChange("hbCategoryId", e.target.value)} placeholder="Kategori ID" className="h-8 text-xs font-mono" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="idefixCategoryId" className="text-xs font-semibold text-purple-700">Idefix Kategori ID</Label>
+                                        <Input id="idefixCategoryId" type="text" value={formData.idefixCategoryId} onChange={(e) => handleChange("idefixCategoryId", e.target.value)} placeholder="Örn: 12345" className="h-8 text-xs font-mono" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="pazaramaCategoryId" className="text-xs font-semibold text-pink-700">Pazarama Kategori ID</Label>
+                                        <Input id="pazaramaCategoryId" type="text" value={formData.pazaramaCategoryId} onChange={(e) => handleChange("pazaramaCategoryId", e.target.value)} placeholder="Kategori ID" className="h-8 text-xs font-mono" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="pttavmCategoryId" className="text-xs font-semibold text-teal-700">ePttAVM Kategori ID</Label>
+                                        <Input id="pttavmCategoryId" type="number" value={formData.pttavmCategoryId} onChange={(e) => handleChange("pttavmCategoryId", e.target.value)} placeholder="Örn: 567" className="h-8 text-xs font-mono" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="ciceksepetiCategoryId" className="text-xs font-semibold text-rose-700">Çiçeksepeti Kategori ID</Label>
+                                        <Input id="ciceksepetiCategoryId" type="text" value={formData.ciceksepetiCategoryId} onChange={(e) => handleChange("ciceksepetiCategoryId", e.target.value)} placeholder="Örn: 14604" className="h-8 text-xs font-mono" />
+                                    </div>
                                 </div>
-                                <Checkbox
-                                    checked={formData.isFeatured}
-                                    onCheckedChange={(c) => handleChange("isFeatured", c)}
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base">Yeni Ürün</Label>
-                                    <p className="text-sm text-muted-foreground">"Yeni" etiketi gösterilsin mi?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isNew}
-                                    onCheckedChange={(c) => handleChange("isNew", c)}
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-800">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base">Çok Satan</Label>
-                                    <p className="text-sm text-muted-foreground">"Çok Satan" etiketi gösterilsin mi?</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isBestSeller}
-                                    onCheckedChange={(c) => handleChange("isBestSeller", c)}
-                                />
-                            </div>
+                            </details>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -1737,7 +1587,21 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                 <Link href="/admin/products">
                     <Button type="button" variant="outline">Vazgeç</Button>
                 </Link>
-                <Button type="submit" disabled={loading} className="min-w-[120px]">
+                {!product && (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={loading}
+                        onClick={(e) => {
+                            // Enter ile gönderimde tetiklenmesin diye submit değil; formu kendisi gönderir (doğrulama dahil)
+                            saveAndNewRef.current = true;
+                            e.currentTarget.form?.requestSubmit();
+                        }}
+                    >
+                        Kaydet ve Yeni Ekle
+                    </Button>
+                )}
+                <Button type="submit" disabled={loading} className="min-w-[120px]" onClick={() => { saveAndNewRef.current = false; }}>
                     {loading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
