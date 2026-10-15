@@ -286,6 +286,9 @@ export function initializeWorker() {
     });
 
     console.log("👷‍♂️ Marketplace Sync Worker başlatıldı.");
+
+    // Otomatik e-fatura kuyruğu (site siparişi kargolandı olunca NES)
+    import("./invoice-queue").then(({ initializeInvoiceWorker }) => initializeInvoiceWorker()).catch((e) => console.error("Fatura kuyruğu başlatılamadı:", e));
     
     // Setup crons
     setupRepeatableJobs().catch(console.error);

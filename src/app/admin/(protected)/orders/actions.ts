@@ -83,6 +83,12 @@ export async function updateOrderStatus(
             },
         });
 
+        // Site siparişi kargolandı yapıldıysa e-fatura otomatik kesilsin (kuyrukla, 7 sn arayla)
+        if (status === "SHIPPED" && order?.status !== "SHIPPED") {
+            const { enqueueAutoInvoices } = await import("@/lib/queue/invoice-queue");
+            await enqueueAutoInvoices([orderId]);
+        }
+
         revalidatePath("/admin/orders");
         return { success: true };
     } catch (error) {
@@ -231,6 +237,12 @@ export async function bulkUpdateOrderStatus(
                 newData: { orderIds, status },
             },
         });
+
+        // Toplu kargolandı (kargo toplayıcısı geldiğinde): site siparişlerinin e-faturası kuyrukla sırayla kesilir
+        if (status === "SHIPPED") {
+            const { enqueueAutoInvoices } = await import("@/lib/queue/invoice-queue");
+            await enqueueAutoInvoices(orderIds);
+        }
 
         revalidatePath("/admin/orders");
         return { success: true };
