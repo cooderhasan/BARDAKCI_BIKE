@@ -17,6 +17,9 @@ interface BulkUpdateCriteria {
 
 /** Tüm toplu işlemlerde ortak filtre: marka, kategori(ler), mağaza */
 function buildBaseWhere(criteria: BulkUpdateCriteria): any {
+    // Kategori açıkça seçilmeli: belirli kategoriler ya da "ALL". Boş gelirse yanlışlıkla tüm ürünler etkilenmesin.
+    const hasCategory = (criteria.categoryIds && criteria.categoryIds.length > 0) || !!criteria.categoryId;
+    if (!hasCategory) throw new Error("Kategori seçilmedi. Kategori seçin ya da 'Tüm Kategoriler'i açın.");
     const where: any = {};
     if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
     if (criteria.categoryIds && criteria.categoryIds.length > 0) {

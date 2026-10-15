@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,16 @@ export function BulkN11PriceForm({ categories, brands }: BulkN11PriceFormProps) 
     const [loading, setLoading] = useState(false);
     const [previewResults, setPreviewResults] = useState<N11PricePreviewResult[] | null>(null);
 
+    // Filtre veya değer değişince eski önizleme geçersiz olur: temizlenir, "Uygula" yeni önizleme ister
+    // (önceden Uygula önizlemedeki listeyi değil o anki filtreleri kullanıyordu)
+    useEffect(() => { setPreviewResults(null); }, [selectedBrand, selectedStore, selectedCategories, isAllCategories, operation, updateType, value]);
+
     const handlePreview = async () => {
+        // Kategori seçilmeden işlem yapılmaz (önceden seçilmezse markanın/tüm ürünler etkileniyordu)
+        if (!isAllCategories && selectedCategories.length === 0) {
+            toast.error("Kategori seçin ya da 'Tüm Kategoriler'i açın.");
+            return;
+        }
         if (!value || Number(value) < 0) {
             toast.error("Geçerli bir değer giriniz.");
             return;
@@ -172,7 +181,7 @@ export function BulkN11PriceForm({ categories, brands }: BulkN11PriceFormProps) 
                                     options={categories}
                                     selected={selectedCategories}
                                     onChange={setSelectedCategories}
-                                    placeholder="Kategori Seçin (Opsiyonel)"
+                                    placeholder="Kategori Seçin"
                                 />
                             )}
                         </div>
