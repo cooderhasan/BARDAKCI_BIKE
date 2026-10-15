@@ -51,7 +51,7 @@ export async function getStaleOrders(source: string, limit = 25) {
         },
         orderBy: { updatedAt: "asc" },
         take: limit,
-        select: { id: true, orderNumber: true, status: true, shipmentPackageId: true },
+        select: { id: true, orderNumber: true, status: true, shipmentPackageId: true, createdAt: true },
     });
 }
 
@@ -68,7 +68,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export async function catchUpStaleOrders(
     source: string,
-    resolve: (order: { orderNumber: string; shipmentPackageId: string | null }) => Promise<Forward | null>,
+    resolve: (order: { orderNumber: string; shipmentPackageId: string | null; createdAt: Date }) => Promise<Forward | null>,
     opts: { limit?: number; delayMs?: number } = {},
 ): Promise<{ checked: number; advanced: number }> {
     let checked = 0;
@@ -77,7 +77,7 @@ export async function catchUpStaleOrders(
         const stale = await getStaleOrders(source, opts.limit ?? 25);
         for (const o of stale) {
             try {
-                const next = await resolve({ orderNumber: o.orderNumber, shipmentPackageId: o.shipmentPackageId });
+                const next = await resolve({ orderNumber: o.orderNumber, shipmentPackageId: o.shipmentPackageId, createdAt: o.createdAt });
                 checked++;
                 if (await advanceOrderStatus(o, next)) advanced++;
                 else await markChecked(o.id);
@@ -128,4 +128,14 @@ export function mapPazaramaItemStatus(s: any): Forward | null {
 
 export function orderStatusRank(s: string): number | undefined {
     return RANK[s];
+}
+
+/** N11 shipmentPackageStatus (dokümandaki değerler; örnekte başında boşluk olabiliyor) */
+export function mapN11PackageStatus(s: any): Forward | null {
+    const v = String(s || "").trim().toLowerCase();
+    if (v === "created") return "CONFIRMED";
+    if (v === "picking") return "PROCESSING";
+    if (v === "shipped") return "SHIPPED";
+    if (v === "delivered") return "DELIVERED";
+    return null; // Cancelled, UnPacked, UnSupplied
 }

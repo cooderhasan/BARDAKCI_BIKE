@@ -187,6 +187,18 @@ export class N11Client {
     }
 
     /**
+     * Sipariş numarasıyla paket sorgusu (GetShipmentPackages ?orderNumber=).
+     * Doküman: tarih verilmezse sadece son 15 gün listelenir; bu yüzden siparişin tarihi etrafında
+     * en fazla 15 günlük aralık verilir (ms timestamp). Dönen paketlerde durum shipmentPackageStatus'tadır.
+     */
+    async getPackagesByOrderNumber(orderNumber: string, startMs: number, endMs: number) {
+        const data = await this.callRest(
+            `/rest/delivery/v1/shipmentPackages?orderNumber=${encodeURIComponent(orderNumber)}&startDate=${startMs}&endDate=${endMs}&page=0&size=100`
+        );
+        return (data?.content || []) as any[];
+    }
+
+    /**
      * Approves an order by its line IDs
      * Official Doc: PUT https://api.n11.com/rest/order/v1/update
      */

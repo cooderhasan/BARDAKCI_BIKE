@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/db";
 import {
-    advanceOrderStatus,
     catchUpStaleOrders,
     leastAdvanced,
     mapHepsiburadaItemStatus,
     mapIdefixStatus,
     mapPazaramaItemStatus,
+    mapN11PackageStatus,
 } from "@/lib/order-status-sync";
 
 /**
@@ -68,54 +68,20 @@ export async function runPazaramaStatusCatchUp() {
 }
 
 /**
- * N11: paket listesi durum filtresiyle (Shipped / Delivered) çekilir ve eşleşen siparişler ilerletilir.
- * Filtre geçersizse liste boş/hatalı döner ve hiçbir şey değişmez.
+ * N11: sipariş numarasıyla paket sorgusu (dokümana göre). Tarih verilmezse sadece son 15 gün döndüğü için
+ * siparişin oluşturulma tarihi etrafında 14 günlük aralık verilir. Bölünmüş siparişte en az ilerlemiş paket esas.
  */
 export async function runN11StatusCatchUp() {
     const config = await (prisma as any).n11Config.findFirst();
     if (!config) return { checked: 0, advanced: 0 };
     const { N11Client } = await import("@/services/n11/api");
     const client = new N11Client({ apiKey: config.apiKey, apiSecret: config.apiSecret });
-
-    let checked = 0;
-    let advanced = 0;
-    const lists: Array<{ status: string; next: "SHIPPED" | "DELIVERED" }> = [
-        { status: "Shipped", next: "SHIPPED" },
-        { status: "Delivered", next: "DELIVERED" },
-    ];
-    for (const { status, next } of lists) {
-        for (let page = 0; page < 5; page++) {
-            let res: any;
-            try {
-                res = await client.getOrders(status, page);
-            } catch {
-                break;
-            }
-            const pkgs: any[] = res?.success === false ? [] : (res?.content || []);
-            if (pkgs.length === 0) break;
-            for (const pkg of pkgs) {
-                const orderNum = String(pkg?.orderNumber || "").trim();
-                const pkgId = String(pkg?.id || "").trim();
-                if (!orderNum && !pkgId) continue;
-                const order = await prisma.order.findFirst({
-                    where: {
-                        source: "N11",
-                        status: { in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"] },
-                        OR: [
-                            ...(orderNum ? [{ orderNumber: orderNum }] : []),
-                            ...(pkgId ? [{ shipmentPackageId: pkgId }] : []),
-                        ],
-                    },
-                    select: { id: true, status: true },
-                });
-                if (!order) continue;
-                checked++;
-                if (await advanceOrderStatus(order, next)) advanced++;
-            }
-            if (pkgs.length < 100) break;
-            await new Promise((r) => setTimeout(r, 500));
-        }
-    }
-    if (advanced > 0) console.log(`[status-sync] N11: ${checked} kontrol, ${advanced} ilerletildi`);
-    return { checked, advanced };
+    const DAY = 24 * 60 * 60 * 1000;
+    return catchUpStaleOrders("N11", async ({ orderNumber, createdAt }) => {
+        const start = createdAt.getTime() - 2 * DAY;
+        const end = Math.min(createdAt.getTime() + 12 * DAY, Date.now() + DAY);
+        const pkgs = await client.getPackagesByOrderNumber(orderNumber, start, end);
+        const mine = pkgs.filter((p: any) => String(p?.orderNumber || "") === String(orderNumber));
+        return leastAdvanced(mine.map((p: any) => mapN11PackageStatus(p?.shipmentPackageStatus)));
+    });
 }
