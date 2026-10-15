@@ -620,6 +620,15 @@ export class PazaramaClient {
               customerName: o.customerName || o.shipmentAddress?.nameSurname || (o.shipmentAddress ? `${o.shipmentAddress.firstName || ""} ${o.shipmentAddress.lastName || ""}`.trim() : "") || "",
               customerPhone: o.shipmentAddress?.phoneNumber || o.customerPhone || "",
               customerEmail: o.customerEmail || o.shipmentAddress?.customerEmail || "",
+              // Teslim alacak kişi satın alandan farklı olabilir
+              recipientName: o.shipmentAddress?.nameSurname || "",
+              // Kargo: anlaşmalı kargoda etiket barkodu kalemdeki shipmentCode (PZ...), firma/takip no cargo nesnesinde
+              shipmentCode: (o.items || []).map((i: any) => i?.shipmentCode).find((x: any) => x) || null,
+              cargoCompany: (o.items || []).map((i: any) => i?.cargo?.companyName).find((x: any) => x) || null,
+              cargoTrackingNumber: (o.items || []).map((i: any) => i?.cargo?.trackingNumber).find((x: any) => x) || null,
+              cargoTrackingUrl: (o.items || []).map((i: any) => i?.cargo?.trackingUrl).find((x: any) => x) || null,
+              billingTaxNumber: o.billingAddress?.taxNumber || o.billingAddress?.identityNumber || null,
+              billingTaxOffice: o.billingAddress?.taxOffice || null,
               deliveryAddress: {
                 address: o.shipmentAddress?.addressDetail || o.shipmentAddress?.displayAddressText || o.shipmentAddress?.address || "",
                 city: o.shipmentAddress?.cityName || o.shipmentAddress?.city || "",

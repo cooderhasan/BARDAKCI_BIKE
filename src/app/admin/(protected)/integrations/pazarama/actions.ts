@@ -784,13 +784,20 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
       });
 
       const newStatus = mapPazaramaStatusToOrderStatus(pOrder.status);
+      // Etikette basılacak kargo kodu: anlaşmalı kargoda shipmentCode (PZ...), yoksa kargo takip no
+      const pzBarcode = String(pOrder.shipmentCode || pOrder.cargoTrackingNumber || "").trim() || null;
+      const pzCargoCompany = String(pOrder.cargoCompany || "").trim() || null;
+      const pzTrackingUrl = String(pOrder.cargoTrackingUrl || "").trim() || null;
 
       if (existing) {
-        if (existing.status !== newStatus) {
-          await prisma.order.update({
-            where: { id: existing.id },
-            data: { status: newStatus },
-          });
+        const patch: any = {};
+        if (existing.status !== newStatus) patch.status = newStatus;
+        // Sonradan oluşan kargo bilgisini tamamla
+        if (pzBarcode && existing.cargoTrackingNumber !== pzBarcode) patch.cargoTrackingNumber = pzBarcode;
+        if (pzCargoCompany && existing.cargoCompany !== pzCargoCompany) patch.cargoCompany = pzCargoCompany;
+        if (pzTrackingUrl && existing.trackingUrl !== pzTrackingUrl) patch.trackingUrl = pzTrackingUrl;
+        if (Object.keys(patch).length > 0) {
+          await prisma.order.update({ where: { id: existing.id }, data: patch });
           updatedCount++;
         }
         continue;
@@ -900,17 +907,20 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
               vatAmount: totalVat,
               guestEmail: pOrder.customerEmail || `pazarama_${orderNum}@customer.com`,
               shippingAddress: {
-                fullName: pOrder.customerName || "Pazarama Müşterisi",
+                fullName: pOrder.recipientName || pOrder.customerName || "Pazarama Müşterisi",
                 address: pOrder.deliveryAddress?.address || "",
                 city: pOrder.deliveryAddress?.city || "",
                 district: pOrder.deliveryAddress?.district || "",
                 phone: pOrder.customerPhone || "",
                 postalCode: pOrder.deliveryAddress?.postalCode || "",
+                taxNumber: pOrder.billingTaxNumber || undefined,
+                taxOffice: pOrder.billingTaxOffice || undefined,
               },
               notes: unmatchedNames.length ? `DİKKAT: Sitede bulunamayan ürün, stok düşülmedi: ${unmatchedNames.join("; ")}` : undefined,
               items: { create: resolvedItems },
-              cargoCompany: (pOrder as any).cargoCompany || (pOrder as any).cargoProviderName || null,
-              cargoTrackingNumber: (pOrder as any).cargoTrackingNumber || null,
+              cargoCompany: pzCargoCompany,
+              cargoTrackingNumber: pzBarcode,
+              trackingUrl: pzTrackingUrl,
               shipmentPackageId: pOrder.id || null,
             },
           });
