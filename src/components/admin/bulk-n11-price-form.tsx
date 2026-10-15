@@ -29,6 +29,7 @@ interface BulkN11PriceFormProps {
 export function BulkN11PriceForm({ categories, brands }: BulkN11PriceFormProps) {
     // Selection State
     const [selectedBrand, setSelectedBrand] = useState<string>("ALL");
+    const [selectedStore, setSelectedStore] = useState<"ALL" | "BIKE" | "MOTOR" | "BOTH">("ALL");
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [isAllCategories, setIsAllCategories] = useState(false);
 
@@ -52,7 +53,9 @@ export function BulkN11PriceForm({ categories, brands }: BulkN11PriceFormProps) 
             const results = await previewBulkN11PriceUpdate(
                 {
                     brandId: selectedBrand,
-                    categoryId: isAllCategories ? "ALL" : (selectedCategories.length > 0 ? selectedCategories[0] : undefined),
+                    categoryId: isAllCategories ? "ALL" : undefined,
+                    categoryIds: isAllCategories ? undefined : selectedCategories,
+                    store: selectedStore,
                 },
                 {
                     operation,
@@ -84,7 +87,9 @@ export function BulkN11PriceForm({ categories, brands }: BulkN11PriceFormProps) 
             await executeBulkN11PriceUpdate(
                 {
                     brandId: selectedBrand,
-                    categoryId: isAllCategories ? "ALL" : (selectedCategories.length > 0 ? selectedCategories[0] : undefined),
+                    categoryId: isAllCategories ? "ALL" : undefined,
+                    categoryIds: isAllCategories ? undefined : selectedCategories,
+                    store: selectedStore,
                 },
                 {
                     operation,
@@ -117,6 +122,21 @@ export function BulkN11PriceForm({ categories, brands }: BulkN11PriceFormProps) 
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-6">
+                        <div className="space-y-2">
+                            <Label>Mağaza</Label>
+                            <Select value={selectedStore} onValueChange={(v: any) => setSelectedStore(v)}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">Tüm Mağazalar</SelectItem>
+                                    <SelectItem value="BIKE">Sadece Bisiklet ürünleri</SelectItem>
+                                    <SelectItem value="MOTOR">Sadece Motor (Moto Vitrin) ürünleri</SelectItem>
+                                    <SelectItem value="BOTH">Sadece Ortak ürünler</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <div className="space-y-2">
                             <Label>Marka</Label>
                             <Select value={selectedBrand} onValueChange={setSelectedBrand}>

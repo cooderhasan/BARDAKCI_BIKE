@@ -54,6 +54,7 @@ export function BulkPriceTransferForm({ categories, brands }: BulkPriceTransferF
 
     // Selection State
     const [selectedBrand, setSelectedBrand] = useState<string>("ALL");
+    const [selectedStore, setSelectedStore] = useState<"ALL" | "BIKE" | "MOTOR" | "BOTH">("ALL");
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [isAllCategories, setIsAllCategories] = useState(true);
 
@@ -93,7 +94,9 @@ export function BulkPriceTransferForm({ categories, brands }: BulkPriceTransferF
             const results = await previewBulkPriceTransfer(
                 {
                     brandId: selectedBrand,
-                    categoryId: isAllCategories ? "ALL" : (selectedCategories.length > 0 ? selectedCategories[0] : undefined),
+                    categoryId: isAllCategories ? "ALL" : undefined,
+                    categoryIds: isAllCategories ? undefined : selectedCategories,
+                    store: selectedStore,
                     sourceField,
                     targetField,
                     onlyEmptyTarget
@@ -127,7 +130,9 @@ export function BulkPriceTransferForm({ categories, brands }: BulkPriceTransferF
             await executeBulkPriceTransfer(
                 {
                     brandId: selectedBrand,
-                    categoryId: isAllCategories ? "ALL" : (selectedCategories.length > 0 ? selectedCategories[0] : undefined),
+                    categoryId: isAllCategories ? "ALL" : undefined,
+                    categoryIds: isAllCategories ? undefined : selectedCategories,
+                    store: selectedStore,
                     sourceField,
                     targetField,
                     onlyEmptyTarget
@@ -244,6 +249,21 @@ export function BulkPriceTransferForm({ categories, brands }: BulkPriceTransferF
                         </div>
 
                         <div className="space-y-4 pt-4 border-t">
+                            <div className="space-y-2">
+                                <Label>Mağaza</Label>
+                                <Select value={selectedStore} onValueChange={(v: any) => setSelectedStore(v)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ALL">Tüm Mağazalar</SelectItem>
+                                        <SelectItem value="BIKE">Sadece Bisiklet ürünleri</SelectItem>
+                                        <SelectItem value="MOTOR">Sadece Motor (Moto Vitrin) ürünleri</SelectItem>
+                                        <SelectItem value="BOTH">Sadece Ortak ürünler</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                             <div className="space-y-2">
                                 <Label>Marka Filtresi</Label>
                                 <Select value={selectedBrand} onValueChange={setSelectedBrand}>

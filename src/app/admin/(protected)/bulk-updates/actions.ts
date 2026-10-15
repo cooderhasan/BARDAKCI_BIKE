@@ -8,7 +8,44 @@ import { auth } from "@/lib/auth";
 interface BulkUpdateCriteria {
     brandId?: string;
     categoryId?: string;
+    /** Birden fazla kategori (önceden seçicide çoklu seçilse de sadece ilki uygulanıyordu) */
+    categoryIds?: string[];
     priceFilter?: "ALL" | "ZERO" | "NON_ZERO";
+    /** Mağaza: BIKE / MOTOR / BOTH (ortak) birebir eşleşir; ALL ya da boş = hepsi */
+    store?: "ALL" | "BIKE" | "MOTOR" | "BOTH";
+}
+
+/** Tüm toplu işlemlerde ortak filtre: marka, kategori(ler), mağaza */
+function buildBaseWhere(criteria: BulkUpdateCriteria): any {
+    const where: any = {};
+    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
+    if (criteria.categoryIds && criteria.categoryIds.length > 0) {
+        where.categories = { some: { id: { in: criteria.categoryIds } } };
+    } else if (criteria.categoryId && criteria.categoryId !== "ALL") {
+        where.categories = { some: { id: criteria.categoryId } };
+    }
+    if (criteria.store && criteria.store !== "ALL") where.store = criteria.store;
+    return where;
+}
+
+const ALL_MARKETPLACES = ["trendyol", "n11", "hepsiburada", "idefix", "pazarama", "pttavm", "ciceksepeti"] as const;
+
+/**
+ * Fiyat değişikliğini pazaryerlerine gönderir. Her iş fiyat + stok (stok - kritik stok) gönderir;
+ * pazaryerinde aktif olmayan ürünler senkron fonksiyonlarında zaten atlanır.
+ */
+async function enqueuePriceSync(productIds: string[], marketplaces: readonly string[] = ALL_MARKETPLACES) {
+    if (productIds.length === 0) return;
+    try {
+        const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
+        await Promise.all(
+            marketplaces.map((m) =>
+                addMarketplaceSyncJob({ marketplace: m as any, type: m === "trendyol" || m === "ciceksepeti" ? "prices" : "stocks", productIds }).catch(console.error)
+            )
+        );
+    } catch (e) {
+        console.error("Toplu fiyat senkron kuyruğu hatası:", e);
+    }
 }
 
 interface PriceUpdateParams {
@@ -23,6 +60,8 @@ export interface PreviewResult {
     oldPrice: number;
     newPrice: number;
     sku: string | null;
+    oldSalePrice?: number | null;
+    newSalePrice?: number | null;
 }
 
 export async function previewBulkUpdate(
@@ -31,11 +70,7 @@ export async function previewBulkUpdate(
 ): Promise<PreviewResult[]> {
     await requireAdmin();
     // 1. Build where clause
-    const where: any = {};
-    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
-    if (criteria.categoryId && criteria.categoryId !== "ALL") {
-        where.categories = { some: { id: criteria.categoryId } };
-    }
+    const where: any = buildBaseWhere(criteria);
 
     // Filter by Price Status
     if (criteria.priceFilter === "ZERO") {
@@ -51,15 +86,13 @@ export async function previewBulkUpdate(
             id: true,
             name: true,
             listPrice: true,
+            salePrice: true,
             sku: true,
         },
     });
 
-    // 3. Calculate new prices
-    return products.map((p) => {
-        const oldPrice = Number(p.listPrice);
+    const apply = (oldPrice: number) => {
         let newPrice = oldPrice;
-
         if (params.type === "PERCENTAGE") {
             const amount = oldPrice * (params.value / 100);
             newPrice = params.operation === "INCREASE" ? oldPrice + amount : oldPrice - amount;
@@ -67,16 +100,25 @@ export async function previewBulkUpdate(
             // FIXED_AMOUNT
             newPrice = params.operation === "INCREASE" ? oldPrice + params.value : oldPrice - params.value;
         }
-
         // Ensure no negative prices
         if (newPrice < 0) newPrice = 0;
+        return Number(newPrice.toFixed(2));
+    };
 
+    // 3. Calculate new prices
+    return products.map((p) => {
+        const oldPrice = Number(p.listPrice);
+        const oldSale = p.salePrice != null ? Number(p.salePrice) : 0;
         return {
             id: p.id,
             name: p.name,
             oldPrice,
-            newPrice: Number(newPrice.toFixed(2)),
+            newPrice: apply(oldPrice),
             sku: p.sku,
+            // İndirimli fiyatı olan üründe indirimli fiyat da aynı işlemle güncellenir
+            // (önceden sadece liste fiyatı değişiyor, site eski indirimli fiyattan satmaya devam ediyordu)
+            oldSalePrice: oldSale > 0 ? oldSale : null,
+            newSalePrice: oldSale > 0 ? apply(oldSale) : null,
         };
     });
 }
@@ -104,7 +146,10 @@ export async function executeBulkUpdate(
                 chunk.map((item) =>
                     prisma.product.update({
                         where: { id: item.id },
-                        data: { listPrice: item.newPrice },
+                        data: {
+                            listPrice: item.newPrice,
+                            ...(item.newSalePrice != null ? { salePrice: item.newSalePrice } : {}),
+                        },
                     })
                 )
             );
@@ -125,19 +170,9 @@ export async function executeBulkUpdate(
         revalidatePath("/");
 
         // --- OTOMATİK PAZARYERİ SENKRONİZASYONU ---
-        try {
-            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-            const productIds = preview.map(p => p.id);
-            if (productIds.length > 0) {
-                await Promise.all([
-                    addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds }).catch(console.error),
-                    addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds }).catch(console.error),
-                    addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds }).catch(console.error)
-                ]);
-            }
-        } catch (e) {
-            console.error("Bulk price sync queue error:", e);
-        }
+        // Kendi fiyatı girilmemiş pazaryerleri liste fiyatını kullandığı için 7 pazaryerinin hepsine gönderilir
+        // (önceden sadece Trendyol/N11/HB'ye gidiyordu)
+        await enqueuePriceSync(preview.map(p => p.id));
 
         return { success: true, count: preview.length };
     } catch (error) {
@@ -164,11 +199,8 @@ export async function previewBulkStockUpdate(
     params: StockUpdateParams
 ): Promise<StockPreviewResult[]> {
     await requireAdmin();
-    const where: any = {};
-    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
-    if (criteria.categoryId && criteria.categoryId !== "ALL") {
-        where.categories = { some: { id: criteria.categoryId } };
-    }
+    // Paket ürünlerin stoğu içeriğinden hesaplanır; toplu stok onlara yazılmaz
+    const where: any = { ...buildBaseWhere(criteria), isBundle: false };
 
     // Note: ignoring priceFilter for stock updates unless requested.
 
@@ -246,15 +278,14 @@ export async function executeBulkStockUpdate(
         revalidatePath("/");
 
         // --- OTOMATİK PAZARYERİ SENKRONİZASYONU ---
+        // Sipariş sonrası stok senkronuyla aynı yol: 7 pazaryeri + kritik stok kuralı.
+        // İçinde bu ürünler olan paketlerin stoğu da yeniden hesaplanıp gönderilir.
         try {
-            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
             const productIds = preview.map(p => p.id);
             if (productIds.length > 0) {
-                await Promise.all([
-                    addMarketplaceSyncJob({ marketplace: "trendyol", type: "stocks", productIds }).catch(console.error),
-                    addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds }).catch(console.error),
-                    addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds }).catch(console.error)
-                ]);
+                const { recalcBundleStocks, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+                const bundleIds = await recalcBundleStocks(prisma, productIds);
+                await handlePostOrderStockSync(Array.from(new Set([...productIds, ...bundleIds])), "site");
             }
         } catch (e) {
             console.error("Bulk stock sync queue error:", e);
@@ -284,14 +315,10 @@ export async function previewBulkTrendyolPriceUpdate(
 ): Promise<TrendyolPricePreviewResult[]> {
     await requireAdmin();
     const where: any = {
+        ...buildBaseWhere(criteria),
         isTrendyolActive: true,
         barcode: { not: null }
     };
-
-    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
-    if (criteria.categoryId && criteria.categoryId !== "ALL") {
-        where.categories = { some: { id: criteria.categoryId } };
-    }
 
     const products = await prisma.product.findMany({
         where,
@@ -405,17 +432,13 @@ export async function previewBulkN11PriceUpdate(
 ): Promise<N11PricePreviewResult[]> {
     await requireAdmin();
     const where: any = {
+        ...buildBaseWhere(criteria),
         isN11Active: true,
         OR: [
             { barcode: { not: null } },
             { sku: { not: null } }
         ]
     };
-
-    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
-    if (criteria.categoryId && criteria.categoryId !== "ALL") {
-        where.categories = { some: { id: criteria.categoryId } };
-    }
 
     const products = await prisma.product.findMany({
         where,
@@ -530,13 +553,9 @@ export async function previewBulkHepsiburadaPriceUpdate(
 ): Promise<HepsiburadaPricePreviewResult[]> {
     await requireAdmin();
     const where: any = {
+        ...buildBaseWhere(criteria),
         isHepsiburadaActive: true,
     };
-
-    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
-    if (criteria.categoryId && criteria.categoryId !== "ALL") {
-        where.categories = { some: { id: criteria.categoryId } };
-    }
 
     const products = await prisma.product.findMany({
         where,
@@ -664,12 +683,7 @@ export async function previewBulkPriceTransfer(
     params: PriceTransferParams
 ): Promise<PriceTransferPreviewResult[]> {
     await requireAdmin();
-    const where: any = {};
-
-    if (criteria.brandId && criteria.brandId !== "ALL") where.brandId = criteria.brandId;
-    if (criteria.categoryId && criteria.categoryId !== "ALL") {
-        where.categories = { some: { id: criteria.categoryId } };
-    }
+    const where: any = buildBaseWhere(criteria);
 
     const products = await prisma.product.findMany({
         where,
@@ -683,18 +697,28 @@ export async function previewBulkPriceTransfer(
             trendyolPrice: true,
             n11Price: true,
             hepsiburadaPrice: true,
-            idefixPrice: true
+            idefixPrice: true,
+            // Önceden bu üçü okunmuyordu: kaynak seçilince hedefler 0'a yazılıyor, hedef seçilince dolu fiyatlar eziliyordu
+            pazaramaPrice: true,
+            pttavmPrice: true,
+            ciceksepetiPrice: true,
         },
     });
 
     const results: PriceTransferPreviewResult[] = [];
 
-    for (const p of products) {
+    const marketplaceFields: PriceField[] = ["trendyolPrice", "n11Price", "hepsiburadaPrice", "idefixPrice", "pazaramaPrice", "pttavmPrice", "ciceksepetiPrice"];
+
+    for (const p of products as any[]) {
         let sourceVal = p[criteria.sourceField] ? Number(p[criteria.sourceField]) : 0;
-        
-        if (!sourceVal && (criteria.sourceField === 'trendyolPrice' || criteria.sourceField === 'n11Price' || criteria.sourceField === 'hepsiburadaPrice' || criteria.sourceField === 'idefixPrice')) {
+
+        // Pazaryeri fiyatı boşsa o pazaryerine zaten liste fiyatı gidiyor; kaynak olarak da onu kullan
+        if (!sourceVal && marketplaceFields.includes(criteria.sourceField)) {
             sourceVal = Number(p.listPrice);
         }
+
+        // Kaynak fiyatı yoksa (ör. indirimli fiyatı olmayan ürün) atla; önceden hedef 0'a yazılıyordu
+        if (!sourceVal || sourceVal <= 0) continue;
 
         let targetVal = p[criteria.targetField] ? Number(p[criteria.targetField]) : 0;
 
@@ -780,23 +804,13 @@ export async function executeBulkPriceTransfer(
             }
         });
 
-        try {
-            const { addMarketplaceSyncJob } = await import("@/lib/queue/producer");
-            const productIds = preview.map(p => p.id);
-            if (productIds.length > 0) {
-                if (criteria.targetField === 'trendyolPrice') {
-                    await addMarketplaceSyncJob({ marketplace: "trendyol", type: "prices", productIds }).catch(() => {});
-                } else if (criteria.targetField === 'n11Price') {
-                    await addMarketplaceSyncJob({ marketplace: "n11", type: "stocks", productIds }).catch(() => {});
-                } else if (criteria.targetField === 'hepsiburadaPrice') {
-                    await addMarketplaceSyncJob({ marketplace: "hepsiburada", type: "stocks", productIds }).catch(() => {});
-                } else if (criteria.targetField === 'idefixPrice') {
-                    await addMarketplaceSyncJob({ marketplace: "idefix", type: "stocks", productIds }).catch(() => {});
-                }
-            }
-        } catch (e) {
-            console.error("Bulk price transfer sync queue error:", e);
-        }
+        // Hedef pazaryeri fiyatıysa o pazaryerine; liste/indirimli fiyatsa (diğerleri onu kullandığı için) hepsine gönder
+        const fieldToMarketplace: Record<string, string> = {
+            trendyolPrice: "trendyol", n11Price: "n11", hepsiburadaPrice: "hepsiburada", idefixPrice: "idefix",
+            pazaramaPrice: "pazarama", pttavmPrice: "pttavm", ciceksepetiPrice: "ciceksepeti",
+        };
+        const target = fieldToMarketplace[criteria.targetField];
+        await enqueuePriceSync(preview.map(p => p.id), target ? [target] : ALL_MARKETPLACES);
 
         return { success: true, count: preview.length };
     } catch (error) {

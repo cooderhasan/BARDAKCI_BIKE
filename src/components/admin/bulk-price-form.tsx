@@ -31,6 +31,7 @@ interface BulkPriceFormProps {
 export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
     // Selection State
     const [selectedBrand, setSelectedBrand] = useState<string>("ALL");
+    const [selectedStore, setSelectedStore] = useState<"ALL" | "BIKE" | "MOTOR" | "BOTH">("ALL");
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [isAllCategories, setIsAllCategories] = useState(false);
     const [priceFilter, setPriceFilter] = useState<"ALL" | "ZERO" | "NON_ZERO">("ALL");
@@ -55,7 +56,9 @@ export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
             const results = await previewBulkUpdate(
                 {
                     brandId: selectedBrand,
-                    categoryId: isAllCategories ? "ALL" : (selectedCategories.length > 0 ? selectedCategories[0] : undefined),
+                    categoryId: isAllCategories ? "ALL" : undefined,
+                    categoryIds: isAllCategories ? undefined : selectedCategories,
+                    store: selectedStore,
                     priceFilter,
                 },
                 {
@@ -81,7 +84,8 @@ export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
 
     const handleExecute = async () => {
         if (!previewResults) return;
-        if (!confirm(`${previewResults.length} ürünün fiyatı güncellenecek. Bu işlem geri alınamaz. Emin misiniz?`)) return;
+        const withSale = previewResults.filter((p) => p.newSalePrice != null).length;
+        if (!confirm(`${previewResults.length} ürünün fiyatı güncellenecek${withSale > 0 ? ` (${withSale} üründe indirimli fiyat da aynı şekilde güncellenecek)` : ""}. Fiyatlar 7 pazaryerine de gönderilecek. Bu işlem geri alınamaz. Emin misiniz?`)) return;
 
         setLoading(true);
         try {
@@ -90,7 +94,9 @@ export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
             await executeBulkUpdate(
                 {
                     brandId: selectedBrand,
-                    categoryId: isAllCategories ? "ALL" : (selectedCategories.length > 0 ? selectedCategories[0] : undefined),
+                    categoryId: isAllCategories ? "ALL" : undefined,
+                    categoryIds: isAllCategories ? undefined : selectedCategories,
+                    store: selectedStore,
                     priceFilter,
                 },
                 {
@@ -122,6 +128,21 @@ export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Mağaza</Label>
+                            <Select value={selectedStore} onValueChange={(v: any) => setSelectedStore(v)}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ALL">Tüm Mağazalar</SelectItem>
+                                    <SelectItem value="BIKE">Sadece Bisiklet ürünleri</SelectItem>
+                                    <SelectItem value="MOTOR">Sadece Motor (Moto Vitrin) ürünleri</SelectItem>
+                                    <SelectItem value="BOTH">Sadece Ortak ürünler</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <div className="space-y-2">
                             <Label>Marka</Label>
                             <Select value={selectedBrand} onValueChange={setSelectedBrand}>
@@ -164,7 +185,7 @@ export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
                                         placeholder="Kategori Seçin (Opsiyonel)"
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        Sadece tek bir kategori seçimi yapınız. Seçilen kategoriye ait ürünler etkilenir.
+                                        Birden fazla kategori seçebilirsiniz; seçilen kategorilerdeki ürünler etkilenir.
                                     </p>
                                 </>
                             )}
@@ -285,12 +306,20 @@ export function BulkPriceForm({ categories, brands }: BulkPriceFormProps) {
                                                         <div className="font-medium">{p.name}</div>
                                                         <div className="text-xs text-muted-foreground">{p.sku}</div>
                                                     </TableCell>
-                                                    <TableCell>{formatPrice(p.oldPrice)}</TableCell>
+                                                    <TableCell>
+                                                        {formatPrice(p.oldPrice)}
+                                                        {p.oldSalePrice != null && (
+                                                            <div className="text-[11px] text-red-600">İndirimli: {formatPrice(p.oldSalePrice)}</div>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell>
                                                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                                     </TableCell>
                                                     <TableCell className="font-bold text-[#17457C]">
                                                         {formatPrice(p.newPrice)}
+                                                        {p.newSalePrice != null && (
+                                                            <div className="text-[11px] font-semibold text-red-600">İndirimli: {formatPrice(p.newSalePrice)}</div>
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
