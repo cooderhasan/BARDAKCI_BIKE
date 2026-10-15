@@ -54,3 +54,14 @@ check_*.js
 debug_*.ts
 check_*.ts
 test_*.ts
+
+# Tek seferlik test/debug script'leri, loglar ve veri dökümleri depoya girmesin
+# (2026-10-15: içlerinde düz metin şifre/API anahtarı vardı)
+/scratch/
+/*.js
+/*.ts
+!/next.config.ts
+/*.log
+/*.pdf
+/*.html
+/tum_urunler.xlsx
