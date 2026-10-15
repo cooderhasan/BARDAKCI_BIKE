@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { resolveHepsiburadaCargoBarcode } from "@/lib/hepsiburada-barcode";
 import { formatPrice, formatDate } from "@/lib/helpers";
 import { getSiteSettings } from "@/lib/settings";
 import { notFound } from "next/navigation";
@@ -49,6 +50,14 @@ export default async function BulkOrderPrintPage({ searchParams }: BulkPrintPage
 
     if (orders.length === 0) {
         notFound();
+    }
+
+    // HB siparişlerinde kargo firması HB'nin paket barkodunu okur; kayıtta yoksa HB'den çekilir (sipariş no basılmasın)
+    for (const o of orders) {
+        if (o.source === "HEPSIBURADA" && !o.cargoTrackingNumber) {
+            const hbBarcode = await resolveHepsiburadaCargoBarcode(o);
+            if (hbBarcode) o.cargoTrackingNumber = hbBarcode;
+        }
     }
 
     const settings = await getSiteSettings();

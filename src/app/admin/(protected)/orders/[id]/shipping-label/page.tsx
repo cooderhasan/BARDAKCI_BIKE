@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { resolveHepsiburadaCargoBarcode } from "@/lib/hepsiburada-barcode";
 import { formatDate } from "@/lib/helpers";
 import { getSiteSettings } from "@/lib/settings";
 import { notFound } from "next/navigation";
@@ -19,6 +20,12 @@ export default async function ShippingLabelPage({ params }: { params: Promise<{ 
 
     if (!order) {
         notFound();
+    }
+
+    // HB siparişinde kargo firması HB'nin paket barkodunu okur; kayıtta yoksa HB'den çekilir (sipariş no basılmasın)
+    if (order.source === "HEPSIBURADA" && !order.cargoTrackingNumber) {
+        const hbBarcode = await resolveHepsiburadaCargoBarcode(order);
+        if (hbBarcode) order.cargoTrackingNumber = hbBarcode;
     }
 
     const settings = await getSiteSettings();

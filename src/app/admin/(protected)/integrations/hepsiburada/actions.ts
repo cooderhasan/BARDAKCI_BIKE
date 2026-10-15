@@ -266,6 +266,8 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                                         // Kargo
                                         cargoCompany: pkg.cargoCompany || lineItem.cargoCompany,
                                         packageNumber: pkg.packageNumber,
+                                        // HB'nin kargo barkodu (etikette basılan barkod; sipariş numarası değil)
+                                        cargoBarcode: pkg.barcode ? String(pkg.barcode) : null,
                                         // Kaynak bilgisi (orders vs packages ayırmak için)
                                         _source: "packages",
                                     });
@@ -341,6 +343,17 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                             await tx.order.delete({ where: { id: existing.id } });
                         });
                     } else {
+                        // Sipariş paketlendiyse HB kargo barkodunu ve paket numarasını kaydet (etikette sipariş no yerine bu basılır)
+                        const pkgItem = items.find((i: any) => i.cargoBarcode);
+                        if (pkgItem && !existing.cargoTrackingNumber) {
+                            await prisma.order.update({
+                                where: { id: existing.id },
+                                data: {
+                                    cargoTrackingNumber: pkgItem.cargoBarcode,
+                                    ...(pkgItem.packageNumber ? { shipmentPackageId: String(pkgItem.packageNumber) } : {}),
+                                },
+                            });
+                        }
                         skippedCount++;
                         continue;
                     }
@@ -505,6 +518,7 @@ export async function syncOrdersFromHepsiburada(specificOrderNumber?: string) {
                             source: "HEPSIBURADA",
                             cargoCompany: cargoCompany,
                             shipmentPackageId: packageId,
+                            cargoTrackingNumber: items.find((i: any) => i.cargoBarcode)?.cargoBarcode || null,
                         }
                     });
 
