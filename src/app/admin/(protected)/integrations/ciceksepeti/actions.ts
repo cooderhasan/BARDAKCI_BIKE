@@ -741,6 +741,15 @@ async function findCiceksepetiOrderProduct(order: any): Promise<{ product: any; 
   return { product: fallback, variantId: null, isFallback: true };
 }
 
+/**
+ * Etikette basılacak kargo kodu. Çiçeksepeti kargo anlaşmasında (cargoModelType 1) kargo firmasına
+ * verilen kod partialNumber'dır ("418284876-10" gibi); cargoNumber kargo firmasının kendi takip numarasıdır.
+ */
+function csCargoCode(order: any): string | null {
+  const v = order?.partialNumber || order?.cargoNumber;
+  return v ? String(v) : null;
+}
+
 export async function syncCiceksepetiOrders() {
   await requireAdmin();
   try {
@@ -919,7 +928,7 @@ export async function syncCiceksepetiOrders() {
           data: {
             status: mappedStatus as any,
             cargoCompany: (order as any).cargoCompany ? String((order as any).cargoCompany) : existingMainOrder.cargoCompany,
-            cargoTrackingNumber: (order as any).cargoNumber ? String((order as any).cargoNumber) : existingMainOrder.cargoTrackingNumber,
+            cargoTrackingNumber: csCargoCode(order) || existingMainOrder.cargoTrackingNumber,
             trackingUrl: (order as any).shipmentTrackingUrl || existingMainOrder.trackingUrl,
           }
         });
@@ -964,7 +973,7 @@ export async function syncCiceksepetiOrders() {
               shippingAddress: shippingAddrJson as any,
               shippingCost: Number((order as any).deliveryCharge || 0),
               cargoCompany: (order as any).cargoCompany ? String((order as any).cargoCompany) : null,
-              cargoTrackingNumber: (order as any).cargoNumber ? String((order as any).cargoNumber) : null,
+              cargoTrackingNumber: csCargoCode(order),
               shipmentPackageId: uniqueKey,
               trackingUrl: (order as any).shipmentTrackingUrl || null,
               source: "CICEKSEPETI",
