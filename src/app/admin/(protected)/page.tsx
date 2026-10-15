@@ -11,6 +11,8 @@ import {
     AlertTriangle,
 } from "lucide-react";
 import { formatPrice, getOrderStatusLabel, getOrderStatusColor } from "@/lib/helpers";
+import { ORDER_SOURCE_LABELS, NON_REVENUE_STATUSES } from "@/lib/order-sources";
+import type { OrderStatus } from "@prisma/client";
 import Link from "next/link";
 
 async function getDashboardStats() {
@@ -32,26 +34,27 @@ async function getDashboardStats() {
             take: 5,
             orderBy: { createdAt: "desc" },
             include: {
-                user: { select: { companyName: true, email: true } },
+                user: { select: { companyName: true, email: true, name: true } },
                 payment: { select: { method: true } },
             },
         }),
-        // Düşük stoklu ürünleri bul
-        prisma.$queryRaw<{ count: bigint }[]>`
-            SELECT COUNT(*) as count FROM products 
-            WHERE "isActive" = true AND stock <= "criticalStock"
+        // Stok durumu: kritik (stokta ama kritik seviyede), tükenmiş ve eksi stoklu ayrı sayılır
+        prisma.$queryRaw<{ criticalCount: bigint; outCount: bigint; negativeCount: bigint }[]>`
+            SELECT
+                COUNT(*) FILTER (WHERE stock > 0 AND stock <= "criticalStock") AS "criticalCount",
+                COUNT(*) FILTER (WHERE stock <= 0) AS "outCount",
+                COUNT(*) FILTER (WHERE stock < 0) AS "negativeCount"
+            FROM products
+            WHERE "isActive" = true
         `,
     ]);
 
-    // Revenue calculation
-    const completedOrders = await prisma.order.findMany({
-        where: { status: { in: ["DELIVERED", "SHIPPED"] } },
-        select: { total: true },
+    // Ciro: Satış Özeti ile aynı kural (iptal ve ödeme bekleyen hariç tüm siparişler)
+    const revenueAgg = await prisma.order.aggregate({
+        where: { status: { notIn: [...NON_REVENUE_STATUSES] as OrderStatus[] } },
+        _sum: { total: true },
     });
-    const totalRevenue = completedOrders.reduce(
-        (sum, order) => sum + Number(order.total),
-        0
-    );
+    const totalRevenue = Number(revenueAgg._sum.total || 0);
 
     return {
         totalProducts,
@@ -59,7 +62,9 @@ async function getDashboardStats() {
         pendingDealers,
         totalOrders,
         pendingOrders,
-        lowStockCount: Number(lowStockProducts[0]?.count || 0),
+        criticalStockCount: Number(lowStockProducts[0]?.criticalCount || 0),
+        outOfStockCount: Number(lowStockProducts[0]?.outCount || 0),
+        negativeStockCount: Number(lowStockProducts[0]?.negativeCount || 0),
         totalRevenue: Number(totalRevenue),
         recentOrders: recentOrders.map((order) => ({
             ...order,
@@ -69,7 +74,7 @@ async function getDashboardStats() {
             total: Number(order.total),
             appliedDiscountRate: Number(order.appliedDiscountRate),
             items: [], // We don't need items for the dashboard summary
-            payment: null, // We don't need payment details for the summary
+            payment: order.payment ? { method: order.payment.method } : null,
         })),
     };
 }
@@ -101,6 +106,9 @@ export default async function AdminDashboardPage() {
                         <div className="text-lg sm:text-2xl font-bold break-words">
                             {formatPrice(stats.totalRevenue)}
                         </div>
+                        <Link href="/admin/reports/sales" className="text-xs text-gray-500 hover:text-[#17457C]">
+                            İptaller hariç · Satış Özeti →
+                        </Link>
                     </CardContent>
                 </Card>
 
@@ -174,18 +182,19 @@ export default async function AdminDashboardPage() {
                 </Card>
             )}
 
-            {/* Low Stock Alert */}
-            {stats.lowStockCount > 0 && (
-                <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+            {/* Stok Uyarısı: kritik, tükenmiş ve eksi stok ayrı */}
+            {(stats.criticalStockCount > 0 || stats.outOfStockCount > 0) && (
+                <Card className={stats.criticalStockCount > 0 ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20" : "border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/20"}>
                     <CardContent className="flex items-center justify-between gap-3 py-4 px-4 sm:px-6">
                         <div className="flex items-center gap-3 min-w-0">
-                            <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" />
+                            <AlertTriangle className={`h-5 w-5 shrink-0 ${stats.criticalStockCount > 0 ? "text-red-600" : "text-gray-500"}`} />
                             <div>
                                 <p className="font-medium text-red-800 dark:text-red-200">
-                                    {stats.lowStockCount} üründe stok kritik seviyede!
+                                    {stats.criticalStockCount > 0 ? `${stats.criticalStockCount} üründe stok kritik seviyede` : "Kritik seviyede ürün yok"}
                                 </p>
-                                <p className="text-sm text-red-600 dark:text-red-400">
-                                    Stok yönetimi için hemen kontrol edin.
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {stats.outOfStockCount} ürün tükendi
+                                    {stats.negativeStockCount > 0 ? ` · ${stats.negativeStockCount} ürün eksi stokta (düzeltilmeli)` : ""}
                                 </p>
                             </div>
                         </div>
@@ -232,7 +241,7 @@ export default async function AdminDashboardPage() {
                                                 {order.orderNumber}
                                             </p>
                                             <p className="text-xs sm:text-sm text-gray-500 truncate">
-                                                {order.user?.companyName || order.user?.email || (order as any).guestEmail || "Misafir"}
+                                                {(order as any).shippingAddress?.fullName || order.user?.companyName || order.user?.name || order.user?.email || (order as any).guestEmail || "Misafir"}
                                             </p>
                                         </div>
                                     </div>
@@ -248,7 +257,9 @@ export default async function AdminDashboardPage() {
                                                 {getOrderStatusLabel(order.status, (order as any).payment?.method)}
                                             </Badge>
                                             <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
-                                                {(order as any).payment?.method === "BANK_TRANSFER" ? "Havale / EFT" : "Kredi Kartı"}
+                                                {order.source && order.source !== "WEB"
+                                                    ? ORDER_SOURCE_LABELS[order.source] || order.source
+                                                    : (order as any).payment?.method === "BANK_TRANSFER" ? "Site · Havale / EFT" : "Site · Kredi Kartı"}
                                             </span>
                                         </div>
                                     </div>

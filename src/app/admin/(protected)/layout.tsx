@@ -10,6 +10,9 @@ import { Toaster } from "@/components/ui/sonner";
 
 export const dynamic = "force-dynamic";
 
+// Tarayıcı sekmesinde mağaza başlığı yerine panel adı görünsün (çok sekme açıkken karışmasın)
+export const metadata = { title: { absolute: "Yönetim Paneli" }, robots: { index: false, follow: false } };
+
 export default async function AdminLayout({
     children,
 }: {
