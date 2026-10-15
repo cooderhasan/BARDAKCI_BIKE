@@ -66,7 +66,9 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(siteUrl),
     title: {
       default: storeTitle,
-      template: `%s | ${storeTitle}`,
+      // Sayfa başlıklarına kısa marka eklenir; uzun slogan (~50 karakter) ürün başlıklarını 100+ karaktere çıkarıyordu,
+      // Google ~60 karakter gösteriyor. Ana sayfa başlığı (default) mağaza ayarındaki tam başlık.
+      template: `%s | ${isMotor ? "Moto Vitrin" : "Bardakcı Bike"}`,
     },
     description: storeDescription,
     keywords: isMotor ? ["Motosiklet", "Yedek Parça", "Motovitrin", "Motosiklet Aksesuar"] : (general.seoKeywords?.split(",") || ["Bisiklet", "Bisiklet Yedek Parça"]),

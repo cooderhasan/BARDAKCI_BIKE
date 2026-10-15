@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { stripHtmlToText } from "@/lib/helpers";
 
 // Google Merchant Center Shopping Feed (RSS 2.0 / Atom XML)
 // URL: /api/feed/google
@@ -75,7 +76,7 @@ export async function GET(request: Request) {
       const mpn = product.mpn || product.sku || "";
 
       const descriptionRaw = product.description
-        ? product.description.replace(/<[^>]*>/g, "").substring(0, 5000)
+        ? stripHtmlToText(product.description).substring(0, 5000)
         : product.name;
         
       // Shipping Weight

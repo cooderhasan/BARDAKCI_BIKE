@@ -7,6 +7,8 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { Metadata } from "next";
 import { getProductReviews, getReviewStats } from "@/app/actions/review";
 import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+import { stripHtmlToText } from "@/lib/helpers";
+import { getStoreSiteUrl } from "@/lib/site-urls";
 
 interface ProductPageProps {
     params: Promise<{ slug: string }>;
@@ -19,7 +21,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
     const product = await prisma.product.findFirst({
         where: { slug, isActive: true, store: storeFilter },
-        select: { name: true, description: true, images: true }
+        select: { name: true, description: true, images: true, store: true }
     });
 
     if (!product) return { title: "Ürün Bulunamadı" };
@@ -33,7 +35,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     );
 
     // Strip HTML tags and create a clean description
-    const cleanDesc = product.description?.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim();
+    const cleanDesc = stripHtmlToText(product.description);
     
     // Truncate cleanly up to ~155 chars, adding ellipsis if it's too long
     const maxDescLength = 155;
@@ -41,12 +43,19 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
         ? (cleanDesc.length > maxDescLength ? cleanDesc.slice(0, maxDescLength).trim() + "..." : cleanDesc)
         : `${product.name} en uygun fiyat ve taksit seçenekleriyle.`;
 
+    // Ortak (BOTH) ürünler iki sitede de yayında; kopya içerik olmasın diye esas sayfa motor sitesi (kullanıcı kararı 2026-10-15)
+    const canonical = product.store === "BOTH" && activeStore !== "MOTOR"
+        ? `${getStoreSiteUrl("MOTOR")}/products/${slug}`
+        : `${siteUrl}/products/${slug}`;
+
     return {
         title: product.name, // Site name is appended automatically by layout.tsx
         description,
         openGraph: {
             title: product.name,
             description,
+            url: canonical,
+            type: "website",
             images: fullImages.length > 0 ? fullImages : undefined,
         },
         twitter: {
@@ -56,7 +65,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
             images: fullImages.length > 0 ? fullImages : undefined,
         },
         alternates: {
-            canonical: `/products/${slug}`
+            canonical
         }
     };
 }
@@ -220,7 +229,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         "@type": "Product",
         "name": product.name,
         "image": absoluteImages.length > 0 ? absoluteImages : undefined,
-        "description": product.description?.replace(/<[^>]*>?/gm, "") || product.name, // Strip HTML
+        "description": stripHtmlToText(product.description) || product.name,
         "sku": product.sku || undefined,
         "mpn": product.mpn || product.sku || undefined,
         "gtin": product.gtin || product.barcode || undefined,

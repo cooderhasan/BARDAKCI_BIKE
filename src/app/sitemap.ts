@@ -72,7 +72,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     let products: { slug: string; updatedAt: Date }[] = [];
     try {
         products = await prisma.product.findMany({
-            where: { isActive: true, store: storeFilter as any },
+            // Ortak (BOTH) ürünlerin esas sayfası motor sitesi; bisiklet haritasında sadece bisiklet ürünleri
+            where: { isActive: true, store: activeStore === "MOTOR" ? (storeFilter as any) : "BIKE" },
             select: { slug: true, updatedAt: true },
         });
     } catch (error) {

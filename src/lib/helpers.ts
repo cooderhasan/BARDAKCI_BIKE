@@ -297,3 +297,22 @@ export function getUserStatusColor(status: string): string {
     };
     return statusColors[status] || "bg-slate-500 text-white";
 }
+
+/**
+ * HTML açıklamayı düz metne çevirir (meta description, yapılandırılmış veri, Google feed için).
+ * Etiketler boşlukla değiştirilir; önceden doğrudan silindiği için "Mint Yeşil</p><p>Ümit" → "Mint YeşilÜmit" oluyordu.
+ */
+export function stripHtmlToText(html: string | null | undefined): string {
+    if (!html) return "";
+    return html
+        .replace(/<(br|\/p|\/div|\/li|\/h[1-6])\s*\/?>/gi, " ")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;|&apos;/gi, "'")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/\s+/g, " ")
+        .trim();
+}

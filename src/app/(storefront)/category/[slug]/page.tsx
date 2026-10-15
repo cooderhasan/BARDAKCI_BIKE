@@ -34,8 +34,9 @@ interface CategoryPageProps {
     }>;
 }
 
-export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: CategoryPageProps): Promise<Metadata> {
     const { slug } = await params;
+    const pageNum = Math.max(1, parseInt((await searchParams)?.page || "1", 10) || 1);
     const category = await prisma.category.findUnique({
         where: { slug },
         select: { name: true, imageUrl: true }
@@ -45,13 +46,16 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
     // Turkish Title Case Helper Function
     const toTitleCase = (str: string) => {
-        return str.toLowerCase().replace(/(?:^|[\s-/])\S/g, (match) => {
+        // tr-TR: "İ".toLowerCase() "i̇" (i + görünmez nokta) üretiyordu; başlıklar "Bi̇si̇klet" gibi çıkıyordu
+        return str.toLocaleLowerCase('tr-TR').replace(/(?:^|[\s-/])\S/g, (match) => {
             return match.toLocaleUpperCase('tr-TR');
         });
     };
     
     const formattedName = toTitleCase(category.name);
-    const seoTitle = `${formattedName} Ürünleri`;
+    // 2. sayfa ve sonrası kendini canonical gösterir (önceden 1. sayfayı gösteriyordu; sonraki sayfalardaki ürünler zor bulunuyordu)
+    const seoTitle = pageNum > 1 ? `${formattedName} Ürünleri - Sayfa ${pageNum}` : `${formattedName} Ürünleri`;
+    const pagePath = pageNum > 1 ? `/category/${slug}?page=${pageNum}` : `/category/${slug}`;
 
     const description = `${formattedName} kategorisindeki en kaliteli ürünleri inceleyin ve karşılaştırın.`;
     const imageUrl = category.imageUrl || "/img/og-default.jpg";
@@ -60,12 +64,12 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
         title: seoTitle, // Root layout will automatically append " | storeTitle"
         description,
         alternates: {
-            canonical: `/category/${slug}`
+            canonical: pagePath
         },
         openGraph: {
             title: seoTitle,
             description,
-            url: `/category/${slug}`,
+            url: pagePath,
             images: [{ url: imageUrl }],
             type: "website",
         }
