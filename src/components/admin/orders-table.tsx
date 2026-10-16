@@ -50,6 +50,7 @@ interface OrdersTableProps {
         totalPages: number;
         totalCount: number;
     };
+    cargoOptions?: { key: string; label: string; count: number }[];
 }
 
 const orderStatuses = [
@@ -62,7 +63,7 @@ const orderStatuses = [
     { value: "CANCELLED", label: "İptal Edildi" },
 ];
 
-export function OrdersTable({ orders: initialOrders, pagination }: OrdersTableProps) {
+export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = [] }: OrdersTableProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -711,7 +712,7 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                     </div>
 
                     {/* Cargo Filter */}
-                    <div className="min-w-0 w-full md:w-[140px] space-y-2">
+                    <div className="min-w-0 w-full md:w-[170px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Kargo</label>
                         <Select value={cargoFilter} onValueChange={setCargoFilter}>
                             <SelectTrigger className="w-full">
@@ -719,9 +720,12 @@ export function OrdersTable({ orders: initialOrders, pagination }: OrdersTablePr
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="ALL">Tümü</SelectItem>
-                                <SelectItem value="YURTICI">Yurtiçi Kargo</SelectItem>
-                                <SelectItem value="ARAS">Aras Kargo</SelectItem>
-                                <SelectItem value="OTHER">Diğer</SelectItem>
+                                {cargoOptions.map((c) => (
+                                    <SelectItem key={c.key} value={c.key}>
+                                        {c.label} ({c.count})
+                                    </SelectItem>
+                                ))}
+                                <SelectItem value="NONE">Kargo bilgisi yok</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

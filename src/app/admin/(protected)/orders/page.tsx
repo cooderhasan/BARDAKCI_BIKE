@@ -3,6 +3,7 @@ import { OrdersTable } from "@/components/admin/orders-table";
 import { OrderStatus } from "@prisma/client";
 import { formatPrice } from "@/lib/helpers";
 import { ORDER_SOURCE_LABELS } from "@/lib/order-sources";
+import { buildCargoGroups, NO_CARGO_KEY } from "@/lib/cargo-groups";
 
 interface OrdersPageProps {
     searchParams: Promise<{
@@ -81,27 +82,18 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         }
     }
 
-    // Cargo Filtering
+    // Kargo filtresi: seçenekler siparişlerdeki gerçek kargo adlarından (lib/cargo-groups)
+    const cargoRows = await prisma.order
+        .groupBy({ by: ["cargoCompany"], _count: { _all: true } })
+        .catch(() => [] as { cargoCompany: string | null; _count: { _all: number } }[]);
+    const cargoGroups = buildCargoGroups(cargoRows.map((r) => ({ name: r.cargoCompany, count: r._count._all })));
     if (cargo && cargo !== "ALL") {
-        if (cargo === "YURTICI") {
-            andClauses.push({
-                OR: [
-                    { cargoCompany: { contains: "Yurt", mode: "insensitive" } },
-                    { cargoCompany: { contains: "Yü", mode: "insensitive" } }
-                ]
-            });
-        } else if (cargo === "ARAS") {
-            andClauses.push({
-                cargoCompany: { contains: "Aras", mode: "insensitive" }
-            });
-        } else if (cargo === "OTHER") {
-            andClauses.push({
-                AND: [
-                    { NOT: { cargoCompany: { contains: "Yurt", mode: "insensitive" } } },
-                    { NOT: { cargoCompany: { contains: "Aras", mode: "insensitive" } } },
-                    { NOT: { cargoCompany: null } }
-                ]
-            });
+        if (cargo === NO_CARGO_KEY) {
+            andClauses.push({ OR: [{ cargoCompany: null }, { cargoCompany: "" }] });
+        } else {
+            const group = cargoGroups.find((g) => g.key === cargo);
+            // Bilinmeyen değer (eski "OTHER" bağlantısı vb.) filtre uygulamaz
+            if (group) andClauses.push({ cargoCompany: { in: group.names } });
         }
     }
 
@@ -234,6 +226,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
             <OrdersTable
                 orders={serializedOrders}
+                cargoOptions={cargoGroups.map((g) => ({ key: g.key, label: g.label, count: g.count }))}
                 pagination={{
                     currentPage: page,
                     totalPages,
