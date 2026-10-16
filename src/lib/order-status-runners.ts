@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import {
     advanceOrderStatus,
+    cancelOrderFromMarketplace,
     catchUpStaleOrders,
     leastAdvanced,
     mapHepsiburadaItemStatus,
@@ -56,7 +57,38 @@ export async function runHepsiburadaStatusCatchUp() {
             await new Promise((r) => setTimeout(r, 300));
         }
     }
-    if (listAdvanced > 0) console.log(`[status-sync] HEPSIBURADA (listeler): ${listChecked} eşleşme, ${listAdvanced} ilerletildi`);
+    // İptal listesi (son 1 ay, kalem bazlı): siparişin TÜM adetleri iptalse sitede iptal (kısmi iptale dokunulmaz)
+    try {
+        const cancelledQty = new Map<string, number>();
+        for (let page = 0; page < 20; page++) {
+            const rows = await client.getCancelledOrderLines(page * 50, 50);
+            if (rows.length === 0) break;
+            for (const r of rows) {
+                const no = String(r?.orderNumber ?? r?.OrderNumber ?? "").trim();
+                if (!no) continue;
+                cancelledQty.set(no, (cancelledQty.get(no) || 0) + (Number(r?.quantity ?? r?.Quantity) || 1));
+            }
+            if (rows.length < 50) break;
+            await new Promise((r) => setTimeout(r, 300));
+        }
+        if (cancelledQty.size > 0) {
+            const orders = await prisma.order.findMany({
+                where: { source: "HEPSIBURADA", orderNumber: { in: Array.from(cancelledQty.keys()) }, status: { in: ["PENDING", "CONFIRMED", "PROCESSING"] } },
+                select: { id: true, orderNumber: true, items: { select: { quantity: true } } },
+            });
+            for (const o of orders) {
+                const total = o.items.reduce((sum, i) => sum + i.quantity, 0);
+                listChecked++;
+                if (total > 0 && (cancelledQty.get(o.orderNumber) || 0) >= total) {
+                    if (await cancelOrderFromMarketplace(o.id, "hepsiburada")) listAdvanced++;
+                }
+            }
+        }
+    } catch (e: any) {
+        console.warn("[status-sync] HB iptal listesi:", e?.message);
+    }
+
+    if (listAdvanced > 0) console.log(`[status-sync] HEPSIBURADA (listeler): ${listChecked} eşleşme, ${listAdvanced} güncellendi`);
 
     // 2) Listelerde olmayan (1 aydan eski vb.) takılı siparişler tek tek: önce paket durumu (Intransit/Delivered),
     //    yoksa sipariş detayındaki kalem durumu

@@ -922,11 +922,25 @@ export async function syncCiceksepetiOrders() {
           console.log(`🧾 [CS-ORDERS] Mevcut siparişe yeni kalem eklendi: "${orderItemProductName}" -> CS-${orderNumberStr} (orderItemId: ${uniqueKey})`);
         }
 
+        // Gerçek iptal (iade değil) ve sipariş henüz kargolanmamışsa ortak iptal: yeni siparişlerde stok geri eklenir.
+        // Çok kalemli siparişte tek kalemin iptali tüm siparişi iptal etmesin diye sadece tek kalemli siparişlerde.
+        let csCancelled = false;
+        if (
+          mappedStatus === "CANCELLED" && statusStr.includes("iptal") && !statusStr.includes("iade") &&
+          ["PENDING", "CONFIRMED", "PROCESSING"].includes(String(existingMainOrder.status))
+        ) {
+          const itemCount = await prisma.orderItem.count({ where: { orderId: existingMainOrder.id } });
+          if (itemCount === 1) {
+            const { cancelOrderFromMarketplace } = await import("@/lib/order-status-sync");
+            csCancelled = await cancelOrderFromMarketplace(existingMainOrder.id, "ciceksepeti");
+          }
+        }
+
         // Status ve kargo bilgilerini her durumda güncelle
         await prisma.order.update({
           where: { id: existingMainOrder.id },
           data: {
-            status: mappedStatus as any,
+            ...(csCancelled ? {} : { status: mappedStatus as any }),
             cargoCompany: (order as any).cargoCompany ? String((order as any).cargoCompany) : existingMainOrder.cargoCompany,
             cargoTrackingNumber: csCargoCode(order) || existingMainOrder.cargoTrackingNumber,
             trackingUrl: (order as any).shipmentTrackingUrl || existingMainOrder.trackingUrl,

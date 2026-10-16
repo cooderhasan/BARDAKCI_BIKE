@@ -471,7 +471,11 @@ export async function syncOrdersFromTrendyol() {
 
             if (existing) {
                 const updates: any = {};
-                if (existing.status !== newStatus) updates.status = newStatus;
+                if (newStatus === "CANCELLED" && ["PENDING", "CONFIRMED", "PROCESSING"].includes(String(existing.status))) {
+                    // Henüz kargolanmamış sipariş Trendyol'da iptal: ortak iptal (yeni siparişlerde stok geri eklenir)
+                    const { cancelOrderFromMarketplace } = await import("@/lib/order-status-sync");
+                    if (await cancelOrderFromMarketplace(existing.id, "trendyol")) updatedCount++;
+                } else if (existing.status !== newStatus) updates.status = newStatus;
                 
                 const cargoTrackingNumber = tOrder.cargoTrackingNumber?.toString();
                 const shipmentPackageId = tOrder.id?.toString();

@@ -7,7 +7,7 @@ import { isListingLive, formatListingReport } from "@/lib/marketplace-report";
 import { PazaramaClient } from "@/services/pazarama/api";
 import { OrderStatus } from "@prisma/client";
 import { handlePostOrderStockSync } from "@/lib/stock-sync";
-import { leastAdvanced, mapPazaramaItemStatus, orderStatusRank } from "@/lib/order-status-sync";
+import { leastAdvanced, mapPazaramaItemStatus, orderStatusRank, cancelOrderFromMarketplace } from "@/lib/order-status-sync";
 
 // ==================== CONFIG ACTIONS ====================
 
@@ -795,9 +795,13 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
 
       if (existing) {
         const patch: any = {};
-        if (newStatus === OrderStatus.CANCELLED) {
-          if (existing.status !== newStatus) patch.status = newStatus; // iptal: önceki davranış korunur
-        } else if (itemNext && (orderStatusRank(itemNext) ?? -1) > (orderStatusRank(existing.status) ?? 99)) {
+        const isActive = ["PENDING", "CONFIRMED", "PROCESSING"].includes(String(existing.status));
+        if ((itemNext === "CANCELLED" || newStatus === OrderStatus.CANCELLED) && isActive) {
+          // Henüz kargolanmamış sipariş pazaryerinde iptal: ortak iptal (yeni siparişlerde stok geri eklenir)
+          if (await cancelOrderFromMarketplace(existing.id, "pazarama")) updatedCount++;
+        } else if (newStatus === OrderStatus.CANCELLED) {
+          if (existing.status !== newStatus) patch.status = newStatus; // kargolanmış siparişte önceki davranış korunur
+        } else if (itemNext && itemNext !== "CANCELLED" && (orderStatusRank(itemNext) ?? -1) > (orderStatusRank(existing.status) ?? 99)) {
           // Sadece ileri: önceden sipariş seviyesindeki "Alındı" ilerlemiş siparişi geri çekebiliyordu
           patch.status = itemNext;
           if (itemNext === "DELIVERED") patch.deliveredAt = new Date();
@@ -909,7 +913,7 @@ export async function syncOrdersFromPazarama(specificOrderNumber?: string) {
             data: {
               orderNumber: orderNum,
               source: "PAZARAMA",
-              status: newStatus === OrderStatus.CANCELLED ? newStatus : ((itemNext as OrderStatus) || newStatus),
+              status: newStatus === OrderStatus.CANCELLED ? newStatus : ((itemNext && itemNext !== "CANCELLED" ? (itemNext as OrderStatus) : null) || newStatus),
               total,
               subtotal: total - totalVat,
               discountAmount: 0,

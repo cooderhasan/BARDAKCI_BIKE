@@ -534,6 +534,25 @@ export class HepsiburadaClient {
      * GET /packages/merchantid/{merchantId}/shipped  |  /delivered
      * Alanlar: orderNumber, PackageNumber, Barcode, ShippedDate / DeliveredDate (büyük/küçük harf değişebiliyor)
      */
+    /**
+     * İptal edilen sipariş kalemleri (son 1 ay). Doküman: limit max 50.
+     * GET /orders/merchantid/{merchantId}/cancelled  — alanlar: orderNumber, lineItemId, quantity, cancelDate, cancelledBy
+     */
+    async getCancelledOrderLines(offset = 0, limit = 50): Promise<any[]> {
+        await this.init();
+        if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
+        const url = `${this.orderBaseUrl}/orders/merchantid/${this.creds.merchantId}/cancelled?offset=${offset}&limit=${limit}`;
+        const response = await fetch(url, { headers: this.getHeaders(), cache: "no-store" });
+        if (response.status === 404) return [];
+        if (!response.ok) throw new Error(`HB iptal listesi alınamadı: ${response.status} ${(await response.text().catch(() => "")).slice(0, 200)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) return data;
+        for (const k of ["items", "content", "data", "results", "orders"]) {
+            if (Array.isArray(data?.[k])) return data[k];
+        }
+        return [];
+    }
+
     async getPackagesByState(state: "shipped" | "delivered", offset = 0, limit = 50): Promise<any[]> {
         await this.init();
         if (!this.creds?.merchantId) throw new Error("Merchant ID missing");

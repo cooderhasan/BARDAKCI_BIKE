@@ -16,17 +16,23 @@ import type { OrderStatus } from "@prisma/client";
 
 const RANK: Record<string, number> = { PENDING: 0, CONFIRMED: 1, PROCESSING: 2, SHIPPED: 3, DELIVERED: 4 };
 type Forward = "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED";
+/** Pazaryerinden okunan durum: ileri durumlar + iptal */
+export type MarketplaceStatus = Forward | "CANCELLED";
 
-/** En az ilerlemiş kalemin durumu (çok kalemli siparişte hepsi kargolanmadan "Kargolandı" denmez) */
-export function leastAdvanced(statuses: (Forward | null)[]): Forward | null {
-    const valid = statuses.filter((s): s is Forward => !!s);
+/**
+ * En az ilerlemiş kalemin durumu (çok kalemli siparişte hepsi kargolanmadan "Kargolandı" denmez).
+ * İptal sadece TÜM kalemler iptalse döner; kısmi iptalde iptal kalemleri yok sayılır.
+ */
+export function leastAdvanced(statuses: (MarketplaceStatus | null)[]): MarketplaceStatus | null {
+    if (statuses.length > 0 && statuses.every((s) => s === "CANCELLED")) return "CANCELLED";
+    const valid = statuses.filter((s): s is Forward => !!s && s !== "CANCELLED");
     if (valid.length === 0) return null;
     return valid.reduce((a, b) => (RANK[a] <= RANK[b] ? a : b));
 }
 
 /** Durumu sadece ileri taşır; değiştiyse true */
-export async function advanceOrderStatus(order: { id: string; status: OrderStatus | string }, next: Forward | null): Promise<boolean> {
-    if (!next) return false;
+export async function advanceOrderStatus(order: { id: string; status: OrderStatus | string }, next: MarketplaceStatus | null): Promise<boolean> {
+    if (!next || next === "CANCELLED") return false; // iptal cancelOrderFromMarketplace ile işlenir
     const cur = RANK[String(order.status)];
     if (cur === undefined) return false; // CANCELLED / WAITING_FOR_PAYMENT
     if (RANK[next] <= cur) return false;
@@ -68,7 +74,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export async function catchUpStaleOrders(
     source: string,
-    resolve: (order: { orderNumber: string; shipmentPackageId: string | null; createdAt: Date }) => Promise<Forward | null>,
+    resolve: (order: { orderNumber: string; shipmentPackageId: string | null; createdAt: Date }) => Promise<MarketplaceStatus | null>,
     opts: { limit?: number; delayMs?: number } = {},
 ): Promise<{ checked: number; advanced: number }> {
     let checked = 0;
@@ -79,7 +85,10 @@ export async function catchUpStaleOrders(
             try {
                 const next = await resolve({ orderNumber: o.orderNumber, shipmentPackageId: o.shipmentPackageId, createdAt: o.createdAt });
                 checked++;
-                if (await advanceOrderStatus(o, next)) advanced++;
+                if (next === "CANCELLED") {
+                    if (await cancelOrderFromMarketplace(o.id, source.toLowerCase() as any)) advanced++;
+                    else await markChecked(o.id);
+                } else if (await advanceOrderStatus(o, next)) advanced++;
                 else await markChecked(o.id);
             } catch (e: any) {
                 console.warn(`[status-sync] ${source} ${o.orderNumber}:`, e?.message);
@@ -97,33 +106,36 @@ export async function catchUpStaleOrders(
 // ---- Pazaryeri durum eşlemeleri ----
 
 /** Hepsiburada sipariş detayı kalem durumu */
-export function mapHepsiburadaItemStatus(s: any): Forward | null {
+export function mapHepsiburadaItemStatus(s: any): MarketplaceStatus | null {
     const v = String(s || "").toLowerCase();
+    if (v === "cancelledbymerchant" || v === "cancelledbycustomer" || v === "cancelledbysap") return "CANCELLED";
     if (v === "open" || v === "unpacked") return "CONFIRMED";
     if (v === "packaged" || v === "readytoship") return "PROCESSING";
     if (v === "intransit" || v === "shipped") return "SHIPPED";
     if (v === "delivered") return "DELIVERED";
-    return null; // iptal, talep (claim) vb.
+    return null; // talep (claim/iade) vb.
 }
 
 /** Idefix shipment status (dokümandaki değerler) */
-export function mapIdefixStatus(s: any): Forward | null {
+export function mapIdefixStatus(s: any): MarketplaceStatus | null {
     const v = String(s || "").toLowerCase();
+    if (v === "shipment_cancelled" || v === "shipment_unsupplied") return "CANCELLED";
     if (v === "created" || v === "shipment_ready") return "CONFIRMED";
     if (v === "shipment_picking" || v === "shipment_invoiced") return "PROCESSING";
     if (v === "shipment_in_cargo") return "SHIPPED";
     if (v === "shipment_delivered" || v === "shipment_approved") return "DELIVERED";
-    return null; // iptal, temin edilemedi, teslim edilemedi, bölündü
+    return null; // teslim edilemedi, bölündü
 }
 
 /** Pazarama kalem durumu (orderItemStatus): 3 Alındı, 12 Hazırlanıyor, 5 Kargoya Verildi, 16/19 Mağazada/Teslimat noktasında, 11 Teslim */
-export function mapPazaramaItemStatus(s: any): Forward | null {
+export function mapPazaramaItemStatus(s: any): MarketplaceStatus | null {
     const v = String(s ?? "").trim();
+    if (v === "6" || v === "13") return "CANCELLED"; // İptal Edildi, Tedarik Edilemedi
     if (v === "3") return "CONFIRMED";
     if (v === "12") return "PROCESSING";
     if (v === "5" || v === "16" || v === "19") return "SHIPPED";
     if (v === "11") return "DELIVERED";
-    return null; // iptal, iade, tedarik edilemedi, teslim edilemedi
+    return null; // iptal süreci (18), iade (7-10), teslim edilemedi (14)
 }
 
 export function orderStatusRank(s: string): number | undefined {
@@ -131,11 +143,56 @@ export function orderStatusRank(s: string): number | undefined {
 }
 
 /** N11 shipmentPackageStatus (dokümandaki değerler; örnekte başında boşluk olabiliyor) */
-export function mapN11PackageStatus(s: any): Forward | null {
+export function mapN11PackageStatus(s: any): MarketplaceStatus | null {
     const v = String(s || "").trim().toLowerCase();
+    if (v === "cancelled" || v === "unsupplied") return "CANCELLED";
     if (v === "created") return "CONFIRMED";
     if (v === "picking") return "PROCESSING";
     if (v === "shipped") return "SHIPPED";
     if (v === "delivered") return "DELIVERED";
-    return null; // Cancelled, UnPacked, UnSupplied
+    return null; // UnPacked
+}
+
+// ---- Pazaryerinde iptal ----
+
+/**
+ * Bu tarihten önce oluşan siparişler pazaryerinde iptal edilirse sadece durum "İptal" olur, stok değişmez
+ * (kullanıcı kararı 2026-10-16: eski iptallerin stoğu zaten elle/Entegra ile düzeltilmiş olabilir).
+ * Sonraki siparişlerde stok geri eklenir ve diğer pazaryerlerine gönderilir.
+ */
+export const CANCEL_STOCK_RESTORE_FROM = new Date("2026-10-16T00:00:00+03:00");
+
+/**
+ * Pazaryerinde İPTAL edilen siparişi sitede iptal eder. Sadece henüz kargolanmamış siparişlerde
+ * (Beklemede / Onaylandı / Hazırlanıyor) çalışır; kargolanmış/teslim edilmiş siparişe dokunmaz (ürün depodan çıkmıştır).
+ * İadeler için kullanılmaz. Değiştiyse true.
+ */
+export async function cancelOrderFromMarketplace(
+    orderId: string,
+    marketplace: "trendyol" | "n11" | "hepsiburada" | "idefix" | "pazarama" | "pttavm" | "ciceksepeti",
+): Promise<boolean> {
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+            id: true, status: true, createdAt: true, notes: true, orderNumber: true,
+            items: { select: { productId: true, variantId: true, quantity: true, stockDeducted: true } },
+        },
+    });
+    if (!order || !["PENDING", "CONFIRMED", "PROCESSING"].includes(String(order.status))) return false;
+
+    const restore = order.createdAt >= CANCEL_STOCK_RESTORE_FROM;
+    const today = new Date().toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" });
+    const note = `Pazaryerinde iptal edildi (${today}); ${restore ? "stok geri eklendi" : "eski sipariş, stok değiştirilmedi"}`;
+
+    const { restoreOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+    const affected: string[] = await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+            where: { id: order.id },
+            data: { status: "CANCELLED" as OrderStatus, notes: [order.notes, note].filter(Boolean).join(" | ") },
+        });
+        return restore ? restoreOrderStock(tx, order.items) : [];
+    });
+    if (affected.length > 0) handlePostOrderStockSync(affected, marketplace).catch(console.error);
+    console.log(`[status-sync] ${marketplace} ${order.orderNumber}: pazaryerinde iptal → sitede iptal${restore ? " + stok iade" : ""}`);
+    return true;
 }
