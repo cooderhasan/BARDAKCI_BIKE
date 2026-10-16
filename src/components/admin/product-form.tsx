@@ -224,6 +224,9 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         }
     };
 
+    const hasVariants = formData.variants.length > 0;
+    const variantStockTotal = formData.variants.reduce((sum, v) => sum + (v.isActive === false ? 0 : Number(v.stock) || 0), 0);
+
     const addVariant = () => {
         handleChange("variants", [
             ...formData.variants,
@@ -479,6 +482,11 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                 data.append(key, String(value));
             }
         });
+
+        // Varyantlı üründe ana stok = aktif varyant toplamı (sunucu da yeniden hesaplar)
+        if (!formData.isBundle && hasVariants) {
+            data.set('stock', String(variantStockTotal));
+        }
 
         // Append bundle items if this is a bundle product
         if (formData.isBundle) {
@@ -943,10 +951,15 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     <Input
                                         id="stock"
                                         type="number"
-                                        value={formData.isBundle ? bundleStock : formData.stock}
+                                        value={formData.isBundle ? bundleStock : hasVariants ? variantStockTotal : formData.stock}
                                         onChange={(e) => handleChange("stock", e.target.value)}
-                                        disabled={formData.isBundle}
+                                        disabled={formData.isBundle || hasVariants}
                                     />
+                                    {!formData.isBundle && hasVariants && (
+                                        <p className="text-xs text-blue-600 font-medium">
+                                            🎨 Varyantlı ürün: stok varyantlarda tutulur, burada aktif varyantların toplamı ({variantStockTotal} adet) görünür.
+                                        </p>
+                                    )}
                                     {formData.isBundle && (
                                         <p className="text-xs text-emerald-600 font-medium">
                                             📦 Paket stoğu içeriğe göre otomatik ({bundleStock} adet) hesaplanmaktadır.

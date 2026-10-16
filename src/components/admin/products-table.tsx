@@ -39,6 +39,7 @@ interface Product {
     slug: string;
     sku: string | null;
     barcode: string | null;
+    variants?: { barcode: string | null; isActive: boolean }[];
     listPrice: number;
     vatRate: number;
     minQuantity: number;
@@ -647,14 +648,35 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                         <TableCell>
                                             <div className="text-sm">
                                                 <div>{product.sku || "-"}</div>
-                                                <div className="text-gray-500 text-xs flex items-center gap-2">
-                                                    {product.barcode || "-"}
-                                                    {product.isTrendyolActive && !product.barcode && (
-                                                        <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold" title="Trendyol için barkod zorunludur!">
-                                                            ⚠️ BARKOD EKSİK
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                {(() => {
+                                                    // Varyantlı üründe barkodlar varyantlarda: ana barkod aranmaz, eksik varyant barkodu uyarılır
+                                                    const activeVariants = (product.variants || []).filter((v) => v.isActive);
+                                                    if (activeVariants.length > 0) {
+                                                        const missing = activeVariants.filter((v) => !v.barcode).length;
+                                                        return (
+                                                            <div className="text-gray-500 text-xs flex items-center gap-2">
+                                                                <span className="bg-blue-50 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-semibold" title="Barkodlar varyantlarda">
+                                                                    🎨 {activeVariants.length} varyant
+                                                                </span>
+                                                                {missing > 0 && (
+                                                                    <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded font-semibold" title="Pazaryerleri için her varyantın barkodu olmalı">
+                                                                        ⚠️ {missing} varyantta barkod eksik
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <div className="text-gray-500 text-xs flex items-center gap-2">
+                                                            {product.barcode || "-"}
+                                                            {product.isTrendyolActive && !product.barcode && (
+                                                                <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold" title="Trendyol için barkod zorunludur!">
+                                                                    ⚠️ BARKOD EKSİK
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         </TableCell>
                                         <TableCell>{formatPrice(Number(product.listPrice))}</TableCell>

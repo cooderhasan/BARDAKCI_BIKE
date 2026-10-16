@@ -8,6 +8,7 @@
  * Bu sayede kuyruk gecikmesi beklenmeden pazaryerlerinde satış durdurulur.
  */
 
+import { recalcVariantParentStocks } from "@/lib/variant-stock";
 import { prisma } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -70,6 +71,7 @@ export async function decrementOrderStock(
     items: OrderStockItem[]
 ): Promise<string[]> {
     const affectedIds = new Set<string>();
+    const variantParents = new Set<string>();
 
     for (const item of items) {
         if (!item.productId || item.quantity <= 0 || item.stockDeducted === false) continue;
@@ -113,6 +115,7 @@ export async function decrementOrderStock(
                 },
             });
             affectedIds.add(product.id);
+            variantParents.add(product.id);
         } else {
             await tx.product.update({
                 where: { id: item.productId },
@@ -126,6 +129,8 @@ export async function decrementOrderStock(
         }
     }
 
+    // Varyantlı ürünlerin ana stoğu = varyant toplamı
+    await recalcVariantParentStocks(tx, Array.from(variantParents));
     // Alt ürünü düşen diğer paketler de güncellensin ve pazaryerlerine gitsin
     for (const id of await recalcBundleStocks(tx, Array.from(affectedIds))) affectedIds.add(id);
 
@@ -144,6 +149,7 @@ export async function restoreOrderStock(
     items: OrderStockItem[]
 ): Promise<string[]> {
     const affectedIds = new Set<string>();
+    const variantParents = new Set<string>();
 
     for (const item of items) {
         if (!item.productId || item.quantity <= 0 || item.stockDeducted === false) continue;
@@ -187,6 +193,7 @@ export async function restoreOrderStock(
                 },
             });
             affectedIds.add(product.id);
+            variantParents.add(product.id);
         } else {
             await tx.product.update({
                 where: { id: item.productId },
@@ -200,6 +207,8 @@ export async function restoreOrderStock(
         }
     }
 
+    // Varyantlı ürünlerin ana stoğu = varyant toplamı
+    await recalcVariantParentStocks(tx, Array.from(variantParents));
     // İade edilen alt ürünü içeren paketler de güncellensin
     for (const id of await recalcBundleStocks(tx, Array.from(affectedIds))) affectedIds.add(id);
 
@@ -235,7 +244,8 @@ export async function checkCriticalStockLevels(productIds: string[]): Promise<St
             },
             variants: {
                 select: {
-                    stock: true
+                    stock: true,
+                    isActive: true
                 }
             }
         },
@@ -248,9 +258,11 @@ export async function checkCriticalStockLevels(productIds: string[]): Promise<St
         if (p.isBundle && p.bundleItems && p.bundleItems.length > 0) {
             const bundleStocks = p.bundleItems.map(bi => Math.floor(bi.childProduct.stock / (bi.quantity || 1)));
             effectiveStock = bundleStocks.length > 0 ? Math.min(...bundleStocks) : 0;
-        } else if (p.variants && p.variants.length > 0) {
-            const minVariantStock = Math.min(...p.variants.map(v => v.stock));
-            effectiveStock = minVariantStock;
+        } else if (p.variants && p.variants.some(v => v.isActive)) {
+            // Varyantlı üründe ACİL sıfırlama sadece TÜM varyantlar kritikteyse (en yüksek varyant stoğu).
+            // Önceden en düşük varyanta bakılıyordu: tek beden azalınca ürünün tüm varyantları pazaryerlerinde sıfırlanıyordu.
+            // Tek tek varyantlar zaten normal senkronda "varyant stoğu - kritik stok" ile gönderiliyor.
+            effectiveStock = Math.max(...p.variants.filter(v => v.isActive).map(v => v.stock));
         }
 
         return {

@@ -293,6 +293,12 @@ export function initializeWorker() {
 
     console.log("👷‍♂️ Marketplace Sync Worker başlatıldı.");
 
+    // Varyantlı ürünlerin ana stoğunu varyant toplamına eşitle (her açılışta; değişmeyenlere dokunmaz)
+    Promise.all([import("@/lib/db"), import("@/lib/variant-stock")])
+        .then(([{ prisma }, { syncAllVariantParentStocks }]) => syncAllVariantParentStocks(prisma))
+        .then((n) => n > 0 && console.log(`🧮 ${n} varyantlı ürünün ana stoğu varyant toplamıyla eşitlendi.`))
+        .catch((e) => console.error("Varyant ana stok eşitleme hatası:", e));
+
     // Otomatik e-fatura kuyruğu (site siparişi kargolandı olunca NES)
     import("./invoice-queue").then(({ initializeInvoiceWorker }) => initializeInvoiceWorker()).catch((e) => console.error("Fatura kuyruğu başlatılamadı:", e));
     

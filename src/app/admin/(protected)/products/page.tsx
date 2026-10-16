@@ -73,6 +73,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             include: {
                 categories: true,
                 brand: true,
+                variants: { select: { barcode: true, isActive: true } },
             },
             orderBy: { createdAt: "desc" },
             skip,

@@ -1,4 +1,5 @@
 "use server";
+import { recalcVariantParentStocks } from "@/lib/variant-stock";
 import { requireAdmin } from "@/lib/admin-guard";
 
 import { prisma } from "@/lib/db";
@@ -134,6 +135,8 @@ export async function createProduct(formData: FormData) {
                     isActive: v.isActive !== false,
                 })),
             });
+            // Varyantlı ürünün ana stoğu = aktif varyant stoklarının toplamı
+            await recalcVariantParentStocks(prisma, [product.id]);
         }
 
         // Create bundle items if this is a bundle product
@@ -329,11 +332,6 @@ export async function updateProduct(productId: string, formData: FormData) {
         const variantsJson = formData.get("variants") as string;
         const variants = variantsJson ? JSON.parse(variantsJson) : [];
 
-        // Delete existing variants and recreate
-        await prisma.productVariant.deleteMany({
-            where: { productId },
-        });
-
         // Extract relation IDs and remove from validatedData for update
         const { brandId, categoryIds: validIds, ...updateData } = validatedData;
 
@@ -350,21 +348,11 @@ export async function updateProduct(productId: string, formData: FormData) {
             },
         });
 
-        // Create new variants
-        if (variants.length > 0) {
-            await prisma.productVariant.createMany({
-                data: variants.map((v: { color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean }) => ({
-                    productId,
-                    color: v.color || null,
-                    size: v.size || null,
-                    sku: v.sku || null,
-                    barcode: v.barcode || null,
-                    stock: v.stock || 0,
-                    priceAdjustment: v.priceAdjustment || 0,
-                    isActive: v.isActive !== false,
-                })),
-            });
-        }
+        // Varyantlar yerinde güncellenir (ID'ler korunur). Önceden her kayıtta hepsi silinip yeniden oluşturuluyordu:
+        // sepetteki / siparişteki varyant bağlantısı kopuyordu (iptalde stok yanlış yere iade ediliyordu).
+        await saveProductVariants(productId, variants);
+        // Varyantlı ürünün ana stoğu = aktif varyant stoklarının toplamı
+        await recalcVariantParentStocks(prisma, [productId]);
 
         await prisma.adminLog.create({
             data: {
@@ -961,4 +949,46 @@ export async function syncBundleProductStock(bundleProductId: string) {
     });
 
     return finalStock;
+}
+
+type VariantInput = { id?: string; color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean };
+
+/** Formdaki varyant listesini kaydeder: ID'si olan güncellenir, yeniler eklenir, listeden çıkarılanlar silinir */
+async function saveProductVariants(productId: string, variants: VariantInput[]) {
+    const toData = (v: VariantInput) => ({
+        color: v.color || null,
+        size: v.size || null,
+        sku: v.sku || null,
+        barcode: v.barcode || null,
+        stock: Number(v.stock) || 0,
+        priceAdjustment: Number(v.priceAdjustment) || 0,
+        isActive: v.isActive !== false,
+    });
+    try {
+        await prisma.$transaction(async (tx) => {
+            const existing = await tx.productVariant.findMany({ where: { productId }, select: { id: true } });
+            const existingIds = new Set(existing.map((e) => e.id));
+            const keepIds = new Set(variants.map((v) => v.id).filter((id): id is string => !!id && existingIds.has(id)));
+            // Listeden çıkarılanlar (siparişteki bağlantı boşalır; siparişte beden/renk metni ayrıca saklı)
+            await tx.productVariant.deleteMany({ where: { productId, id: { notIn: [...keepIds] } } });
+            // Renk/beden yer değiştirirse benzersizlik çakışmasın diye önce geçici değer
+            for (const id of keepIds) {
+                await tx.productVariant.update({ where: { id }, data: { color: `__tmp_${id}`, size: null } });
+            }
+            for (const v of variants) {
+                if (v.id && keepIds.has(v.id)) {
+                    await tx.productVariant.update({ where: { id: v.id }, data: toData(v) });
+                } else {
+                    await tx.productVariant.create({ data: { productId, ...toData(v) } });
+                }
+            }
+        });
+    } catch (e) {
+        // Beklenmeyen bir çakışmada eski yönteme dön (hepsini sil, yeniden oluştur) ki kayıt yine tamamlansın
+        console.error("Varyantlar yerinde güncellenemedi, yeniden oluşturuluyor:", e);
+        await prisma.productVariant.deleteMany({ where: { productId } });
+        if (variants.length > 0) {
+            await prisma.productVariant.createMany({ data: variants.map((v) => ({ productId, ...toData(v) })) });
+        }
+    }
 }
