@@ -864,10 +864,18 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
                 "merchantsku", "varyantgroupid", "barcode", "urunadi", "urunaciklamasi", "marka", "garantisuresi",
                 "kg", "price", "stock", "image1", "image2", "image3", "image4", "image5", "video1",
             ]);
+            // KDV ürünün KDV oranından (tax_vat_rate), Görsel1-10 ürün fotoğraflarından otomatik gönderiliyor
+            const isAutoFilled = (a: any) => {
+                const id = String(a?.id || "").toLocaleLowerCase("tr-TR");
+                const name = String(a?.name || "").toLocaleLowerCase("tr-TR").replace(/\s+/g, "");
+                if (AUTO_FILLED.has(id) || AUTO_FILLED.has(name)) return true;
+                if (/^(image|görsel|gorsel)\d+$/.test(id) || /^(image|görsel|gorsel)\d+$/.test(name)) return true;
+                if (id.includes("vat") || name === "kdv") return true;
+                return false;
+            };
             if (Array.isArray(data.data.baseAttributes)) {
                 for (const a of data.data.baseAttributes) {
-                    const key = String(a?.id || a?.name || "").toLowerCase();
-                    if (!AUTO_FILLED.has(key)) attrs.push(a);
+                    if (!isAutoFilled(a)) attrs.push(a);
                 }
             }
             if (Array.isArray(data.data.attributes)) {
@@ -1054,6 +1062,10 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
                 ...(product.images[2] ? { Image3: getAbsoluteImageUrl(product.images[2]) } : {}),
                 ...(product.images[3] ? { Image4: getAbsoluteImageUrl(product.images[3]) } : {}),
                 ...(product.images[4] ? { Image5: getAbsoluteImageUrl(product.images[4]) } : {}),
+                // HB 10 görsele kadar kabul ediyor (form artık Görsel6+ sormuyor)
+                ...Object.fromEntries(
+                    product.images.slice(5, 10).map((img, i) => [`Image${i + 6}`, getAbsoluteImageUrl(img)])
+                ),
                 // HB SKU (Katalog Kodu) varsa ekle (Buybox eşleşmesi için)
                 ...((product as any).hepsiburadaProduct?.hbSku ? { hbSku: (product as any).hepsiburadaProduct.hbSku } : {}),
                 // Kullanıcının girdiği dinamik kategori özellikleri (ID bazlı gönderim)
