@@ -848,8 +848,20 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
         const data = await client.getCategoryAttributes(categoryId);
         const attrs: any[] = [];
         if (data.data) {
-            // Sadece kategoriye özel dinamik özellikleri ve varyant özelliklerini ekliyoruz
-            // baseAttributes (fiyat, stok, görsel vs) arka planda otomatik gönderiliyor
+            // Temel özelliklerden sistemin otomatik doldurdukları (ad, barkod, marka, fiyat, stok, görsel, garanti, ağırlık)
+            // gizlenir; kalanlar (ör. üretici / ithalatçı / sorumlu kişi bilgileri) formda gösterilir.
+            // Önceden baseAttributes tamamen atlanıyordu; bazı kategorilerde yasal üretici/ithalatçı alanları orada geldiği için
+            // formda hiç görünmüyordu.
+            const AUTO_FILLED = new Set([
+                "merchantsku", "varyantgroupid", "barcode", "urunadi", "urunaciklamasi", "marka", "garantisuresi",
+                "kg", "price", "stock", "image1", "image2", "image3", "image4", "image5", "video1",
+            ]);
+            if (Array.isArray(data.data.baseAttributes)) {
+                for (const a of data.data.baseAttributes) {
+                    const key = String(a?.id || a?.name || "").toLowerCase();
+                    if (!AUTO_FILLED.has(key)) attrs.push(a);
+                }
+            }
             if (Array.isArray(data.data.attributes)) {
                 attrs.push(...data.data.attributes);
             }
@@ -857,7 +869,15 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
                 attrs.push(...data.data.variantAttributes);
             }
         }
-        return { success: true, data: attrs };
+        // Aynı özellik birden fazla grupta gelirse bir kez göster
+        const seen = new Set<string>();
+        const unique = attrs.filter((a) => {
+            const k = String(a?.id || a?.name || "");
+            if (!k || seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        });
+        return { success: true, data: unique };
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };
     }
