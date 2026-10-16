@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search, ChevronDown, Check, Building2 } from "lucide-react";
 import { getCiceksepetiCategoryAttributes, syncProductsToCiceksepeti } from "@/app/admin/(protected)/integrations/ciceksepeti/actions";
 import { toast } from "sonner";
+import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
 
 interface Props {
   isOpen: boolean;
@@ -189,6 +190,25 @@ export function CiceksepetiProductAttributeModal({
     if (isOpen) {
       setAttributeValues({});
       setCustomFields([]);
+
+      // İmalatçı / ithalatçı: markaya tanımlı firmalardan doldurulur (Markalar sayfası); boş kalırsa gönderilmez
+      const emptyOc = { name: "", email: "", address: "" };
+      setOperatorContacts({ 1: { ...emptyOc }, 2: { ...emptyOc }, 3: { ...emptyOc }, 4: { ...emptyOc } });
+      setShowOperatorContacts(false);
+      if (product?.id) {
+        getProductOperators(product.id)
+          .then((ops) => {
+            if (!ops?.manufacturer && !ops?.importer) return;
+            setOperatorContacts((prev) => {
+              const next = { ...prev };
+              if (ops.manufacturer) next[1] = { ...ops.manufacturer };
+              if (ops.importer) next[2] = { ...ops.importer };
+              return next;
+            });
+            setShowOperatorContacts(true);
+          })
+          .catch(() => {});
+      }
 
       if (categoryId) {
         loadAttributes();

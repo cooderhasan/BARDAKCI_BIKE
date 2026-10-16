@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { BrandsTable } from "@/components/admin/brands-table";
+import { OperatorFirmsPanel } from "@/components/admin/operator-firms-panel";
 
 export default async function BrandsPage() {
     const brands = await prisma.brand.findMany({
@@ -9,6 +10,10 @@ export default async function BrandsPage() {
                 select: { products: true },
             },
         },
+    });
+    const firms = await prisma.operatorFirm.findMany({
+        orderBy: { name: "asc" },
+        include: { _count: { select: { manufacturerOf: true, importerOf: true } } },
     });
 
     return (
@@ -22,7 +27,9 @@ export default async function BrandsPage() {
                 </p>
             </div>
 
-            <BrandsTable brands={brands} />
+            <OperatorFirmsPanel firms={firms} />
+
+            <BrandsTable brands={brands} firms={firms.map((f) => ({ id: f.id, name: f.name }))} />
         </div>
     );
 }

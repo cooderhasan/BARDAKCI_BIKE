@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
+import { operatorValueFor, pickProviderTypeValue } from "@/lib/operator-fields";
 import { 
     sendProductToN11, 
     getN11CategoryAttributes, 
@@ -209,12 +211,35 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
 
         try {
             console.log("Fetching attrs for Cat ID:", catId);
-            const res = await getN11CategoryAttributes(catId);
+            const [res, ops] = await Promise.all([
+                getN11CategoryAttributes(catId),
+                getProductOperators(product.id).catch(() => null),
+            ]);
             
             if (res.success) {
                 const attrs = res.data || [];
                 console.log("Fetched attrs count:", attrs.length);
                 setCategoryAttrs(attrs);
+                // Sağlayıcı Tipi + Kayıtlı Ticari Unvan / İletişim Adresi / E-posta: markadaki firmadan
+                // (N11 tek firma istiyor: ithalatçı varsa o, yoksa imalatçı)
+                const pre: any = {};
+                for (const a of attrs as any[]) {
+                    const nm = String(a.name || "");
+                    if (Array.isArray(a.values) && a.values.length > 0) {
+                        if (nm.toLocaleLowerCase("tr-TR").includes("sağlayıcı tipi")) {
+                            const opts = a.values.map((x: any) => ({
+                                id: typeof x === "object" ? x?.id || x?.attributeValueId || null : null,
+                                name: String(typeof x === "object" ? x?.attributeValue || x?.name || x?.value || "" : x),
+                            }));
+                            const v = pickProviderTypeValue(opts, ops);
+                            if (v) pre[a.id] = v;
+                        }
+                    } else {
+                        const v = operatorValueFor(nm, ops, { singleFirm: true });
+                        if (v) pre[a.id] = { id: null, name: v };
+                    }
+                }
+                if (Object.keys(pre).length > 0) setAttrMappings(pre);
                 if (attrs.length === 0) {
                     toast.info("Bu kategori için N11 tarafında özel bir özellik tanımlanmamış.");
                 }

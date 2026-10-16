@@ -397,6 +397,8 @@ interface Brand {
     hbBrandId?: string | null;
     idefixBrandId?: string | number | null;
     pazaramaBrandId?: string | number | null;
+    manufacturerFirmId?: string | null;
+    importerFirmId?: string | null;
     createdAt: Date;
     _count: {
         products: number;
@@ -405,9 +407,11 @@ interface Brand {
 
 interface BrandsTableProps {
     brands: Brand[];
+    firms?: { id: string; name: string }[];
 }
 
-export function BrandsTable({ brands }: BrandsTableProps) {
+export function BrandsTable({ brands, firms = [] }: BrandsTableProps) {
+    const firmName = (id?: string | null) => (id ? firms.find((f) => f.id === id)?.name : undefined);
     const [isOpen, setIsOpen] = useState(false);
     const [editBrand, setEditBrand] = useState<Brand | null>(null);
     const [loading, setLoading] = useState(false);
@@ -419,6 +423,8 @@ export function BrandsTable({ brands }: BrandsTableProps) {
     const [hbBrandId, setHbBrandId] = useState<string | undefined>(undefined);
     const [idefixBrandId, setIdefixBrandId] = useState<number | undefined>(undefined);
     const [pazaramaBrandId, setPazaramaBrandId] = useState<string | undefined>(undefined);
+    const [manufacturerFirmId, setManufacturerFirmId] = useState("");
+    const [importerFirmId, setImporterFirmId] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [storeFilter, setStoreFilter] = useState<"ALL" | "BIKE" | "MOTOR" | "BOTH">("ALL");
 
@@ -435,10 +441,10 @@ export function BrandsTable({ brands }: BrandsTableProps) {
 
         try {
             if (editBrand) {
-                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId });
+                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId, manufacturerFirmId: manufacturerFirmId || null, importerFirmId: importerFirmId || null });
                 toast.success("Marka güncellendi.");
             } else {
-                await createBrand({ name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId });
+                await createBrand({ name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId, manufacturerFirmId: manufacturerFirmId || null, importerFirmId: importerFirmId || null });
                 toast.success("Marka oluşturuldu.");
             }
             setIsOpen(false);
@@ -459,6 +465,8 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         setHbBrandId(undefined);
         setIdefixBrandId(undefined);
         setPazaramaBrandId(undefined);
+        setManufacturerFirmId("");
+        setImporterFirmId("");
         setEditBrand(null);
     };
 
@@ -472,6 +480,8 @@ export function BrandsTable({ brands }: BrandsTableProps) {
         setHbBrandId(brand.hbBrandId ?? undefined);
         setIdefixBrandId(brand.idefixBrandId ? Number(brand.idefixBrandId) : undefined);
         setPazaramaBrandId(brand.pazaramaBrandId ? String(brand.pazaramaBrandId) : undefined);
+        setManufacturerFirmId(brand.manufacturerFirmId || "");
+        setImporterFirmId(brand.importerFirmId || "");
         setIsOpen(true);
     };
 
@@ -586,6 +596,28 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                                         <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
                                     </select>
                                 </div>
+                                <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <Label className="text-blue-800 dark:text-blue-300 font-semibold text-xs uppercase tracking-wide">🏭 İmalatçı / İthalatçı (Ürün Güvenliği)</Label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                            <span className="text-[11px] text-gray-600">İmalatçı</span>
+                                            <select className="w-full h-10 px-3 rounded-md border border-blue-300 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={manufacturerFirmId} onChange={(e) => setManufacturerFirmId(e.target.value)}>
+                                                <option value="">— Seçilmedi —</option>
+                                                {firms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[11px] text-gray-600">İthalatçı (yerli üretimde boş)</span>
+                                            <select className="w-full h-10 px-3 rounded-md border border-blue-300 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={importerFirmId} onChange={(e) => setImporterFirmId(e.target.value)}>
+                                                <option value="">— Yok —</option>
+                                                {firms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-blue-700">
+                                        {firms.length === 0 ? "Önce sayfanın üstündeki \"İmalatçı / İthalatçı Firmaları\" bölümünden firma ekleyin." : "Pazaryerine yeni ürün gönderirken üretici / ithalatçı alanları bu firmalardan dolar."}
+                                    </p>
+                                </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                                     <Label className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Marka ID</Label>
                                     <TrendyolBrandSearch
@@ -671,7 +703,16 @@ export function BrandsTable({ brands }: BrandsTableProps) {
                                             </div>
                                         )}
                                     </TableCell>
-                                    <TableCell className="font-medium">{brand.name}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {brand.name}
+                                        {(brand.manufacturerFirmId || brand.importerFirmId) && (
+                                            <div className="text-[10px] font-normal text-blue-600">
+                                                {firmName(brand.manufacturerFirmId) && `İmalatçı: ${firmName(brand.manufacturerFirmId)}`}
+                                                {firmName(brand.manufacturerFirmId) && firmName(brand.importerFirmId) && " · "}
+                                                {firmName(brand.importerFirmId) && `İthalatçı: ${firmName(brand.importerFirmId)}`}
+                                            </div>
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         {brand.store === "BIKE" && (
                                             <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 font-semibold">🚲 Bisiklet</Badge>

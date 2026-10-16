@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
+import { operatorValueFor } from "@/lib/operator-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
     sendProductToTrendyol, 
@@ -237,7 +239,11 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
         setAttrMappings({});
 
         try {
-            const res = await getTrendyolCategoryAttributes(catId);
+            // Markaya tanımlı imalatçı / ithalatçı (ürün güvenliği alanları için); alınamazsa form yine açılır
+            const [res, ops] = await Promise.all([
+                getTrendyolCategoryAttributes(catId),
+                getProductOperators(product.id).catch(() => null),
+            ]);
             if (res.success) {
                 const attrs = res.data || [];
                 setCategoryAttrs(attrs);
@@ -272,6 +278,10 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                     } else if (attrId === 47) {
                         // Renk (47)
                         initialMap[47] = "Siyah";
+                    } else {
+                        // Üretici Adı / Adres / Mail, Birincil İthalatçı Adı / Adres / Mail: markadaki firmalardan
+                        const opVal = operatorValueFor(a.attribute?.name || "", ops);
+                        if (opVal) initialMap[attrId] = opVal;
                     }
                 }
                 setAttrMappings(initialMap);

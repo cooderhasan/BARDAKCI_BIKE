@@ -200,10 +200,29 @@ model Brand {
   pazaramaBrandId String?
   pttavmBrandId   Int?
   ciceksepetiBrandId String?
+  // Pazaryerlerine gönderilen yasal iktisadi işletmeci bilgileri (ürün güvenliği): bu markanın imalatçısı / ithalatçısı
+  manufacturerFirmId String?
+  manufacturerFirm   OperatorFirm? @relation("BrandManufacturer", fields: [manufacturerFirmId], references: [id], onDelete: SetNull)
+  importerFirmId     String?
+  importerFirm       OperatorFirm? @relation("BrandImporter", fields: [importerFirmId], references: [id], onDelete: SetNull)
   products  Product[]
   createdAt DateTime  @default(now())
 
   @@map("brands")
+}
+
+/// İmalatçı / ithalatçı firma kartı. Rol firmada değil markada seçilir (aynı firma bir markada imalatçı, diğerinde ithalatçı olabilir)
+model OperatorFirm {
+  id             String   @id @default(cuid())
+  name           String
+  address        String
+  email          String
+  manufacturerOf Brand[]  @relation("BrandManufacturer")
+  importerOf     Brand[]  @relation("BrandImporter")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("operator_firms")
 }
 
 model Product {

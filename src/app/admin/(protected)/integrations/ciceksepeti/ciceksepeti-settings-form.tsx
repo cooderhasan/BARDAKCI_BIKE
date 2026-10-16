@@ -177,66 +177,12 @@ export function CiceksepetiSettingsForm({ initialData }: Props) {
             </p>
           </div>
 
-          {/* Çiçeksepeti İktisadi İşletmeci Varsayılan Bilgileri */}
-          <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-sm text-blue-900">Çiçeksepeti Ürün İktisadi İşletmeci Alanları (Varsayılan Firma Bilgileri)</h4>
-                <p className="text-xs text-blue-700">
-                  Çiçeksepeti ürün yüklemelerinde otomatik olarak gönderilecek olan üretici, ithalatçı veya yetkili temsilci bilgilerinizi buraya girebilirsiniz.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-2">
-              {[
-                { type: 1, title: "İmalatçı" },
-                { type: 2, title: "İthalatçı" },
-                { type: 3, title: "Yetkili Temsilci" },
-                { type: 4, title: "İfa Hizmet Sağlayıcısı" },
-              ].map((item) => {
-                const oc = (operatorContacts as any)[item.type] || { name: "", email: "", address: "" };
-
-                return (
-                  <div key={item.type} className="p-3 bg-white border border-blue-200 rounded-lg space-y-2">
-                    <h5 className="font-semibold text-xs text-blue-900 border-b pb-1">
-                      {item.title} Bilgileri
-                    </h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div className="space-y-1">
-                        <Label className="text-[11px]">İsim/Ünvan</Label>
-                        <Input
-                          placeholder="Firma Ünvanı"
-                          value={oc.name}
-                          onChange={(e) => updateOperatorContact(item.type, "name", e.target.value)}
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px]">Email</Label>
-                        <Input
-                          placeholder="Email adresi"
-                          value={oc.email}
-                          onChange={(e) => updateOperatorContact(item.type, "email", e.target.value)}
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px]">Adres</Label>
-                        <Input
-                          placeholder="Adres bilgisi"
-                          value={oc.address}
-                          onChange={(e) => updateOperatorContact(item.type, "address", e.target.value)}
-                          className="h-8 text-xs bg-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* İmalatçı / ithalatçı bilgileri artık Markalar sayfasında markaya göre tanımlanıyor (tüm pazaryerlerinde ortak).
+              Eski varsayılan değer silinmedi: sadece zaten Çiçeksepeti'nde olan ilanlar güncellenirken kullanılıyor. */}
+          <p className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-800">
+            İmalatçı / ithalatçı bilgileri artık <a href="/admin/brands" className="font-semibold underline">Markalar</a> sayfasında
+            markaya göre tanımlanıyor; Çiçeksepeti dahil tüm pazaryerlerine ürün gönderirken oradan dolar.
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
             <div className="flex items-center justify-between p-3 rounded-lg border bg-rose-50/30 dark:bg-rose-950/10">

@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
+import { operatorValueFor } from "@/lib/operator-fields";
 import { 
     sendProductToHepsiburada, 
     getHepsiburadaCategoryAttributes, 
@@ -54,7 +56,7 @@ import { Label } from "@/components/ui/label";
 
 import { SearchablePicker } from "@/components/ui/searchable-picker";
 
-function DynamicAttributeField({ attr, categoryId, onChange, product }: { attr: any, categoryId: string, onChange: (val: string, name: string) => void, product: any }) {
+function DynamicAttributeField({ attr, categoryId, onChange, product, prefill }: { attr: any, categoryId: string, onChange: (val: string, name: string) => void, product: any, prefill?: string | null }) {
     const [values, setValues] = useState<{id: string, value: string}[]>([]);
     const [loading, setLoading] = useState(false);
     const [isManual, setIsManual] = useState(false);
@@ -67,6 +69,10 @@ function DynamicAttributeField({ attr, categoryId, onChange, product }: { attr: 
                 if (res.success && res.data) setValues(res.data);
                 setLoading(false);
             });
+        }
+        // Üretici / ithalatçı alanı: markadaki firmadan önceden doldur (serbest metin alanlarında)
+        if (prefill && attr.type !== 'enum') {
+            onChange(prefill, attr.name);
         }
         // Paket görseli zorunluysa ve boşsa ana görseli öner
         if (attr.name.includes("Paket Görseli") && product?.images?.[0]) {
@@ -126,7 +132,7 @@ function DynamicAttributeField({ attr, categoryId, onChange, product }: { attr: 
             <Input 
                 className="h-8 text-sm"
                 placeholder={`${attr.name} değerini girin...`}
-                defaultValue={attr.name.includes("Paket Görseli") ? product?.images?.[0] : ""}
+                defaultValue={attr.name.includes("Paket Görseli") ? product?.images?.[0] : (attr.type !== 'enum' && prefill) || ""}
                 onChange={(e) => onChange(e.target.value, attr.name)}
             />
         </div>
@@ -175,6 +181,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
     const [categoryAttrs, setCategoryAttrs] = useState<any[]>([]);
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
+    const [operators, setOperators] = useState<any>(null);
 
     const filteredProducts = pagination ? products : products.filter(p => 
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -289,7 +296,12 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         setAttrMappings({});
 
         try {
-            const res: any = await getHepsiburadaCategoryAttributes(catId);
+            // Markaya tanımlı imalatçı / ithalatçı: alanlar ilk çizimde dolu gelsin diye özelliklerle birlikte alınır
+            const [res, ops]: any = await Promise.all([
+                getHepsiburadaCategoryAttributes(catId),
+                getProductOperators(product.id).catch(() => null),
+            ]);
+            setOperators(ops);
             if (res.success) {
                 setCategoryAttrs(res.data || []);
                 // Özellik gelmediyse nedenini göster (HB'nin kategori için ne dediği)
@@ -720,6 +732,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                             categoryId={selectedProduct?.categories.find((c: any) => c.hbCategoryId)?.hbCategoryId || ""}
                                             onChange={(val, name) => setAttrMappings((prev: any) => ({ ...prev, [attr.id]: { name, value: val } }))}
                                             product={selectedProduct}
+                                            prefill={operatorValueFor(attr.name || "", operators)}
                                         />
                                     ))}
                                 </div>

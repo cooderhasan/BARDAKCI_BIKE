@@ -1,5 +1,6 @@
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { ciceksepetiOperatorContacts } from "@/lib/operator-firms";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -186,7 +187,7 @@ export async function syncProductsToCiceksepeti(
     const products = await prisma.product.findMany({
       where: whereCondition,
       include: {
-        brand: true,
+        brand: { include: { manufacturerFirm: true, importerFirm: true } },
         category: { include: { parent: true } },
         categories: { include: { parent: true } },
         variants: true,
@@ -408,9 +409,19 @@ export async function syncProductsToCiceksepeti(
         console.log(`[CS-SYNC] Final attributes for ${p.name} (cat ${categoryId}):`, JSON.stringify(attributes));
 
         const productCode = p.sku || p.barcode || p.id;
+        // İmalatçı / ithalatçı: önce formda girilen; yoksa yeni ilanda markaya tanımlı firmalar (Markalar sayfası).
+        // Zaten Çiçeksepeti'nde olan ilanlarda eskisi gibi kayıtlı eski varsayılan gider (mevcut ilanlar değişmesin diye);
+        // varsayılan artık ayarlardan düzenlenmiyor.
+        const isNewListing = !p.ciceksepetiProduct?.isSynced;
+        const brandContacts = ciceksepetiOperatorContacts({
+          manufacturer: p.brand?.manufacturerFirm ? { name: p.brand.manufacturerFirm.name, address: p.brand.manufacturerFirm.address, email: p.brand.manufacturerFirm.email } : null,
+          importer: p.brand?.importerFirm ? { name: p.brand.importerFirm.name, address: p.brand.importerFirm.address, email: p.brand.importerFirm.email } : null,
+        });
         const operatorContacts = (customOptions?.operatorContacts && customOptions.operatorContacts.length > 0)
           ? customOptions.operatorContacts
-          : (config.operatorContacts && config.operatorContacts.length > 0 ? config.operatorContacts : undefined);
+          : isNewListing
+            ? (brandContacts.length > 0 ? brandContacts : undefined)
+            : (config.operatorContacts && config.operatorContacts.length > 0 ? config.operatorContacts : undefined);
 
         productInputs.push({
           productName: p.name,

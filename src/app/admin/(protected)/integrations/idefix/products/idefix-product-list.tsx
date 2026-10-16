@@ -31,6 +31,8 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
+import { operatorLine } from "@/lib/operator-fields";
 import {
   Dialog,
   DialogContent,
@@ -197,6 +199,13 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
     setManufacturer(product.brand?.name || "Bardakcı Bike");
     setImporter("Bardakcı Bike");
     setModalOpen(true);
+    // Markaya imalatçı / ithalatçı firması tanımlıysa onların bilgisi yazılır (tanımlı değilse eski varsayılan kalır)
+    getProductOperators(product.id)
+      .then((ops) => {
+        if (ops?.manufacturer) setManufacturer(operatorLine(ops.manufacturer));
+        if (ops?.importer) setImporter(operatorLine(ops.importer));
+      })
+      .catch(() => {});
   };
 
   const handleModalSubmit = async () => {
