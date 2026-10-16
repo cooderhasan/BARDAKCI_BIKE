@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { MarketplaceCategoryPicker } from "@/components/admin/marketplace-category-picker";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,16 +168,17 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
     }
   }
 
-  async function handleSaveCatId(productId: string) {
-    if (!editCatValue.trim()) {
+  async function handleSaveCatId(productId: string, valToSave?: string) {
+    const val = (valToSave ?? editCatValue).trim();
+    if (!val) {
       toast.warning("Lütfen geçerli bir Çiçeksepeti Kategori ID girin.");
       return;
     }
-    const res = await setCiceksepetiProductCategory(productId, editCatValue.trim());
+    const res = await setCiceksepetiProductCategory(productId, val);
     if (res.success) {
       toast.success(res.message);
       setProducts((prev) =>
-        prev.map((p) => (p.id === productId ? { ...p, ciceksepetiProduct: { ...p.ciceksepetiProduct, ciceksepetiCategoryId: editCatValue.trim() } } : p))
+        prev.map((p) => (p.id === productId ? { ...p, ciceksepetiProduct: { ...p.ciceksepetiProduct, ciceksepetiCategoryId: val } } : p))
       );
       setEditingCatId(null);
       setEditCatValue("");
@@ -329,6 +331,11 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
               Seçili {selectedIds.length} ürüne Çiçeksepeti Kategori ID ata
             </p>
             <div className="flex gap-2">
+              <MarketplaceCategoryPicker
+                  marketplace="ciceksepeti"
+                  className="w-full sm:w-64"
+                  onPick={(id, name) => { setBulkCatValue(id); toast.info(`Seçildi: ${name} (#${id}) — "Uygula"ya basın.`); }}
+              />
               <Input
                 placeholder="Çiçeksepeti Kategori ID (örn: 14604)"
                 value={bulkCatValue}
@@ -427,6 +434,8 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
                             {/* ÇS Kategori ID Badge & Quick Edit */}
                             {editingCatId === p.id ? (
                               <div className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                {/* Adıyla arayıp seç: seçince hemen kaydedilir (alt kategori olmalı) */}
+                                <MarketplaceCategoryPicker marketplace="ciceksepeti" className="w-52" autoFocus onPick={(id) => handleSaveCatId(p.id, id)} />
                                 <Input
                                   ref={catInputRef}
                                   value={editCatValue}

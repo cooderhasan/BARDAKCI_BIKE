@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { MarketplaceCategoryPicker } from "@/components/admin/marketplace-category-picker";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -440,6 +441,11 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
             </p>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <MarketplaceCategoryPicker
+                marketplace="pttavm"
+                className="w-full sm:w-64"
+                onPick={(id, name) => { setBulkCatValue(id); toast.info(`Seçildi: ${name} (#${id}) — "Uygula"ya basın.`); }}
+            />
             <Input
               placeholder="ePttAVM Kategori ID (örn: 567)"
               type="number"
@@ -603,6 +609,8 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
 
                             {editingCatId === product.id && (
                               <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-purple-300 rounded-md shadow-sm z-10 w-fit" onClick={(e) => e.stopPropagation()}>
+                                {/* Adıyla arayıp seç: seçince hemen kaydedilir (alt kategori olmalı) */}
+                                <MarketplaceCategoryPicker marketplace="pttavm" className="w-52" autoFocus onPick={(id) => handleSaveCatId(product.id, id)} />
                                 <Input
                                   type="number"
                                   value={editCatValue}

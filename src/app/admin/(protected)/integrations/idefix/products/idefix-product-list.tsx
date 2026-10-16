@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MarketplaceCategoryPicker } from "@/components/admin/marketplace-category-picker";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -480,6 +481,11 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
             </p>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <MarketplaceCategoryPicker
+                marketplace="idefix"
+                className="w-full sm:w-64"
+                onPick={(id, name) => { setBulkCatValue(id); toast.info(`Seçildi: ${name} (#${id}) — "Uygula"ya basın.`); }}
+            />
             <Input
               placeholder="Idefix Kategori ID (örn: 12345)"
               value={bulkCatValue}
@@ -626,6 +632,8 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
 
                         {editingCatId === product.id && (
                           <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-purple-300 rounded-md shadow-sm z-10 w-fit mt-1" onClick={(e) => e.stopPropagation()}>
+                            {/* Adıyla arayıp seç: seçince hemen kaydedilir (alt kategori olmalı) */}
+                            <MarketplaceCategoryPicker marketplace="idefix" className="w-52" autoFocus onPick={(id) => handleSaveCatId(product.id, id)} />
                             <Input
                               value={editCatValue}
                               onChange={(e) => setEditCatValue(e.target.value)}

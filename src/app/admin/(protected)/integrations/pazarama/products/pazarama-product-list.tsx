@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { MarketplaceCategoryPicker } from "@/components/admin/marketplace-category-picker";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -689,6 +690,11 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                 </p>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
+                <MarketplaceCategoryPicker
+                    marketplace="pazarama"
+                    className="w-full sm:w-64"
+                    onPick={(id, name) => { setBulkCatValue(id); toast.info(`Seçildi: ${name} (#${id}) — "Uygula"ya basın.`); }}
+                />
                 <Input
                   placeholder="Pazarama Kategori ID (örn: 10101)"
                   value={bulkCatValue}
@@ -902,6 +908,8 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                               className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-pink-300 rounded-md shadow-sm z-10 w-fit mt-1"
                               onClick={(e) => e.stopPropagation()}
                             >
+                              {/* Adıyla arayıp seç: seçince hemen kaydedilir (alt kategori olmalı) */}
+                              <MarketplaceCategoryPicker marketplace="pazarama" className="w-52" autoFocus onPick={(id) => handleSaveCatId(product.id, id)} />
                               <Input
                                 value={editCatValue}
                                 onChange={(e) => setEditCatValue(e.target.value)}

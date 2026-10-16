@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MarketplaceCategoryPicker } from "@/components/admin/marketplace-category-picker";
 import { 
     Table, 
     TableBody, 
@@ -389,6 +390,11 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                         </p>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <MarketplaceCategoryPicker
+                            marketplace="n11"
+                            className="w-full sm:w-64"
+                            onPick={(id, name) => { setBulkCatValue(id); toast.info(`Seçildi: ${name} (#${id}) — "Uygula"ya basın.`); }}
+                        />
                         <Input
                             placeholder="N11 Kategori ID (örn: 100223)"
                             type="number"
@@ -557,6 +563,8 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
 
                                             {editingCatId === product.id && (
                                                 <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-purple-300 rounded-md shadow-sm z-10" onClick={(e) => e.stopPropagation()}>
+                                                    {/* Adıyla arayıp seç: seçince hemen kaydedilir (alt kategori olmalı) */}
+                                                    <MarketplaceCategoryPicker marketplace="n11" className="w-52" autoFocus onPick={(id) => handleSaveCatId(product.id, id)} />
                                                     <Input
                                                         type="number"
                                                         value={editCatValue}
