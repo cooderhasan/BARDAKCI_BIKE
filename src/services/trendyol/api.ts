@@ -351,6 +351,20 @@ export class TrendyolClient {
         return data.content?.[0] || null;
     }
 
+    /**
+     * Sipariş numarasına ait TÜM paketler (bölünmüş siparişte birden fazla olur).
+     * GET /integration/order/sellers/{sellerId}/orders?orderNumber={orderNumber}
+     */
+    async getOrderPackages(orderNumber: string): Promise<any[]> {
+        await this.init();
+        if (!this.creds) throw new Error("No creds");
+        const url = `${this.gatewayUrl}/integration/order/sellers/${this.creds.supplierId}/orders?orderNumber=${encodeURIComponent(orderNumber)}&size=50`;
+        const response = await fetch(url, { headers: this.getHeaders() });
+        if (!response.ok) throw new Error(`Trendyol API Error: ${response.statusText}`);
+        const data = await response.json();
+        return Array.isArray(data?.content) ? data.content : [];
+    }
+
 
 
     /**

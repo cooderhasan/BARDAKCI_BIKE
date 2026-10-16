@@ -113,6 +113,8 @@ export function initializeWorker() {
                     const { syncCiceksepetiOrders } = await import("@/app/admin/(protected)/integrations/ciceksepeti/actions");
                     const result = await syncCiceksepetiOrders();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    const { runCiceksepetiStatusCatchUp } = await import("@/lib/order-status-runners");
+                    console.log(`✅ Çiçeksepeti durum güncelleme:`, await runCiceksepetiStatusCatchUp().catch((e: any) => ({ error: e.message })));
                     return;
                 }
                 if (job.name === "trendyol-order-sync") {
@@ -123,6 +125,8 @@ export function initializeWorker() {
                     const { syncBatchStatuses } = await import("@/app/admin/(protected)/integrations/trendyol/actions");
                     const batchResult = await syncBatchStatuses().catch((e: any) => ({ success: false, message: e.message }));
                     console.log(`✅ Trendyol batch kontrolü: ${batchResult.message}`);
+                    const { runTrendyolStatusCatchUp } = await import("@/lib/order-status-runners");
+                    console.log(`✅ Trendyol durum güncelleme:`, await runTrendyolStatusCatchUp().catch((e: any) => ({ error: e.message })));
                     return;
                 }
 
@@ -181,6 +185,8 @@ export function initializeWorker() {
                     const { syncOrdersFromPttavm } = await import("@/app/admin/(protected)/integrations/pttavm/actions");
                     const result = await syncOrdersFromPttavm();
                     console.log(`✅ Cron Sonucu: ${result.message}`);
+                    const { runPttavmStatusCatchUp } = await import("@/lib/order-status-runners");
+                    console.log(`✅ ePttAVM durum güncelleme:`, await runPttavmStatusCatchUp().catch((e: any) => ({ error: e.message })));
                     return;
                 }
 

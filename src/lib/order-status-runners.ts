@@ -8,6 +8,9 @@ import {
     mapIdefixStatus,
     mapPazaramaItemStatus,
     mapN11PackageStatus,
+    mapTrendyolPackageStatus,
+    mapCiceksepetiItemStatus,
+    mapPttavmOrderStatus,
 } from "@/lib/order-status-sync";
 
 /**
@@ -165,4 +168,57 @@ export async function runN11StatusCatchUp() {
         const mine = pkgs.filter((p: any) => String(p?.orderNumber || "") === String(orderNumber));
         return leastAdvanced(mine.map((p: any) => mapN11PackageStatus(p?.shipmentPackageStatus)));
     });
+}
+
+/** Trendyol: kendi senkronu sadece son 24 saati tarıyor; eski takılı siparişler sipariş numarasıyla tek tek */
+export async function runTrendyolStatusCatchUp() {
+    const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { checked: 0, advanced: 0 };
+    const { TrendyolClient } = await import("@/services/trendyol/api");
+    const client = new TrendyolClient({ supplierId: config.supplierId, apiKey: config.apiKey, apiSecret: config.apiSecret });
+    return catchUpStaleOrders("TRENDYOL", async ({ orderNumber }) => {
+        const pkgs = await client.getOrderPackages(orderNumber);
+        const mine = pkgs.filter((p: any) => String(p?.orderNumber || "") === String(orderNumber));
+        return leastAdvanced(mine.map((p: any) => mapTrendyolPackageStatus(p?.status)));
+    });
+}
+
+/**
+ * Çiçeksepeti: kendi senkronu son ~2 haftayı tarıyor. API farklı sorgular arasında 5 sn bekleme istiyor;
+ * kuyruğu uzun süre meşgul etmemek için her turda az sipariş sorulur.
+ */
+export async function runCiceksepetiStatusCatchUp() {
+    const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { checked: 0, advanced: 0 };
+    const { CiceksepetiClient } = await import("@/services/ciceksepeti/api");
+    const client = new CiceksepetiClient();
+    return catchUpStaleOrders("CICEKSEPETI", async ({ orderNumber }) => {
+        const no = parseInt(String(orderNumber).replace(/^CS-/i, ""), 10);
+        if (!no) return null;
+        const rows: any[] = await client.getOrders({ orderNo: no });
+        const mine = rows.filter((r: any) => String(r?.orderId || "") === String(no));
+        return leastAdvanced(mine.map((r: any) => mapCiceksepetiItemStatus(r?.orderItemStatusId, r?.orderProductStatus)));
+    }, { limit: 6, delayMs: 5500 });
+}
+
+/** ePttAVM: kendi senkronu son 30 günü tarıyor; eskiler PTT sipariş id'siyle tekil detaydan */
+export async function runPttavmStatusCatchUp() {
+    const config = await (prisma as any).pttavmConfig.findFirst();
+    if (!config || !config.apiKey || !config.accessToken) return { checked: 0, advanced: 0 };
+    const { PttavmClient } = await import("@/services/pttavm/api");
+    const client = new PttavmClient({
+        apiKey: config.apiKey,
+        accessToken: config.accessToken,
+        profitMargin: config.profitMargin || 0,
+        isTestMode: Boolean(config.isTestMode),
+    });
+    return catchUpStaleOrders("PTTAVM", async ({ orderNumber }) => {
+        const raw = await (prisma as any).pttavmOrder.findFirst({ where: { orderNumber }, select: { pttavmOrderId: true } });
+        if (!raw?.pttavmOrderId) return null;
+        const res: any = await client.getOrderDetail(String(raw.pttavmOrderId));
+        const d = res?.data ?? res?.result ?? res;
+        const o = Array.isArray(d) ? d[0] : d;
+        if (!o) return null;
+        return mapPttavmOrderStatus(o.siparisDurumu ?? o.durum ?? o.state ?? o.status, o.kargoBarkod);
+    }, { delayMs: 1000 });
 }

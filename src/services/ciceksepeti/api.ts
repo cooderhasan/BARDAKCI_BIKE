@@ -724,6 +724,8 @@ export class CiceksepetiClient {
     pageSize?: number;
     page?: number;
     statusId?: number;
+    /** Ana sipariş numarası; doluysa tarih aralığı zorunlu değil (doküman) */
+    orderNo?: number;
   }): Promise<CiceksepetiOrder[]> {
     await this.loadConfig();
     const url = `${this.baseUrl}/Order/GetOrders`;
@@ -731,12 +733,14 @@ export class CiceksepetiClient {
     const now = new Date();
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    const bodyPayload: any = {
-      startDate: params?.startDate || fourteenDaysAgo.toISOString(),
-      endDate: params?.endDate || now.toISOString(),
-      pageSize: params?.pageSize || 100,
-      page: params?.page ?? 0,
-    };
+    const bodyPayload: any = params?.orderNo
+      ? { orderNo: params.orderNo, pageSize: params?.pageSize || 100, page: params?.page ?? 0 }
+      : {
+          startDate: params?.startDate || fourteenDaysAgo.toISOString(),
+          endDate: params?.endDate || now.toISOString(),
+          pageSize: params?.pageSize || 100,
+          page: params?.page ?? 0,
+        };
 
     if (params?.statusId != null) {
       bodyPayload.statusId = params.statusId;

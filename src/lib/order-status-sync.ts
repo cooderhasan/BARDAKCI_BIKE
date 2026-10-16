@@ -196,3 +196,37 @@ export async function cancelOrderFromMarketplace(
     console.log(`[status-sync] ${marketplace} ${order.orderNumber}: pazaryerinde iptal → sitede iptal${restore ? " + stok iade" : ""}`);
     return true;
 }
+
+/** Trendyol paket durumu */
+export function mapTrendyolPackageStatus(s: any): MarketplaceStatus | null {
+    const v = String(s || "").trim().toLowerCase();
+    if (v === "created" || v === "awaiting") return "CONFIRMED";
+    if (v === "picking" || v === "invoiced") return "PROCESSING";
+    if (v === "shipped" || v === "atcollectionpoint") return "SHIPPED";
+    if (v === "delivered") return "DELIVERED";
+    if (v === "cancelled" || v === "unsupplied") return "CANCELLED";
+    return null; // Returned, UnDelivered, UnPacked
+}
+
+/** Çiçeksepeti alt sipariş durumu: 1 Yeni, 2 Hazırlanıyor, 11 Kargoya Verilecek, 5 Kargoya Verildi, 7 Teslim */
+export function mapCiceksepetiItemStatus(statusId: any, statusText: any): MarketplaceStatus | null {
+    const id = Number(statusId);
+    const t = String(statusText || "").toLocaleLowerCase("tr-TR");
+    if (t.includes("iade")) return null; // iadeler kapsam dışı
+    if (t.includes("iptal")) return "CANCELLED";
+    if (id === 7 || t.includes("teslim")) return "DELIVERED";
+    if (id === 5) return "SHIPPED";
+    if (id === 11 || id === 2) return "PROCESSING";
+    if (id === 1) return "CONFIRMED";
+    return null;
+}
+
+/** ePttAVM sipariş durumu: import ile aynı anahtar kelimeler; bilinmeyen durumda null (varsayım yok) */
+export function mapPttavmOrderStatus(statusText: any, cargoBarcode?: any): MarketplaceStatus | null {
+    const v = String(statusText || "").toLocaleLowerCase("tr-TR");
+    if (v.includes("iade")) return null; // iadeler kapsam dışı
+    if (v.includes("iptal") || v.includes("gecersiz") || v.includes("geçersiz")) return "CANCELLED";
+    if (v.includes("tamamlandi") || v.includes("tamamlandı") || v.includes("teslim")) return "DELIVERED";
+    if (v.includes("gonderilmis") || v.includes("gönderilmiş") || cargoBarcode) return "SHIPPED";
+    return null;
+}
