@@ -385,8 +385,7 @@ export async function getTrendyolBrands(search: string = "") {
     }
 }
 
-export async function getTrendyolCategories() {
-    await requireAdmin();
+async function fetchTrendyolCategoriesLive() {
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -426,6 +425,13 @@ export async function getTrendyolCategories() {
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };
     }
+}
+
+// Kategori listesi 24 saat veritabanında saklanır (lib/category-cache); her aramada pazaryerine bağlanılmaz
+export async function getTrendyolCategories() {
+    await requireAdmin();
+    const { cachedCategoryResult } = await import("@/lib/category-cache");
+    return cachedCategoryResult("trendyol", fetchTrendyolCategoriesLive, (r: any) => !!r?.success && Array.isArray(r.data) && r.data.length > 0);
 }
 
 export async function syncOrdersFromTrendyol() {

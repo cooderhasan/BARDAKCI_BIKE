@@ -1021,8 +1021,7 @@ export async function getProductsByBarcodesPttavm(barcodes: string[]) {
   }
 }
 
-export async function getPttavmCategories() {
-  await requireAdmin();
+async function fetchPttavmCategoriesLive() {
   try {
     const config = await (prisma as any).pttavmConfig.findFirst({ where: { isActive: true } });
     if (!config) return { success: false, data: [] };
@@ -1076,6 +1075,13 @@ export async function getPttavmCategories() {
     console.error("getPttavmCategories error:", error);
     return { success: false, error: error.message };
   }
+}
+
+// Kategori listesi 24 saat veritabanında saklanır (lib/category-cache); her aramada pazaryerine bağlanılmaz
+export async function getPttavmCategories() {
+  await requireAdmin();
+  const { cachedCategoryResult } = await import("@/lib/category-cache");
+  return cachedCategoryResult("pttavm", fetchPttavmCategoriesLive, (r: any) => !!r?.success && Array.isArray(r.data) && r.data.length > 0);
 }
 
 /**

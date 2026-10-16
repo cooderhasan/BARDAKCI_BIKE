@@ -95,8 +95,7 @@ function flattenIdefixCategories(nodes: any[], parentPath = ""): Array<{ id: num
   return result;
 }
 
-export async function getIdefixCategories(): Promise<{ success: boolean; data?: Array<{ id: number; name: string }>; message?: string }> {
-  await requireAdmin();
+async function fetchIdefixCategoriesLive() {
   try {
     const config = await (prisma as any).idefixConfig.findFirst();
     if (!config) return { success: false, message: "Idefix entegrasyonu bulunamadi." };
@@ -118,6 +117,13 @@ export async function getIdefixCategories(): Promise<{ success: boolean; data?: 
   } catch (error: any) {
     return { success: false, message: "Hata: " + error.message };
   }
+}
+
+// Kategori listesi 24 saat veritabanında saklanır (lib/category-cache); her aramada pazaryerine bağlanılmaz
+export async function getIdefixCategories() {
+  await requireAdmin();
+  const { cachedCategoryResult } = await import("@/lib/category-cache");
+  return cachedCategoryResult("idefix", fetchIdefixCategoriesLive, (r: any) => !!r?.success && Array.isArray(r.data) && r.data.length > 0);
 }
 
 /**

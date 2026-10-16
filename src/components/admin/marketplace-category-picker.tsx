@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 
 export type PickerMarketplace = "trendyol" | "n11" | "hepsiburada" | "idefix" | "pazarama" | "pttavm" | "ciceksepeti";
 
@@ -195,6 +195,105 @@ export function MarketplaceCategoryPicker({
                         </button>
                     ))}
                 </div>
+            )}
+        </div>
+    );
+}
+
+/** Kayıtlı ID'nin adını önbellekteki listeden bulur (HB'de liste olmadığı için sadece ID gösterilir) */
+async function findCategoryName(m: PickerMarketplace, id: string): Promise<string> {
+    if (m === "hepsiburada") return "";
+    const all = await getList(m);
+    return all.find((c) => c.id === id)?.name || "";
+}
+
+/**
+ * Kategoriler sayfası için: mevcut eşleşmeyi gösterir, adıyla arayıp seçtirir, temizletir,
+ * gerekirse ID elle de yazılabilir.
+ */
+export function MarketplaceCategoryField({
+    marketplace,
+    value,
+    onChange,
+    placeholder,
+}: {
+    marketplace: PickerMarketplace;
+    value?: string | number | null;
+    onChange: (id: string | undefined) => void;
+    placeholder?: string;
+}) {
+    const current = value === undefined || value === null || value === "" ? "" : String(value);
+    const [name, setName] = useState("");
+    const [manual, setManual] = useState(false);
+    const [manualValue, setManualValue] = useState("");
+
+    useEffect(() => {
+        let alive = true;
+        setName("");
+        if (!current) return;
+        findCategoryName(marketplace, current)
+            .then((n) => alive && setName(n))
+            .catch(() => {});
+        return () => {
+            alive = false;
+        };
+    }, [marketplace, current]);
+
+    const applyManual = () => {
+        const v = manualValue.trim();
+        if (!v) return;
+        onChange(v);
+        setManual(false);
+        setManualValue("");
+    };
+
+    return (
+        <div className="space-y-2">
+            {current && (
+                <div className="flex items-center gap-2 rounded-lg bg-orange-100 p-2 text-sm dark:bg-orange-900/30">
+                    <span className="flex-1 truncate font-medium text-orange-800 dark:text-orange-300">
+                        {name ? `✓ ${name}` : "Mevcut ID"}
+                    </span>
+                    <span className="font-mono text-xs text-orange-600">#{current}</span>
+                    <button type="button" onClick={() => onChange(undefined)} className="text-orange-500 hover:text-red-600" title="Eşleştirmeyi kaldır">
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+            <MarketplaceCategoryPicker
+                marketplace={marketplace}
+                placeholder={placeholder ?? "Kategori adıyla arayın (min. 2 karakter)..."}
+                onPick={(id, n) => {
+                    onChange(id);
+                    setName(n);
+                }}
+            />
+            {manual ? (
+                <div className="flex gap-2">
+                    <Input
+                        value={manualValue}
+                        onChange={(e) => setManualValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                applyManual();
+                            }
+                        }}
+                        placeholder="Kategori ID"
+                        className="h-8 font-mono text-xs"
+                        autoFocus
+                    />
+                    <button type="button" onClick={applyManual} className="rounded-md bg-orange-500 px-3 text-xs text-white hover:bg-orange-600">
+                        Ekle
+                    </button>
+                    <button type="button" onClick={() => setManual(false)} className="px-2 text-xs text-gray-500 hover:text-gray-700">
+                        Vazgeç
+                    </button>
+                </div>
+            ) : (
+                <button type="button" onClick={() => setManual(true)} className="text-[10px] text-gray-500 underline hover:text-orange-600">
+                    ID'yi elle yaz
+                </button>
             )}
         </div>
     );

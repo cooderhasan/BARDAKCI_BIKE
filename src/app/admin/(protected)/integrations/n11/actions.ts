@@ -574,8 +574,7 @@ export async function getN11Categories(parentId?: number) {
 }
 
 // Full list for searching (This might be slow if many categories, but needed for flat search)
-export async function getFlatN11Categories() {
-    await requireAdmin();
+async function fetchFlatN11CategoriesLive() {
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon yok." };
@@ -590,6 +589,13 @@ export async function getFlatN11Categories() {
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };
     }
+}
+
+// Kategori listesi 24 saat veritabanında saklanır (lib/category-cache); her aramada pazaryerine bağlanılmaz
+export async function getFlatN11Categories() {
+    await requireAdmin();
+    const { cachedCategoryResult } = await import("@/lib/category-cache");
+    return cachedCategoryResult("n11", fetchFlatN11CategoriesLive, (r: any) => !!r?.success && Array.isArray(r.categories) && r.categories.length > 0);
 }
 
 export async function sendProductToN11(productId: string, attributes: any[]) {

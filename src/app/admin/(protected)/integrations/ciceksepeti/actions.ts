@@ -98,8 +98,7 @@ export async function testCiceksepetiConnection(params?: {
   }
 }
 
-export async function getCiceksepetiCategories() {
-  await requireAdmin();
+async function fetchCiceksepetiCategoriesLive() {
   try {
     const client = new CiceksepetiClient();
     return await client.getCategories();
@@ -107,6 +106,13 @@ export async function getCiceksepetiCategories() {
     console.error("getCiceksepetiCategories error:", error);
     return [];
   }
+}
+
+// Kategori listesi 24 saat veritabanında saklanır (lib/category-cache); her aramada pazaryerine bağlanılmaz
+export async function getCiceksepetiCategories() {
+  await requireAdmin();
+  const { cachedCategoryResult } = await import("@/lib/category-cache");
+  return cachedCategoryResult("ciceksepeti", fetchCiceksepetiCategoriesLive, (r: any) => Array.isArray(r) && r.length > 0);
 }
 
 export async function searchCiceksepetiCategories(query: string) {
