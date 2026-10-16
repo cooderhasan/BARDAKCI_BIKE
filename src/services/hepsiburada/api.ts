@@ -511,7 +511,7 @@ export class HepsiburadaClient {
      * GET /packages/merchantid/{merchantId}/packagenumber/{packageNumber}
      * barcode: paketin kargo barkodu (HB etiketindeki barkod), trackingInfoCode: kargo takip no
      */
-    async getPackageCargoInfo(packageNumber: string): Promise<{ barcode?: string; trackingInfoCode?: string; cargoCompany?: string } | null> {
+    async getPackageCargoInfo(packageNumber: string): Promise<{ barcode?: string; trackingInfoCode?: string; cargoCompany?: string; status?: string } | null> {
         await this.init();
         if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
         const url = `${this.orderBaseUrl}/packages/merchantid/${this.creds.merchantId}/packagenumber/${encodeURIComponent(packageNumber)}`;
@@ -525,7 +525,28 @@ export class HepsiburadaClient {
             barcode: pkg.barcode ? String(pkg.barcode) : undefined,
             trackingInfoCode: pkg.trackingInfoCode ? String(pkg.trackingInfoCode) : undefined,
             cargoCompany: pkg.cargoCompany || undefined,
+            status: pkg.status ? String(pkg.status) : undefined, // Intransit / Delivered
         };
+    }
+
+    /**
+     * Kargoya verilen / teslim edilen paketler (son 1 ay). Doküman: limit max 50, limit-offset ile sayfalama.
+     * GET /packages/merchantid/{merchantId}/shipped  |  /delivered
+     * Alanlar: orderNumber, PackageNumber, Barcode, ShippedDate / DeliveredDate (büyük/küçük harf değişebiliyor)
+     */
+    async getPackagesByState(state: "shipped" | "delivered", offset = 0, limit = 50): Promise<any[]> {
+        await this.init();
+        if (!this.creds?.merchantId) throw new Error("Merchant ID missing");
+        const url = `${this.orderBaseUrl}/packages/merchantid/${this.creds.merchantId}/${state}?offset=${offset}&limit=${limit}`;
+        const response = await fetch(url, { headers: this.getHeaders(), cache: "no-store" });
+        if (response.status === 404) return [];
+        if (!response.ok) throw new Error(`HB ${state} listesi alınamadı: ${response.status} ${(await response.text().catch(() => "")).slice(0, 200)}`);
+        const data = await response.json();
+        if (Array.isArray(data)) return data;
+        for (const k of ["items", "content", "data", "results", "packages"]) {
+            if (Array.isArray(data?.[k])) return data[k];
+        }
+        return [];
     }
 
     /**

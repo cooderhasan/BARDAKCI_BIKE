@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import {
+    advanceOrderStatus,
     catchUpStaleOrders,
     leastAdvanced,
     mapHepsiburadaItemStatus,
@@ -24,12 +25,60 @@ export async function runHepsiburadaStatusCatchUp() {
         merchantId: config.merchantId,
         isTestMode: config.isTestMode ?? false,
     });
-    // Sipariş detayı: kalem bazında status (Open, Packaged, InTransit, Delivered, iptaller)
-    return catchUpStaleOrders("HEPSIBURADA", async ({ orderNumber }) => {
-        const detail: any = await client.getOrderByNumber(orderNumber);
-        const items: any[] = detail?.items || (Array.isArray(detail) ? detail : []);
-        return leastAdvanced(items.map((i) => mapHepsiburadaItemStatus(i?.status ?? i?.orderStatus)));
+
+    // 1) Dokümandaki "kargoya verilen" ve "teslim edilen" paket listeleri (son 1 ay, sipariş numarasıyla).
+    //    Sipariş detayındaki kalem durumu beklenen alanda gelmeyebildiği için esas yol bu (2026-10-16: teslim edilmiş
+    //    sipariş detaydan ilerletilemedi).
+    let listChecked = 0;
+    let listAdvanced = 0;
+    for (const [state, next] of [["delivered", "DELIVERED"], ["shipped", "SHIPPED"]] as const) {
+        for (let page = 0; page < 20; page++) {
+            let rows: any[] = [];
+            try {
+                rows = await client.getPackagesByState(state, page * 50, 50);
+            } catch (e: any) {
+                console.warn(`[status-sync] HB ${state} listesi:`, e?.message);
+                break;
+            }
+            if (rows.length === 0) break;
+            const nums = Array.from(new Set(rows.map((r) => String(r?.orderNumber ?? r?.OrderNumber ?? "").trim()).filter(Boolean)));
+            if (nums.length > 0) {
+                const orders = await prisma.order.findMany({
+                    where: { source: "HEPSIBURADA", orderNumber: { in: nums }, status: { in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"] } },
+                    select: { id: true, status: true },
+                });
+                for (const o of orders) {
+                    listChecked++;
+                    if (await advanceOrderStatus(o, next)) listAdvanced++;
+                }
+            }
+            if (rows.length < 50) break;
+            await new Promise((r) => setTimeout(r, 300));
+        }
+    }
+    if (listAdvanced > 0) console.log(`[status-sync] HEPSIBURADA (listeler): ${listChecked} eşleşme, ${listAdvanced} ilerletildi`);
+
+    // 2) Listelerde olmayan (1 aydan eski vb.) takılı siparişler tek tek: önce paket durumu (Intransit/Delivered),
+    //    yoksa sipariş detayındaki kalem durumu
+    const single = await catchUpStaleOrders("HEPSIBURADA", async ({ orderNumber, shipmentPackageId }) => {
+        let pkgNo = shipmentPackageId && /^\d{6,}$/.test(shipmentPackageId) ? shipmentPackageId : null;
+        let detailItems: any[] = [];
+        if (!pkgNo) {
+            const detail: any = await client.getOrderByNumber(orderNumber);
+            detailItems = detail?.items || (Array.isArray(detail) ? detail : []);
+            const pn = detailItems.map((i) => String(i?.packageNumber || "")).find((x) => /^\d{6,}$/.test(x));
+            pkgNo = pn || null;
+        }
+        if (pkgNo) {
+            const info = await client.getPackageCargoInfo(pkgNo);
+            const st = String(info?.status || "").toLowerCase();
+            if (st === "delivered") return "DELIVERED";
+            if (st === "intransit" || st === "shipped") return "SHIPPED";
+        }
+        return leastAdvanced(detailItems.map((i) => mapHepsiburadaItemStatus(i?.status ?? i?.orderStatus)));
     });
+
+    return { checked: listChecked + single.checked, advanced: listAdvanced + single.advanced };
 }
 
 export async function runIdefixStatusCatchUp() {
