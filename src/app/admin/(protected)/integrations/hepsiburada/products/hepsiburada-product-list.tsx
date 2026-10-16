@@ -288,12 +288,14 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         setAttrMappings({});
 
         try {
-            const res = await getHepsiburadaCategoryAttributes(catId);
+            const res: any = await getHepsiburadaCategoryAttributes(catId);
             if (res.success) {
                 setCategoryAttrs(res.data || []);
+                // Özellik gelmediyse nedenini göster (HB'nin kategori için ne dediği)
+                if ((!res.data || res.data.length === 0) && res.message) toast.warning(res.message, { duration: 12000 });
             } else {
-                // Metadata çekilemezse uyarı ver ama formu kapat değil
-                toast.warning("Kategori özellikleri alınamadı. Temel alanları doldurarak devam edebilirsiniz.");
+                // Metadata çekilemezse HB'nin mesajını göster ama formu kapatma
+                toast.warning(res.message || "Kategori özellikleri alınamadı. Temel alanları doldurarak devam edebilirsiniz.", { duration: 12000 });
                 setCategoryAttrs([]);
             }
         } catch (error) {

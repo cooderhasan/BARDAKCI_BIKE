@@ -846,6 +846,14 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
         });
 
         const data = await client.getCategoryAttributes(categoryId);
+        // HB hata durumunda da 200 dönüp success:false + kod gönderebiliyor (1001 leaf değil, 1002 aktif değil, 1004 bulunamadı...).
+        // Önceden bu sessizce "özellik yok" sayılıyordu; form boş açılıyor, uyarı çıkmıyordu.
+        if (data?.success === false || !data?.data) {
+            return {
+                success: false,
+                message: `Hepsiburada ${categoryId} numaralı kategori için özellik vermedi${data?.message ? `: ${data.message}` : ""}${data?.code ? ` (kod ${data.code})` : ""}. Kategori, ürün açılabilen en alt kategori olmalı; HB kategori numarasını kontrol edin.`,
+            };
+        }
         const attrs: any[] = [];
         if (data.data) {
             // Temel özelliklerden sistemin otomatik doldurdukları (ad, barkod, marka, fiyat, stok, görsel, garanti, ağırlık)
@@ -877,6 +885,13 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
             seen.add(k);
             return true;
         });
+        if (unique.length === 0) {
+            return {
+                success: true,
+                data: [],
+                message: `Hepsiburada ${categoryId} numaralı kategori için hiç özellik döndürmedi. Kategori numarası yanlış ya da üst kategori olabilir; ürünün HB kategorisini kontrol edin.`,
+            };
+        }
         return { success: true, data: unique };
     } catch (error: any) {
         return { success: false, message: "Hata: " + error.message };
