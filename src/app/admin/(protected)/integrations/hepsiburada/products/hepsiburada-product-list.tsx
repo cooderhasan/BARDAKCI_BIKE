@@ -13,6 +13,7 @@ import {
     TableRow 
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { HbCategoryPicker } from "@/components/admin/hb-category-picker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -430,9 +431,14 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                             Bu ürünler site kategorisi yerine doğrudan belirlediğiniz Hepsiburada kategorisine gönderilecektir.
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <HbCategoryPicker
+                            className="w-full sm:w-64"
+                            placeholder="HB kategorisini adıyla ara..."
+                            onPick={(id, name) => { setBulkCatValue(id); toast.info(`Seçildi: ${name} (#${id}) — "Uygula"ya basın.`); }}
+                        />
                         <Input
-                            placeholder="HB Kategori ID (örn: 2147483647)"
+                            placeholder="veya HB Kategori ID"
                             value={bulkCatValue}
                             onChange={(e) => setBulkCatValue(e.target.value)}
                             className="h-9 w-full sm:w-56 text-sm bg-white dark:bg-gray-800 font-mono"
@@ -582,13 +588,19 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                             </div>
 
                                             {editingCatId === product.id && (
-                                                <div className="flex items-center gap-1 p-1 bg-white dark:bg-gray-800 border border-blue-300 rounded-md shadow-sm z-10" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex flex-col gap-1 p-1 bg-white dark:bg-gray-800 border border-blue-300 rounded-md shadow-sm z-10" onClick={(e) => e.stopPropagation()}>
+                                                    {/* Adıyla arayıp seç: seçince hemen kaydedilir (alt kategori olmalı) */}
+                                                    <HbCategoryPicker
+                                                        autoFocus
+                                                        className="w-56"
+                                                        onPick={(id) => handleSaveCatId(product.id, id)}
+                                                    />
+                                                    <div className="flex items-center gap-1">
                                                     <Input
                                                         value={editCatValue}
                                                         onChange={(e) => setEditCatValue(e.target.value)}
-                                                        placeholder="HB Kat ID"
-                                                        className="h-6 text-[10px] w-20 px-1 font-mono"
-                                                        autoFocus
+                                                        placeholder="veya ID yaz"
+                                                        className="h-6 text-[10px] w-24 px-1 font-mono"
                                                         onKeyDown={(e) => {
                                                             if (e.key === "Enter") handleSaveCatId(product.id);
                                                             if (e.key === "Escape") setEditingCatId(null);
@@ -605,6 +617,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                                     <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-400" onClick={() => setEditingCatId(null)}>
                                                         <X className="h-3 w-3" />
                                                     </Button>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
