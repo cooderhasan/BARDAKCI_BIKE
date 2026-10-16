@@ -26,7 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Search, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { createBrand, updateBrand, deleteBrand } from "@/app/admin/(protected)/brands/actions";
+import { createBrand, updateBrand, deleteBrand, saveOperatorFirm } from "@/app/admin/(protected)/brands/actions";
 import { getTrendyolBrands } from "@/app/admin/(protected)/integrations/trendyol/actions";
 import { findIdefixBrandsExact, searchIdefixBrandsDeep } from "@/app/admin/(protected)/integrations/idefix/actions";
 
@@ -410,8 +410,33 @@ interface BrandsTableProps {
     firms?: { id: string; name: string }[];
 }
 
-export function BrandsTable({ brands, firms = [] }: BrandsTableProps) {
+export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps) {
+    // Pencereden yeni eklenen firmalar sayfa yenilenene kadar listede görünsün
+    const [addedFirms, setAddedFirms] = useState<{ id: string; name: string }[]>([]);
+    const firms = [...firmsProp, ...addedFirms.filter((a) => !firmsProp.some((f) => f.id === a.id))].sort((a, b) => a.name.localeCompare(b.name, "tr"));
     const firmName = (id?: string | null) => (id ? firms.find((f) => f.id === id)?.name : undefined);
+    const [newFirmRole, setNewFirmRole] = useState<"manufacturer" | "importer" | null>(null);
+    const [newFirm, setNewFirm] = useState({ name: "", address: "", email: "" });
+    const [savingFirm, setSavingFirm] = useState(false);
+    const saveNewFirm = async () => {
+        if (!newFirmRole) return;
+        setSavingFirm(true);
+        try {
+            const res = await saveOperatorFirm(null, newFirm);
+            if (!res.success || !res.firm) {
+                toast.error(res.message || "Firma kaydedilemedi.");
+                return;
+            }
+            setAddedFirms((prev) => [...prev, { id: res.firm.id, name: res.firm.name }]);
+            if (newFirmRole === "manufacturer") setManufacturerFirmId(res.firm.id);
+            else setImporterFirmId(res.firm.id);
+            toast.success(`${res.firm.name} eklendi ve ${newFirmRole === "manufacturer" ? "imalatçı" : "ithalatçı"} olarak seçildi.`);
+            setNewFirmRole(null);
+            setNewFirm({ name: "", address: "", email: "" });
+        } finally {
+            setSavingFirm(false);
+        }
+    };
     const [isOpen, setIsOpen] = useState(false);
     const [editBrand, setEditBrand] = useState<Brand | null>(null);
     const [loading, setLoading] = useState(false);
@@ -467,6 +492,7 @@ export function BrandsTable({ brands, firms = [] }: BrandsTableProps) {
         setPazaramaBrandId(undefined);
         setManufacturerFirmId("");
         setImporterFirmId("");
+        setNewFirmRole(null);
         setEditBrand(null);
     };
 
@@ -482,6 +508,7 @@ export function BrandsTable({ brands, firms = [] }: BrandsTableProps) {
         setPazaramaBrandId(brand.pazaramaBrandId ? String(brand.pazaramaBrandId) : undefined);
         setManufacturerFirmId(brand.manufacturerFirmId || "");
         setImporterFirmId(brand.importerFirmId || "");
+        setNewFirmRole(null);
         setIsOpen(true);
     };
 
@@ -615,8 +642,29 @@ export function BrandsTable({ brands, firms = [] }: BrandsTableProps) {
                                         </div>
                                     </div>
                                     <p className="text-[10px] text-blue-700">
-                                        {firms.length === 0 ? "Önce sayfanın üstündeki \"İmalatçı / İthalatçı Firmaları\" bölümünden firma ekleyin." : "Pazaryerine yeni ürün gönderirken üretici / ithalatçı alanları bu firmalardan dolar."}
+                                        Pazaryerine yeni ürün gönderirken üretici / ithalatçı alanları bu firmalardan dolar. Firmaları düzenlemek için: sayfanın üstündeki mavi "İmalatçı / İthalatçı Firmaları" bölümü.
                                     </p>
+                                    {newFirmRole ? (
+                                        <div className="space-y-2 rounded-md border border-blue-300 bg-white p-2 dark:bg-gray-800">
+                                            <div className="text-xs font-semibold">Yeni firma ({newFirmRole === "manufacturer" ? "imalatçı" : "ithalatçı"} olarak seçilecek)</div>
+                                            <Input value={newFirm.name} onChange={(e) => setNewFirm({ ...newFirm, name: e.target.value })} placeholder="Ünvan" className="h-9 text-sm" />
+                                            <Input value={newFirm.address} onChange={(e) => setNewFirm({ ...newFirm, address: e.target.value })} placeholder="Açık adres" className="h-9 text-sm" />
+                                            <Input value={newFirm.email} onChange={(e) => setNewFirm({ ...newFirm, email: e.target.value })} placeholder="E-posta" type="email" className="h-9 text-sm" />
+                                            <div className="flex justify-end gap-2">
+                                                <Button size="sm" type="button" variant="outline" onClick={() => setNewFirmRole(null)}>Vazgeç</Button>
+                                                <Button size="sm" type="button" onClick={saveNewFirm} disabled={savingFirm}>{savingFirm ? "Kaydediliyor..." : "Firmayı Kaydet"}</Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button size="sm" type="button" variant="outline" className="h-7 text-xs" onClick={() => setNewFirmRole("manufacturer")}>
+                                                <Plus className="h-3 w-3 mr-1" /> Yeni imalatçı firma
+                                            </Button>
+                                            <Button size="sm" type="button" variant="outline" className="h-7 text-xs" onClick={() => setNewFirmRole("importer")}>
+                                                <Plus className="h-3 w-3 mr-1" /> Yeni ithalatçı firma
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                                     <Label className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Marka ID</Label>
