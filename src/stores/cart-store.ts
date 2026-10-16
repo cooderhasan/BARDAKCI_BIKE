@@ -13,8 +13,9 @@ interface CartState {
     setDiscountRate: (rate: number) => void;
     setIsAuthenticated: (val: boolean) => void;
     addItem: (item: CartItem) => void;
-    removeItem: (productId: string) => void;
-    updateQuantity: (productId: string, quantity: number) => void;
+    // variantId: aynı ürünün farklı varyantları sepette ayrı satırdır
+    removeItem: (productId: string, variantId?: string) => void;
+    updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
     clearCart: () => void;
     getSummary: () => CartSummary;
     setItems: (items: CartItem[]) => void;
@@ -27,6 +28,10 @@ interface CartState {
     openAddedToCartModal: (item: CartItem) => void;
     closeAddedToCartModal: () => void;
 }
+
+/** Sepet satırı: ürün + varyant (varyantsız üründe variantId yok) */
+const sameCartLine = (i: { productId: string; variantId?: string | null }, productId: string, variantId?: string | null) =>
+    i.productId === productId && (i.variantId || undefined) === (variantId || undefined);
 
 export const useCartStore = create<CartState>()(
     persist(
@@ -78,16 +83,16 @@ export const useCartStore = create<CartState>()(
                 await syncCart(newItems);
             },
 
-            removeItem: async (productId) => {
-                const newItems = get().items.filter((i) => i.productId !== productId);
+            removeItem: async (productId, variantId) => {
+                const newItems = get().items.filter((i) => !sameCartLine(i, productId, variantId));
                 set({ items: newItems });
 
                 await syncCart(newItems);
             },
 
-            updateQuantity: async (productId, quantity) => {
+            updateQuantity: async (productId, quantity, variantId) => {
                 const items = get().items;
-                const itemIndex = items.findIndex((i) => i.productId === productId);
+                const itemIndex = items.findIndex((i) => sameCartLine(i, productId, variantId));
 
                 if (itemIndex >= 0) {
                     const item = items[itemIndex];
@@ -97,7 +102,7 @@ export const useCartStore = create<CartState>()(
                         newItems[itemIndex].quantity = quantity;
                         set({ items: newItems });
                     } else if (quantity < item.minQuantity) {
-                        newItems = items.filter((i) => i.productId !== productId);
+                        newItems = items.filter((i) => !sameCartLine(i, productId, variantId));
                         set({ items: newItems });
                     }
 

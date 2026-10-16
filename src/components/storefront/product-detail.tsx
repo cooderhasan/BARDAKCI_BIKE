@@ -272,7 +272,8 @@ export function ProductDetail({
             listPrice: product.listPrice + priceAdjustment,
             salePrice: product.salePrice || undefined, // Pass salePrice
             vatRate: product.vatRate,
-            stock: product.stock,
+            // Varyantlı üründe adet sınırı seçilen varyantın stoğu
+            stock: selectedVariant ? selectedVariant.stock : product.stock,
             minQuantity: product.minQuantity,
             discountRate: discountRate, // Always pass the user's/dealer's discount rate
             desi: effectiveDesi,

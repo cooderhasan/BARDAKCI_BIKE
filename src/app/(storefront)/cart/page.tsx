@@ -62,7 +62,7 @@ export default function CartPage() {
                 {/* Cart Items */}
                 <div className="lg:col-span-2 space-y-4">
                     {items.map((item) => (
-                        <Card key={item.productId}>
+                        <Card key={`${item.productId}-${item.variantId || ""}`}>
                             <CardContent className="p-4">
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     {/* Image */}
@@ -89,6 +89,12 @@ export default function CartPage() {
                                         >
                                             {item.name}
                                         </Link>
+                                        {/* Varyantlı üründe seçilen renk / beden */}
+                                        {item.variantInfo && (
+                                            <span className="mt-1 inline-block rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-[#17457C] dark:bg-blue-900/30 dark:text-blue-200">
+                                                {item.variantInfo}
+                                            </span>
+                                        )}
                                         {(() => {
                                             const price = calculatePrice(
                                                 item.listPrice,
@@ -124,7 +130,7 @@ export default function CartPage() {
                                                     size="icon"
                                                     className="h-8 w-8"
                                                     onClick={() =>
-                                                        updateQuantity(item.productId, item.quantity - 1)
+                                                        updateQuantity(item.productId, item.quantity - 1, item.variantId)
                                                     }
                                                     disabled={item.quantity <= item.minQuantity}
                                                 >
@@ -136,7 +142,8 @@ export default function CartPage() {
                                                     onChange={(e) =>
                                                         updateQuantity(
                                                             item.productId,
-                                                            Number(e.target.value)
+                                                            Number(e.target.value),
+                                                            item.variantId
                                                         )
                                                     }
                                                     className="w-12 sm:w-16 h-8 text-center text-sm"
@@ -148,7 +155,7 @@ export default function CartPage() {
                                                     size="icon"
                                                     className="h-8 w-8"
                                                     onClick={() =>
-                                                        updateQuantity(item.productId, item.quantity + 1)
+                                                        updateQuantity(item.productId, item.quantity + 1, item.variantId)
                                                     }
                                                     disabled={item.quantity >= item.stock}
                                                 >
@@ -158,7 +165,7 @@ export default function CartPage() {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="text-red-500 hover:text-red-600 h-8 w-8"
-                                                    onClick={() => removeItem(item.productId)}
+                                                    onClick={() => removeItem(item.productId, item.variantId)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>

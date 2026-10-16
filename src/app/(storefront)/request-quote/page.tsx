@@ -125,9 +125,12 @@ export default function RequestQuotePage() {
                                     </TableHeader>
                                     <TableBody>
                                         {items.map((item) => (
-                                            <TableRow key={item.productId}>
+                                            <TableRow key={`${item.productId}-${item.variantId || ""}`}>
                                                 <TableCell className="font-medium">
                                                     {item.name}
+                                                    {item.variantInfo && (
+                                                        <div className="text-xs font-normal text-gray-500">{item.variantInfo}</div>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-center">
                                                     {item.quantity}
@@ -143,7 +146,7 @@ export default function RequestQuotePage() {
                                                         variant="ghost"
                                                         size="icon"
                                                         className="text-red-500 hover:text-red-700"
-                                                        onClick={() => removeItem(item.productId)}
+                                                        onClick={() => removeItem(item.productId, item.variantId)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
