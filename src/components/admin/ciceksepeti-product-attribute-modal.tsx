@@ -290,8 +290,41 @@ export function CiceksepetiProductAttributeModal({
     );
   }
 
-  // Seçili varyant oluşturan özellikleri bul
-  const selectedVarianterAttrs = apiAttributes.filter(
+  // --- Varyantlı ürün: ÇS'de bir ürün grubunda tek varyant özelliği değişir ---
+  // Renk + beden varsa: kategoride beden varyant özelliği varsa her RENK ayrı grup (bedenler seçenek),
+  // yoksa her BEDEN ayrı grup (renkler seçenek). Değerler ÇS listesinden (serbest metin yok).
+  const csNorm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
+  const variantRows = (product?.variants || []).filter((v: any) => v.isActive !== false && (v.sku || v.barcode));
+  const varAttrs = apiAttributes.filter((a: any) => a.varianter || a.isVariantProperty);
+  const variantPlanInfo = (() => {
+    if (variantRows.length === 0 || varAttrs.length === 0) return null;
+    const isSize = (a: any) => /beden|boy|numara|ebat|ölçü|olcu|size/.test(csNorm(a.name));
+    const isColor = (a: any) => /renk|color/.test(csNorm(a.name));
+    const colors = new Set(variantRows.map((v: any) => v.color).filter(Boolean));
+    const sizes = new Set(variantRows.map((v: any) => v.size).filter(Boolean));
+    const sizeAttr = varAttrs.find(isSize);
+    const colorAttr = varAttrs.find(isColor);
+    if (sizes.size > 0 && sizeAttr) return { dimAttr: sizeAttr, source: "size" as const, groupBy: colors.size > 1 ? ("color" as const) : null };
+    if (colors.size > 0 && colorAttr) return { dimAttr: colorAttr, source: "color" as const, groupBy: sizes.size > 1 ? ("size" as const) : null };
+    return { dimAttr: varAttrs[0], source: (sizes.size > 0 ? "size" : "color") as "size" | "color", groupBy: sizes.size > 0 && colors.size > 1 ? ("color" as const) : null };
+  })();
+  const [variantDimValues, setVariantDimValues] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!variantPlanInfo) return;
+    const values = variantPlanInfo.dimAttr.attributeValues || [];
+    const next: Record<string, string> = {};
+    for (const v of variantRows) {
+      const src = variantPlanInfo.source === "size" ? v.size : v.color;
+      const hit = values.find((x: any) => csNorm(x.name) === csNorm(src));
+      if (hit) next[v.id] = String(hit.id);
+    }
+    setVariantDimValues(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiAttributes, product?.id]);
+  const variantGroupKey = (v: any) => (variantPlanInfo?.groupBy ? String(v[variantPlanInfo.groupBy] || "") : "");
+
+  // Seçili varyant oluşturan özellikleri bul (varyantlı üründe varyant tablosu kullanılır)
+  const selectedVarianterAttrs = variantPlanInfo ? [] : apiAttributes.filter(
     (attr) =>
       (attr.varianter || attr.isVariantProperty) &&
       (attributeValues[String(attr.id)]?.attributeValueId || attributeValues[String(attr.id)]?.customValue)
@@ -307,8 +340,34 @@ export function CiceksepetiProductAttributeModal({
       return;
     }
 
+    // Varyantlı ürün: her varyantın değeri seçilmiş ve grup içinde benzersiz olmalı
+    let variantPlan: { variantId: string; groupKey: string; attributeId: number; attributeValueId: number }[] | undefined;
+    if (variantPlanInfo) {
+      const missingV = variantRows.filter((v: any) => !variantDimValues[v.id]);
+      if (missingV.length > 0) {
+        toast.error(`Varyant değeri seçilmemiş: ${missingV.map((v: any) => [v.color, v.size].filter(Boolean).join(" / ")).slice(0, 6).join(", ")}`);
+        return;
+      }
+      const seen = new Set<string>();
+      for (const v of variantRows) {
+        const k = `${variantGroupKey(v)}|${variantDimValues[v.id]}`;
+        if (seen.has(k)) {
+          toast.error(`Aynı grupta aynı ${variantPlanInfo.dimAttr.name} değeri iki kez seçilmiş (${[v.color, v.size].filter(Boolean).join(" / ")}). Çiçeksepeti bunları ayırt edemez.`);
+          return;
+        }
+        seen.add(k);
+      }
+      variantPlan = variantRows.map((v: any) => ({
+        variantId: v.id,
+        groupKey: variantGroupKey(v),
+        attributeId: Number(variantPlanInfo.dimAttr.id),
+        attributeValueId: Number(variantDimValues[v.id]),
+      }));
+    }
+    const varAttrIds = new Set(variantPlanInfo ? varAttrs.map((a: any) => String(a.id)) : []);
+
     const missingRequired = apiAttributes.filter(
-      (attr) => (attr.required || attr.isRequired) && !attributeValues[String(attr.id)]?.attributeValueId && !attributeValues[String(attr.id)]?.customValue
+      (attr) => !varAttrIds.has(String(attr.id)) && (attr.required || attr.isRequired) && !attributeValues[String(attr.id)]?.attributeValueId && !attributeValues[String(attr.id)]?.customValue
     );
 
     if (missingRequired.length > 0) {
@@ -319,6 +378,7 @@ export function CiceksepetiProductAttributeModal({
     const selectedAttributes: any[] = [];
 
     Object.entries(attributeValues).forEach(([attrId, val]) => {
+      if (varAttrIds.has(String(attrId))) return; // varyant özellikleri varyant başına gider
       if (val.attributeValueId) {
         selectedAttributes.push({
           attributeId: Number(attrId),
@@ -352,6 +412,7 @@ export function CiceksepetiProductAttributeModal({
         deliveryType: Number(deliveryType),
         deliveryDays: Number(deliveryDays),
         operatorContacts: formattedOperatorContacts.length > 0 ? formattedOperatorContacts : undefined,
+        variantPlan,
       });
 
       if (res.success) {
@@ -497,6 +558,40 @@ export function CiceksepetiProductAttributeModal({
                 )}
               </div>
 
+              {/* Varyantlar: ÇS'de her varyant ayrı ürün; grup içinde tek varyant özelliği */}
+              {!loading && variantRows.length > 0 && (
+                <div className="space-y-2 p-3 bg-blue-50/60 border border-blue-200 rounded-lg">
+                  <p className="font-semibold text-blue-900">🎨 Varyantlar ({variantRows.length})</p>
+                  {!variantPlanInfo ? (
+                    <p className="text-[11px] text-red-600">Bu Çiçeksepeti kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye doğru açılamaz.</p>
+                  ) : (
+                    <>
+                      <p className="text-[11px] text-blue-800">
+                        Çiçeksepeti bir üründe tek varyant özelliğine izin veriyor: <strong>{variantPlanInfo.dimAttr.name}</strong> seçenek olarak açılacak.
+                        {variantPlanInfo.groupBy && (
+                          <> Her <strong>{variantPlanInfo.groupBy === "color" ? "renk" : "beden"}</strong> ayrı ürün sayfası olur.</>
+                        )}{" "}
+                        Değerler Çiçeksepeti listesinden seçilmeli.
+                      </p>
+                      {variantRows.map((v: any) => (
+                        <div key={v.id} className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center rounded border bg-white p-2">
+                          <div className="text-xs">
+                            <span className="font-semibold">{[v.color, v.size].filter(Boolean).join(" / ")}</span>
+                            <span className="ml-2 font-mono text-[10px] text-gray-500">{v.sku || v.barcode}</span>
+                            {variantGroupKey(v) && <span className="ml-2 text-[10px] text-blue-600">sayfa: {variantGroupKey(v)}</span>}
+                          </div>
+                          <SearchableAttributeSelect
+                            attr={variantPlanInfo.dimAttr}
+                            value={variantDimValues[v.id] || ""}
+                            onChange={(val) => setVariantDimValues((prev) => ({ ...prev, [v.id]: val }))}
+                          />
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Çiçeksepeti Canlı Kategori Nitelikleri */}
               {loading ? (
                 <div className="flex items-center justify-center py-6 text-muted-foreground gap-2">
@@ -530,7 +625,7 @@ export function CiceksepetiProductAttributeModal({
                   )}
 
                   <div className="space-y-2.5">
-                    {apiAttributes.map((attr) => {
+                    {apiAttributes.filter((attr) => !(variantPlanInfo && (attr.varianter || attr.isVariantProperty))).map((attr) => {
                       const isReq = attr.required || attr.isRequired;
                       const isVar = attr.varianter || attr.isVariantProperty;
                       const currentVal = attributeValues[String(attr.id)] || {};

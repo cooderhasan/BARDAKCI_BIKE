@@ -154,6 +154,9 @@ export async function syncProductsToCiceksepeti(
     deliveryType?: number;
     deliveryDays?: number;
     operatorContacts?: any[];
+    // Varyantlı ürün planı (ürün penceresinden): her varyant ayrı ürün; aynı grup (mainProductCode) içinde tek varyant
+    // özelliği değişir. groupKey doluysa (ör. renk) her grup ayrı ürün sayfası olur.
+    variantPlan?: { variantId: string; groupKey: string; attributeId: number; attributeValueId: number }[];
   }
 ) {
   await requireAdmin();
@@ -423,6 +426,42 @@ export async function syncProductsToCiceksepeti(
             ? (brandContacts.length > 0 ? brandContacts : undefined)
             : (config.operatorContacts && config.operatorContacts.length > 0 ? config.operatorContacts : undefined);
 
+        // Varyantlı ürün: her varyant ayrı ürün olarak, grubunun ana ürün koduyla gönderilir
+        const plan = customOptions?.variantPlan || [];
+        const planVariants = plan
+          .map((pl) => ({ pl, v: (p.variants || []).find((x: any) => x.id === pl.variantId) as any }))
+          .filter((x) => x.v && (x.v.sku || x.v.barcode));
+        if (planVariants.length > 0) {
+          const slug = (t: string) =>
+            t.toLocaleUpperCase("tr-TR").replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ü/g, "U").replace(/Ö/g, "O").replace(/Ç/g, "C")
+              .replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20);
+          const dimAttrIds = new Set(plan.map((pl) => Number(pl.attributeId)));
+          const baseAttrs = attributes.filter((a: any) => !dimAttrIds.has(Number(a.attributeId || a.Id || a.id)));
+          const critical = p.criticalStock ?? defaultCritical;
+          for (const { pl, v } of planVariants) {
+            const vCode = v.sku || v.barcode;
+            const groupKey = String(pl.groupKey || "").trim();
+            const adj = Number(v.priceAdjustment || 0);
+            productInputs.push({
+              productName: groupKey ? `${p.name} - ${groupKey}` : p.name,
+              productCode: groupKey ? `${productCode}-${slug(groupKey)}` : productCode, // mainProductCode (grup)
+              stockCode: vCode,
+              mainCategoryId: categoryId,
+              description: p.marketplaceDescription || p.description || p.name,
+              deliveryType: Number(customOptions?.deliveryType || 2),
+              deliveryDays: Number(customOptions?.deliveryDays || 5),
+              listPrice: Math.round((listPrice + adj) * 100) / 100,
+              salesPrice: Math.round((salesPrice + adj) * 100) / 100,
+              stockQuantity: Math.max(0, v.stock - critical),
+              barcode: v.barcode || v.sku,
+              images: v.images && v.images.length > 0 ? v.images : p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500"],
+              attributes: [...baseAttrs, { attributeId: Number(pl.attributeId), attributeValueId: Number(pl.attributeValueId) }],
+              operatorContacts,
+            });
+          }
+          continue;
+        }
+
         productInputs.push({
           productName: p.name,
           productCode: productCode,
@@ -456,6 +495,23 @@ export async function syncProductsToCiceksepeti(
 
           const criticalStock = p.criticalStock ?? defaultCritical;
           const availableStock = Math.max(0, p.stock - criticalStock);
+
+          // Varyant planıyla gönderilen üründe stok/fiyat varyant stok kodlarıyla
+          const planned = (customOptions?.variantPlan || [])
+            .map((pl) => (p.variants || []).find((x: any) => x.id === pl.variantId))
+            .filter((v: any) => v && (v.sku || v.barcode));
+          if (planned.length > 0) {
+            for (const v of planned as any[]) {
+              const adj = Number(v.priceAdjustment || 0);
+              instantPriceStockItems.push({
+                stockCode: v.sku || v.barcode,
+                salesPrice: Math.round((salesPrice + adj) * 100) / 100,
+                listPrice: Math.round((listPrice + adj) * 100) / 100,
+                stockQuantity: Math.max(0, v.stock - criticalStock),
+              });
+            }
+            continue;
+          }
 
           const stockCode = p.sku || p.barcode || p.id;
           if (stockCode) {
@@ -600,6 +656,8 @@ export async function getCiceksepetiProducts({
           ciceksepetiProduct: true,
           category: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
           categories: { select: { id: true, name: true, ciceksepetiCategoryId: true } },
+          // Gönderim penceresindeki varyant tablosu için
+          variants: { select: { id: true, color: true, size: true, sku: true, barcode: true, stock: true, isActive: true, images: true } },
         },
         orderBy: { updatedAt: "desc" },
         skip,
