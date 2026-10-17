@@ -598,7 +598,12 @@ export async function getFlatN11Categories() {
     return cachedCategoryResult("n11", fetchFlatN11CategoriesLive, (r: any) => !!r?.success && Array.isArray(r.categories) && r.categories.length > 0);
 }
 
-export async function sendProductToN11(productId: string, attributes: any[]) {
+export async function sendProductToN11(
+    productId: string,
+    attributes: any[],
+    // Varyantlı ürün: varyant ID -> o varyantın renk / beden özellikleri [{ id, valueId?, customValue? }]
+    variantAttributes?: Record<string, any[]>
+) {
     await requireAdmin();
     try {
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
@@ -673,7 +678,32 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
         if (hasVariants) {
             // Variant product: each variant becomes a separate SKU with same productMainId
             // N11 groups variants by productMainId - each variant is a separate SKU
-            const skus = (product as any).variants.map((variant: any, index: number) => {
+            // Her varyant kendi renk/beden özelliği ve görselleriyle gider (N11: isSlicer / isVariant).
+            // Önceden renk/beden sadece başlığa yazılıyordu; özellikler tüm varyantlarda aynıydı.
+            const generalSettings = await getSiteSettings("general");
+            const criticalStock = (product as any).criticalStock ?? Number((generalSettings as any)?.defaultCriticalStock || 10);
+            const toAbsolute = (url: string) => {
+                if (url.startsWith("http")) return url;
+                const baseUrl = siteUrl.replace(/\/$/, "");
+                return `${baseUrl}${url.startsWith("/") ? url : `/${url}`}`;
+            };
+            const normalizeAttr = (attr: any) => {
+                const a: any = { id: attr.id };
+                if (attr.valueId != null && attr.valueId !== "" && attr.valueId !== 0) a.valueId = attr.valueId;
+                else if (attr.customValue != null && String(attr.customValue).trim() !== "") a.customValue = String(attr.customValue).trim();
+                return a;
+            };
+            const activeVariants = (product as any).variants.filter((v: any) => v.isActive !== false);
+            const skus = activeVariants.map((variant: any, index: number) => {
+                const vAttrs = ((variantAttributes || {})[variant.id] || [])
+                    .filter((a: any) => a && a.id != null)
+                    .map(normalizeAttr)
+                    .filter((a: any) => a.valueId != null || a.customValue != null);
+                const vIds = new Set(vAttrs.map((a: any) => String(a.id)));
+                const attributesForVariant = vAttrs.length > 0
+                    ? [...mappedAttributes.filter((a: any) => !vIds.has(String(a.id))), ...vAttrs]
+                    : mappedAttributes;
+                const vImages = ((variant.images || []) as string[]).map(toAbsolute);
                 // Variant title includes color/size for distinction
                 const variantTitle = `${product.name} ${variant.color || ''} ${variant.size || ''}`.trim();
                 
@@ -690,12 +720,10 @@ export async function sendProductToN11(productId: string, attributes: any[]) {
                     salePrice: Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0),
                     listPrice: Math.max(Number(product.n11Price || product.listPrice) + Number(variant.priceAdjustment || 0), Number(product.listPrice) + Number(variant.priceAdjustment || 0)),
                     vatRate: 20,
-                    quantity: variant.stock || 0,
-                    images: absoluteImages,
-                    // Only use mapped attributes from UI (with valid IDs)
-                    // Variant-specific info (color/size) goes into title, not attributes
-                    // because N11 requires category attribute IDs for variant attributes
-                    attributes: mappedAttributes,
+                    // Kritik stok düşülür (sonraki otomatik senkronla aynı kural)
+                    quantity: Math.max(0, (variant.stock || 0) - criticalStock),
+                    images: vImages.length > 0 ? vImages : absoluteImages,
+                    attributes: attributesForVariant,
                     ...(product.n11CatalogId && { catalogId: Number(product.n11CatalogId) })
                 };
             });

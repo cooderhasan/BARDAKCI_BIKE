@@ -286,6 +286,9 @@ export class N11Client {
                     name: attr.attributeName || attr.name,
                     mandatory: attr.isMandatory === true || attr.mandatory === true,
                     isCustomValue: attr.isCustomValue === true,
+                    // isSlicer: aynı sayfada görselli seçenek (renk), isVariant: aynı sayfada seçenek (beden)
+                    isSlicer: attr.isSlicer === true,
+                    isVariant: attr.isVariant === true,
                     values: rawValues.map((v: any) => {
                         if (typeof v === 'string') return { id: null, name: v };
                         const name = v.name ?? v.attributeValue ?? v.value ?? v.label ?? JSON.stringify(v);

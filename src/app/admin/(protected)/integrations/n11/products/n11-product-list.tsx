@@ -74,6 +74,28 @@ interface N11ProductListProps {
     };
 }
 
+// --- Varyantlı ürün: N11'de her varyant kendi renk (isSlicer) / beden (isVariant) değeriyle gider ---
+const n11Norm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
+const isColorAttr = (a: any) => n11Norm(a.name).includes("renk") || n11Norm(a.name).includes("color");
+/** Varyant bazında sorulacak özellikler */
+function getN11VariantAttrs(attrs: any[]) {
+    return attrs.filter((a: any) => a.isSlicer || a.isVariant);
+}
+/** Kategoride beden özelliği yoksa beden renk alanına yazılır ("Siyah / Mavi - M"), yoksa N11 aynı rengin bedenlerini ayıramaz */
+function n11SizeGoesIntoColor(vAttrs: any[], vRows: any[]) {
+    return !vAttrs.some((a: any) => !isColorAttr(a)) && vRows.some((v: any) => v.size);
+}
+const n11VariantLabel = (v: any) => [v.color, v.size].filter(Boolean).join(" / ") || v.barcode || v.sku;
+/** Sitedeki renk / beden yazısını N11 değerine eşleştirir: listede varsa {id, name}, yoksa serbest metin */
+function guessN11VariantValue(a: any, v: any, sizeInColor: boolean) {
+    const color = isColorAttr(a);
+    const src = color ? (sizeInColor ? [v.color, v.size].filter(Boolean).join(" - ") : v.color) : v.size;
+    if (!src) return undefined;
+    const hit = (a.values || []).find((x: any) => n11Norm(x.name) === n11Norm(src));
+    if (hit) return { id: hit.id ?? null, name: hit.name };
+    return a.isCustomValue || !(a.values || []).length ? { id: null, name: String(src) } : undefined;
+}
+
 export function N11ProductList({ initialProducts, pagination }: N11ProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
@@ -115,6 +137,8 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [categoryAttrs, setCategoryAttrs] = useState<any[]>([]);
     const [attrMappings, setAttrMappings] = useState<any>({});
+    // Varyant ID -> { özellik ID -> {id, name} }
+    const [variantMappings, setVariantMappings] = useState<Record<string, Record<string, any>>>({});
     const [attrLoading, setAttrLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState<{ [key: string]: string }>({});
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -206,6 +230,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
         setSelectedProduct(product);
         setCategoryAttrs([]); // Explicitly clear old attributes
         setAttrMappings({});
+        setVariantMappings({});
         setAttrLoading(true);
         setShowAttrModal(true);
 
@@ -240,6 +265,22 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                     }
                 }
                 if (Object.keys(pre).length > 0) setAttrMappings(pre);
+
+                // Varyantlar: renk / beden sitedeki yazıdan otomatik doldurulur
+                const vRows = (product.variants || []).filter((v: any) => v.isActive !== false);
+                const vAttrs = getN11VariantAttrs(attrs);
+                if (vRows.length > 0 && vAttrs.length > 0) {
+                    const sizeInColor = n11SizeGoesIntoColor(vAttrs, vRows);
+                    const vMap: Record<string, Record<string, any>> = {};
+                    for (const v of vRows) {
+                        vMap[v.id] = {};
+                        for (const a of vAttrs) {
+                            const g = guessN11VariantValue(a, v, sizeInColor);
+                            if (g) vMap[v.id][a.id] = g;
+                        }
+                    }
+                    setVariantMappings(vMap);
+                }
                 if (attrs.length === 0) {
                     toast.info("Bu kategori için N11 tarafında özel bir özellik tanımlanmamış.");
                 }
@@ -257,9 +298,48 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
     const handleSend = async () => {
         if (!selectedProduct) return;
         
-        // Check for mandatory attributes
+        // Varyantlı ürün: renk / beden varyant başına
+        const vRows = (selectedProduct.variants || []).filter((v: any) => v.isActive !== false);
+        const vAttrs = vRows.length > 0 ? getN11VariantAttrs(categoryAttrs) : [];
+        const vAttrIds = new Set(vAttrs.map((a: any) => String(a.id)));
+        let variantAttributes: Record<string, any[]> | undefined;
+        if (vRows.length > 0 && vAttrs.length > 0) {
+            const missing: string[] = [];
+            variantAttributes = {};
+            for (const v of vRows) {
+                const m = variantMappings[v.id] || {};
+                const list: any[] = [];
+                for (const a of vAttrs) {
+                    const val = m[a.id];
+                    if (!val || !String(val.name || "").trim()) {
+                        if (a.mandatory || a.isSlicer || a.isVariant) missing.push(`${n11VariantLabel(v)}: ${a.name}`);
+                        continue;
+                    }
+                    list.push({ id: Number(a.id), valueId: val.id || null, customValue: val.id ? null : String(val.name).trim() });
+                }
+                variantAttributes[v.id] = list;
+            }
+            if (missing.length > 0) {
+                toast.error(`Varyant değerleri eksik: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? " ..." : ""}`);
+                return;
+            }
+            // Aynı renk + beden değerli iki varyant N11'de ayırt edilemez
+            const seen = new Map<string, string>();
+            const clashes: string[] = [];
+            for (const v of vRows) {
+                const key = vAttrs.map((a: any) => n11Norm(variantMappings[v.id]?.[a.id]?.name)).join("|");
+                if (seen.has(key)) clashes.push(`${seen.get(key)} ve ${n11VariantLabel(v)}`);
+                else seen.set(key, n11VariantLabel(v));
+            }
+            if (clashes.length > 0) {
+                toast.error(`N11 bu varyantları ayırt edemez (renk/beden değerleri aynı): ${clashes.slice(0, 4).join("; ")}`, { duration: 12000 });
+                return;
+            }
+        }
+
+        // Check for mandatory attributes (varyant bazında sorulanlar hariç)
         const missingMandatory = categoryAttrs.filter(attr => 
-            attr.mandatory && !attrMappings[attr.id]
+            attr.mandatory && !vAttrIds.has(String(attr.id)) && !attrMappings[attr.id]
         );
 
         if (missingMandatory.length > 0) {
@@ -282,17 +362,19 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
             return;
         }
 
-        const finalAttrs = Object.entries(attrMappings).map(([id, val]: [string, any]) => ({
-            id: Number(id),
-            valueId: val.id || null,
-            customValue: val.name || null
-        }));
+        const finalAttrs = Object.entries(attrMappings)
+            .filter(([id]) => !vAttrIds.has(String(id)))
+            .map(([id, val]: [string, any]) => ({
+                id: Number(id),
+                valueId: val.id || null,
+                customValue: val.name || null
+            }));
 
         setLoadingProductId(selectedProduct.id);
         setShowAttrModal(false);
 
         try {
-            const res = await sendProductToN11(selectedProduct.id, finalAttrs);
+            const res = await sendProductToN11(selectedProduct.id, finalAttrs, variantAttributes);
             if (res.success) {
                 toast.success(res.message);
                 // Ürün N11 kuyruğundaysa henüz onaylanmamıştır; yeşil tik sadece onaylanınca gösterilir
@@ -682,8 +764,65 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                         </div>
                     ) : (
                         <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-4 min-w-0">
+                            {(() => {
+                                const vRows = (selectedProduct?.variants || []).filter((v: any) => v.isActive !== false);
+                                if (vRows.length === 0) return null;
+                                const vAttrs = getN11VariantAttrs(categoryAttrs);
+                                return (
+                                    <div className="space-y-2 p-3 rounded-xl bg-blue-50/60 border border-blue-200">
+                                        <h4 className="text-xs font-bold text-blue-800">🎨 Varyantlar ({vRows.length}) — aynı model koduyla, her biri kendi renk/beden ve görselleriyle</h4>
+                                        {vAttrs.length === 0 ? (
+                                            <p className="text-[11px] text-red-600">Bu N11 kategorisinde renk/beden varyant özelliği yok; varyantlar N11'de seçenek olarak görünmez.</p>
+                                        ) : n11SizeGoesIntoColor(vAttrs, vRows) ? (
+                                            <p className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">Bu N11 kategorisinde beden özelliği yok; beden renk alanına yazıldı (ör. &quot;Siyah / Mavi - M&quot;).</p>
+                                        ) : (
+                                            <p className="text-[11px] text-blue-700/80">Değerler sitedeki renk/bedenden dolduruldu; boş kalanları seçin.</p>
+                                        )}
+                                        {vRows.map((v: any) => (
+                                            <div key={v.id} className="rounded-lg border bg-white dark:bg-gray-950 p-2 space-y-2">
+                                                <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                    <span className="font-semibold">{n11VariantLabel(v)}</span>
+                                                    <span className="font-mono text-[10px] text-gray-500">{v.sku || v.barcode}</span>
+                                                    <span className="text-[10px] text-gray-500">{(v.images || []).length > 0 ? `${v.images.length} varyant görseli` : "ürünün görselleri"}</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    {vAttrs.map((a: any) => {
+                                                        const val = variantMappings[v.id]?.[a.id];
+                                                        const setVal = (x: any) =>
+                                                            setVariantMappings((prev) => {
+                                                                const row = { ...(prev[v.id] || {}) };
+                                                                if (x) row[a.id] = x; else delete row[a.id];
+                                                                return { ...prev, [v.id]: row };
+                                                            });
+                                                        return (
+                                                            <div key={a.id} className="space-y-1 min-w-0">
+                                                                <Label className="text-[11px] font-semibold">
+                                                                    {a.name}
+                                                                    <span className="ml-1 text-[10px] font-normal text-gray-400">{a.isSlicer ? "(görselli seçenek)" : "(seçenek)"}</span>
+                                                                </Label>
+                                                                {a.values && a.values.length > 0 && !(isColorAttr(a) && n11SizeGoesIntoColor(vAttrs, vRows)) ? (
+                                                                    <N11AttributeSearchSelect values={a.values} attrName={a.name} value={val} onValueChange={(x) => setVal(x)} isMissing={!val} />
+                                                                ) : (
+                                                                    <Input
+                                                                        className="h-9 text-xs rounded-xl"
+                                                                        placeholder={`${a.name} girin...`}
+                                                                        value={val?.name || ""}
+                                                                        onChange={(e) => setVal(e.target.value ? { id: null, name: e.target.value } : null)}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                                {categoryAttrs.map((attr: any) => {
+                                {categoryAttrs
+                                    .filter((attr: any) => !((selectedProduct?.variants || []).some((v: any) => v.isActive !== false) && (attr.isSlicer || attr.isVariant)))
+                                    .map((attr: any) => {
                                     const isMissing = attr.mandatory && !attrMappings[attr.id];
                                     const hasValues = attr.values && attr.values.length > 0;
 
