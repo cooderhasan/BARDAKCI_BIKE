@@ -156,7 +156,14 @@ export async function syncProductsToCiceksepeti(
     operatorContacts?: any[];
     // Varyantlı ürün planı (ürün penceresinden): her varyant ayrı ürün; aynı grup (mainProductCode) içinde tek varyant
     // özelliği değişir. groupKey doluysa (ör. renk) her grup ayrı ürün sayfası olur.
-    variantPlan?: { variantId: string; groupKey: string; attributeId: number; attributeValueId: number }[];
+    variantPlan?: {
+      variantId: string;
+      groupKey: string;
+      // Varyantın tüm varyant özellikleri (ör. Renk 147 + Beden 7); eski biçim: tek attributeId / attributeValueId
+      attributes?: { attributeId: number; attributeValueId: number }[];
+      attributeId?: number;
+      attributeValueId?: number;
+    }[];
   }
 ) {
   await requireAdmin();
@@ -447,7 +454,9 @@ export async function syncProductsToCiceksepeti(
             return h.toString(36).toUpperCase();
           };
           const groupBase = p.sku && String(p.sku).length <= 15 ? String(p.sku) : `P${shortHash(String(p.id))}`;
-          const dimAttrIds = new Set(plan.map((pl) => Number(pl.attributeId)));
+          const planAttrs = (pl: any): { attributeId: number; attributeValueId: number }[] =>
+            pl.attributes && pl.attributes.length > 0 ? pl.attributes : [{ attributeId: Number(pl.attributeId), attributeValueId: Number(pl.attributeValueId) }];
+          const dimAttrIds = new Set(plan.flatMap((pl) => planAttrs(pl).map((a) => Number(a.attributeId))));
           csAttrDiag = liveAttrList
             .map((a: any) => `${a.id}:${a.name}${a.varianter ? "[V]" : ""}${a.type ? `[${a.type}]` : ""}${a.required ? "*" : ""}`)
             .join(", ")
@@ -486,7 +495,7 @@ export async function syncProductsToCiceksepeti(
               stockQuantity: Math.max(0, v.stock - critical),
               barcode: v.barcode || v.sku,
               images: v.images && v.images.length > 0 ? v.images : p.images && p.images.length > 0 ? p.images : ["https://via.placeholder.com/500"],
-              attributes: [...baseAttrs, { attributeId: Number(pl.attributeId), attributeValueId: Number(pl.attributeValueId) }],
+              attributes: [...baseAttrs, ...planAttrs(pl).map((a) => ({ attributeId: Number(a.attributeId), attributeValueId: Number(a.attributeValueId) }))],
               operatorContacts,
             });
           }
