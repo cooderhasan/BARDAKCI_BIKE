@@ -1003,7 +1003,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                         <div className="space-y-2 p-3 rounded-lg bg-blue-50/60 border border-blue-200">
                           <p className="text-xs font-semibold text-blue-800">🎨 Varyantlar ({vRows.length}) — aynı ana ürün koduyla, her biri kendi renk/beden ve görselleriyle</p>
                           {vAttrs.length === 0 ? (
-                            <p className="text-[11px] text-red-600">Bu Idefix kategorisinde varyant özelliği yok; varyantlar Idefix'te seçenek olarak görünmez.</p>
+                            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">Bu Idefix kategorisinde renk/beden varyant özelliği yok. Her varyant Idefix'te <strong>ayrı ürün</strong> olarak açılır; adında renk ve beden yazar (ör. &quot;… - Siyah L&quot;).</p>
                           ) : idxSizeIntoColor(vAttrs, vRows) ? (
                             <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">Bu kategoride beden özelliği yok; beden renk alanına yazıldı (ör. &quot;Siyah / Mavi - M&quot;).</p>
                           ) : null}

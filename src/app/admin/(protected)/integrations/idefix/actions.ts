@@ -670,8 +670,11 @@ export async function createProductOnIdefix(productId: string, payload: {
           return {
             barcode: v.barcode,
             title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
-            // Tüm varyantlar aynı ana ürün koduyla gruplanır (önceden ana SKU yoksa her varyant kendi barkoduyla ayrı ürün oluyordu)
-            productMainId: (product as any).sku || product.id,
+            // Kategoride varyant özelliği varsa tüm varyantlar aynı ana ürün koduyla gruplanır; yoksa (ör. Bisiklet Kaskı)
+            // Idefix aynı koddaki varyantları ayıramayacağı için her varyant kendi koduyla ayrı ürün olur (adında renk/beden yazar).
+            productMainId: payload.variantAttributes && Object.values(payload.variantAttributes).some((l) => (l || []).length > 0)
+              ? (product as any).sku || product.id
+              : v.sku || v.barcode,
             brandId: brandId,
             categoryId: catId,
             inventoryQuantity: varAvailableStock,
