@@ -160,6 +160,8 @@ export async function syncProductsToCiceksepeti(
   }
 ) {
   await requireAdmin();
+  // Teşhis: varyantlı gönderim hata verirse kategorinin özellikleri (id:ad[V=varianter|tip]) hata mesajına eklenir
+  let csAttrDiag = "";
   try {
     const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
     if (!config) {
@@ -446,6 +448,10 @@ export async function syncProductsToCiceksepeti(
           };
           const groupBase = p.sku && String(p.sku).length <= 15 ? String(p.sku) : `P${shortHash(String(p.id))}`;
           const dimAttrIds = new Set(plan.map((pl) => Number(pl.attributeId)));
+          csAttrDiag = liveAttrList
+            .map((a: any) => `${a.id}:${a.name}${a.varianter ? "[V]" : ""}${a.type ? `[${a.type}]` : ""}${a.required ? "*" : ""}`)
+            .join(", ")
+            .slice(0, 800);
           // ÇS bir üründe tek varyant yapan özelliğe izin veriyor ("Birden fazla varyant yapan özelliğe izin verilmiyor"):
           // varianter=true ya da tipi "Variant Özelliği" olan diğer özellikler (ör. Tip, Renk) ürün geneli listeden çıkarılır.
           const variantTypeIds = new Set(
@@ -644,7 +650,10 @@ export async function syncProductsToCiceksepeti(
       revalidatePath("/admin/integrations/ciceksepeti/products");
     }
 
-    return { success: false, error: error.message || "Senkronizasyon sırasında hata oluştu." };
+    return {
+      success: false,
+      error: (error.message || "Senkronizasyon sırasında hata oluştu.") + (csAttrDiag ? ` — Kategori özellikleri: ${csAttrDiag}` : ""),
+    };
   }
 }
 
