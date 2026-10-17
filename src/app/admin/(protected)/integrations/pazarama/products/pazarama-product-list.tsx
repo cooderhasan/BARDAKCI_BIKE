@@ -108,6 +108,17 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
       .map((p: any) => ({ p, rows: (p.variants || []).filter((v: any) => v.isActive !== false && v.barcode) }))
       .filter((x: any) => x.rows.length > 0);
   const pzVariantAttrs = () => categoryAttributes.filter((a) => a.isVariantable);
+  /**
+   * Varyant başına sorulan özellikler: varyant yapanlar + renk. Renk bazı kategorilerde varyant özelliği değil ama zorunlu
+   * ve varyanta göre değişiyor (ör. Bisiklet Eldiveni: "zorunlu olan Renk attribute'u bulunamadı"); genel listede tek değer
+   * seçilemeyeceği için her varyanta ayrı sorulur.
+   */
+  const pzPerVariantAttrs = (attrs: typeof categoryAttributes = categoryAttributes): typeof categoryAttributes => {
+    const hasColors = products.some(
+      (p: any) => selectedIds.includes(p.id) && (p.variants || []).some((v: any) => v.isActive !== false && v.barcode && v.color)
+    );
+    return attrs.filter((a: any) => a.isVariantable || (hasColors && pzIsColor(a.attributeName)));
+  };
   /** Kategoride olmayan boyut (ör. beden özelliği yoksa beden) ayrı ürün sayfası olur */
   const pzGroupBy = (rows: any[]) => {
     const vAttrs = pzVariantAttrs();
@@ -386,7 +397,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
         setCategoryAttributes(res.data);
         setSelectedAttributes({});
         // Varyant değerleri sitedeki renk / bedenden (listede birebir varsa) otomatik seçilir
-        const vAttrs = (res.data as any[]).filter((a: any) => a.isVariantable);
+        const vAttrs = pzPerVariantAttrs(res.data as any[]);
         const vals: Record<string, Record<string, string>> = {};
         for (const p of products.filter((x: any) => selectedIds.includes(x.id))) {
           for (const v of ((p as any).variants || []).filter((x: any) => x.isActive !== false && x.barcode)) {
@@ -414,11 +425,11 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
   const handleAttributeSync = async () => {
     // Varyantlı ürünler: her varyantın varyant özellikleri seçilmiş ve grup içinde benzersiz olmalı
     const vProducts = pzVariantProducts();
-    const vAttrs = pzVariantAttrs();
+    const vAttrs = pzPerVariantAttrs();
     const vAttrIds = new Set(vProducts.length > 0 ? vAttrs.map((a) => String(a.attributeId)) : []);
     let variantPlan: Record<string, any[]> | undefined;
     if (vProducts.length > 0) {
-      if (vAttrs.length === 0) {
+      if (pzVariantAttrs().length === 0) {
         toast.error("Bu Pazarama kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye gönderilemez.");
         return;
       }
@@ -1240,7 +1251,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                                 <span className="text-[10px] text-gray-500">{(v.images || []).length > 0 ? `${v.images.length} varyant görseli` : "ürünün görselleri"}</span>
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {pzVariantAttrs().map((a) => (
+                                {pzPerVariantAttrs().map((a) => (
                                   <div key={a.attributeId} className="space-y-1">
                                     <label className="text-[11px] font-medium">{a.attributeName}{a.isRequired && <span className="text-red-500"> *</span>}</label>
                                     <select
@@ -1292,7 +1303,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                   </div>
                 ) : (
                   categoryAttributes
-                    .filter((attr) => !(attr.isVariantable && pzVariantProducts().length > 0))
+                    .filter((attr) => !(pzVariantProducts().length > 0 && pzPerVariantAttrs().some((x) => x.attributeId === attr.attributeId)))
                     .map((attr) => (
                     <div key={attr.attributeId} className="space-y-1.5">
                       <label className="text-xs font-medium flex items-center gap-1.5">
