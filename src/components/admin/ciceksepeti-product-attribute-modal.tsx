@@ -295,7 +295,9 @@ export function CiceksepetiProductAttributeModal({
   // yoksa her BEDEN ayrı grup (renkler seçenek). Değerler ÇS listesinden (serbest metin yok).
   const csNorm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
   const variantRows = (product?.variants || []).filter((v: any) => v.isActive !== false && (v.sku || v.barcode));
-  const varAttrs = apiAttributes.filter((a: any) => a.varianter || a.isVariantProperty);
+  // Varyant yapan özellik: varianter=true ya da tipi "Variant Özelliği" (ÇS dokümanı)
+  const isVarAttr = (a: any) => !!(a?.varianter || a?.isVariantProperty || /variant/i.test(String(a?.type || "")));
+  const varAttrs = apiAttributes.filter((a: any) => isVarAttr(a));
   const variantPlanInfo = (() => {
     if (variantRows.length === 0 || varAttrs.length === 0) return null;
     const isSize = (a: any) => /beden|boy|numara|ebat|ölçü|olcu|size/.test(csNorm(a.name));
@@ -326,7 +328,7 @@ export function CiceksepetiProductAttributeModal({
   // Seçili varyant oluşturan özellikleri bul (varyantlı üründe varyant tablosu kullanılır)
   const selectedVarianterAttrs = variantPlanInfo ? [] : apiAttributes.filter(
     (attr) =>
-      (attr.varianter || attr.isVariantProperty) &&
+      isVarAttr(attr) &&
       (attributeValues[String(attr.id)]?.attributeValueId || attributeValues[String(attr.id)]?.customValue)
   );
 
@@ -625,9 +627,9 @@ export function CiceksepetiProductAttributeModal({
                   )}
 
                   <div className="space-y-2.5">
-                    {apiAttributes.filter((attr) => !(variantPlanInfo && (attr.varianter || attr.isVariantProperty))).map((attr) => {
+                    {apiAttributes.filter((attr) => !(variantPlanInfo && isVarAttr(attr))).map((attr) => {
                       const isReq = attr.required || attr.isRequired;
-                      const isVar = attr.varianter || attr.isVariantProperty;
+                      const isVar = isVarAttr(attr);
                       const currentVal = attributeValues[String(attr.id)] || {};
 
                       return (

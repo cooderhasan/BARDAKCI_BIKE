@@ -374,8 +374,10 @@ export async function syncProductsToCiceksepeti(
         // Çiçeksepeti genel ve canlı kategorisindeki geçerli attributeId'leri al.
         // Marka (10) ve Renk (147) Çiçeksepeti varyantsız ürünler için genel standart niteliklerdir.
         let validAttributeIds = new Set<number>([10, 147]);
+        let liveAttrList: any[] = [];
         try {
           const liveAttrs = await client.getCategoryAttributes(categoryId);
+          if (Array.isArray(liveAttrs)) liveAttrList = liveAttrs;
           if (Array.isArray(liveAttrs)) {
             liveAttrs.forEach((a: any) => {
               const attrId = Number(a.id || a.attributeId);
@@ -436,7 +438,22 @@ export async function syncProductsToCiceksepeti(
             t.toLocaleUpperCase("tr-TR").replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ü/g, "U").replace(/Ö/g, "O").replace(/Ç/g, "C")
               .replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20);
           const dimAttrIds = new Set(plan.map((pl) => Number(pl.attributeId)));
-          const baseAttrs = attributes.filter((a: any) => !dimAttrIds.has(Number(a.attributeId || a.Id || a.id)));
+          // ÇS bir üründe tek varyant yapan özelliğe izin veriyor ("Birden fazla varyant yapan özelliğe izin verilmiyor"):
+          // varianter=true ya da tipi "Variant Özelliği" olan diğer özellikler (ör. Tip, Renk) ürün geneli listeden çıkarılır.
+          const variantTypeIds = new Set(
+            liveAttrList
+              .filter((a: any) => a.varianter || /variant/i.test(String(a.type || "")))
+              .map((a: any) => Number(a.id || a.attributeId))
+          );
+          const baseAttrs = attributes.filter((a: any) => {
+            const id = Number(a.attributeId || a.Id || a.id);
+            if (dimAttrIds.has(id)) return false;
+            if (variantTypeIds.has(id)) {
+              console.warn(`[CS-SYNC] "${p.name}": varyant yapan özellik ${id} ürün genelinden çıkarıldı (tek varyant özelliği kuralı)`);
+              return false;
+            }
+            return true;
+          });
           const critical = p.criticalStock ?? defaultCritical;
           for (const { pl, v } of planVariants) {
             const vCode = v.sku || v.barcode;
