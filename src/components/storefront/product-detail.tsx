@@ -34,6 +34,7 @@ interface ProductVariant {
     sku: string | null;
     barcode: string | null;
     priceAdjustment: number;
+    images?: string[];
 }
 
 interface Product {
@@ -126,7 +127,6 @@ export function ProductDetail({
 }: ProductDetailProps) {
     const [quantity, setQuantity] = useState(product.minQuantity);
     const [inputValue, setInputValue] = useState(product.minQuantity.toString());
-    const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const addItem = useCartStore((state) => state.addItem);
@@ -162,12 +162,36 @@ export function ProductDetail({
     // Get unique colors and sizes from variants
     const variants = product.variants || [];
     const colors = [...new Set(variants.filter(v => v.color).map(v => v.color!))];
-    const sizes = [...new Set(variants.filter(v => v.size).map(v => v.size!))];
+    // Bedenler bilinen sırada (XS, S, M, L, XL, XXL...), bilinmeyenler eklendiği sırada
+    const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "XXXL", "3XL", "4XL"];
+    const sizeRank = (s: string) => {
+        const i = SIZE_ORDER.indexOf(s.trim().toUpperCase());
+        return i === -1 ? 100 : i;
+    };
+    const sizes = [...new Set(variants.filter(v => v.size).map(v => v.size!))].sort((a, b) => sizeRank(a) - sizeRank(b));
     const hasVariants = variants.length > 0;
+
+    // Seçilen renkte bulunan bedenler (önceden tüm renklerin bedenleri her renkte gösteriliyordu)
+    const sizesForColor = (color: string | null) =>
+        colors.length > 0 && color ? sizes.filter(s => variants.some(v => v.color === color && v.size === s)) : sizes;
+    // Rengin görselleri: o renkteki ilk görselli varyantın görselleri (ürün formunda seçilir)
+    const colorImages = (color: string | null) =>
+        (color && variants.find(v => v.color === color && (v.images || []).length > 0)?.images) || [];
 
     // Selected color and size
     const [selectedColor, setSelectedColor] = useState<string | null>(colors.length > 0 ? colors[0] : null);
-    const [selectedSize, setSelectedSize] = useState<string | null>(sizes.length > 0 ? sizes[0] : null);
+    const [selectedSize, setSelectedSize] = useState<string | null>(() => {
+        const first = sizesForColor(colors.length > 0 ? colors[0] : null);
+        return first.length > 0 ? first[0] : null;
+    });
+    const selectColor = (color: string) => {
+        setSelectedColor(color);
+        setActiveImageIndex(0);
+        const avail = sizesForColor(color);
+        if (selectedSize && !avail.includes(selectedSize)) setSelectedSize(avail[0] ?? null);
+    };
+    // Galeri: seçilen rengin görselleri varsa onlar, yoksa ürünün görselleri
+    const galleryImages = colorImages(selectedColor).length > 0 ? colorImages(selectedColor) : product.images;
 
     // Find matching variant based on selection
     const findVariant = () => {
@@ -267,18 +291,19 @@ export function ProductDetail({
             productId: product.id,
             name: product.name,
             slug: product.slug,
-            image: product.images[0],
+            image: galleryImages[0] || product.images[0],
             quantity: quantity,
             listPrice: product.listPrice + priceAdjustment,
             salePrice: product.salePrice || undefined, // Pass salePrice
             vatRate: product.vatRate,
             // Varyantlı üründe adet sınırı seçilen varyantın stoğu
-            stock: selectedVariant ? selectedVariant.stock : product.stock,
+            stock: currentVariant ? currentVariant.stock : product.stock,
             minQuantity: product.minQuantity,
             discountRate: discountRate, // Always pass the user's/dealer's discount rate
             desi: effectiveDesi,
             isFreeShipping: product.isFreeShipping,
-            variantId: selectedVariant?.id,
+            // Önceden hiç gönderilmiyordu: siparişte varyant stoğu düşmüyordu
+            variantId: currentVariant?.id,
             variantInfo: variantInfo,
         });
         toast.success("Ürün sepete eklendi!");
@@ -342,9 +367,9 @@ export function ProductDetail({
                         <div className="p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 dark:border-gray-800">
                             {/* Main Image */}
                             <div className="relative aspect-[4/3] bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden group mb-4 border border-gray-100 dark:border-gray-800">
-                                {product.images[0] ? (
+                                {galleryImages[0] ? (
                                     <Image
-                                        src={product.images[activeImageIndex] || product.images[0]}
+                                        src={galleryImages[activeImageIndex] || galleryImages[0]}
                                         alt={product.name}
                                         fill
                                         className="object-contain p-6 group-hover:scale-105 transition-transform duration-500"
@@ -376,13 +401,13 @@ export function ProductDetail({
                                 )}
 
                                 {/* Navigation Arrows */}
-                                {product.images.length > 1 && (
+                                {galleryImages.length > 1 && (
                                     <>
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 setActiveImageIndex((prev) =>
-                                                    prev === 0 ? product.images.length - 1 : prev - 1
+                                                    prev === 0 ? galleryImages.length - 1 : prev - 1
                                                 );
                                             }}
                                             className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 dark:bg-gray-900/90 shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-[#17457C] hover:text-white"
@@ -393,7 +418,7 @@ export function ProductDetail({
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 setActiveImageIndex((prev) =>
-                                                    prev === product.images.length - 1 ? 0 : prev + 1
+                                                    prev === galleryImages.length - 1 ? 0 : prev + 1
                                                 );
                                             }}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 dark:bg-gray-900/90 shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-[#17457C] hover:text-white"
@@ -405,9 +430,9 @@ export function ProductDetail({
                             </div>
 
                             {/* Thumbnails */}
-                            {product.images.length > 1 && (
+                            {galleryImages.length > 1 && (
                                 <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                                    {product.images.map((image, index) => (
+                                    {galleryImages.map((image, index) => (
                                         <button
                                             key={index}
                                             type="button"
@@ -547,24 +572,41 @@ export function ProductDetail({
                                                 Renk: <span className="text-[#17457C]">{selectedColor}</span>
                                             </span>
                                             <div className="flex flex-wrap gap-2">
-                                                {colors.map((color) => (
-                                                    <button
-                                                        key={color}
-                                                        onClick={() => setSelectedColor(color)}
-                                                        className={cn(
-                                                            "w-9 h-9 rounded-full border-2 transition-all p-0.5",
-                                                            selectedColor === color
-                                                                ? "border-[#17457C] ring-2 ring-[#17457C]/20 scale-110"
-                                                                : "border-transparent hover:border-gray-300"
-                                                        )}
-                                                    >
-                                                        <div className="w-full h-full rounded-full bg-gray-200 border border-black/5 overflow-hidden relative">
-                                                            {product.images[0] && (
-                                                                <Image src={product.images[0]} alt={color} fill className="object-cover" />
+                                                {colors.map((color) => {
+                                                    const img = colorImages(color)[0];
+                                                    return img ? (
+                                                        <button
+                                                            key={color}
+                                                            type="button"
+                                                            title={color}
+                                                            onClick={() => selectColor(color)}
+                                                            className={cn(
+                                                                "w-12 h-12 rounded-lg border-2 transition-all p-0.5 bg-white",
+                                                                selectedColor === color
+                                                                    ? "border-[#17457C] ring-2 ring-[#17457C]/20"
+                                                                    : "border-gray-200 hover:border-gray-300"
                                                             )}
-                                                        </div>
-                                                    </button>
-                                                ))}
+                                                        >
+                                                            <div className="w-full h-full rounded-md overflow-hidden relative">
+                                                                <Image src={img} alt={color} fill className="object-contain" />
+                                                            </div>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            key={color}
+                                                            type="button"
+                                                            onClick={() => selectColor(color)}
+                                                            className={cn(
+                                                                "h-9 px-3 rounded-lg border-2 text-sm font-semibold transition-all",
+                                                                selectedColor === color
+                                                                    ? "border-[#17457C] bg-[#17457C]/5 text-[#17457C]"
+                                                                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                                                            )}
+                                                        >
+                                                            {color}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}
@@ -574,9 +616,10 @@ export function ProductDetail({
                                                 Beden: <span className="text-[#17457C]">{selectedSize}</span>
                                             </span>
                                             <div className="flex flex-wrap gap-2">
-                                                {sizes.map((size) => (
+                                                {sizesForColor(selectedColor).map((size) => (
                                                     <button
                                                         key={size}
+                                                        type="button"
                                                         onClick={() => setSelectedSize(size)}
                                                         className={cn(
                                                             "h-9 px-4 rounded-lg border-2 text-sm font-bold transition-all",

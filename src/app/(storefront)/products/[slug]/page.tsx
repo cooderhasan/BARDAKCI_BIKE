@@ -190,6 +190,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             sku: v.sku,
             barcode: v.barcode,
             priceAdjustment: Number(v.priceAdjustment),
+            images: (v as any).images || [],
         })),
     };
 
