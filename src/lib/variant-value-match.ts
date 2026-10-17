@@ -25,6 +25,10 @@ export function sameVariantValue(listValue: unknown, siteValue: unknown): boolea
  * "Siyah / Mavi" → Mavi.
  */
 export function pickVariantValue<T>(list: T[], siteValue: unknown, nameOf: (item: T) => unknown): T | undefined {
+    // Önce birebir (büyük/küçük harf ve boşluk hariç) — listede hem "L" hem "Large" varsa "L" seçilmeli
+    const key = (t: unknown) => String(t ?? "").toLocaleLowerCase("tr-TR").replace(/\s+/g, "");
+    const exact = list.find((x) => key(nameOf(x)) === key(siteValue) && key(siteValue) !== "");
+    if (exact) return exact;
     const direct = list.find((x) => sameVariantValue(nameOf(x), siteValue));
     if (direct) return direct;
     const parts = String(siteValue ?? "")

@@ -590,7 +590,23 @@ export async function syncProductsToCiceksepeti(
       } else {
         try {
           // POST: Çiçeksepeti yeni ürün & nitelik kaydı oluştur ve onaya gönder
-          result = await client.createOrUpdateProducts(productInputs);
+          // Varyantlı üründe her grup (mainProductCode, ör. her renk) ayrı istekle gider (ÇS: farklı istek 5 sn'de 1)
+          const groups = new Map<string, any[]>();
+          for (const inp of productInputs) {
+            const k = String(inp.productCode || inp.stockCode);
+            if (!groups.has(k)) groups.set(k, []);
+            groups.get(k)!.push(inp);
+          }
+          if ((customOptions?.variantPlan || []).length > 0 && groups.size > 1) {
+            let gi = 0;
+            for (const items of groups.values()) {
+              if (gi++ > 0) await new Promise((r) => setTimeout(r, 5500));
+              result = await client.createOrUpdateProducts(items);
+            }
+            if (!result) throw new Error("Çiçeksepeti'ye gönderilecek ürün oluşmadı.");
+          } else {
+            result = await client.createOrUpdateProducts(productInputs);
+          }
         } catch (postErr: any) {
           // Yalnızca ürün Çiçeksepeti'nde zaten mevcutsa PUT güncelleme dene
           if (
