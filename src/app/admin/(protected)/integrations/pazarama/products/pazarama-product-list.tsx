@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { sameVariantValue } from "@/lib/variant-value-match";
 import {
   togglePazaramaProductActive,
   syncProductsToPazarama,
@@ -404,7 +405,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
             vals[v.id] = {};
             for (const a of vAttrs) {
               const src = pzIsColor(a.attributeName) ? v.color : pzIsSize(a.attributeName) ? v.size : null;
-              const hit = src ? a.values.find((x: any) => pzNorm(x.value) === pzNorm(src)) : null;
+              const hit = src ? a.values.find((x: any) => sameVariantValue(x.value, src)) : null;
               if (hit) vals[v.id][a.attributeId] = hit.attributeValueId;
             }
           }

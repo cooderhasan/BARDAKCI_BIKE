@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { sameVariantValue } from "@/lib/variant-value-match";
 import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
 import { operatorLine } from "@/lib/operator-fields";
 import {
@@ -82,7 +83,7 @@ function idxGuess(a: any, v: any, sizeInColor: boolean) {
   const color = idxIsColor(a);
   const src = color ? (sizeInColor ? [v.color, v.size].filter(Boolean).join(" - ") : v.color) : v.size;
   if (!src) return undefined;
-  const hit = (a.values || []).find((x: any) => idxNorm(x.name) === idxNorm(src));
+  const hit = (a.values || []).find((x: any) => sameVariantValue(x.name, src));
   if (hit) return { id: hit.id, name: hit.name };
   return a.allowCustom || (a.values || []).length === 0 ? { id: null, name: String(src) } : undefined;
 }

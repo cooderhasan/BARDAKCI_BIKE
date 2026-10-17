@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, AlertCircle, Plus, Trash2, Tag, Search, ChevronDown, Check, Building2 } from "lucide-react";
 import { getCiceksepetiCategoryAttributes, syncProductsToCiceksepeti } from "@/app/admin/(protected)/integrations/ciceksepeti/actions";
 import { toast } from "sonner";
+import { sameVariantValue } from "@/lib/variant-value-match";
 import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
 
 interface Props {
@@ -336,7 +337,7 @@ export function CiceksepetiProductAttributeModal({
       next[v.id] = {};
       for (const d of variantPlanInfo.dims) {
         const src = d.source === "size" ? v.size : v.color;
-        const hit = (d.attr.attributeValues || []).find((x: any) => csNorm(x.name) === csNorm(src));
+        const hit = (d.attr.attributeValues || []).find((x: any) => sameVariantValue(x.name, src));
         if (hit) next[v.id][String(d.attr.id)] = String(hit.id);
       }
     }
