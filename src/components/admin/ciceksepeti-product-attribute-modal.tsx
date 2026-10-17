@@ -319,21 +319,17 @@ export function CiceksepetiProductAttributeModal({
     const colorProductAttr = apiAttributes.find(
       (a: any) => !isVarAttr(a) && isColor(a) && !/kişisel|kisisel/i.test(String(a.type || ""))
     );
+    // Paneldeki gibi: tek model kodu (grup), her varyantta Renk ("ürün yapan") + Beden ("varyant yapan").
+    // Kategoride varyant olarak renk yoksa renk, ürün özelliği olan Renk ile verilir ve her renk ayrı grup olur.
     const dims: { attr: any; source: "color" | "size" }[] = [];
-    if (sizes.size > 0 && sizeAttr) {
-      dims.push({ attr: sizeAttr, source: "size" });
-      if (colors.size > 0 && colorProductAttr) dims.push({ attr: colorProductAttr, source: "color" });
-    } else if (colors.size > 0 && colorAttr) {
-      dims.push({ attr: colorAttr, source: "color" });
-    }
+    if (colors.size > 0 && colorAttr) dims.push({ attr: colorAttr, source: "color" });
+    if (sizes.size > 0 && sizeAttr) dims.push({ attr: sizeAttr, source: "size" });
+    if (colors.size > 0 && !colorAttr && colorProductAttr) dims.push({ attr: colorProductAttr, source: "color" });
     if (dims.length === 0) dims.push({ attr: varAttrs[0], source: sizes.size > 0 ? "size" : "color" });
-    // ÇS'de renk "ürün yapan" özellik: her renk ayrı ürün grubu (mainProductCode) olur, renk yine de her varyantta gönderilir;
-    // beden grup içinde seçenektir. (Tek grupta iki renk → "Birden fazla ürün yapan özelliğe izin verilmiyor",
-    // renk gönderilmezse → "Birden fazla varyant yapan özelliğe izin verilmiyor".)
     const groupBy =
-      colors.size > 1
+      colors.size > 1 && !colorAttr
         ? ("color" as const)
-        : sizes.size > 1 && !dims.some((d) => d.source === "size")
+        : sizes.size > 1 && !sizeAttr
           ? ("size" as const)
           : null;
     return { dims, groupBy };

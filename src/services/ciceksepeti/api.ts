@@ -232,25 +232,25 @@ export class CiceksepetiClient {
 
           if (!attrId) return null;
 
+          // Dokümandaki biçim: sadece Id / ValueId / TextLength. Önceden aynı değer id/attributeId, valueId/attributeValueId
+          // ve hem "Attributes" hem "attributes" listesiyle çift gidiyordu; ÇS bunları birleştirince her özelliği iki kez
+          // görüp varyantlı üründe "Birden fazla varyant/ürün yapan özelliğe izin verilmiyor" hatası veriyordu.
           const item: any = {
             Id: attrId,
-            id: attrId,
-            attributeId: attrId,
             TextLength: Number(attr.textLength || attr.TextLength || 0),
-            textLength: Number(attr.textLength || attr.TextLength || 0),
           };
 
           if (valId !== undefined && !isNaN(valId)) {
             item.ValueId = valId;
-            item.valueId = valId;
-            item.attributeValueId = valId;
           } else if (attr.customAttributeValue) {
             item.customAttributeValue = String(attr.customAttributeValue);
           }
 
           return item;
         })
-        .filter((attr: any) => Boolean(attr));
+        .filter((attr: any) => Boolean(attr))
+        // Aynı özellik bir kez (son değer geçerli)
+        .filter((attr: any, i: number, arr: any[]) => arr.slice(i + 1).every((x: any) => x.Id !== attr.Id));
 
       const rawDesc = p.description || p.productName || "";
       const cleanDesc = rawDesc.length >= 30 
@@ -283,7 +283,6 @@ export class CiceksepetiClient {
           return rawUrl;
         }),
         Attributes: formattedAttrs,
-        attributes: formattedAttrs,
       };
 
       if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
@@ -413,25 +412,25 @@ export class CiceksepetiClient {
 
           if (!attrId) return null;
 
+          // Dokümandaki biçim: sadece Id / ValueId / TextLength. Önceden aynı değer id/attributeId, valueId/attributeValueId
+          // ve hem "Attributes" hem "attributes" listesiyle çift gidiyordu; ÇS bunları birleştirince her özelliği iki kez
+          // görüp varyantlı üründe "Birden fazla varyant/ürün yapan özelliğe izin verilmiyor" hatası veriyordu.
           const item: any = {
             Id: attrId,
-            id: attrId,
-            attributeId: attrId,
             TextLength: Number(attr.textLength || attr.TextLength || 0),
-            textLength: Number(attr.textLength || attr.TextLength || 0),
           };
 
           if (valId !== undefined && !isNaN(valId)) {
             item.ValueId = valId;
-            item.valueId = valId;
-            item.attributeValueId = valId;
           } else if (attr.customAttributeValue) {
             item.customAttributeValue = String(attr.customAttributeValue);
           }
 
           return item;
         })
-        .filter((attr: any) => Boolean(attr));
+        .filter((attr: any) => Boolean(attr))
+        // Aynı özellik bir kez (son değer geçerli)
+        .filter((attr: any, i: number, arr: any[]) => arr.slice(i + 1).every((x: any) => x.Id !== attr.Id));
 
       const rawDesc = p.description || p.productName || "";
       const cleanDesc = rawDesc.length >= 30 
@@ -464,7 +463,6 @@ export class CiceksepetiClient {
           return rawUrl;
         }),
         Attributes: formattedAttrs,
-        attributes: formattedAttrs,
       };
 
       if (p.operatorContacts && Array.isArray(p.operatorContacts) && p.operatorContacts.length > 0) {
