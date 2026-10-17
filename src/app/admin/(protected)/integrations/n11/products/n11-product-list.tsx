@@ -78,9 +78,18 @@ interface N11ProductListProps {
 // --- Varyantlı ürün: N11'de her varyant kendi renk (isSlicer) / beden (isVariant) değeriyle gider ---
 const n11Norm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
 const isColorAttr = (a: any) => n11Norm(a.name).includes("renk") || n11Norm(a.name).includes("color");
-/** Varyant bazında sorulacak özellikler */
-function getN11VariantAttrs(attrs: any[]) {
+const isSizeAttr = (a: any) => /beden|numara|ebat|size/.test(n11Norm(a.name));
+/** N11'in varyant işaretli özellikleri (isSlicer / isVariant): ürünleri N11'de birbirinden ayıranlar */
+function getN11VariantDims(attrs: any[]) {
     return attrs.filter((a: any) => a.isSlicer || a.isVariant);
+}
+/**
+ * Varyant başına sorulan özellikler: varyant işaretliler + renk / beden alanları. N11 bazı kategorilerde bedeni
+ * (ör. Bisiklet Kaskı) varyant olarak işaretlemiyor ama zorunlu tutuyor; genel listede tek değer seçilemeyeceği için
+ * her varyanta ayrı sorulur.
+ */
+function getN11VariantAttrs(attrs: any[]) {
+    return attrs.filter((a: any) => a.isSlicer || a.isVariant || isColorAttr(a) || isSizeAttr(a));
 }
 /** Kategoride beden özelliği yoksa beden renk alanına yazılır ("Siyah / Mavi - M"), yoksa N11 aynı rengin bedenlerini ayıramaz */
 function n11SizeGoesIntoColor(vAttrs: any[], vRows: any[]) {
@@ -272,7 +281,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                 const vRows = (product.variants || []).filter((v: any) => v.isActive !== false);
                 const vAttrs = getN11VariantAttrs(attrs);
                 if (vRows.length > 0 && vAttrs.length > 0) {
-                    const sizeInColor = n11SizeGoesIntoColor(vAttrs, vRows);
+                    const sizeInColor = n11SizeGoesIntoColor(getN11VariantDims(attrs), vRows);
                     const vMap: Record<string, Record<string, any>> = {};
                     for (const v of vRows) {
                         vMap[v.id] = {};
@@ -775,8 +784,8 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                         <h4 className="text-xs font-bold text-blue-800">🎨 Varyantlar ({vRows.length}) — aynı model koduyla, her biri kendi renk/beden ve görselleriyle</h4>
                                         {vAttrs.length === 0 ? (
                                             <p className="text-[11px] text-red-600">Bu N11 kategorisinde renk/beden varyant özelliği yok; varyantlar N11'de seçenek olarak görünmez.</p>
-                                        ) : n11SizeGoesIntoColor(vAttrs, vRows) ? (
-                                            <p className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">Bu N11 kategorisinde beden özelliği yok; beden renk alanına yazıldı (ör. &quot;Siyah / Mavi - M&quot;).</p>
+                                        ) : n11SizeGoesIntoColor(getN11VariantDims(categoryAttrs), vRows) ? (
+                                            <p className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">Bu N11 kategorisinde beden bir varyant seçeneği değil; varyantlar ayırt edilsin diye beden renk alanına da yazıldı (ör. &quot;Siyah / Mavi - M&quot;).</p>
                                         ) : (
                                             <p className="text-[11px] text-blue-700/80">Değerler sitedeki renk/bedenden dolduruldu; boş kalanları seçin.</p>
                                         )}
@@ -802,7 +811,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                                                     {a.name}
                                                                     <span className="ml-1 text-[10px] font-normal text-gray-400">{a.isSlicer ? "(görselli seçenek)" : "(seçenek)"}</span>
                                                                 </Label>
-                                                                {a.values && a.values.length > 0 && !(isColorAttr(a) && n11SizeGoesIntoColor(vAttrs, vRows)) ? (
+                                                                {a.values && a.values.length > 0 && !(isColorAttr(a) && n11SizeGoesIntoColor(getN11VariantDims(categoryAttrs), vRows)) ? (
                                                                     <N11AttributeSearchSelect values={a.values} attrName={a.name} value={val} onValueChange={(x) => setVal(x)} isMissing={!val} />
                                                                 ) : (
                                                                     <Input
@@ -823,7 +832,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                             })()}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                                 {categoryAttrs
-                                    .filter((attr: any) => !((selectedProduct?.variants || []).some((v: any) => v.isActive !== false) && (attr.isSlicer || attr.isVariant)))
+                                    .filter((attr: any) => !((selectedProduct?.variants || []).some((v: any) => v.isActive !== false) && getN11VariantAttrs(categoryAttrs).some((x: any) => x.id === attr.id)))
                                     .map((attr: any) => {
                                     const isMissing = attr.mandatory && !attrMappings[attr.id];
                                     const hasValues = attr.values && attr.values.length > 0;
