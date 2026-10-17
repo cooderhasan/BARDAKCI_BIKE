@@ -313,9 +313,19 @@ export function CiceksepetiProductAttributeModal({
     const sizes = new Set(variantRows.map((v: any) => v.size).filter(Boolean));
     const sizeAttr = varAttrs.find(isSize);
     const colorAttr = varAttrs.find(isColor);
+    // ÇS bir varyantta TEK varyant özelliği kabul ediyor (147 Renk + 7 Beden birlikte → "Birden fazla ürün yapan özelliğe
+    // izin verilmiyor", tek grup / ayrı istek denemelerinde de). Beden varsa varyant özelliği Beden; renk, kategorideki
+    // ürün özelliği olan Renk ile (ör. 2000533) verilir ve her renk ayrı ürün grubu olur.
+    const colorProductAttr = apiAttributes.find(
+      (a: any) => !isVarAttr(a) && isColor(a) && !/kişisel|kisisel/i.test(String(a.type || ""))
+    );
     const dims: { attr: any; source: "color" | "size" }[] = [];
-    if (colors.size > 0 && colorAttr) dims.push({ attr: colorAttr, source: "color" });
-    if (sizes.size > 0 && sizeAttr) dims.push({ attr: sizeAttr, source: "size" });
+    if (sizes.size > 0 && sizeAttr) {
+      dims.push({ attr: sizeAttr, source: "size" });
+      if (colors.size > 0 && colorProductAttr) dims.push({ attr: colorProductAttr, source: "color" });
+    } else if (colors.size > 0 && colorAttr) {
+      dims.push({ attr: colorAttr, source: "color" });
+    }
     if (dims.length === 0) dims.push({ attr: varAttrs[0], source: sizes.size > 0 ? "size" : "color" });
     // ÇS'de renk "ürün yapan" özellik: her renk ayrı ürün grubu (mainProductCode) olur, renk yine de her varyantta gönderilir;
     // beden grup içinde seçenektir. (Tek grupta iki renk → "Birden fazla ürün yapan özelliğe izin verilmiyor",
@@ -395,7 +405,9 @@ export function CiceksepetiProductAttributeModal({
         })),
       }));
     }
-    const varAttrIds = new Set(variantPlanInfo ? varAttrs.map((a: any) => String(a.id)) : []);
+    const varAttrIds = new Set(
+      variantPlanInfo ? [...varAttrs.map((a: any) => String(a.id)), ...variantPlanInfo.dims.map((d) => String(d.attr.id))] : []
+    );
 
     const missingRequired = apiAttributes.filter(
       (attr) => !varAttrIds.has(String(attr.id)) && (attr.required || attr.isRequired) && !attributeValues[String(attr.id)]?.attributeValueId && !attributeValues[String(attr.id)]?.customValue
@@ -665,7 +677,7 @@ export function CiceksepetiProductAttributeModal({
                   )}
 
                   <div className="space-y-2.5">
-                    {apiAttributes.filter((attr) => !(variantPlanInfo && isVarAttr(attr))).map((attr) => {
+                    {apiAttributes.filter((attr) => !(variantPlanInfo && (isVarAttr(attr) || variantPlanInfo.dims.some((d) => String(d.attr.id) === String(attr.id))))).map((attr) => {
                       const isReq = attr.required || attr.isRequired;
                       const isVar = isVarAttr(attr);
                       const currentVal = attributeValues[String(attr.id)] || {};
