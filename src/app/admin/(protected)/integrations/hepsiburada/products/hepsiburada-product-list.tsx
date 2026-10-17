@@ -139,6 +139,17 @@ function DynamicAttributeField({ attr, categoryId, onChange, product, prefill }:
     );
 }
 
+// --- Varyantlı ürün: HB'de her varyant ayrı ürün, renk / beden "varyant özelliği" olarak gider ---
+const hbNorm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
+/** Sitedeki renk / beden yazısını HB varyant özelliğine eşleştir; HB listesinde varsa onun yazımı kullanılır */
+function guessHbVariantValue(attr: any, v: any, options: string[]) {
+    const n = hbNorm(attr.name);
+    const src = n.includes("renk") || n.includes("color") ? v.color : /beden|ebat|boy|numara|size|ölçü|olcu/.test(n) ? v.size : null;
+    if (!src) return "";
+    return options.find((o) => hbNorm(o) === hbNorm(src)) || String(src);
+}
+const hbVariantLabel = (v: any) => [v.color, v.size].filter(Boolean).join(" / ") || v.barcode;
+
 interface HepsiburadaProductListProps {
     initialProducts: any[];
     pagination?: {
@@ -182,6 +193,9 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
     const [attrMappings, setAttrMappings] = useState<any>({});
     const [attrLoading, setAttrLoading] = useState(false);
     const [operators, setOperators] = useState<any>(null);
+    // Varyant ID -> { HB varyant özellik ID -> değer }; özellik ID -> HB listesindeki değerler (öneri)
+    const [variantValues, setVariantValues] = useState<Record<string, Record<string, string>>>({});
+    const [variantOptions, setVariantOptions] = useState<Record<string, string[]>>({});
 
     const filteredProducts = pagination ? products : products.filter(p => 
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -294,6 +308,8 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         setShowAttrModal(true);
         setAttrLoading(true);
         setAttrMappings({});
+        setVariantValues({});
+        setVariantOptions({});
 
         try {
             // Markaya tanımlı imalatçı / ithalatçı: alanlar ilk çizimde dolu gelsin diye özelliklerle birlikte alınır
@@ -304,6 +320,29 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
             setOperators(ops);
             if (res.success) {
                 setCategoryAttrs(res.data || []);
+                // Varyantlı ürün: varyant özelliklerinin HB değer listesi alınır, değerler sitedeki renk/bedenden doldurulur
+                const vRows = (product.variants || []).filter((v: any) => v.barcode);
+                const vAttrs = (res.data || []).filter((a: any) => a.isVariant);
+                if (vRows.length > 0 && vAttrs.length > 0) {
+                    const optsEntries = await Promise.all(
+                        vAttrs.map(async (a: any) => {
+                            if (a.type !== "enum") return [a.id, [] as string[]] as const;
+                            const r: any = await getHepsiburadaAttributeValues(String(catId), a.id).catch(() => null);
+                            return [a.id, (r?.success && Array.isArray(r.data) ? r.data.map((x: any) => String(x.value)) : []) as string[]] as const;
+                        })
+                    );
+                    const opts = Object.fromEntries(optsEntries) as Record<string, string[]>;
+                    setVariantOptions(opts);
+                    const vals: Record<string, Record<string, string>> = {};
+                    for (const v of vRows) {
+                        vals[v.id] = {};
+                        for (const a of vAttrs) {
+                            const g = guessHbVariantValue(a, v, opts[a.id] || []);
+                            if (g) vals[v.id][a.id] = g;
+                        }
+                    }
+                    setVariantValues(vals);
+                }
                 // Özellik gelmediyse nedenini göster (HB'nin kategori için ne dediği)
                 if ((!res.data || res.data.length === 0) && res.message) toast.warning(res.message, { duration: 12000 });
             } else {
@@ -321,6 +360,30 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
 
     const handleSend = async () => {
         if (!selectedProduct) return;
+
+        // Varyantlı ürün: her varyantta en az bir varyant özelliği (HB kuralı) ve zorunlu olanlar dolu olmalı
+        const vRows = (selectedProduct.variants || []).filter((v: any) => v.barcode);
+        const vAttrs = categoryAttrs.filter((a: any) => a.isVariant);
+        let variantAttributes: Record<string, Record<string, string>> | undefined;
+        if (vRows.length > 0) {
+            if (vAttrs.length === 0) {
+                toast.error("Bu HB kategorisinde varyant özelliği (renk, beden vb.) yok; varyantlı ürün bu kategoriye gönderilemez.");
+                return;
+            }
+            const problems: string[] = [];
+            variantAttributes = {};
+            for (const v of vRows) {
+                const m = variantValues[v.id] || {};
+                const filled = Object.fromEntries(Object.entries(m).filter(([, x]) => String(x || "").trim() !== ""));
+                if (Object.keys(filled).length === 0) problems.push(`${hbVariantLabel(v)}: en az bir varyant özelliği`);
+                for (const a of vAttrs) if (a.mandatory && !filled[a.id]) problems.push(`${hbVariantLabel(v)}: ${a.name}`);
+                variantAttributes[v.id] = filled as Record<string, string>;
+            }
+            if (problems.length > 0) {
+                toast.error(`Varyant değerleri eksik: ${problems.slice(0, 6).join(", ")}${problems.length > 6 ? " ..." : ""}`);
+                return;
+            }
+        }
         
         const finalAttrs = Object.entries(attrMappings).map(([id, data]: any) => ({
             id,
@@ -337,7 +400,12 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
             await updateHepsiburadaSku(selectedProduct.id, hbSku, hbMerchantSku);
         }
 
-        const res = await sendProductToHepsiburada(selectedProduct.id, finalAttrs);
+        const res = await sendProductToHepsiburada(
+            selectedProduct.id,
+            // varyant özellikleri varyant başına gider, ürün genelinden çıkarılır
+            vRows.length > 0 ? finalAttrs.filter((a: any) => !vAttrs.some((va: any) => va.id === a.id)) : finalAttrs,
+            variantAttributes
+        );
             if (res.success) {
                 toast.success(res.message);
                 setProducts(prev => prev.map(p => 
@@ -721,11 +789,56 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                 </div>
                             </div>
 
+                            {/* Varyantlar: HB'de her varyant ayrı ürün (aynı VaryantGroupID), renk / beden varyant özelliği olarak */}
+                            {(() => {
+                                const vRows = (selectedProduct?.variants || []).filter((v: any) => v.barcode);
+                                const vAttrs = categoryAttrs.filter((a: any) => a.isVariant);
+                                if (vRows.length === 0) return null;
+                                return (
+                                    <div className="space-y-2 p-3 rounded-xl bg-blue-50/60 border border-blue-200">
+                                        <h4 className="text-xs font-bold text-blue-800">🎨 Varyantlar ({vRows.length}) — her biri HB'de ayrı ürün olarak açılır</h4>
+                                        {vAttrs.length === 0 ? (
+                                            <p className="text-[11px] text-red-600">Bu HB kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye gönderilemez.</p>
+                                        ) : (
+                                            <p className="text-[11px] text-blue-700/80">Değerler sitedeki renk/bedenden dolduruldu. HB listesinde olmayan değer de yazılabilir.</p>
+                                        )}
+                                        {vRows.map((v: any) => (
+                                            <div key={v.id} className="rounded-lg border bg-white p-2 space-y-2">
+                                                <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                    <span className="font-semibold">{hbVariantLabel(v)}</span>
+                                                    <span className="font-mono text-[10px] text-gray-500">{v.barcode}</span>
+                                                    <span className="text-[10px] text-gray-500">{(v.images || []).length > 0 ? `${v.images.length} varyant görseli` : "ürünün görselleri"}</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    {vAttrs.map((a: any) => (
+                                                        <div key={a.id} className="space-y-1">
+                                                            <Label className="text-[11px]">{a.name} {a.mandatory && "*"}</Label>
+                                                            <Input
+                                                                className="h-8 text-sm"
+                                                                list={`hbvar-${a.id}`}
+                                                                value={variantValues[v.id]?.[a.id] || ""}
+                                                                onChange={(e) => setVariantValues((prev) => ({ ...prev, [v.id]: { ...(prev[v.id] || {}), [a.id]: e.target.value } }))}
+                                                                placeholder={`${a.name}...`}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {vAttrs.map((a: any) => (
+                                            <datalist key={a.id} id={`hbvar-${a.id}`}>
+                                                {(variantOptions[a.id] || []).map((o) => <option key={o} value={o} />)}
+                                            </datalist>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+
                             {/* Kategoriye Özel Alanlar */}
                             {categoryAttrs.length > 0 && (
                                 <div className="space-y-3">
                                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">Kategori Özellikleri</h4>
-                                    {categoryAttrs.map((attr: any) => (
+                                    {categoryAttrs.filter((attr: any) => !(attr.isVariant && (selectedProduct?.variants || []).some((v: any) => v.barcode))).map((attr: any) => (
                                         <DynamicAttributeField 
                                             key={attr.id} 
                                             attr={attr} 

@@ -753,7 +753,10 @@ export async function getTrendyolCategoryAttributes(categoryId: number) {
                 attribute: attrObj,
                 required: isRequired,
                 allowCustom: allowCustom,
-                attributeValues: values
+                attributeValues: values,
+                // slicer: her değer ayrı ürün kartı (renk), varianter: aynı kartta seçenek (beden)
+                slicer: !!attr.slicer,
+                varianter: !!attr.varianter
             };
         }));
         
@@ -764,7 +767,13 @@ export async function getTrendyolCategoryAttributes(categoryId: number) {
     }
 }
 
-export async function sendProductToTrendyol(productId: string, attributeMappings: any[], targetCategoryId?: number) {
+export async function sendProductToTrendyol(
+    productId: string,
+    attributeMappings: any[],
+    targetCategoryId?: number,
+    // Varyantlı ürün: varyant ID -> o varyantın renk/beden vb. özellikleri (formdaki varyant tablosundan)
+    variantAttributes?: Record<string, any[]>
+) {
     await requireAdmin();
     try {
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
@@ -856,12 +865,22 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
             : [];
 
         // Eksik zorunlu alanları varsayılanlardan ekle
+        const injectedDefaultIds = new Set<number>();
         for (const defAttr of defaultAttributes) {
             const exists = finalAttributes.some((a: any) => a.attributeId === defAttr.attributeId);
             if (!exists) {
                 finalAttributes.push(defAttr);
+                injectedDefaultIds.add(defAttr.attributeId);
             }
         }
+
+        // Varyant bazlı özellikler: geçerli değerleri olanlar
+        const cleanVariantAttrs = (list: any[] | undefined) =>
+            (list || []).filter((a: any) => a && a.attributeId && (a.attributeValueId !== undefined || (a.customAttributeValue && String(a.customAttributeValue).trim() !== "")));
+        const toAbsoluteHttps = (urls: string[]) =>
+            urls
+                .map((url: string) => (url.startsWith("http") ? url : `${siteUrl}${url.startsWith("/") ? "" : "/"}${url}`))
+                .filter((url: string) => url.startsWith("https://"));
 
         const items: any[] = [];
         const baseItem = {
@@ -907,6 +926,24 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
                 
                 const availableStock = Math.max(0, v.stock - (product.criticalStock || 0));
 
+                // Bu varyantın renk/beden değerleri: ürün geneli özelliklerden aynı ID'ler çıkarılıp varyantınkiler eklenir.
+                // Varsayılan "Beden: Tek Ebat / Renk: Siyah / Web Color: Siyah" varyantlı üründe kullanılmaz.
+                const vAttrs = cleanVariantAttrs(variantAttributes?.[v.id]);
+                const vAttrIds = new Set(vAttrs.map((a: any) => Number(a.attributeId)));
+                const attributesForVariant = vAttrs.length > 0
+                    ? [
+                        ...finalAttributes.filter((a: any) =>
+                            !vAttrIds.has(Number(a.attributeId)) &&
+                            !(injectedDefaultIds.has(a.attributeId) && [338, 47, 348].includes(a.attributeId))
+                        ),
+                        ...vAttrs.map((a: any) => ({ ...a, attributeId: Number(a.attributeId) })),
+                    ]
+                    : baseItem.attributes;
+
+                // Varyanta seçilmiş görseller (Trendyol: barkod başına en fazla 8); yoksa ürünün görselleri
+                const vImages = toAbsoluteHttps(((v as any).images || []) as string[]);
+                const imagesForVariant = (vImages.length > 0 ? vImages : imageUrls).slice(0, 8).map((url: string) => ({ url }));
+
                 items.push({
                     ...baseItem,
                     barcode: v.barcode,
@@ -915,6 +952,8 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
                     listPrice: variantListPrice,
                     salePrice: variantSalePrice,
                     dimensionalWeight: 1,
+                    attributes: attributesForVariant,
+                    images: imagesForVariant,
                 });
             }
         } else {
@@ -943,6 +982,7 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
         const hasAttributeMappings = attributeMappings && attributeMappings.length > 0;
 
         let result;
+        let variantNote = "";
         if (isAlreadySynced && !hasAttributeMappings) {
             const updateItems = items.map((i: any) => ({
                 barcode: i.barcode,
@@ -952,6 +992,38 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
             }));
             console.log("[Trendyol] Updating price/stock only for synced product:", JSON.stringify(updateItems, null, 2));
             result = await client.updatePriceAndInventory(updateItems);
+        } else if (product.variants && product.variants.some((v: any) => v.barcode)) {
+            // Varyantlı ürün: her varyant barkodu ayrı kontrol edilir.
+            // - Trendyol'da yoksa: yeni ürün olarak açılır (aynı productMainId ile gruplanır)
+            // - Onay bekliyor / reddedildiyse: içerik düzeltilerek yeniden gönderilir
+            // - Onaylıysa: içeriğe dokunulmaz (Trendyol onaylı üründe renk/beden değiştirmeye izin vermiyor), sadece stok/fiyat
+            const lookups = await Promise.all(items.map((i: any) => client.getProductByBarcode(i.barcode).catch(() => undefined)));
+            const toCreate = items.filter((_: any, k: number) => lookups[k] === null);
+            const toResend = items.filter((_: any, k: number) => lookups[k] && !lookups[k].approved);
+            const approvedOrUnknown = items.filter((_: any, k: number) => lookups[k] === undefined || lookups[k]?.approved);
+            console.log(`[Trendyol] Varyantlı ürün: ${toCreate.length} yeni, ${toResend.length} onaysız, ${approvedOrUnknown.length} onaylı/bilinmeyen`);
+
+            let firstFailed: any = null;
+            let firstOk: any = null;
+            if (toCreate.length > 0) {
+                const r = await client.createProducts(toCreate);
+                if (r.ok) firstOk = firstOk || r; else firstFailed = firstFailed || r;
+            }
+            if (toResend.length > 0) {
+                const r = await client.updateUnapprovedProducts(toResend);
+                if (r.ok) firstOk = firstOk || r; else firstFailed = firstFailed || r;
+            }
+            if (approvedOrUnknown.length > 0) {
+                const r = await client.updatePriceAndInventory(approvedOrUnknown.map((i: any) => ({
+                    barcode: i.barcode,
+                    quantity: i.quantity,
+                    salePrice: i.salePrice,
+                    listPrice: i.listPrice
+                })));
+                if (r.ok) firstOk = firstOk || r; else firstFailed = firstFailed || r;
+            }
+            result = firstFailed || firstOk;
+            variantNote = ` (${toCreate.length} yeni varyant, ${toResend.length} onay bekleyen yeniden gönderildi, ${approvedOrUnknown.length} onaylı varyantta sadece stok/fiyat)`;
         } else {
             // Trendyol V2 Architecture:
             // Check if product already exists or has a contentId
@@ -1079,12 +1151,12 @@ export async function sendProductToTrendyol(productId: string, attributeMappings
             if (batchStatus === "IN_PROGRESS" || batchStatus === "PROCESSING") {
                 return { 
                     success: true, 
-                    message: "Ürün Trendyol'a iletildi! Trendyol şu anda ürünü kuyrukta işliyor (IN_PROGRESS). Birkaç dakika sonra İşlem Geçmişi sayfasından durumunu kontrol edebilirsiniz.", 
+                    message: "Ürün Trendyol'a iletildi! Trendyol şu anda ürünü kuyrukta işliyor (IN_PROGRESS). Birkaç dakika sonra İşlem Geçmişi sayfasından durumunu kontrol edebilirsiniz." + variantNote, 
                     batchRequestId: batchId 
                 };
             }
 
-            return { success: true, message: `Ürün Trendyol'a başarıyla gönderildi ve işlendi (Durum: ${batchStatus})`, batchRequestId: batchId };
+            return { success: true, message: `Ürün Trendyol'a başarıyla gönderildi ve işlendi (Durum: ${batchStatus})${variantNote}`, batchRequestId: batchId };
         } else {
             const errorMsg = result.errors?.[0]?.message || JSON.stringify(result);
             return { success: false, message: "Trendyol Hatası: " + errorMsg };

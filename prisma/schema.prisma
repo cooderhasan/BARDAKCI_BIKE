@@ -358,6 +358,7 @@ model ProductVariant {
   barcode         String?     // Varyant özel Barkod
   stock           Int         @default(0)
   priceAdjustment Decimal     @default(0) @db.Decimal(12, 2) // Fiyat farkı (+/-)
+  images          String[]    @default([]) // Bu varyanta ait görseller (ürün görsellerinden seçilir; boşsa ürünün tüm görselleri)
   isActive        Boolean     @default(true)
   orderItems      OrderItem[]
   cartItems       CartItem[]

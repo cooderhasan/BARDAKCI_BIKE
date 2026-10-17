@@ -893,6 +893,13 @@ export async function getHepsiburadaCategoryAttributes(categoryId: string) {
             seen.add(k);
             return true;
         });
+        // Varyant özellikleri (renk, beden vb.): varyantlı üründe her varyant için ayrı sorulur
+        const variantIds = new Set(
+            (Array.isArray(data?.data?.variantAttributes) ? data.data.variantAttributes : []).map((a: any) => String(a?.id || a?.name || ""))
+        );
+        for (const a of unique) {
+            if (variantIds.has(String(a?.id || a?.name || ""))) a.isVariant = true;
+        }
         if (unique.length === 0) {
             return {
                 success: true,
@@ -1001,7 +1008,12 @@ function getAbsoluteImageUrl(url: string): string {
     return absoluteUrl;
 }
 
-export async function sendProductToHepsiburada(productId: string, attributes: any[]) {
+export async function sendProductToHepsiburada(
+    productId: string,
+    attributes: any[],
+    // Varyantlı ürün: varyant ID -> { HB varyant özellik ID'si -> değer } (ör. renk_variant_property: "Siyah")
+    variantAttributes?: Record<string, Record<string, string>>
+) {
     await requireAdmin();
     try {
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
@@ -1075,6 +1087,49 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
             }
         }];
 
+        // Varyantlı ürün: HB'de her varyant ayrı ürün olarak, aynı VaryantGroupID ile gönderilir
+        // (resmi doküman: VaryantGroupID aynı + varyant özelliklerinden en az biri dolu).
+        const variantRows = (product.variants || []).filter((v: any) => v.barcode);
+        let sentVariantCount = 0;
+        if (variantRows.length > 0) {
+            const common: any = { ...payload[0].attributes };
+            // Ürün geneline ait alanlar varyant başına yeniden yazılır
+            for (const k of Object.keys(common)) {
+                if (/^Image\d+$/.test(k) || ["merchantSku", "Barcode", "price", "stock", "hbSku"].includes(k)) delete common[k];
+            }
+            const variantKeys = new Set<string>();
+            for (const m of Object.values(variantAttributes || {})) for (const k of Object.keys(m || {})) variantKeys.add(k);
+            for (const k of variantKeys) delete common[k];
+
+            const criticalStock = product.criticalStock || 0;
+            const variantPayload = variantRows.map((v: any) => {
+                const vImgs: string[] = (v.images && v.images.length > 0 ? v.images : product.images).slice(0, 10);
+                const vPrice = hbPrice + Number(v.priceAdjustment || 0);
+                const vAttrs = Object.fromEntries(
+                    Object.entries((variantAttributes || {})[v.id] || {}).filter(([, val]) => val !== undefined && String(val).trim() !== "")
+                );
+                return {
+                    categoryId: payload[0].categoryId,
+                    merchant: payload[0].merchant,
+                    attributes: {
+                        ...common,
+                        merchantSku: v.sku || v.barcode,
+                        Barcode: v.barcode,
+                        price: vPrice.toFixed(2).replace(".", ","),
+                        stock: String(Math.max(0, v.stock - criticalStock)),
+                        ...Object.fromEntries(vImgs.map((img: string, i: number) => [`Image${i + 1}`, getAbsoluteImageUrl(img)])),
+                        ...vAttrs,
+                    },
+                };
+            });
+            const missingVariantAttr = variantPayload.filter((it: any) => !Array.from(variantKeys).some((k) => it.attributes[k]));
+            if (variantKeys.size === 0 || missingVariantAttr.length > 0) {
+                return { success: false, message: "Varyantlı ürün: her varyant için en az bir varyant özelliği (renk, beden vb.) doldurulmalı." };
+            }
+            payload.splice(0, payload.length, ...variantPayload);
+            sentVariantCount = variantPayload.length;
+        }
+
         console.log("📡 HB Product Payload (FULL):", JSON.stringify(payload, null, 2));
 
         const result = await client.createProduct(payload);
@@ -1105,7 +1160,8 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
         }
 
         // Ayrıca envanter güncellemesini de gönder (Stok ve fiyatın açılması için)
-        const hepsiburadaSku = product.hepsiburadaProduct?.hbSku;
+        // Varyantlı üründe her varyantın kendi HB SKU'su olur; envanter normal stok senkronuyla gider
+        const hepsiburadaSku = sentVariantCount > 0 ? null : product.hepsiburadaProduct?.hbSku;
         if (hepsiburadaSku) {
             try {
                 const generalSettings = await getSiteSettings("general");
@@ -1148,7 +1204,7 @@ export async function sendProductToHepsiburada(productId: string, attributes: an
 
         return { 
             success: true, 
-            message: `Ürün Hepsiburada'ya gönderildi! ${trackingId ? `Tracking ID: ${trackingId}` : ""}` 
+            message: `Ürün Hepsiburada'ya gönderildi${sentVariantCount > 0 ? ` (${sentVariantCount} varyant)` : ""}! ${trackingId ? `Tracking ID: ${trackingId}` : ""}` 
         };
 
     } catch (error: any) {

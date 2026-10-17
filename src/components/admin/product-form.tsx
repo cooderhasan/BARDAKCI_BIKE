@@ -55,6 +55,7 @@ interface ProductVariant {
     stock: number;
     priceAdjustment: number;
     isActive: boolean;
+    images?: string[];
 }
 
 interface BundleItemData {
@@ -238,6 +239,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                 stock: 0,
                 priceAdjustment: 0,
                 isActive: true,
+                images: [],
             },
         ]);
     };
@@ -246,7 +248,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         handleChange("variants", formData.variants.filter((_, i) => i !== index));
     };
 
-    const updateVariant = (index: number, field: keyof ProductVariant, value: string | number | boolean) => {
+    const updateVariant = (index: number, field: keyof ProductVariant, value: string | number | boolean | string[]) => {
         const updated = [...formData.variants];
         updated[index] = { ...updated[index], [field]: value };
         handleChange("variants", updated);
@@ -1225,6 +1227,54 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
 
                                                 </div>
                                             </div>
+
+                                            {/* Varyant görselleri: pazaryerlerinde (Trendyol, HB) her renk kendi görselleriyle açılır */}
+                                            {formData.images.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                        <Label className="text-xs">
+                                                            Varyant Görselleri{" "}
+                                                            <span className="font-normal text-gray-500">
+                                                                ({(variant.images || []).length > 0 ? `${(variant.images || []).length} seçili` : "seçilmezse ürünün tüm görselleri kullanılır"})
+                                                            </span>
+                                                        </Label>
+                                                        {variant.color && (variant.images || []).length > 0 && formData.variants.some((v, i) => i !== index && v.color === variant.color) && (
+                                                            <button
+                                                                type="button"
+                                                                className="text-[11px] text-blue-600 underline hover:text-blue-800"
+                                                                onClick={() => handleChange("variants", formData.variants.map((v, i) => (i !== index && v.color === variant.color ? { ...v, images: [...(variant.images || [])] } : v)))}
+                                                            >
+                                                                Aynı renkteki ({variant.color}) diğer varyantlara uygula
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {formData.images.map((img) => {
+                                                            const selected = (variant.images || []).includes(img);
+                                                            return (
+                                                                <button
+                                                                    key={img}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const cur = variant.images || [];
+                                                                        // Seçim sırası ürün görsel sırasını izler (ilk görsel ana görsel olur)
+                                                                        const next = selected ? cur.filter((x) => x !== img) : formData.images.filter((x) => x === img || cur.includes(x));
+                                                                        updateVariant(index, "images", next);
+                                                                    }}
+                                                                    className={`relative h-14 w-14 overflow-hidden rounded-md border-2 ${selected ? "border-blue-600 ring-2 ring-blue-200" : "border-gray-200 opacity-60 hover:opacity-100"}`}
+                                                                    title={selected ? "Varyanttan çıkar" : "Bu varyanta ekle"}
+                                                                >
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img src={img} alt="" className="h-full w-full object-cover" />
+                                                                    {selected && (
+                                                                        <span className="absolute right-0.5 top-0.5 rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white">✓</span>
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

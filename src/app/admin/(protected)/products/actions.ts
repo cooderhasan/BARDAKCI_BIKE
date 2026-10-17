@@ -124,7 +124,7 @@ export async function createProduct(formData: FormData) {
         // Create variants separately
         if (variants.length > 0) {
             await prisma.productVariant.createMany({
-                data: variants.map((v: { color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean }) => ({
+                data: variants.map((v: { color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean; images?: string[] }) => ({
                     productId: product.id,
                     color: v.color || null,
                     size: v.size || null,
@@ -133,6 +133,7 @@ export async function createProduct(formData: FormData) {
                     stock: v.stock || 0,
                     priceAdjustment: v.priceAdjustment || 0,
                     isActive: v.isActive !== false,
+                    images: Array.isArray(v.images) ? v.images.filter((x) => typeof x === "string" && x) : [],
                 })),
             });
             // Varyantlı ürünün ana stoğu = aktif varyant stoklarının toplamı
@@ -951,7 +952,7 @@ export async function syncBundleProductStock(bundleProductId: string) {
     return finalStock;
 }
 
-type VariantInput = { id?: string; color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean };
+type VariantInput = { id?: string; color?: string; size?: string; sku?: string; barcode?: string; stock?: number; priceAdjustment?: number; isActive?: boolean; images?: string[] };
 
 /** Formdaki varyant listesini kaydeder: ID'si olan güncellenir, yeniler eklenir, listeden çıkarılanlar silinir */
 async function saveProductVariants(productId: string, variants: VariantInput[]) {
@@ -963,6 +964,7 @@ async function saveProductVariants(productId: string, variants: VariantInput[]) 
         stock: Number(v.stock) || 0,
         priceAdjustment: Number(v.priceAdjustment) || 0,
         isActive: v.isActive !== false,
+        images: Array.isArray(v.images) ? v.images.filter((x) => typeof x === "string" && x) : [],
     });
     try {
         await prisma.$transaction(async (tx) => {

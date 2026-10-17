@@ -67,6 +67,32 @@ interface TrendyolProductListProps {
     };
 }
 
+// --- Varyantlı ürün: Trendyol'da her varyant kendi renk (slicer) / beden (varianter) değeriyle gider ---
+const trNorm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
+
+/** Varyant bazında sorulacak özellikler: slicer (renk vb.), varianter (beden vb.) ve renk varyantı varsa Web Color */
+function getVariantAttrs(attrs: any[], hasColor: boolean) {
+    return attrs.filter((a: any) => a.slicer || a.varianter || (hasColor && trNorm(a.attribute?.name) === "web color"));
+}
+
+/** Sitedeki renk / beden yazısını Trendyol değerine eşleştirir (listede yoksa ve serbest metne izin varsa yazının kendisi) */
+function guessVariantValue(attr: any, v: any) {
+    const n = trNorm(attr.attribute?.name);
+    const isColor = n.includes("renk") || n.includes("color");
+    const isSize = !isColor && (attr.varianter || /beden|boyut|numara|ebat|size/.test(n));
+    const src = isColor ? v.color : isSize ? v.size : null;
+    if (!src) return undefined;
+    const values = attr.attributeValues || [];
+    const hit = values.find((x: any) => trNorm(x.name) === trNorm(src));
+    if (hit) {
+        const num = Number(hit.id);
+        return isNaN(num) ? String(hit.name) : num;
+    }
+    return attr.allowCustom ? String(src) : undefined;
+}
+
+const variantLabel = (v: any) => [v.color, v.size].filter(Boolean).join(" / ") || v.barcode;
+
 export function TrendyolProductList({ initialProducts, pagination }: TrendyolProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
@@ -116,6 +142,8 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [categoryAttrs, setCategoryAttrs] = useState<any[]>([]);
     const [attrMappings, setAttrMappings] = useState<any>({});
+    // Varyant ID -> { özellik ID -> değer }
+    const [variantMappings, setVariantMappings] = useState<Record<string, Record<number, any>>>({});
     const [attrLoading, setAttrLoading] = useState(false);
 
     const handleBulkSync = async () => {
@@ -237,6 +265,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
         setShowAttrModal(true);
         setAttrLoading(true);
         setAttrMappings({});
+        setVariantMappings({});
 
         try {
             // Markaya tanımlı imalatçı / ithalatçı (ürün güvenliği alanları için); alınamazsa form yine açılır
@@ -285,6 +314,19 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                     }
                 }
                 setAttrMappings(initialMap);
+
+                // Varyantlar: renk / beden değerleri sitedeki yazıdan otomatik eşleştirilir
+                const vRows = (product.variants || []).filter((v: any) => v.barcode);
+                const vAttrs = getVariantAttrs(attrs, vRows.some((v: any) => v.color));
+                const vMap: Record<string, Record<number, any>> = {};
+                for (const v of vRows) {
+                    vMap[v.id] = {};
+                    for (const a of vAttrs) {
+                        const g = guessVariantValue(a, v);
+                        if (g !== undefined) vMap[v.id][a.attribute.id] = g;
+                    }
+                }
+                setVariantMappings(vMap);
             } else {
                 toast.error(res.message);
                 setShowAttrModal(false);
@@ -300,8 +342,41 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
     const handleSend = async () => {
         if (!selectedProduct) return;
         
+        // Varyantlı ürün: her varyantın renk / beden değerleri
+        const vRows = (selectedProduct.variants || []).filter((v: any) => v.barcode);
+        const vAttrs = vRows.length > 0 ? getVariantAttrs(categoryAttrs, vRows.some((v: any) => v.color)) : [];
+        const vAttrIds = new Set(vAttrs.map((a: any) => String(a.attribute.id)));
+        let variantAttributes: Record<string, any[]> | undefined;
+        if (vRows.length > 0 && vAttrs.length > 0) {
+            variantAttributes = {};
+            const missing: string[] = [];
+            for (const v of vRows) {
+                const m = variantMappings[v.id] || {};
+                const list: any[] = [];
+                for (const a of vAttrs) {
+                    const val = m[a.attribute.id];
+                    if (val === undefined || val === null || val === "") {
+                        if (a.required || a.slicer || a.varianter) missing.push(`${variantLabel(v)}: ${a.attribute.name}`);
+                        continue;
+                    }
+                    list.push({
+                        attributeId: a.attribute.id,
+                        attributeValueId: typeof val === "number" ? val : undefined,
+                        customAttributeValue: typeof val === "string" ? val.trim() : undefined,
+                    });
+                }
+                variantAttributes[v.id] = list;
+            }
+            if (missing.length > 0) {
+                toast.error(`Varyant değerleri eksik: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? " ..." : ""}`);
+                return;
+            }
+        }
+
         // Convert mappings to Trendyol format, filtering out empty values
+        // (varyant bazında sorulan özellikler ürün genelinden çıkarılır)
         const finalAttrs = Object.entries(attrMappings)
+            .filter(([id]) => !vAttrIds.has(String(id)))
             .filter(([_, val]) => val !== undefined && val !== "" && val !== null)
             .map(([id, val]) => ({
                 attributeId: Number(id),
@@ -313,7 +388,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
         setShowAttrModal(false);
 
         try {
-            const res = await sendProductToTrendyol(selectedProduct.id, finalAttrs, selectedCategoryId || undefined);
+            const res = await sendProductToTrendyol(selectedProduct.id, finalAttrs, selectedCategoryId || undefined, variantAttributes);
             if (res.success) {
                 toast.success(res.message);
                 // Update local state
@@ -772,8 +847,49 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                         ) : (
                             <div className="space-y-4 py-1">
                                 {(() => {
-                                    const requiredAttrs = categoryAttrs.filter((a: any) => a.required);
-                                    const optionalAttrs = categoryAttrs.filter((a: any) => !a.required);
+                                    const vRows = (selectedProduct?.variants || []).filter((v: any) => v.barcode);
+                                    const vAttrs = vRows.length > 0 ? getVariantAttrs(categoryAttrs, vRows.some((v: any) => v.color)) : [];
+                                    const vAttrIds = new Set(vAttrs.map((a: any) => a.attribute.id));
+                                    const requiredAttrs = categoryAttrs.filter((a: any) => a.required && !vAttrIds.has(a.attribute.id));
+                                    const optionalAttrs = categoryAttrs.filter((a: any) => !a.required && !vAttrIds.has(a.attribute.id));
+
+                                    const renderVariantField = (attr: any, v: any) => {
+                                        const attrId = attr.attribute.id;
+                                        const val = variantMappings[v.id]?.[attrId];
+                                        const setVal = (x: any) =>
+                                            setVariantMappings((prev) => ({ ...prev, [v.id]: { ...(prev[v.id] || {}), [attrId]: x } }));
+                                        const hasValues = attr.attributeValues && attr.attributeValues.length > 0;
+                                        return (
+                                            <div key={attrId} className="space-y-1 min-w-0">
+                                                <Label className="text-[11px] font-medium">
+                                                    {attr.attribute.name}
+                                                    <span className="ml-1 text-[10px] text-muted-foreground">
+                                                        {attr.slicer ? "(ayrı ürün kartı)" : attr.varianter ? "(seçenek)" : ""}
+                                                    </span>
+                                                </Label>
+                                                {hasValues ? (
+                                                    <AttributeSearchableSelect
+                                                        options={attr.attributeValues}
+                                                        value={val}
+                                                        placeholder={`${attr.attribute.name} seçin...`}
+                                                        searchPlaceholder={`${attr.attribute.name} ara...`}
+                                                        allowCustom={attr.allowCustom}
+                                                        onValueChange={(x) => {
+                                                            const num = Number(x);
+                                                            setVal(isNaN(num) ? x : num);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Input
+                                                        className="bg-white dark:bg-gray-800 h-9"
+                                                        placeholder="Değer girin..."
+                                                        value={typeof val === "string" ? val : ""}
+                                                        onChange={(e) => setVal(e.target.value)}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    };
 
                                     const renderField = (attr: any) => {
                                         const attrId = attr.attribute.id;
@@ -827,6 +943,43 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
 
                                     return (
                                         <>
+                                            {/* Varyantlar: her varyant kendi renk / beden değeri ve görselleriyle gider */}
+                                            {vRows.length > 0 && (
+                                                <div className="space-y-3 p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900/40">
+                                                    <div className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+                                                        🎨 Varyantlar ({vRows.length})
+                                                    </div>
+                                                    {vAttrs.length === 0 ? (
+                                                        <p className="text-[11px] text-red-600">
+                                                            Bu Trendyol kategorisinde renk/beden gibi varyant özelliği yok; varyantlar Trendyol'da ayrı seçenek olarak görünmez. Ürüne özel kategori seçmeyi düşünün.
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 -mt-1">
+                                                            Değerler sitedeki renk/beden yazısından otomatik eşleştirildi; boş kalanları seçin. Onaylı varyantlarda Trendyol renk/beden değiştirmeye izin vermez, onlara sadece stok/fiyat gider.
+                                                        </p>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        {vRows.map((v: any) => (
+                                                            <div key={v.id} className="rounded-xl border border-blue-100 dark:border-blue-900/40 bg-white dark:bg-gray-900 p-3 space-y-2">
+                                                                <div className="flex flex-wrap items-center gap-2 text-xs">
+                                                                    <span className="font-semibold">{variantLabel(v)}</span>
+                                                                    <span className="font-mono text-[10px] text-gray-500">{v.barcode}</span>
+                                                                    <span className="text-[10px] text-gray-500">
+                                                                        {(v.images || []).length > 0 ? `${v.images.length} varyant görseli` : "ürünün görselleri"}
+                                                                    </span>
+                                                                    {v.isActive === false && <span className="text-[10px] text-red-500">pasif</span>}
+                                                                </div>
+                                                                {vAttrs.length > 0 && (
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                        {vAttrs.map((a: any) => renderVariantField(a, v))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Zorunlu Özellikler */}
                                             {requiredAttrs.length > 0 ? (
                                                 <div className="space-y-3 p-4 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40">
