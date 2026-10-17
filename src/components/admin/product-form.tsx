@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { CategoryTreeSelect } from "@/components/ui/category-tree-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createProduct, updateProduct, syncProductToMarketplaces, searchProductsForBundle } from "@/app/admin/(protected)/products/actions";
+import { createProduct, updateProduct, syncProductToMarketplaces, searchProductsForBundle, getVariantValueSuggestions } from "@/app/admin/(protected)/products/actions";
 import { generateSlug, generateSKU, generateBarcode } from "@/lib/helpers";
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -237,14 +237,30 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
     };
     const variantKey = (v: { color?: string | null; size?: string | null }) =>
         `${String(v.color || "").trim().toLocaleLowerCase("tr-TR")}|${String(v.size || "").trim().toLocaleLowerCase("tr-TR")}`;
+    // Tüm ürünlerde kullanılmış renk / bedenler: öneri listesi ve yazım birliği ("m" → "M", "siyah/mavi" → "Siyah / Mavi")
+    const [savedVariantValues, setSavedVariantValues] = useState<{ colors: string[]; sizes: string[] }>({ colors: [], sizes: [] });
+    useEffect(() => {
+        getVariantValueSuggestions().then(setSavedVariantValues).catch(() => {});
+    }, []);
+    const canonKey = (t: string) => t.toLocaleLowerCase("tr-TR").replace(/\s+/g, "");
+    /** Kayıtlı bir yazımla aynıysa (büyük/küçük harf ve boşluk farkı) kayıtlı yazımı döner */
+    const canonicalVariantValue = (value: string, kind: "color" | "size") => {
+        const v = (value || "").trim();
+        if (!v) return v;
+        const pool = kind === "color"
+            ? [...formData.variants.map((x) => (x.color || "").trim()), ...savedVariantValues.colors]
+            : [...formData.variants.map((x) => (x.size || "").trim()), ...savedVariantValues.sizes, ...VARIANT_SIZE_ORDER];
+        const hit = pool.find((p) => p && p !== v && canonKey(p) === canonKey(v));
+        return hit || v;
+    };
     const splitList = (text: string) => [...new Set(text.split(",").map((x) => x.trim()).filter(Boolean))];
     const colorImagesOf = (color: string) =>
         formData.variants.find((v) => (v.color || "").trim() === color && (v.images || []).length > 0)?.images || [];
 
     /** Renk × beden kombinasyonlarını stok kodu ve barkoduyla ekler; var olanları atlar */
     const generateVariantCombos = () => {
-        const cs = splitList(bulkColors);
-        const ss = splitList(bulkSizes);
+        const cs = [...new Set(splitList(bulkColors).map((c) => canonicalVariantValue(c, "color")))];
+        const ss = [...new Set(splitList(bulkSizes).map((s) => canonicalVariantValue(s, "size")))];
         if (cs.length === 0 && ss.length === 0) {
             toast.warning("Renk veya beden girin (virgülle ayırarak).");
             return;
@@ -313,8 +329,8 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         }
         return dup;
     })();
-    const knownColors = [...new Set(formData.variants.map((v) => (v.color || "").trim()).filter(Boolean))];
-    const knownSizes = [...new Set([...formData.variants.map((v) => (v.size || "").trim()).filter(Boolean), ...VARIANT_SIZE_ORDER.slice(1, 8)])];
+    const knownColors = [...new Set([...formData.variants.map((v) => (v.color || "").trim()).filter(Boolean), ...savedVariantValues.colors])];
+    const knownSizes = [...new Set([...formData.variants.map((v) => (v.size || "").trim()).filter(Boolean), ...savedVariantValues.sizes, ...VARIANT_SIZE_ORDER.slice(1, 8)])];
     const variantStockTotal = formData.variants.reduce((sum, v) => sum + (v.isActive === false ? 0 : Number(v.stock) || 0), 0);
 
     const addVariant = () => {
@@ -1274,6 +1290,10 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                                 list="variant-color-list"
                                                                 value={group.color}
                                                                 onChange={(e) => updateVariantGroup(group.idxs, { color: e.target.value })}
+                                                                onBlur={(e) => {
+                                                                    const c = canonicalVariantValue(e.target.value, "color");
+                                                                    if (c !== e.target.value) updateVariantGroup(group.idxs, { color: c });
+                                                                }}
                                                                 placeholder="Renk (boş bırakılırsa renksiz)"
                                                                 className="bg-white dark:bg-gray-900 font-semibold"
                                                             />
@@ -1330,7 +1350,17 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                             <div key={index} className={`grid grid-cols-2 gap-2 p-3 md:grid-cols-12 md:items-end ${isDup ? "bg-red-50 dark:bg-red-950/20" : ""} ${variant.isActive === false ? "opacity-60" : ""}`}>
                                                                 <div className="space-y-1 md:col-span-2">
                                                                     <Label className="text-[11px]">Beden</Label>
-                                                                    <Input list="variant-size-list" value={variant.size} onChange={(e) => updateVariant(index, "size", e.target.value)} placeholder="Beden" className="bg-white dark:bg-gray-900" />
+                                                                    <Input
+                                                                        list="variant-size-list"
+                                                                        value={variant.size}
+                                                                        onChange={(e) => updateVariant(index, "size", e.target.value)}
+                                                                        onBlur={(e) => {
+                                                                            const s = canonicalVariantValue(e.target.value, "size");
+                                                                            if (s !== e.target.value) updateVariant(index, "size", s);
+                                                                        }}
+                                                                        placeholder="Beden"
+                                                                        className="bg-white dark:bg-gray-900"
+                                                                    />
                                                                     {isDup && <p className="text-[10px] font-semibold text-red-600">Bu renk/beden iki kez var</p>}
                                                                 </div>
                                                                 <div className="space-y-1 md:col-span-1">

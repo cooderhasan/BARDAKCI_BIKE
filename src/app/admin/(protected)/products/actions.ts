@@ -994,3 +994,21 @@ async function saveProductVariants(productId: string, variants: VariantInput[]) 
         }
     }
 }
+
+/** Varyant formu önerileri: tüm ürünlerde kullanılmış renk ve bedenler (en çok kullanılan yazım önce) */
+export async function getVariantValueSuggestions(): Promise<{ colors: string[]; sizes: string[] }> {
+    await requireAdmin();
+    const [colorRows, sizeRows] = await Promise.all([
+        prisma.productVariant.groupBy({ by: ["color"], _count: { _all: true } }),
+        prisma.productVariant.groupBy({ by: ["size"], _count: { _all: true } }),
+    ]);
+    const pick = (rows: { value: string | null; count: number }[]) =>
+        rows
+            .filter((r) => r.value && r.value.trim())
+            .sort((a, b) => b.count - a.count)
+            .map((r) => String(r.value).trim());
+    return {
+        colors: pick(colorRows.map((r) => ({ value: r.color, count: r._count._all }))),
+        sizes: pick(sizeRows.map((r) => ({ value: r.size, count: r._count._all }))),
+    };
+}
