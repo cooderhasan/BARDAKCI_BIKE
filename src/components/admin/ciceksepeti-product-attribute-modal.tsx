@@ -316,8 +316,11 @@ export function CiceksepetiProductAttributeModal({
     if (colors.size > 0 && colorAttr) dims.push({ attr: colorAttr, source: "color" });
     if (sizes.size > 0 && sizeAttr) dims.push({ attr: sizeAttr, source: "size" });
     if (dims.length === 0) dims.push({ attr: varAttrs[0], source: sizes.size > 0 ? "size" : "color" });
+    // ÇS'de renk "ürün yapan" özellik: her renk ayrı ürün grubu (mainProductCode) olur, renk yine de her varyantta gönderilir;
+    // beden grup içinde seçenektir. (Tek grupta iki renk → "Birden fazla ürün yapan özelliğe izin verilmiyor",
+    // renk gönderilmezse → "Birden fazla varyant yapan özelliğe izin verilmiyor".)
     const groupBy =
-      colors.size > 1 && !dims.some((d) => d.source === "color")
+      colors.size > 1
         ? ("color" as const)
         : sizes.size > 1 && !dims.some((d) => d.source === "size")
           ? ("size" as const)
@@ -594,7 +597,7 @@ export function CiceksepetiProductAttributeModal({
                   ) : (
                     <>
                       <p className="text-[11px] text-blue-800">
-                        Çiçeksepeti bu kategoride varyantları <strong>{variantPlanInfo.dims.map((d) => d.attr.name).join(" + ")}</strong> ile ayırıyor; hepsi aynı ürün sayfasında seçenek olur.
+                        Çiçeksepeti bu kategoride varyantları <strong>{variantPlanInfo.dims.map((d) => d.attr.name).join(" + ")}</strong> ile ayırıyor.
                         {variantPlanInfo.groupBy && (
                           <> Her <strong>{variantPlanInfo.groupBy === "color" ? "renk" : "beden"}</strong> ayrı ürün sayfası olur.</>
                         )}{" "}
