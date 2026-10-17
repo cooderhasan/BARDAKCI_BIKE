@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory, matchCiceksepetiProducts, getCiceksepetiMatchStatus } from "../actions";
+import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory, matchCiceksepetiProducts, getCiceksepetiMatchStatus, checkCiceksepetiSendResult } from "../actions";
 import { toast } from "sonner";
 import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save, SlidersHorizontal } from "lucide-react";
 import Image from "next/image";
@@ -36,6 +36,24 @@ interface Props {
 export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
   const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
+  const [checkingResultId, setCheckingResultId] = useState<string | null>(null);
+
+  // Son gönderimin ÇS işlem sonucu (ÇS ürünü kuyruğa alıyor; hata sonradan çıkabiliyor)
+  const handleCheckSendResult = async (productId: string) => {
+    setCheckingResultId(productId);
+    try {
+      const res = await checkCiceksepetiSendResult(productId);
+      if (res.success) toast.success(res.message, { duration: 15000 });
+      else toast.error(res.message, { duration: 20000 });
+      if ("error" in res) {
+        setProducts((prev: any[]) =>
+          prev.map((x: any) => (x.id === productId ? { ...x, ciceksepetiProduct: { ...(x.ciceksepetiProduct || {}), lastSyncError: res.error ?? null } } : x))
+        );
+      }
+    } finally {
+      setCheckingResultId(null);
+    }
+  };
 
   useEffect(() => {
     setProducts(initialProducts);
@@ -521,6 +539,17 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
                           <Clock className="w-3 h-3" />
                           Gönderilmedi
                         </Badge>
+                      )}
+                      {cicekProduct?.batchRequestId && cicekProduct.batchRequestId !== "SUCCESS" && (
+                        <button
+                          type="button"
+                          onClick={() => handleCheckSendResult(p.id)}
+                          disabled={checkingResultId === p.id}
+                          className="mt-1 block mx-auto text-[10px] text-blue-600 underline hover:text-blue-800 disabled:opacity-50"
+                          title="Son gönderimin Çiçeksepeti'deki işlem sonucunu getirir"
+                        >
+                          {checkingResultId === p.id ? "Kontrol ediliyor..." : "Gönderim sonucunu kontrol et"}
+                        </button>
                       )}
                     </TableCell>
 

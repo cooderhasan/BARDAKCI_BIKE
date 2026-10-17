@@ -599,11 +599,15 @@ export async function syncProductsToCiceksepeti(
           }
           if ((customOptions?.variantPlan || []).length > 0 && groups.size > 1) {
             let gi = 0;
+            const batchIds: string[] = [];
             for (const items of groups.values()) {
               if (gi++ > 0) await new Promise((r) => setTimeout(r, 5500));
               result = await client.createOrUpdateProducts(items);
+              if (result?.batchId) batchIds.push(String(result.batchId));
             }
             if (!result) throw new Error("Çiçeksepeti'ye gönderilecek ürün oluşmadı.");
+            // "Gönderim sonucunu kontrol et" hepsine baksın diye virgülle saklanır
+            if (batchIds.length > 1) result = { ...result, batchId: batchIds.join(",") };
           } else {
             result = await client.createOrUpdateProducts(productInputs);
           }
@@ -1494,4 +1498,68 @@ export async function getCiceksepetiMatchStatus(): Promise<{ status?: string; su
   await requireAdmin();
   const row = await prisma.siteSettings.findUnique({ where: { key: CS_MATCH_KEY } });
   return (row?.value as any) || null;
+}
+
+/**
+ * Ürün listesindeki "Gönderim sonucunu kontrol et": son gönderimin Çiçeksepeti işlem (batch) sonucu.
+ * ÇS ürün yüklemeyi kuyruğa alıyor; "aktarıldı" mesajı ürünün açıldığı anlamına gelmiyor, sonradan hata çıkabiliyor.
+ */
+export async function checkCiceksepetiSendResult(productId: string): Promise<{ success: boolean; message: string; error?: string | null }> {
+  await requireAdmin();
+  try {
+    const config = await (prisma as any).ciceksepetiConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, message: "Aktif Çiçeksepeti yapılandırması bulunamadı." };
+    const link = await (prisma as any).ciceksepetiProduct.findUnique({ where: { productId } });
+    const ids = String(link?.batchRequestId || "")
+      .split(",")
+      .map((x: string) => x.trim())
+      .filter((x: string) => x && x !== "SUCCESS");
+    if (ids.length === 0) return { success: false, message: "Bu ürün için kayıtlı bir Çiçeksepeti gönderim numarası yok." };
+
+    const client = new CiceksepetiClient({
+      apiKey: config.apiKey,
+      supplierId: config.supplierId,
+      profitMargin: config.profitMargin || 0,
+      isActive: true,
+      isTestMode: Boolean(config.isTestMode),
+    });
+
+    const lines: string[] = [];
+    const errors: string[] = [];
+    let pending = false;
+    for (const id of ids) {
+      const st = await client.getBatchStatus(id);
+      const raw = st.raw || {};
+      const items: any[] = Array.isArray(raw.items) ? raw.items : [];
+      if (items.length === 0) {
+        lines.push(`${id}: ${st.status || "bilinmiyor"}`);
+        if (/pending|process|queue|bekl/i.test(String(st.status || ""))) pending = true;
+      }
+      for (const it of items) {
+        const code = it.data?.stockCode || it.stockCode || it.data?.barcode || it.barcode || it.itemId || "?";
+        const status = String(it.status || "");
+        const reasons = (it.failureReasons || it.errors || [])
+          .map((e: any) => (typeof e === "string" ? e : e.message || e.description || JSON.stringify(e)))
+          .filter(Boolean);
+        if (/pending|process|queue|bekl/i.test(status)) pending = true;
+        if (reasons.length > 0 || /fail|error|hata/i.test(status)) errors.push(`${code}: ${reasons.join("; ") || status}`);
+        lines.push(`${code}: ${status}${reasons.length ? ` (${reasons.join("; ")})` : ""}`);
+      }
+      for (const e of st.errors || []) {
+        const msg = typeof e === "string" ? e : (e as any)?.message || JSON.stringify(e);
+        if (msg) errors.push(msg);
+      }
+    }
+
+    const errorText = errors.length > 0 ? errors.join(" | ").slice(0, 900) : null;
+    await (prisma as any).ciceksepetiProduct.update({
+      where: { productId },
+      data: { lastSyncError: errorText, batchStatus: errorText ? "FAILED" : pending ? "PENDING" : "SUCCESS" },
+    }).catch(() => {});
+
+    const head = errorText ? "Çiçeksepeti bazı kalemleri reddetti" : pending ? "Çiçeksepeti hâlâ işliyor, biraz sonra tekrar bakın" : "Çiçeksepeti işlemi başarıyla tamamladı";
+    return { success: !errorText, message: `${head}: ${lines.join(" ; ").slice(0, 1200)}`, error: errorText };
+  } catch (e: any) {
+    return { success: false, message: "Gönderim sonucu alınamadı: " + (e?.message || "") };
+  }
 }
