@@ -434,9 +434,17 @@ export async function syncProductsToCiceksepeti(
           .map((pl) => ({ pl, v: (p.variants || []).find((x: any) => x.id === pl.variantId) as any }))
           .filter((x) => x.v && (x.v.sku || x.v.barcode));
         if (planVariants.length > 0) {
-          const slug = (t: string) =>
-            t.toLocaleUpperCase("tr-TR").replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ü/g, "U").replace(/Ö/g, "O").replace(/Ç/g, "C")
-              .replace(/[^A-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20);
+          // Grup (mainProductCode) kodu kısa ve gruba özgü: önceden "ürünKimliği(25 karakter)-SIYAH-KIRMIZI" gibi ~40 karakterdi;
+          // ÇS kırparsa iki rengin kodu aynı olup "Birden fazla varyant yapan özelliğe izin verilmiyor" hatası çıkıyordu.
+          const shortHash = (t: string) => {
+            let h = 2166136261;
+            for (let i = 0; i < t.length; i++) {
+              h ^= t.charCodeAt(i);
+              h = Math.imul(h, 16777619) >>> 0;
+            }
+            return h.toString(36).toUpperCase();
+          };
+          const groupBase = p.sku && String(p.sku).length <= 15 ? String(p.sku) : `P${shortHash(String(p.id))}`;
           const dimAttrIds = new Set(plan.map((pl) => Number(pl.attributeId)));
           // ÇS bir üründe tek varyant yapan özelliğe izin veriyor ("Birden fazla varyant yapan özelliğe izin verilmiyor"):
           // varianter=true ya da tipi "Variant Özelliği" olan diğer özellikler (ör. Tip, Renk) ürün geneli listeden çıkarılır.
@@ -461,7 +469,7 @@ export async function syncProductsToCiceksepeti(
             const adj = Number(v.priceAdjustment || 0);
             productInputs.push({
               productName: groupKey ? `${p.name} - ${groupKey}` : p.name,
-              productCode: groupKey ? `${productCode}-${slug(groupKey)}` : productCode, // mainProductCode (grup)
+              productCode: groupKey ? `${groupBase}-${shortHash(`${p.id}|${groupKey}`)}` : groupBase, // mainProductCode (grup), en fazla ~23 karakter
               stockCode: vCode,
               mainCategoryId: categoryId,
               description: p.marketplaceDescription || p.description || p.name,
