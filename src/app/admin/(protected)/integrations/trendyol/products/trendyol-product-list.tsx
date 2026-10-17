@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { sameVariantValue } from "@/lib/variant-value-match";
+import { pickVariantValue } from "@/lib/variant-value-match";
 import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
 import { operatorValueFor } from "@/lib/operator-fields";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -84,7 +84,7 @@ function guessVariantValue(attr: any, v: any) {
     const src = isColor ? v.color : isSize ? v.size : null;
     if (!src) return undefined;
     const values = attr.attributeValues || [];
-    const hit = values.find((x: any) => sameVariantValue(x.name, src));
+    const hit = pickVariantValue<any>(values, src, (x) => x.name);
     if (hit) {
         const num = Number(hit.id);
         return isNaN(num) ? String(hit.name) : num;

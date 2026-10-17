@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { sameVariantValue } from "@/lib/variant-value-match";
+import { pickVariantValue } from "@/lib/variant-value-match";
 import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
 import { operatorValueFor } from "@/lib/operator-fields";
 import { 
@@ -147,7 +147,7 @@ function guessHbVariantValue(attr: any, v: any, options: string[]) {
     const n = hbNorm(attr.name);
     const src = n.includes("renk") || n.includes("color") ? v.color : /beden|ebat|boy|numara|size|ölçü|olcu/.test(n) ? v.size : null;
     if (!src) return "";
-    return options.find((o) => sameVariantValue(o, src)) || String(src);
+    return pickVariantValue(options, src, (o) => o) || String(src);
 }
 const hbVariantLabel = (v: any) => [v.color, v.size].filter(Boolean).join(" / ") || v.barcode;
 

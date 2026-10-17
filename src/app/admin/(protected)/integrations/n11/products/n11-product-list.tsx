@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { sameVariantValue } from "@/lib/variant-value-match";
+import { pickVariantValue, sameVariantValue } from "@/lib/variant-value-match";
 import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
 import { operatorValueFor, pickProviderTypeValue } from "@/lib/operator-fields";
 import { 
@@ -92,7 +92,8 @@ function guessN11VariantValue(a: any, v: any, sizeInColor: boolean) {
     const color = isColorAttr(a);
     const src = color ? (sizeInColor ? [v.color, v.size].filter(Boolean).join(" - ") : v.color) : v.size;
     if (!src) return undefined;
-    const hit = (a.values || []).find((x: any) => sameVariantValue(x.name, src));
+    // Beden renge yazılıyorsa ("Siyah / Mavi - M") parçalı eşleştirme bedeni atardı; sadece birebir
+    const hit = color && sizeInColor ? (a.values || []).find((x: any) => sameVariantValue(x.name, src)) : pickVariantValue<any>(a.values || [], src, (x) => x.name);
     if (hit) return { id: hit.id ?? null, name: hit.name };
     return a.isCustomValue || !(a.values || []).length ? { id: null, name: String(src) } : undefined;
 }

@@ -18,3 +18,23 @@ export function sameVariantValue(listValue: unknown, siteValue: unknown): boolea
     if (a.toLocaleLowerCase("tr-TR") === b.toLocaleLowerCase("tr-TR")) return true;
     return sizeKey(a) === sizeKey(b);
 }
+
+/**
+ * Listeden sitedeki değere karşılık gelen öğeyi bulur. Önce birebir / beden eşdeğeri; yoksa çok parçalı renklerde
+ * ("Siyah / Mavi", "Siyah-Kırmızı") parçalara bakılır, son parça önce (ayırt edici renk genelde sondadır):
+ * "Siyah / Mavi" → Mavi.
+ */
+export function pickVariantValue<T>(list: T[], siteValue: unknown, nameOf: (item: T) => unknown): T | undefined {
+    const direct = list.find((x) => sameVariantValue(nameOf(x), siteValue));
+    if (direct) return direct;
+    const parts = String(siteValue ?? "")
+        .split(/\s*[\/\-,+&]\s*/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+    if (parts.length < 2) return undefined;
+    for (const part of [...parts].reverse()) {
+        const hit = list.find((x) => sameVariantValue(nameOf(x), part));
+        if (hit) return hit;
+    }
+    return undefined;
+}
