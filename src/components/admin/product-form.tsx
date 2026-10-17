@@ -226,6 +226,95 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
     };
 
     const hasVariants = formData.variants.length > 0;
+
+    // --- Varyant yönetimi: toplu oluşturma, renge göre gruplama ---
+    const [bulkColors, setBulkColors] = useState("");
+    const [bulkSizes, setBulkSizes] = useState("");
+    const VARIANT_SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "XXXL", "3XL", "4XL"];
+    const variantSizeRank = (size?: string | null) => {
+        const i = VARIANT_SIZE_ORDER.indexOf(String(size || "").trim().toUpperCase());
+        return i === -1 ? 100 : i;
+    };
+    const variantKey = (v: { color?: string | null; size?: string | null }) =>
+        `${String(v.color || "").trim().toLocaleLowerCase("tr-TR")}|${String(v.size || "").trim().toLocaleLowerCase("tr-TR")}`;
+    const splitList = (text: string) => [...new Set(text.split(",").map((x) => x.trim()).filter(Boolean))];
+    const colorImagesOf = (color: string) =>
+        formData.variants.find((v) => (v.color || "").trim() === color && (v.images || []).length > 0)?.images || [];
+
+    /** Renk × beden kombinasyonlarını stok kodu ve barkoduyla ekler; var olanları atlar */
+    const generateVariantCombos = () => {
+        const cs = splitList(bulkColors);
+        const ss = splitList(bulkSizes);
+        if (cs.length === 0 && ss.length === 0) {
+            toast.warning("Renk veya beden girin (virgülle ayırarak).");
+            return;
+        }
+        const existing = new Set(formData.variants.map(variantKey));
+        const added: ProductVariant[] = [];
+        for (const c of cs.length > 0 ? cs : [""]) {
+            for (const sz of ss.length > 0 ? ss : [""]) {
+                if (existing.has(variantKey({ color: c, size: sz }))) continue;
+                existing.add(variantKey({ color: c, size: sz }));
+                added.push({
+                    color: c,
+                    size: sz,
+                    sku: generateSKU(),
+                    barcode: generateBarcode(),
+                    stock: 0,
+                    priceAdjustment: 0,
+                    isActive: true,
+                    images: [...colorImagesOf(c)],
+                });
+            }
+        }
+        if (added.length === 0) {
+            toast.info("Bu kombinasyonların hepsi zaten var.");
+            return;
+        }
+        handleChange("variants", [...formData.variants, ...added]);
+        toast.success(`${added.length} varyant eklendi. Stokları girmeyi unutmayın.`);
+        setBulkColors("");
+        setBulkSizes("");
+    };
+
+    // Renge göre gruplar (sıra: ilk görüldüğü sıra; grup içinde beden sırası)
+    const variantGroups = (() => {
+        const m = new Map<string, number[]>();
+        formData.variants.forEach((v, i) => {
+            const k = (v.color || "").trim();
+            if (!m.has(k)) m.set(k, []);
+            m.get(k)!.push(i);
+        });
+        return [...m.entries()].map(([color, idxs]) => ({
+            color,
+            firstIndex: Math.min(...idxs),
+            idxs: [...idxs].sort((a, b) => variantSizeRank(formData.variants[a].size) - variantSizeRank(formData.variants[b].size)),
+        }));
+    })();
+    const updateVariantGroup = (idxs: number[], patch: Partial<ProductVariant>) =>
+        handleChange("variants", formData.variants.map((v, i) => (idxs.includes(i) ? { ...v, ...patch } : v)));
+    const addVariantToGroup = (color: string) =>
+        handleChange("variants", [
+            ...formData.variants,
+            { color, size: "", sku: generateSKU(), barcode: generateBarcode(), stock: 0, priceAdjustment: 0, isActive: true, images: [...colorImagesOf(color)] },
+        ]);
+    const removeVariantGroup = (idxs: number[], color: string) => {
+        if (!window.confirm(`"${color || "Renksiz"}" rengindeki ${idxs.length} varyant silinsin mi?`)) return;
+        handleChange("variants", formData.variants.filter((_, i) => !idxs.includes(i)));
+    };
+    // Aynı renk + beden iki kez girilmişse (kayıtta hata verir)
+    const duplicateVariantKeys = (() => {
+        const seen = new Set<string>();
+        const dup = new Set<string>();
+        for (const v of formData.variants) {
+            const k = variantKey(v);
+            if (seen.has(k)) dup.add(k);
+            seen.add(k);
+        }
+        return dup;
+    })();
+    const knownColors = [...new Set(formData.variants.map((v) => (v.color || "").trim()).filter(Boolean))];
+    const knownSizes = [...new Set([...formData.variants.map((v) => (v.size || "").trim()).filter(Boolean), ...VARIANT_SIZE_ORDER.slice(1, 8)])];
     const variantStockTotal = formData.variants.reduce((sum, v) => sum + (v.isActive === false ? 0 : Number(v.stock) || 0), 0);
 
     const addVariant = () => {
@@ -452,6 +541,12 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         e.preventDefault();
         const saveAndNew = saveAndNewRef.current;
         saveAndNewRef.current = false;
+
+        // Aynı renk + beden iki kez girilmişse kayıt veritabanında hata verir
+        if (duplicateVariantKeys.size > 0) {
+            toast.error("Aynı renk ve bedende birden fazla varyant var. Varyantlar sekmesinde kırmızı işaretli satırları düzeltin.");
+            return;
+        }
 
         // Pazaryeri fiyat validasyonu: Diğer pazaryerlerinde fiyat varken boş olan varsa uyar
         const filledMarketplaces = marketplacePriceFields.filter(f => {
@@ -1126,332 +1221,148 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                 <TabsContent value="variants" className="space-y-6">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Varyantlar</CardTitle>
+                            <CardTitle>Varyantlar {formData.variants.length > 0 && <span className="text-sm font-normal text-gray-500">({formData.variants.length})</span>}</CardTitle>
                             <Button type="button" variant="outline" size="sm" onClick={addVariant}>
-                                <Plus className="h-4 w-4 mr-1" /> Varyant Ekle
+                                <Plus className="h-4 w-4 mr-1" /> Tek Varyant Ekle
                             </Button>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
+                            {/* Toplu oluşturma: renkler × bedenler */}
+                            <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 space-y-2 dark:border-blue-900 dark:bg-blue-950/20">
+                                <div className="text-sm font-semibold text-blue-900 dark:text-blue-200">Toplu Varyant Oluştur</div>
+                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                    Renkleri ve bedenleri virgülle ayırarak yazın; tüm kombinasyonlar stok kodu ve barkoduyla eklenir. Var olanlar tekrar eklenmez, istemediğinizi silebilirsiniz.
+                                </p>
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
+                                    <Input value={bulkColors} onChange={(e) => setBulkColors(e.target.value)} placeholder="Renkler: Siyah / Mavi, Siyah / Kırmızı" />
+                                    <Input value={bulkSizes} onChange={(e) => setBulkSizes(e.target.value)} placeholder="Bedenler: S, M, L, XL, XXL" />
+                                    <Button type="button" onClick={generateVariantCombos}>
+                                        <Plus className="h-4 w-4 mr-1" /> Oluştur
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <datalist id="variant-color-list">{knownColors.map((c) => <option key={c} value={c} />)}</datalist>
+                            <datalist id="variant-size-list">{knownSizes.map((c) => <option key={c} value={c} />)}</datalist>
+
                             {formData.variants.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500 border-2 border-dashed rounded-lg">
                                     <p>Henüz varyant eklenmedi</p>
-                                    <p className="text-sm">Renk/beden seçenekleri için varyant ekleyebilirsiniz</p>
+                                    <p className="text-sm">Renk/beden seçenekleri için yukarıdan toplu oluşturabilirsiniz</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {formData.variants.map((variant, index) => (
-                                        <div key={index} className="border rounded-lg p-4 space-y-4 relative bg-gray-50 dark:bg-gray-800/50">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => removeVariant(index)}
-                                                className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-
-                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Renk</Label>
-                                                    <Input
-                                                        value={variant.color}
-                                                        onChange={(e) => updateVariant(index, "color", e.target.value)}
-                                                        placeholder="Renk"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Beden</Label>
-                                                    <Input
-                                                        value={variant.size}
-                                                        onChange={(e) => updateVariant(index, "size", e.target.value)}
-                                                        placeholder="Beden"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Stok</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={variant.stock}
-                                                        onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-xs">Fiyat Farkı (+/-)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={variant.priceAdjustment}
-                                                        onChange={(e) => updateVariant(index, "priceAdjustment", parseFloat(e.target.value) || 0)}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-                                                <div className="space-y-2 relative">
-                                                    <Label className="text-xs">Varyant SKU</Label>
-                                                    <Input
-                                                        value={variant.sku}
-                                                        onChange={(e) => updateVariant(index, "sku", e.target.value)}
-                                                        placeholder="SKU"
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="absolute right-0 top-6 h-8 w-8"
-                                                        onClick={() => updateVariant(index, "sku", generateSKU())}
-                                                        title="SKU Oluştur"
-                                                    >
-                                                        <RefreshCcw className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-
-                                                <div className="space-y-2 relative">
-                                                    <Label className="text-xs">Varyant Barkod</Label>
-                                                    <Input
-                                                        value={variant.barcode}
-                                                        onChange={(e) => updateVariant(index, "barcode", e.target.value)}
-                                                        placeholder="Barkod"
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="absolute right-0 top-6 h-8 w-8"
-                                                        onClick={() => updateVariant(index, "barcode", generateBarcode())}
-                                                        title="Barkod Oluştur"
-                                                    >
-                                                        <RefreshCcw className="h-3 w-3" />
-                                                    </Button>
-
-                                                </div>
-                                            </div>
-
-                                            {/* Varyant görselleri: pazaryerlerinde (Trendyol, HB) her renk kendi görselleriyle açılır */}
-                                            {formData.images.length > 0 && (
-                                                <div className="space-y-2">
-                                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                                        <Label className="text-xs">
-                                                            Varyant Görselleri{" "}
-                                                            <span className="font-normal text-gray-500">
-                                                                ({(variant.images || []).length > 0 ? `${(variant.images || []).length} seçili` : "seçilmezse ürünün tüm görselleri kullanılır"})
-                                                            </span>
-                                                        </Label>
-                                                        {variant.color && (variant.images || []).length > 0 && formData.variants.some((v, i) => i !== index && v.color === variant.color) && (
-                                                            <button
-                                                                type="button"
-                                                                className="text-[11px] text-blue-600 underline hover:text-blue-800"
-                                                                onClick={() => handleChange("variants", formData.variants.map((v, i) => (i !== index && v.color === variant.color ? { ...v, images: [...(variant.images || [])] } : v)))}
-                                                            >
-                                                                Aynı renkteki ({variant.color}) diğer varyantlara uygula
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {formData.images.map((img) => {
-                                                            const selected = (variant.images || []).includes(img);
-                                                            return (
-                                                                <button
-                                                                    key={img}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const cur = variant.images || [];
-                                                                        // Seçim sırası ürün görsel sırasını izler (ilk görsel ana görsel olur)
-                                                                        const next = selected ? cur.filter((x) => x !== img) : formData.images.filter((x) => x === img || cur.includes(x));
-                                                                        updateVariant(index, "images", next);
-                                                                    }}
-                                                                    className={`relative h-14 w-14 overflow-hidden rounded-md border-2 ${selected ? "border-blue-600 ring-2 ring-blue-200" : "border-gray-200 opacity-60 hover:opacity-100"}`}
-                                                                    title={selected ? "Varyanttan çıkar" : "Bu varyanta ekle"}
-                                                                >
-                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                    <img src={img} alt="" className="h-full w-full object-cover" />
-                                                                    {selected && (
-                                                                        <span className="absolute right-0.5 top-0.5 rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white">✓</span>
-                                                                    )}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent >
-
-                <TabsContent value="bundle" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Package className="h-5 w-5 text-emerald-600" />
-                                Paket Ürün Ayarları
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* İsBundle Toggle */}
-                            <div className="flex items-center justify-between p-4 border rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base text-emerald-700 dark:text-emerald-300 font-semibold">📦 Paket Ürün</Label>
-                                    <p className="text-sm text-gray-500">Bu ürünü birden fazla ürün içeren bir paket olarak tanımla</p>
-                                </div>
-                                <Checkbox
-                                    checked={formData.isBundle}
-                                    onCheckedChange={(c) => handleChange("isBundle", c)}
-                                />
-                            </div>
-
-                            {formData.isBundle && (
-                                <>
-                                    {/* Bundle Stock Info */}
-                                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Hesaplanan Paket Stoku</p>
-                                                <p className="text-xs text-gray-500 mt-1">Paket içindeki en az stoklu ürüne göre otomatik hesaplanır</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className={`text-3xl font-bold ${bundleStock > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                    {bundleItems.length > 0 ? bundleStock : '-'}
-                                                </span>
-                                                <p className="text-xs text-gray-500">adet paket</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Search Products */}
-                                    <div className="space-y-2">
-                                        <Label className="font-semibold">Pakete Ürün Ekle</Label>
-                                        <div className="relative">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                            <Input
-                                                value={bundleSearchQuery}
-                                                onChange={(e) => handleBundleSearch(e.target.value)}
-                                                placeholder="Ürün adı, SKU veya barkod ile arayın..."
-                                                className="pl-10"
-                                            />
-                                            {bundleSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />}
-                                        </div>
-
-                                        {/* Search Results */}
-                                        {bundleSearchResults.length > 0 && (
-                                            <div className="border rounded-lg divide-y max-h-60 overflow-y-auto bg-white dark:bg-gray-800 shadow-lg">
-                                                {bundleSearchResults.map((item) => (
-                                                    <button
-                                                        key={item.id}
-                                                        type="button"
-                                                        onClick={() => addBundleItem(item)}
-                                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left"
-                                                    >
-                                                        {item.image ? (
-                                                            <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded border" />
-                                                        ) : (
-                                                            <div className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center">
-                                                                <Package className="h-5 w-5 text-gray-400" />
-                                                            </div>
-                                                        )}
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium truncate">{item.name}</p>
-                                                            <p className="text-xs text-gray-500">{item.sku || '-'} · Stok: {item.stock}</p>
+                                    {variantGroups.map((group) => {
+                                        const groupImages = formData.variants[group.idxs[0]]?.images || [];
+                                        return (
+                                            <div key={`grp-${group.firstIndex}`} className="rounded-lg border bg-gray-50 dark:bg-gray-800/50">
+                                                {/* Renk başlığı: ad ve görseller tüm bedenlere uygulanır */}
+                                                <div className="space-y-3 border-b p-3">
+                                                    <div className="flex flex-wrap items-end gap-2">
+                                                        <div className="min-w-0 flex-1 space-y-1">
+                                                            <Label className="text-xs">Renk ({group.idxs.length} beden)</Label>
+                                                            <Input
+                                                                list="variant-color-list"
+                                                                value={group.color}
+                                                                onChange={(e) => updateVariantGroup(group.idxs, { color: e.target.value })}
+                                                                placeholder="Renk (boş bırakılırsa renksiz)"
+                                                                className="bg-white dark:bg-gray-900 font-semibold"
+                                                            />
                                                         </div>
-                                                        <span className="text-sm font-semibold text-emerald-600 shrink-0">
-                                                            {item.salePrice ? item.salePrice.toLocaleString('tr-TR') : item.listPrice.toLocaleString('tr-TR')} ₺
-                                                        </span>
-                                                        <Plus className="h-4 w-4 text-emerald-600 shrink-0" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => addVariantToGroup(group.color)}>
+                                                            <Plus className="h-4 w-4 mr-1" /> Beden Ekle
+                                                        </Button>
+                                                        <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={() => removeVariantGroup(group.idxs, group.color)}>
+                                                            <Trash2 className="h-4 w-4 mr-1" /> Rengi Sil
+                                                        </Button>
+                                                    </div>
+                                                    {formData.images.length > 0 ? (
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">
+                                                                Bu rengin görselleri{" "}
+                                                                <span className="font-normal text-gray-500">
+                                                                    ({groupImages.length > 0 ? `${groupImages.length} seçili` : "seçilmezse ürünün tüm görselleri kullanılır"})
+                                                                </span>
+                                                            </Label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {formData.images.map((img) => {
+                                                                    const selected = groupImages.includes(img);
+                                                                    return (
+                                                                        <button
+                                                                            key={img}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                // Seçim sırası ürün görsel sırasını izler (ilk görsel ana görsel olur)
+                                                                                const next = selected ? groupImages.filter((x) => x !== img) : formData.images.filter((x) => x === img || groupImages.includes(x));
+                                                                                updateVariantGroup(group.idxs, { images: next });
+                                                                            }}
+                                                                            className={`relative h-16 w-16 overflow-hidden rounded-md border-2 bg-white ${selected ? "border-blue-600 ring-2 ring-blue-200" : "border-gray-200 opacity-60 hover:opacity-100"}`}
+                                                                            title={selected ? "Bu renkten çıkar" : "Bu renge ekle"}
+                                                                        >
+                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                            <img src={img} alt="" className="h-full w-full object-contain" />
+                                                                            {selected && <span className="absolute right-0.5 top-0.5 rounded-full bg-blue-600 px-1 text-[9px] font-bold text-white">✓</span>}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-gray-500">Renge görsel seçmek için önce Görseller sekmesinden ürün görsellerini yükleyin.</p>
+                                                    )}
+                                                </div>
 
-                                    {/* Bundle Items List */}
-                                    {bundleItems.length === 0 ? (
-                                        <div className="text-center py-10 text-gray-500 border-2 border-dashed rounded-lg">
-                                            <Package className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                                            <p className="font-medium">Henüz ürün eklenmedi</p>
-                                            <p className="text-sm">Yukarıdaki arama alanını kullanarak pakete ürün ekleyebilirsiniz</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <Label className="font-semibold">Paket İçeriği ({bundleItems.length} ürün)</Label>
-                                            </div>
-                                            <div className="border rounded-lg overflow-hidden">
-                                                <table className="w-full text-sm">
-                                                    <thead className="bg-gray-50 dark:bg-gray-800">
-                                                        <tr>
-                                                            <th className="text-left p-3 font-medium">Ürün</th>
-                                                            <th className="text-center p-3 font-medium w-28">Adet</th>
-                                                            <th className="text-center p-3 font-medium w-24">Stok</th>
-                                                            <th className="text-right p-3 font-medium w-28">Fiyat</th>
-                                                            <th className="p-3 w-12"></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y">
-                                                        {bundleItems.map((bi) => (
-                                                            <tr key={bi.childProductId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                                                                <td className="p-3">
-                                                                    <div className="flex items-center gap-2">
-                                                                        {bi.childProduct.image ? (
-                                                                            <img src={bi.childProduct.image} alt="" className="w-8 h-8 object-cover rounded border" />
-                                                                        ) : (
-                                                                            <div className="w-8 h-8 bg-gray-100 rounded border flex items-center justify-center">
-                                                                                <Package className="h-4 w-4 text-gray-400" />
-                                                                            </div>
-                                                                        )}
-                                                                        <div>
-                                                                            <p className="font-medium text-sm">{bi.childProduct.name}</p>
-                                                                            <p className="text-xs text-gray-500">{bi.childProduct.sku || '-'}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="p-3 text-center">
-                                                                    <Input
-                                                                        type="number"
-                                                                        min="1"
-                                                                        value={bi.quantity}
-                                                                        onChange={(e) => updateBundleItemQuantity(bi.childProductId, parseInt(e.target.value) || 1)}
-                                                                        className="w-20 mx-auto text-center h-8"
-                                                                    />
-                                                                </td>
-                                                                <td className="p-3 text-center">
-                                                                    <span className={`font-medium ${bi.childProduct.stock < 5 ? 'text-red-600' : 'text-green-600'}`}>
-                                                                        {bi.childProduct.stock}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="p-3 text-right font-medium">
-                                                                    {(bi.childProduct.salePrice || bi.childProduct.listPrice).toLocaleString('tr-TR')} ₺
-                                                                </td>
-                                                                <td className="p-3">
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => removeBundleItem(bi.childProductId)}
-                                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                                    >
+                                                {/* Bedenler */}
+                                                <div className="divide-y">
+                                                    {group.idxs.map((index) => {
+                                                        const variant = formData.variants[index];
+                                                        const isDup = duplicateVariantKeys.has(variantKey(variant));
+                                                        return (
+                                                            <div key={index} className={`grid grid-cols-2 gap-2 p-3 md:grid-cols-12 md:items-end ${isDup ? "bg-red-50 dark:bg-red-950/20" : ""} ${variant.isActive === false ? "opacity-60" : ""}`}>
+                                                                <div className="space-y-1 md:col-span-2">
+                                                                    <Label className="text-[11px]">Beden</Label>
+                                                                    <Input list="variant-size-list" value={variant.size} onChange={(e) => updateVariant(index, "size", e.target.value)} placeholder="Beden" className="bg-white dark:bg-gray-900" />
+                                                                    {isDup && <p className="text-[10px] font-semibold text-red-600">Bu renk/beden iki kez var</p>}
+                                                                </div>
+                                                                <div className="space-y-1 md:col-span-1">
+                                                                    <Label className="text-[11px]">Stok</Label>
+                                                                    <Input type="number" value={variant.stock} onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)} className="bg-white dark:bg-gray-900" />
+                                                                </div>
+                                                                <div className="space-y-1 md:col-span-2">
+                                                                    <Label className="text-[11px]">Fiyat Farkı (+/-)</Label>
+                                                                    <Input type="number" step="0.01" value={variant.priceAdjustment} onChange={(e) => updateVariant(index, "priceAdjustment", parseFloat(e.target.value) || 0)} className="bg-white dark:bg-gray-900" />
+                                                                </div>
+                                                                <div className="relative space-y-1 md:col-span-3">
+                                                                    <Label className="text-[11px]">Varyant SKU</Label>
+                                                                    <Input value={variant.sku} onChange={(e) => updateVariant(index, "sku", e.target.value)} placeholder="SKU" className="bg-white pr-8 dark:bg-gray-900" />
+                                                                    <Button type="button" variant="ghost" size="icon" className="absolute bottom-0.5 right-0.5 h-8 w-8" onClick={() => updateVariant(index, "sku", generateSKU())} title="SKU Oluştur">
+                                                                        <RefreshCcw className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                                <div className="relative space-y-1 md:col-span-3">
+                                                                    <Label className="text-[11px]">Varyant Barkod</Label>
+                                                                    <Input value={variant.barcode} onChange={(e) => updateVariant(index, "barcode", e.target.value)} placeholder="Barkod" className="bg-white pr-8 dark:bg-gray-900" />
+                                                                    <Button type="button" variant="ghost" size="icon" className="absolute bottom-0.5 right-0.5 h-8 w-8" onClick={() => updateVariant(index, "barcode", generateBarcode())} title="Barkod Oluştur">
+                                                                        <RefreshCcw className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                                <div className="col-span-2 flex items-center justify-between gap-2 md:col-span-1 md:flex-col md:items-end">
+                                                                    <label className="flex cursor-pointer items-center gap-1.5 text-[11px]" title="Pasif varyant sitede ve pazaryerlerinde satılmaz">
+                                                                        <Checkbox checked={variant.isActive !== false} onCheckedChange={(c) => updateVariant(index, "isActive", c === true)} />
+                                                                        Aktif
+                                                                    </label>
+                                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(index)} className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700" title="Bu bedeni sil">
                                                                         <Trash2 className="h-4 w-4" />
                                                                     </Button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-
-                                            {/* Bundle Summary */}
-                                            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 flex items-center justify-between">
-                                                <span className="text-sm text-gray-600">Paket İçerik Toplam Değeri</span>
-                                                <span className="text-lg font-bold">
-                                                    {bundleItems.reduce((sum, bi) => sum + ((bi.childProduct.salePrice || bi.childProduct.listPrice) * bi.quantity), 0).toLocaleString('tr-TR')} ₺
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </CardContent>
                     </Card>
