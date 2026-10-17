@@ -370,7 +370,12 @@ export class CiceksepetiClient {
           const errJson = JSON.parse(responseText);
           detailMsg = errJson.message || errJson.Message || errJson.error || (Array.isArray(errJson.errors) ? errJson.errors.map((e: any) => typeof e === "string" ? e : e.message || JSON.stringify(e)).join(", ") : "") || JSON.stringify(errJson);
         } catch {}
-        throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"}`);
+        // Teşhis: gönderilen her ürünün grup kodu, stok kodu ve özellikleri (Id=ValueId) mesaja eklenir
+        const sent = chunk
+          .map((it: any) => `${it.mainProductCode}/${it.stockCode}[${(it.Attributes || it.attributes || []).map((a: any) => `${a.Id ?? a.id}=${a.ValueId ?? a.valueId ?? a.customAttributeValue ?? "?"}`).join(",")}]`)
+          .join(" ; ")
+          .slice(0, 900);
+        throw new Error(`Çiçeksepeti ürün yükleme hatası (${res.status}): ${detailMsg || res.statusText || "Geçersiz İstek"} — Gönderilen: ${sent}`);
       }
 
       try {
