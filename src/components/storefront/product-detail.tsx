@@ -581,7 +581,7 @@ export function ProductDetail({
                                                             title={color}
                                                             onClick={() => selectColor(color)}
                                                             className={cn(
-                                                                "w-12 h-12 rounded-lg border-2 transition-all p-0.5 bg-white",
+                                                                "w-14 h-14 sm:w-16 sm:h-16 rounded-lg border-2 transition-all p-0.5 bg-white",
                                                                 selectedColor === color
                                                                     ? "border-[#17457C] ring-2 ring-[#17457C]/20"
                                                                     : "border-gray-200 hover:border-gray-300"
