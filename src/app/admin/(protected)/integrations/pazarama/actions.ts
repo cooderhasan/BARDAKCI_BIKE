@@ -468,6 +468,8 @@ export async function getPazaramaProducts({
               pazaramaCategoryId: true,
             },
           },
+          // Gönderim penceresindeki varyant tablosu için
+          variants: { select: { id: true, color: true, size: true, sku: true, barcode: true, stock: true, isActive: true, images: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -522,11 +524,29 @@ export async function togglePazaramaProductActive(productId: string, currentStat
   }
 }
 
+/**
+ * Pazarama groupCode (en fazla 10 karakter). Önceden stok kodunun ilk 10 karakteri alınıyordu: "BRD-9171203" ile
+ * "BRD-9171209" gibi farklı ürünler aynı koda düşüp birbirinin varyantı gibi gruplanabiliyordu. Artık ürün (+ grup)
+ * kimliğinden üretilen kısa, sabit bir kod kullanılır.
+ */
+function pazaramaGroupCode(seed: string): string {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  let h2 = 5381;
+  for (let i = 0; i < seed.length; i++) h2 = (Math.imul(h2, 33) + seed.charCodeAt(i)) >>> 0;
+  return ("G" + h.toString(36) + h2.toString(36)).toUpperCase().substring(0, 10);
+}
+
 export async function syncProductsToPazarama(
   productIds: string[],
   attributes?: Array<{ attributeId: string; attributeValueId: string }>,
   commercialId?: string,
-  securityDescription?: string
+  securityDescription?: string,
+  // Varyantlı ürün: ürün ID -> varyantlar [{ variantId, groupKey, attributes }]; groupKey doluysa o grup ayrı ürün sayfası
+  variantPlan?: Record<string, { variantId: string; groupKey: string; attributes: Array<{ attributeId: string; attributeValueId: string }> }[]>
 ) {
   await requireAdmin();
   try {
@@ -537,7 +557,7 @@ export async function syncProductsToPazarama(
 
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      include: { brand: true, categories: true, pazaramaProduct: true },
+      include: { brand: true, categories: true, pazaramaProduct: true, variants: true },
     });
 
     if (products.length === 0) {
@@ -546,10 +566,11 @@ export async function syncProductsToPazarama(
 
     const client = new PazaramaClient(config);
     const profitMargin = config.profitMargin || 0;
+    const variantCodesByProduct: Record<string, string[]> = {};
 
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
-    const payloadProducts = products.map((p) => {
+    const payloadProducts = products.flatMap((p): any[] => {
       const basePrice = Number(p.pazaramaPrice || p.salePrice || p.listPrice);
       const finalPrice = profitMargin > 0 ? basePrice * (1 + profitMargin / 100) : basePrice;
       const productOverrideCatId = (p as any).pazaramaProduct?.pazaramaCategoryId;
@@ -564,8 +585,44 @@ export async function syncProductsToPazarama(
       const criticalStock = p.criticalStock ?? 0;
       const effectiveStock = p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
 
-      return {
+      // Varyantlı ürün: her varyant ayrı ürün; aynı groupCode, kendi barkodu / stoğu / görselleri / varyant özellikleri
+      const plan = (variantPlan || {})[p.id] || [];
+      const planned = plan
+        .map((pl) => ({ pl, v: ((p as any).variants || []).find((x: any) => x.id === pl.variantId) as any }))
+        .filter((x) => x.v && x.v.barcode);
+      if (planned.length > 0) {
+        const variantAttrIds = new Set(plan.flatMap((pl) => pl.attributes.map((a) => String(a.attributeId))));
+        const baseAttrs = (attributes || []).filter((a) => !variantAttrIds.has(String(a.attributeId)));
+        variantCodesByProduct[p.id] = planned.map(({ v }) => v.barcode);
+        return planned.map(({ pl, v }) => {
+          const adj = Number(v.priceAdjustment || 0);
+          const vStock = v.stock <= criticalStock ? 0 : Math.max(0, v.stock - criticalStock);
+          const vImages = ((v.images || []) as string[]).map((img) => (img.startsWith("http") ? img : `${siteUrl}${img.startsWith("/") ? "" : "/"}${img}`));
+          const groupKey = String(pl.groupKey || "").trim();
+          return {
+            code: v.sku || v.barcode,
+            stockCode: v.sku || v.barcode,
+            groupCode: pazaramaGroupCode(`${p.id}|${groupKey}`),
+            title: groupKey ? `${p.name} - ${groupKey}` : p.name,
+            description: p.marketplaceDescription || p.description || p.name,
+            barcode: v.barcode,
+            brandId: p.brand?.pazaramaBrandId || undefined,
+            categoryId: targetCategoryId,
+            listPrice: Math.round((Number(p.listPrice) + adj) * (1 + profitMargin / 100) * 100) / 100,
+            salePrice: Math.round((finalPrice + adj) * 100) / 100,
+            stockQuantity: vStock,
+            vatRate: p.vatRate || 20,
+            images: vImages.length > 0 ? vImages : formattedImages,
+            attributes: [...baseAttrs, ...pl.attributes],
+            commercialId: commercialId || undefined,
+            securityDescription: securityDescription || undefined,
+          };
+        });
+      }
+
+      return [{
         code: p.sku || p.id,
+        groupCode: pazaramaGroupCode(p.id),
         title: p.name,
         description: p.marketplaceDescription || p.description || p.name,
         barcode: p.barcode || p.sku || p.id,
@@ -579,16 +636,18 @@ export async function syncProductsToPazarama(
         attributes: attributes || [],
         commercialId: commercialId || undefined,
         securityDescription: securityDescription || undefined,
-      };
+      }];
     });
 
-    const result = await client.createProductBatch(payloadProducts);
+    const result = await client.createProductBatch(payloadProducts as any);
 
     // Seçilen temin şablonu varsa, her bir ürün koduna upsertSellerProductCommercial ile de bağla
     if (commercialId) {
       for (const p of products) {
-        const code = p.barcode || p.sku || p.id;
-        if (code) {
+        // Varyantlı üründe her varyant barkoduna bağlanır
+        const codes = variantCodesByProduct[p.id] || [p.barcode || p.sku || p.id];
+        for (const code of codes) {
+          if (!code) continue;
           try {
             await client.upsertSellerProductCommercial(code, [commercialId], securityDescription);
           } catch (err) {
@@ -609,9 +668,10 @@ export async function syncProductsToPazarama(
       });
 
       revalidatePath("/admin/integrations/pazarama/products");
+      const variantCount = Object.values(variantCodesByProduct).reduce((n, list) => n + list.length, 0);
       return {
         success: true,
-        message: `${products.length} adet ürün Pazarama'ya başarıyla aktarıldı.${commercialId ? " (Temin şablonu tanımlandı)" : ""} Paket ID: ${result.batchId}`,
+        message: `${products.length} adet ürün Pazarama'ya başarıyla aktarıldı${variantCount > 0 ? ` (${variantCount} varyant)` : ""}.${commercialId ? " (Temin şablonu tanımlandı)" : ""} Paket ID: ${result.batchId}`,
       };
     } else {
       return { success: false, message: result.error || "Aktarım başarısız oldu." };
@@ -651,6 +711,7 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
 
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
+      include: { variants: true },
     });
 
     if (products.length === 0) {
@@ -673,6 +734,21 @@ export async function syncPazaramaStockAndPrice(productIds: string[]) {
       // Pazarama'da kapalı veya sitede pasif ürün 0 stokla gider; aksi halde sipariş sonrası senkron onu tekrar satışa açıyordu
       const isSellable = p.isActive && p.isPazaramaActive;
       const effectiveStock = !isSellable || p.stock <= criticalStock ? 0 : Math.max(0, p.stock - criticalStock);
+
+      // Varyantlı ürün: Pazarama'da her varyant kendi barkoduyla durur (önceden varyant stokları hiç güncellenmiyordu)
+      const barcodedVariants = ((p as any).variants || []).filter((v: any) => v.barcode);
+      if (barcodedVariants.length > 0) {
+        for (const v of barcodedVariants) {
+          const adj = Number(v.priceAdjustment || 0);
+          const vSellable = isSellable && v.isActive !== false;
+          const vStock = !vSellable || v.stock <= criticalStock ? 0 : Math.max(0, v.stock - criticalStock);
+          const vSale = Math.round((salePrice + adj) * 100) / 100;
+          const vList = Math.max(vSale, Math.round((listPrice + adj) * 100) / 100);
+          items.push({ code: v.barcode, stock: vStock, price: vSale, listPrice: vList });
+          if (v.sku && v.sku !== v.barcode) items.push({ code: v.sku, stock: vStock, price: vSale, listPrice: vList });
+        }
+        continue;
+      }
 
       if (p.barcode) {
         items.push({ code: p.barcode, stock: effectiveStock, price: salePrice, listPrice });

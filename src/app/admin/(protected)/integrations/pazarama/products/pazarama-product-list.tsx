@@ -91,9 +91,32 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
     attributeId: string;
     attributeName: string;
     isRequired: boolean;
+    isVariantable?: boolean;
     values: Array<{ attributeValueId: string; value: string }>;
   }>>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  // Varyant ID -> { özellik ID -> değer ID }
+  const [variantAttrValues, setVariantAttrValues] = useState<Record<string, Record<string, string>>>({});
+
+  // --- Varyantlı ürünler: Pazarama'da her varyant ayrı ürün, aynı groupCode; değerler listeden ---
+  const pzNorm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
+  const pzIsColor = (name: string) => /renk|color/.test(pzNorm(name));
+  const pzIsSize = (name: string) => /beden|boy|numara|ebat|ölçü|olcu|size/.test(pzNorm(name));
+  const pzVariantProducts = () =>
+    products
+      .filter((p: any) => selectedIds.includes(p.id))
+      .map((p: any) => ({ p, rows: (p.variants || []).filter((v: any) => v.isActive !== false && v.barcode) }))
+      .filter((x: any) => x.rows.length > 0);
+  const pzVariantAttrs = () => categoryAttributes.filter((a) => a.isVariantable);
+  /** Kategoride olmayan boyut (ör. beden özelliği yoksa beden) ayrı ürün sayfası olur */
+  const pzGroupBy = (rows: any[]) => {
+    const vAttrs = pzVariantAttrs();
+    const colors = new Set(rows.map((v: any) => v.color).filter(Boolean));
+    const sizes = new Set(rows.map((v: any) => v.size).filter(Boolean));
+    if (sizes.size > 1 && !vAttrs.some((a) => pzIsSize(a.attributeName))) return "size";
+    if (colors.size > 1 && !vAttrs.some((a) => pzIsColor(a.attributeName))) return "color";
+    return null;
+  };
   const [isLoadingAttributes, setIsLoadingAttributes] = useState(false);
 
   // Temin Şablonu (Ürün Güvenliği ve Uygunluk) State'leri
@@ -362,6 +385,20 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
       if (res.success && res.data && res.data.length > 0) {
         setCategoryAttributes(res.data);
         setSelectedAttributes({});
+        // Varyant değerleri sitedeki renk / bedenden (listede birebir varsa) otomatik seçilir
+        const vAttrs = (res.data as any[]).filter((a: any) => a.isVariantable);
+        const vals: Record<string, Record<string, string>> = {};
+        for (const p of products.filter((x: any) => selectedIds.includes(x.id))) {
+          for (const v of ((p as any).variants || []).filter((x: any) => x.isActive !== false && x.barcode)) {
+            vals[v.id] = {};
+            for (const a of vAttrs) {
+              const src = pzIsColor(a.attributeName) ? v.color : pzIsSize(a.attributeName) ? v.size : null;
+              const hit = src ? a.values.find((x: any) => pzNorm(x.value) === pzNorm(src)) : null;
+              if (hit) vals[v.id][a.attributeId] = hit.attributeValueId;
+            }
+          }
+        }
+        setVariantAttrValues(vals);
       } else {
         toast.error(res.message || "Bu kategori için attribute bulunamadı.");
         setShowAttributeModal(false);
@@ -375,10 +412,55 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
   };
 
   const handleAttributeSync = async () => {
-    const attributes = Object.entries(selectedAttributes).map(([attributeId, attributeValueId]) => ({
-      attributeId,
-      attributeValueId,
-    }));
+    // Varyantlı ürünler: her varyantın varyant özellikleri seçilmiş ve grup içinde benzersiz olmalı
+    const vProducts = pzVariantProducts();
+    const vAttrs = pzVariantAttrs();
+    const vAttrIds = new Set(vProducts.length > 0 ? vAttrs.map((a) => String(a.attributeId)) : []);
+    let variantPlan: Record<string, any[]> | undefined;
+    if (vProducts.length > 0) {
+      if (vAttrs.length === 0) {
+        toast.error("Bu Pazarama kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye gönderilemez.");
+        return;
+      }
+      variantPlan = {};
+      const missing: string[] = [];
+      const clashes: string[] = [];
+      for (const { p, rows } of vProducts) {
+        const groupBy = pzGroupBy(rows);
+        const seen = new Map<string, string>();
+        variantPlan[p.id] = rows.map((v: any) => {
+          const label = [v.color, v.size].filter(Boolean).join(" / ");
+          const m = variantAttrValues[v.id] || {};
+          const attrs = vAttrs
+            .filter((a) => m[a.attributeId])
+            .map((a) => ({ attributeId: a.attributeId, attributeValueId: m[a.attributeId] }));
+          for (const a of vAttrs) {
+            const needed = a.isRequired || (pzIsColor(a.attributeName) && v.color) || (pzIsSize(a.attributeName) && v.size);
+            if (needed && !m[a.attributeId]) missing.push(`${label}: ${a.attributeName}`);
+          }
+          const groupKey = groupBy ? String(v[groupBy] || "") : "";
+          const key = `${groupKey}|${vAttrs.map((a) => m[a.attributeId] || "").join("|")}`;
+          if (seen.has(key)) clashes.push(`${seen.get(key)} ve ${label}`);
+          else seen.set(key, label);
+          return { variantId: v.id, groupKey, attributes: attrs };
+        });
+      }
+      if (missing.length > 0) {
+        toast.error(`Varyant değerleri eksik: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? " ..." : ""}`);
+        return;
+      }
+      if (clashes.length > 0) {
+        toast.error(`Pazarama bu varyantları ayırt edemez (değerler aynı): ${clashes.slice(0, 4).join("; ")}`, { duration: 12000 });
+        return;
+      }
+    }
+
+    const attributes = Object.entries(selectedAttributes)
+      .filter(([attributeId, attributeValueId]) => attributeValueId && !vAttrIds.has(String(attributeId)))
+      .map(([attributeId, attributeValueId]) => ({
+        attributeId,
+        attributeValueId,
+      }));
 
     setShowAttributeModal(false);
 
@@ -387,7 +469,8 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
         selectedIds,
         attributes,
         selectedCommercialId || undefined,
-        securityDescription || undefined
+        securityDescription || undefined,
+        variantPlan
       );
       if (res.success) {
         toast.success(res.message);
@@ -1132,6 +1215,58 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                 )}
               </div>
 
+              {/* Varyantlar: her varyant ayrı ürün, aynı groupCode; değerler Pazarama listesinden */}
+              {!isLoadingAttributes && pzVariantProducts().length > 0 && (
+                <div className="space-y-2 p-3 rounded-lg bg-blue-50/60 border border-blue-200">
+                  <h3 className="text-sm font-semibold text-blue-900">🎨 Varyantlar</h3>
+                  {pzVariantAttrs().length === 0 ? (
+                    <p className="text-[11px] text-red-600">Bu Pazarama kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye gönderilemez.</p>
+                  ) : (
+                    pzVariantProducts().map(({ p, rows }: any) => {
+                      const groupBy = pzGroupBy(rows);
+                      return (
+                        <div key={p.id} className="space-y-1.5">
+                          <p className="text-xs font-semibold">{p.name}</p>
+                          {groupBy && (
+                            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-1.5">
+                              Bu kategoride {groupBy === "size" ? "beden" : "renk"} varyant özelliği yok; her {groupBy === "size" ? "beden" : "renk"} Pazarama'da ayrı ürün sayfası olarak açılır.
+                            </p>
+                          )}
+                          {rows.map((v: any) => (
+                            <div key={v.id} className="rounded border bg-white dark:bg-gray-900 p-2 space-y-1.5">
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="font-semibold">{[v.color, v.size].filter(Boolean).join(" / ")}</span>
+                                <span className="font-mono text-[10px] text-gray-500">{v.barcode}</span>
+                                <span className="text-[10px] text-gray-500">{(v.images || []).length > 0 ? `${v.images.length} varyant görseli` : "ürünün görselleri"}</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {pzVariantAttrs().map((a) => (
+                                  <div key={a.attributeId} className="space-y-1">
+                                    <label className="text-[11px] font-medium">{a.attributeName}{a.isRequired && <span className="text-red-500"> *</span>}</label>
+                                    <select
+                                      className="w-full border rounded-md px-2 py-1 text-xs bg-background"
+                                      value={variantAttrValues[v.id]?.[a.attributeId] || ""}
+                                      onChange={(e) =>
+                                        setVariantAttrValues((prev) => ({ ...prev, [v.id]: { ...(prev[v.id] || {}), [a.attributeId]: e.target.value } }))
+                                      }
+                                    >
+                                      <option value="">Seçiniz...</option>
+                                      {a.values.map((val) => (
+                                        <option key={val.attributeValueId} value={val.attributeValueId}>{val.value}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
               {/* Kategori Zorunlu Özellikleri (Attributes) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between border-b pb-2">
@@ -1156,7 +1291,9 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                     Bu kategori için zorunlu attribute bulunmuyor. Temin şablonu ile doğrudan gönderebilirsiniz.
                   </div>
                 ) : (
-                  categoryAttributes.map((attr) => (
+                  categoryAttributes
+                    .filter((attr) => !(attr.isVariantable && pzVariantProducts().length > 0))
+                    .map((attr) => (
                     <div key={attr.attributeId} className="space-y-1.5">
                       <label className="text-xs font-medium flex items-center gap-1.5">
                         {attr.attributeName}

@@ -234,6 +234,8 @@ export class PazaramaClient {
         attributeId: a.id || a.attributeId,
         attributeName: a.name || a.displayName || a.attributeName,
         isRequired: a.isRequired ?? false,
+        // true: bu özellik varyant oluşturur (ör. renk, beden)
+        isVariantable: a.isVariantable === true,
         values: (a.attributeValues || a.values || []).map((v: any) => ({
           attributeValueId: v.id || v.attributeValueId,
           value: v.value || v.name,
@@ -261,8 +263,9 @@ export class PazaramaClient {
         const imageObjects = rawImages.map((url) => ({
           imageurl: url,
         }));
-        const groupCode = (p.code || "").substring(0, 10);
-        const stockCode = p.code || "";
+        // groupCode en fazla 10 karakter; açıkça verilmişse o kullanılır (varyantlar aynı groupCode ile gruplanır)
+        const groupCode = ((p as any).groupCode || (p.code || "").substring(0, 10)).substring(0, 10);
+        const stockCode = (p as any).stockCode || p.code || "";
         return {
           Name: p.title,
           DisplayName: p.title,
