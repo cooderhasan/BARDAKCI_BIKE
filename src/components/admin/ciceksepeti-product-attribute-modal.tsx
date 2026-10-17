@@ -60,7 +60,11 @@ function SearchableAttributeSelect({
     const vals = attr.attributeValues || [];
     if (!searchTerm.trim()) return vals;
     const norm = searchTerm.toLowerCase().trim();
-    return vals.filter((v: any) => v.name?.toLowerCase().includes(norm));
+    // Birebir eşleşen en üstte, sonra bununla başlayanlar (ör. "L" aranınca önce "L", sonra "L/XL", sonra içinde L geçenler)
+    const rank = (n: string) => (n === norm ? 0 : n.startsWith(norm) ? 1 : 2);
+    return vals
+      .filter((v: any) => v.name?.toLowerCase().includes(norm))
+      .sort((a: any, b: any) => rank(String(a.name).toLowerCase().trim()) - rank(String(b.name).toLowerCase().trim()));
   }, [attr.attributeValues, searchTerm]);
 
   return (
