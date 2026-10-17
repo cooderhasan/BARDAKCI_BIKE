@@ -453,7 +453,10 @@ export async function syncProductsToCiceksepeti(
             }
             return h.toString(36).toUpperCase();
           };
-          const groupBase = p.sku && String(p.sku).length <= 15 ? String(p.sku) : `P${shortHash(String(p.id))}`;
+          // Sadece harf/rakam: ÇS "-" içeren grup kodlarını aynı sayıyordu ("PISKWYO-T8HIEA" ile "PISKWYO-VVHNCA" tek grup gibi
+          // davranıp "Birden fazla ürün/varyant yapan özelliğe izin verilmiyor" hatası veriyordu). Grubu ayıran kısım başta.
+          const alnum = (t: string) => t.replace(/[^A-Za-z0-9]/g, "");
+          const groupBase = alnum(p.sku && String(p.sku).length <= 15 ? String(p.sku) : `P${shortHash(String(p.id))}`);
           const planAttrs = (pl: any): { attributeId: number; attributeValueId: number }[] =>
             pl.attributes && pl.attributes.length > 0 ? pl.attributes : [{ attributeId: Number(pl.attributeId), attributeValueId: Number(pl.attributeValueId) }];
           const dimAttrIds = new Set(plan.flatMap((pl) => planAttrs(pl).map((a) => Number(a.attributeId))));
@@ -484,7 +487,7 @@ export async function syncProductsToCiceksepeti(
             const adj = Number(v.priceAdjustment || 0);
             productInputs.push({
               productName: groupKey ? `${p.name} - ${groupKey}` : p.name,
-              productCode: groupKey ? `${groupBase}-${shortHash(`${p.id}|${groupKey}`)}` : groupBase, // mainProductCode (grup), en fazla ~23 karakter
+              productCode: groupKey ? `${alnum(shortHash(`${p.id}|${groupKey}`))}${groupBase}`.slice(0, 20) : groupBase, // mainProductCode (grup)
               stockCode: vCode,
               mainCategoryId: categoryId,
               description: p.marketplaceDescription || p.description || p.name,
