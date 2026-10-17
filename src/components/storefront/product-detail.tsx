@@ -366,13 +366,13 @@ export function ProductDetail({
                         {/* Left: Image Gallery */}
                         <div className="p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 dark:border-gray-800">
                             {/* Main Image */}
-                            <div className="relative aspect-[4/3] bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden group mb-4 border border-gray-100 dark:border-gray-800">
+                            <div className="relative aspect-square bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden group mb-4 border border-gray-100 dark:border-gray-800">
                                 {galleryImages[0] ? (
                                     <Image
                                         src={galleryImages[activeImageIndex] || galleryImages[0]}
                                         alt={product.name}
                                         fill
-                                        className="object-contain p-6 group-hover:scale-105 transition-transform duration-500"
+                                        className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
                                         priority
                                         sizes="(max-width: 1024px) 100vw, 50vw"
                                     />
