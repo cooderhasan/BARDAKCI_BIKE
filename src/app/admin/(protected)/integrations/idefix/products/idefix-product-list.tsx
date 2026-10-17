@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { MarketplaceCategoryPicker } from "@/components/admin/marketplace-category-picker";
+import { SearchablePicker } from "@/components/ui/searchable-picker";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -50,6 +51,7 @@ import {
   enqueueIdefixSync,
   toggleIdefixProductActive,
   createProductOnIdefix,
+  getIdefixCategoryAttributes,
   getIdefixAddressesAndCargo,
   checkIdefixBatchStatus,
   setIdefixProductCategory,
@@ -66,6 +68,51 @@ interface IdefixProductListProps {
     totalCount: number;
     limit: number;
   };
+}
+
+// --- Idefix kategori özellikleri + varyantlar (isSlicer / isVariant) ---
+const idxNorm = (x: any) => String(x ?? "").toLocaleLowerCase("tr-TR").trim();
+const idxIsColor = (a: any) => /renk|color/.test(idxNorm(a.name));
+const idxVariantLabel = (v: any) => [v.color, v.size].filter(Boolean).join(" / ") || v.barcode;
+/** Kategoride beden (renk dışı varyant özelliği) yoksa beden renk alanına yazılır */
+function idxSizeIntoColor(vAttrs: any[], vRows: any[]) {
+  return !vAttrs.some((a: any) => !idxIsColor(a)) && vRows.some((v: any) => v.size);
+}
+function idxGuess(a: any, v: any, sizeInColor: boolean) {
+  const color = idxIsColor(a);
+  const src = color ? (sizeInColor ? [v.color, v.size].filter(Boolean).join(" - ") : v.color) : v.size;
+  if (!src) return undefined;
+  const hit = (a.values || []).find((x: any) => idxNorm(x.name) === idxNorm(src));
+  if (hit) return { id: hit.id, name: hit.name };
+  return a.allowCustom || (a.values || []).length === 0 ? { id: null, name: String(src) } : undefined;
+}
+/** Tek özellik alanı: listede değer varsa aranabilir seçim, yoksa serbest metin */
+function IdefixAttrInput({ attr, value, onChange }: { attr: any; value: any; onChange: (v: any) => void }) {
+  const values = attr.values || [];
+  if (values.length > 0 && !(attr.allowCustom && value && !value.id)) {
+    return (
+      <SearchablePicker
+        options={values.map((x: any) => x.name)}
+        value={value?.name || ""}
+        onValueChange={(name: string) => {
+          const hit = values.find((x: any) => x.name === name);
+          onChange(hit ? { id: hit.id, name: hit.name } : null);
+        }}
+        placeholder={`${attr.name} seçin...`}
+        searchPlaceholder={`${attr.name} ara...`}
+        title={attr.name}
+        className="h-8 text-xs"
+      />
+    );
+  }
+  return (
+    <Input
+      className="h-8 text-xs"
+      placeholder={`${attr.name} girin...`}
+      value={value?.name || ""}
+      onChange={(e) => onChange(e.target.value ? { id: null, name: e.target.value } : null)}
+    />
+  );
 }
 
 export function IdefixProductList({ initialProducts, pagination }: IdefixProductListProps) {
@@ -113,6 +160,44 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
   const [manufacturer, setManufacturer] = useState("Bardakcı Bike");
   const [importer, setImporter] = useState("Bardakcı Bike");
   const [sendingModal, setSendingModal] = useState(false);
+  // Kategori özellikleri ve varyant değerleri (Sıfırdan Ürün Oluştur)
+  const [idxAttrs, setIdxAttrs] = useState<any[]>([]);
+  const [idxAttrLoading, setIdxAttrLoading] = useState(false);
+  const [idxAttrValues, setIdxAttrValues] = useState<Record<string, any>>({});
+  const [idxVariantValues, setIdxVariantValues] = useState<Record<string, Record<string, any>>>({});
+
+  const loadIdefixAttrs = async (catId: string, product: any) => {
+    setIdxAttrs([]);
+    setIdxAttrValues({});
+    setIdxVariantValues({});
+    if (!catId) return;
+    setIdxAttrLoading(true);
+    try {
+      const res: any = await getIdefixCategoryAttributes(catId);
+      if (!res.success) {
+        toast.warning(res.message || "Idefix kategori özellikleri alınamadı.");
+        return;
+      }
+      const attrs = res.data || [];
+      setIdxAttrs(attrs);
+      const vRows = (product?.variants || []).filter((v: any) => v.isActive !== false && v.barcode);
+      const vAttrs = attrs.filter((a: any) => a.isVariant || a.isSlicer);
+      if (vRows.length > 0 && vAttrs.length > 0) {
+        const sizeInColor = idxSizeIntoColor(vAttrs, vRows);
+        const m: Record<string, Record<string, any>> = {};
+        for (const v of vRows) {
+          m[v.id] = {};
+          for (const a of vAttrs) {
+            const g = idxGuess(a, v, sizeInColor);
+            if (g) m[v.id][a.id] = g;
+          }
+        }
+        setIdxVariantValues(m);
+      }
+    } finally {
+      setIdxAttrLoading(false);
+    }
+  };
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
@@ -199,6 +284,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
     setManufacturer(product.brand?.name || "Bardakcı Bike");
     setImporter("Bardakcı Bike");
     setModalOpen(true);
+    loadIdefixAttrs(String(catId || ""), product);
     // Markaya imalatçı / ithalatçı firması tanımlıysa onların bilgisi yazılır (tanımlı değilse eski varsayılan kalır)
     getProductOperators(product.id)
       .then((ops) => {
@@ -228,11 +314,61 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
           return;
         }
 
+        // Kategori özellikleri + varyant değerleri
+        const vRows = (selectedProduct.variants || []).filter((v: any) => v.isActive !== false && v.barcode);
+        const vAttrs = vRows.length > 0 ? idxAttrs.filter((a: any) => a.isVariant || a.isSlicer) : [];
+        const vAttrIds = new Set(vAttrs.map((a: any) => String(a.id)));
+        const missingReq = idxAttrs.filter((a: any) => a.required && !vAttrIds.has(String(a.id)) && !idxAttrValues[a.id]);
+        if (missingReq.length > 0) {
+          toast.error(`Zorunlu özellikler eksik: ${missingReq.map((a: any) => a.name).join(", ")}`);
+          setSendingModal(false);
+          return;
+        }
+        const toAttr = (attrId: any, val: any) => ({
+          attributeId: Number(attrId),
+          attributeValueId: val?.id ? Number(val.id) : null,
+          customAttributeValue: val?.id ? null : String(val?.name || "").trim() || null,
+        });
+        const attributes = Object.entries(idxAttrValues)
+          .filter(([id, val]) => val && !vAttrIds.has(String(id)))
+          .map(([id, val]) => toAttr(id, val));
+        let variantAttributes: Record<string, any[]> | undefined;
+        if (vRows.length > 0 && vAttrs.length > 0) {
+          variantAttributes = {};
+          const missing: string[] = [];
+          const seen = new Map<string, string>();
+          const clashes: string[] = [];
+          for (const v of vRows) {
+            const m = idxVariantValues[v.id] || {};
+            const list: any[] = [];
+            for (const a of vAttrs) {
+              if (!m[a.id]) { missing.push(`${idxVariantLabel(v)}: ${a.name}`); continue; }
+              list.push(toAttr(a.id, m[a.id]));
+            }
+            variantAttributes[v.id] = list;
+            const key = vAttrs.map((a: any) => idxNorm(m[a.id]?.name)).join("|");
+            if (seen.has(key)) clashes.push(`${seen.get(key)} ve ${idxVariantLabel(v)}`);
+            else seen.set(key, idxVariantLabel(v));
+          }
+          if (missing.length > 0) {
+            toast.error(`Varyant değerleri eksik: ${missing.slice(0, 6).join(", ")}`);
+            setSendingModal(false);
+            return;
+          }
+          if (clashes.length > 0) {
+            toast.error(`Idefix bu varyantları ayırt edemez (değerler aynı): ${clashes.slice(0, 4).join("; ")}`, { duration: 12000 });
+            setSendingModal(false);
+            return;
+          }
+        }
+
         const res = await createProductOnIdefix(selectedProduct.id, {
           idefixCategoryId,
           idefixBrandId,
           manufacturer,
           importer,
+          attributes,
+          variantAttributes,
         });
 
         if (res.success) {
@@ -760,7 +896,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
 
       {/* --- IDEFIX GÖNDERİM MODALI --- */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[680px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-purple-800 dark:text-purple-300">
               <Send className="w-5 h-5 text-purple-600" />
@@ -813,6 +949,13 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                     placeholder="Örn: 15031706 (Kategoriler sayfasından eşleştirebilirsiniz)"
                     className="h-9 text-xs"
                   />
+                  <button
+                    type="button"
+                    className="text-[11px] text-purple-700 underline hover:text-purple-900"
+                    onClick={() => loadIdefixAttrs(idefixCategoryId, selectedProduct)}
+                  >
+                    Bu kategorinin özelliklerini yükle
+                  </button>
                   {idefixCategoryId ? (
                     <p className="text-[10px] text-green-600 font-medium">✓ Kategori ID tanımlı</p>
                   ) : (
@@ -835,6 +978,91 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                     <p className="text-[10px] text-amber-600">Marka ID boş. Lütfen Markalar sayfasından eşleştirin veya manuel girin.</p>
                   )}
                 </div>
+
+                {/* Kategori özellikleri ve varyantlar */}
+                {idxAttrLoading ? (
+                  <p className="text-xs text-purple-700">Kategori özellikleri yükleniyor...</p>
+                ) : idxAttrs.length > 0 && (() => {
+                  const vRows = (selectedProduct?.variants || []).filter((v: any) => v.isActive !== false && v.barcode);
+                  const vAttrs = vRows.length > 0 ? idxAttrs.filter((a: any) => a.isVariant || a.isSlicer) : [];
+                  const vAttrIds = new Set(vAttrs.map((a: any) => a.id));
+                  const others = idxAttrs.filter((a: any) => !vAttrIds.has(a.id));
+                  const reqs = others.filter((a: any) => a.required);
+                  const opts = others.filter((a: any) => !a.required);
+                  const setAttr = (id: any, val: any) =>
+                    setIdxAttrValues((prev) => {
+                      const next = { ...prev };
+                      if (val) next[id] = val; else delete next[id];
+                      return next;
+                    });
+                  return (
+                    <div className="space-y-3">
+                      {vRows.length > 0 && (
+                        <div className="space-y-2 p-3 rounded-lg bg-blue-50/60 border border-blue-200">
+                          <p className="text-xs font-semibold text-blue-800">🎨 Varyantlar ({vRows.length}) — aynı ana ürün koduyla, her biri kendi renk/beden ve görselleriyle</p>
+                          {vAttrs.length === 0 ? (
+                            <p className="text-[11px] text-red-600">Bu Idefix kategorisinde varyant özelliği yok; varyantlar Idefix'te seçenek olarak görünmez.</p>
+                          ) : idxSizeIntoColor(vAttrs, vRows) ? (
+                            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">Bu kategoride beden özelliği yok; beden renk alanına yazıldı (ör. &quot;Siyah / Mavi - M&quot;).</p>
+                          ) : null}
+                          {vRows.map((v: any) => (
+                            <div key={v.id} className="rounded border bg-white dark:bg-gray-900 p-2 space-y-1.5">
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="font-semibold">{idxVariantLabel(v)}</span>
+                                <span className="font-mono text-[10px] text-gray-500">{v.barcode}</span>
+                                <span className="text-[10px] text-gray-500">{(v.images || []).length > 0 ? `${v.images.length} varyant görseli` : "ürünün görselleri"}</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {vAttrs.map((a: any) => (
+                                  <div key={a.id} className="space-y-1">
+                                    <Label className="text-[11px]">{a.name}</Label>
+                                    <IdefixAttrInput
+                                      attr={idxIsColor(a) && idxSizeIntoColor(vAttrs, vRows) ? { ...a, values: [] } : a}
+                                      value={idxVariantValues[v.id]?.[a.id]}
+                                      onChange={(val) =>
+                                        setIdxVariantValues((prev) => {
+                                          const row = { ...(prev[v.id] || {}) };
+                                          if (val) row[a.id] = val; else delete row[a.id];
+                                          return { ...prev, [v.id]: row };
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {reqs.length > 0 && (
+                        <div className="space-y-2 p-3 rounded-lg bg-orange-50/60 border border-orange-200">
+                          <p className="text-xs font-semibold text-orange-800">Zorunlu Özellikler ({reqs.length})</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {reqs.map((a: any) => (
+                              <div key={a.id} className="space-y-1">
+                                <Label className="text-[11px]">{a.name} <span className="text-red-500">*</span></Label>
+                                <IdefixAttrInput attr={a} value={idxAttrValues[a.id]} onChange={(val) => setAttr(a.id, val)} />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {opts.length > 0 && (
+                        <details className="p-3 rounded-lg border bg-gray-50/60 dark:bg-gray-900/30">
+                          <summary className="cursor-pointer text-xs font-semibold">İsteğe Bağlı Özellikler ({opts.length})</summary>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                            {opts.map((a: any) => (
+                              <div key={a.id} className="space-y-1">
+                                <Label className="text-[11px]">{a.name}</Label>
+                                <IdefixAttrInput attr={a} value={idxAttrValues[a.id]} onChange={(val) => setAttr(a.id, val)} />
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">

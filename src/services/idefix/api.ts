@@ -178,6 +178,15 @@ export class IdefixClient {
     return this.request<IdefixCategory[]>("GET", url);
   }
 
+  /** Kategori ozellikleri (dokuman: GET /pim/category-attribute/{categoryId}); calismazsa eski adres */
+  async getCategoryAttributeList(categoryId: number): Promise<any> {
+    try {
+      return await this.request<any>("GET", `${this.pimBaseUrl}/category-attribute/${categoryId}`);
+    } catch {
+      return await this.request<any>("GET", `${this.pimBaseUrl}/product-category/${categoryId}/attribute`);
+    }
+  }
+
   /** Belirli kategori icin ozellik listesini alir */
   async getCategoryAttributes(categoryId: number): Promise<any[]> {
     const url = `${this.pimBaseUrl}/product-category/${categoryId}/attribute`;

@@ -497,11 +497,47 @@ export async function getIdefixAddressesAndCargo(): Promise<{
  * Yeni urun olusturma (create) — Idefix katalogunda bulunmayan urunler icin.
  * Kategori ID ve Marka ID zorunludur.
  */
+/** Gönderim penceresi için Idefix kategori özellikleri (zorunlular, varyant / slicer işaretleri, değer listeleri) */
+export async function getIdefixCategoryAttributes(categoryId: number | string) {
+  await requireAdmin();
+  try {
+    const config = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
+    if (!config) return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi.", data: [] as any[] };
+    const client = new IdefixClient({
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
+      vendorId: config.vendorId,
+      isTestMode: Boolean(config.isTestMode),
+    });
+    const raw: any = await client.getCategoryAttributeList(Number(categoryId));
+    const list: any[] = Array.isArray(raw) ? raw : raw?.categoryAttributes || raw?.attributes || [];
+    const data = list
+      .map((a: any) => ({
+        id: Number(a.attributeId ?? a.id),
+        name: String(a.attributeTitle ?? a.attributeName ?? a.name ?? ""),
+        allowCustom: !!a.allowCustom,
+        required: !!a.required,
+        isVariant: !!a.isVariant,
+        isSlicer: !!a.isSlicer,
+        values: (a.attributeValues || a.values || [])
+          .map((v: any) => ({ id: Number(v.id ?? v.attributeValueId), name: String(v.name ?? v.value ?? "") }))
+          .filter((v: any) => v.id && v.name),
+      }))
+      .filter((a: any) => a.id && a.name);
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, message: "Idefix kategori özellikleri alınamadı: " + (e?.message || ""), data: [] as any[] };
+  }
+}
+
 export async function createProductOnIdefix(productId: string, payload: {
   idefixCategoryId: number | string;
   idefixBrandId: number | string;
   manufacturer?: string;
   importer?: string;
+  // Kategori özellikleri (ürün geneli) ve varyant başına renk / beden: { attributeId, attributeValueId?, customAttributeValue? }
+  attributes?: any[];
+  variantAttributes?: Record<string, any[]>;
   shipmentAddressId?: number;
   returnAddressId?: number;
   cargoCompanyId?: number;
@@ -552,14 +588,16 @@ export async function createProductOnIdefix(productId: string, payload: {
     console.log("[IDEFIX-CREATE] price:", price, "comparePrice:", comparePrice, "catId:", catId, "brandId:", brandId);
 
     // Kategori ve Marka Idefix ID'lerini veritabanında kalıcı olarak kaydet
-    if (product.categories && product.categories.length > 0) {
+    // Önceden pencerede seçilen kategori ürünün ilk site kategorisinin eşleşmesini her seferinde eziyordu
+    // (o kategorideki tüm ürünleri etkiliyordu); artık sadece eşleşme boşsa kaydedilir.
+    if (product.categories && product.categories.length > 0 && !(product.categories[0] as any).idefixCategoryId) {
       const firstCatId = product.categories[0].id;
       await prisma.category.update({
         where: { id: firstCatId },
         data: { idefixCategoryId: String(payload.idefixCategoryId) },
       }).catch(() => null);
     }
-    if (product.brandId) {
+    if (product.brandId && !(product.brand as any)?.idefixBrandId) {
       await prisma.brand.update({
         where: { id: product.brandId },
         data: { idefixBrandId: String(payload.idefixBrandId) },
@@ -596,7 +634,24 @@ export async function createProductOnIdefix(productId: string, payload: {
     console.log("[IDEFIX-CREATE] rawImages count:", rawImages.length, "formattedImages:", JSON.stringify(formattedImages));
 
     const mainBarcode = product.barcode || (product as any).sku;
-    const validVariants = (product.variants ?? []).filter((v: any) => v.barcode || mainBarcode);
+    // Varyantlar: sadece kendi barkodu olan aktif varyantlar (önceden barkodsuz varyant ana barkodu alıyordu → aynı barkod tekrar)
+    const validVariants = (product.variants ?? []).filter((v: any) => v.isActive !== false && v.barcode);
+
+    // Özellikler: { attributeId, attributeValueId, customAttributeValue } (dokümandaki biçim)
+    const normAttr = (a: any) => {
+      const id = Number(a?.attributeId ?? a?.id);
+      if (!id) return null;
+      const valId = a?.attributeValueId != null && a.attributeValueId !== "" ? Number(a.attributeValueId) : null;
+      const custom = a?.customAttributeValue != null && String(a.customAttributeValue).trim() !== "" ? String(a.customAttributeValue).trim() : null;
+      if (!valId && !custom) return null;
+      return { attributeId: id, attributeValueId: valId || null, customAttributeValue: valId ? null : custom };
+    };
+    const baseAttributes = (payload.attributes || []).map(normAttr).filter(Boolean) as any[];
+    const toImages = (urls: string[]) =>
+      urls
+        .filter((u: any) => typeof u === "string" && u.trim().length > 0)
+        .slice(0, 8)
+        .map((url: string) => ({ url: url.startsWith("http") ? url : `${siteUrl}${url.startsWith("/") ? "" : "/"}${url}` }));
 
     console.log("[IDEFIX-CREATE] mainBarcode:", mainBarcode, "validVariants count:", validVariants.length);
 
@@ -608,10 +663,15 @@ export async function createProductOnIdefix(productId: string, payload: {
     const productsPayload = validVariants.length > 0
       ? validVariants.map((v: any) => {
           const varAvailableStock = Math.max(0, (v.stock ?? 0) - criticalStock);
+          // Varyantın renk / beden özellikleri ürün geneli özelliklerin yerine geçer
+          const vAttrs = ((payload.variantAttributes || {})[v.id] || []).map(normAttr).filter(Boolean) as any[];
+          const vIds = new Set(vAttrs.map((a: any) => a.attributeId));
+          const vImages = toImages(((v as any).images || []) as string[]);
           return {
-            barcode: v.barcode || mainBarcode,
+            barcode: v.barcode,
             title: product.name + (v.color ? ` - ${v.color}` : "") + (v.size ? ` ${v.size}` : ""),
-            productMainId: (product as any).sku || v.barcode || mainBarcode,
+            // Tüm varyantlar aynı ana ürün koduyla gruplanır (önceden ana SKU yoksa her varyant kendi barkoduyla ayrı ürün oluyordu)
+            productMainId: (product as any).sku || product.id,
             brandId: brandId,
             categoryId: catId,
             inventoryQuantity: varAvailableStock,
@@ -628,7 +688,8 @@ export async function createProductOnIdefix(productId: string, payload: {
             returnAddressId,
             manufacturer,
             importer,
-            images: formattedImages,
+            images: vImages.length > 0 ? vImages : formattedImages,
+            attributes: [...baseAttributes.filter((a: any) => !vIds.has(a.attributeId)), ...vAttrs],
           };
         })
       : mainBarcode
@@ -653,6 +714,7 @@ export async function createProductOnIdefix(productId: string, payload: {
           manufacturer,
           importer,
           images: formattedImages,
+          attributes: baseAttributes,
         }]
       : [];
 
