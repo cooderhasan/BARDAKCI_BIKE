@@ -460,6 +460,15 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         handleChange("images", formData.images.filter((_, i) => i !== index));
     };
 
+    // Görsel sırası: ilk görsel ana görseldir (sitede, listelerde ve pazaryerlerinde ilk gösterilen)
+    const moveImage = (from: number, to: number) => {
+        if (to < 0 || to >= formData.images.length || from === to) return;
+        const next = [...formData.images];
+        const [img] = next.splice(from, 1);
+        next.splice(to, 0, img);
+        handleChange("images", next);
+    };
+
     const marketplacePriceFields = [
         { key: "trendyolPrice", activeKey: "isTrendyolActive", label: "Trendyol" },
         { key: "n11Price", activeKey: "isN11Active", label: "N11" },
@@ -1402,7 +1411,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             {formData.images.length > 0 && (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                                     {formData.images.map((url, index) => (
-                                        <div key={index} className="relative group aspect-square">
+                                        <div key={url} className="relative group aspect-square">
                                             <img
                                                 src={url}
                                                 alt={`Görsel ${index + 1}`}
@@ -1411,15 +1420,44 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                             <button
                                                 type="button"
                                                 onClick={() => removeImage(index)}
-                                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full shadow"
+                                                title="Görseli sil"
                                             >
                                                 <X className="h-4 w-4" />
                                             </button>
-                                            {index === 0 && (
-                                                <div className="absolute bottom-2 left-2 px-2 py-1 bg-[#17457C] text-white text-xs rounded shadow-sm">
-                                                    Ana Görsel
-                                                </div>
-                                            )}
+                                            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
+                                                {index === 0 ? (
+                                                    <span className="px-2 py-1 bg-[#17457C] text-white text-xs rounded shadow-sm">Ana Görsel</span>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => moveImage(index, 0)}
+                                                        className="px-2 py-1 bg-white/95 text-[#17457C] border border-[#17457C]/30 text-xs font-medium rounded shadow-sm hover:bg-[#17457C] hover:text-white"
+                                                    >
+                                                        Ana görsel yap
+                                                    </button>
+                                                )}
+                                                <span className="flex gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => moveImage(index, index - 1)}
+                                                        disabled={index === 0}
+                                                        className="h-7 w-7 rounded bg-white/95 border text-sm shadow-sm disabled:opacity-30 hover:bg-gray-100"
+                                                        title="Sola taşı"
+                                                    >
+                                                        ‹
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => moveImage(index, index + 1)}
+                                                        disabled={index === formData.images.length - 1}
+                                                        className="h-7 w-7 rounded bg-white/95 border text-sm shadow-sm disabled:opacity-30 hover:bg-gray-100"
+                                                        title="Sağa taşı"
+                                                    >
+                                                        ›
+                                                    </button>
+                                                </span>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
