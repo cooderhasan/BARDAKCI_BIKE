@@ -336,13 +336,13 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       }
       const brandId = p.brand?.pttavmBrandId ? Number(p.brand.pttavmBrandId) : undefined;
       const desi = Math.max(1, Math.round(Number(p.desi || 1)));
-      const productBarcode = (p.barcode || p.sku || "").trim();
-
       // Format variants to prevent ePttAVM from deleting existing variants
+      // (ePttAVM: varyant listesi gönderilmezse ürünün tüm varyantları silinir; her gönderimde hepsi gider)
       const formattedVariants = (p.variants || [])
         .filter((v: any) => v.barcode || v.sku)
         .map((v: any) => {
-          const varAvailableStock = v.stock <= criticalStock ? 0 : Math.max(0, v.stock - criticalStock);
+          // Pasif varyant silinmesin diye listede kalır ama stoğu 0 gider
+          const varAvailableStock = v.isActive === false || v.stock <= criticalStock ? 0 : Math.max(0, v.stock - criticalStock);
           const attributes: any[] = [];
           if (v.color) attributes.push({ definition: "Renk", value: v.color });
           if (v.size) attributes.push({ definition: "Beden", value: v.size });
@@ -351,11 +351,17 @@ export async function syncProductsToPttavm(productIds?: string[]) {
           return {
             variantBarcode: v.barcode || v.sku,
             quantity: varAvailableStock,
-            price: 0,
+            // Varyant fiyat farkı (KDV dahil); önceden hep 0 gidiyordu
+            price: Math.round(Number(v.priceAdjustment || 0) * 100) / 100,
             catalogBarcode: v.barcode || v.sku,
             attributes,
           };
         });
+
+      // Ana barkod: ürünün barkodu / stok kodu. Varyantlı üründe ana barkod boş olabilir (barkodlar varyantlarda);
+      // önceden bu ürünler "barkodsuz" diye hiç gönderilmiyordu. Bu durumda ürünün kalıcı kimliği ana kod olur (GTIN gönderilmez).
+      const ownBarcode = (p.barcode || p.sku || "").trim();
+      const productBarcode = ownBarcode || (formattedVariants.length > 0 ? String(p.id) : "");
 
       if (productBarcode) {
         const prodDesc = (p.marketplaceDescription || p.description || p.name).trim();
@@ -364,7 +370,8 @@ export async function syncProductsToPttavm(productIds?: string[]) {
 
         const itemPayload: PttavmProductUpsertItem = {
           barcode: productBarcode,
-          gtin: productBarcode,
+          // GTIN verilirse geçerli olmalı: ürünün kendi barkodu yoksa gönderilmez
+          ...(ownBarcode ? { gtin: productBarcode } : {}),
           ean: productBarcode,
           sku: stockCodeVal,
           stockCode: stockCodeVal,
