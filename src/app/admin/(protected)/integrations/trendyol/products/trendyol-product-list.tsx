@@ -93,6 +93,20 @@ function guessVariantValue(attr: any, v: any) {
 
 const variantLabel = (v: any) => [v.color, v.size].filter(Boolean).join(" / ") || v.barcode;
 
+/**
+ * Kategoride beden (varianter) özelliği yoksa (ör. Trendyol "Bisiklet Eldiveni") aynı rengin bedenleri ayırt edilemez;
+ * Trendyol "Aynı model kodu altında (Renk) değeri zaten mevcut" diye reddeder. Bu durumda beden renk alanına yazılır:
+ * "Siyah / Mavi - M". Her renk+beden ayrı kart olur, aynı model koduyla bağlı kalır.
+ */
+function sizeGoesIntoColor(vAttrs: any[], vRows: any[]) {
+    return !vAttrs.some((a: any) => a.varianter) && vRows.some((v: any) => v.size);
+}
+function isCustomColorSlicer(a: any) {
+    const n = trNorm(a.attribute?.name);
+    return a.slicer && a.allowCustom && (n.includes("renk") || n.includes("color"));
+}
+const colorWithSize = (v: any) => [v.color, v.size].filter(Boolean).join(" - ").slice(0, 50);
+
 export function TrendyolProductList({ initialProducts, pagination }: TrendyolProductListProps) {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
@@ -319,11 +333,12 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                 const vRows = (product.variants || []).filter((v: any) => v.barcode);
                 const vAttrs = getVariantAttrs(attrs, vRows.some((v: any) => v.color));
                 const vMap: Record<string, Record<number, any>> = {};
+                const sizeInColor = sizeGoesIntoColor(vAttrs, vRows);
                 for (const v of vRows) {
                     vMap[v.id] = {};
                     for (const a of vAttrs) {
-                        const g = guessVariantValue(a, v);
-                        if (g !== undefined) vMap[v.id][a.attribute.id] = g;
+                        const g = sizeInColor && isCustomColorSlicer(a) ? colorWithSize(v) : guessVariantValue(a, v);
+                        if (g !== undefined && g !== "") vMap[v.id][a.attribute.id] = g;
                     }
                 }
                 setVariantMappings(vMap);
@@ -369,6 +384,19 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
             }
             if (missing.length > 0) {
                 toast.error(`Varyant değerleri eksik: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? " ..." : ""}`);
+                return;
+            }
+            // Trendyol aynı model kodunda renk (slicer) + beden (varianter) değerleri aynı olan iki barkodu kabul etmiyor
+            const distinguishing = vAttrs.filter((a: any) => a.slicer || a.varianter);
+            const seen = new Map<string, string>();
+            const clashes: string[] = [];
+            for (const v of vRows) {
+                const key = distinguishing.map((a: any) => String(variantMappings[v.id]?.[a.attribute.id] ?? "")).join("|").toLocaleLowerCase("tr-TR");
+                if (seen.has(key)) clashes.push(`${seen.get(key)} ve ${variantLabel(v)}`);
+                else seen.set(key, variantLabel(v));
+            }
+            if (clashes.length > 0) {
+                toast.error(`Trendyol bu varyantları ayırt edemez (renk/beden değerleri aynı): ${clashes.slice(0, 4).join("; ")}. Renk alanına bedeni de yazın (ör. "Siyah / Mavi - M").`, { duration: 12000 });
                 return;
             }
         }
@@ -949,6 +977,11 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                                     <div className="text-sm font-semibold text-blue-800 dark:text-blue-300">
                                                         🎨 Varyantlar ({vRows.length})
                                                     </div>
+                                                    {vAttrs.length > 0 && sizeGoesIntoColor(vAttrs, vRows) && (
+                                                        <p className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                                                            Bu Trendyol kategorisinde beden özelliği yok. Aynı rengin bedenleri ayırt edilebilsin diye beden renk alanına yazıldı (ör. &quot;Siyah / Mavi - M&quot;); müşteri seçenek listesinden renk-bedeni seçer.
+                                                        </p>
+                                                    )}
                                                     {vAttrs.length === 0 ? (
                                                         <p className="text-[11px] text-red-600">
                                                             Bu Trendyol kategorisinde renk/beden gibi varyant özelliği yok; varyantlar Trendyol'da ayrı seçenek olarak görünmez. Ürüne özel kategori seçmeyi düşünün.
