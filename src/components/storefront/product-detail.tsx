@@ -583,8 +583,8 @@ export function ProductDetail({
                                                             className={cn(
                                                                 "w-14 h-14 sm:w-16 sm:h-16 rounded-lg border-2 transition-all p-0.5 bg-white",
                                                                 selectedColor === color
-                                                                    ? "border-[#17457C] ring-2 ring-[#17457C]/20"
-                                                                    : "border-gray-200 hover:border-gray-300"
+                                                                    ? "border-[#17457C]"
+                                                                    : "border-gray-200 hover:border-gray-400"
                                                             )}
                                                         >
                                                             <div className="w-full h-full rounded-md overflow-hidden relative">
