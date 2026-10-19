@@ -485,6 +485,8 @@ model Slider {
   title       String?
   subtitle    String?
   imageUrl    String
+  // Telefona özel kare görsel (1080x1080). Boşsa telefonda da geniş görsel kullanılır.
+  mobileImageUrl String?
   linkUrl     String?
   store       StoreType @default(BIKE)
   order       Int       @default(0)

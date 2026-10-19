@@ -15,6 +15,7 @@ export async function createSlider(data: {
     title?: string;
     subtitle?: string;
     imageUrl: string;
+    mobileImageUrl?: string | null;
     linkUrl?: string;
     store?: "BIKE" | "MOTOR" | "BOTH";
     order: number;
@@ -41,6 +42,7 @@ export async function updateSlider(
         title?: string;
         subtitle?: string;
         imageUrl?: string;
+        mobileImageUrl?: string | null;
         linkUrl?: string;
         store?: "BIKE" | "MOTOR" | "BOTH";
         order?: number;

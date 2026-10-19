@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,8 +12,35 @@ interface Slider {
     title: string | null;
     subtitle: string | null;
     imageUrl: string;
+    mobileImageUrl?: string | null;
     linkUrl: string | null;
     showOverlay: boolean;
+}
+
+/**
+ * Slayt görseli. Mobil görsel varsa <picture> ile telefonda (768px altı) kare mobil görsel, büyük ekranda geniş görsel
+ * indirilir (ikisi birden indirilmez). Mobil görseli olmayan slayt, slider kare iken kutuya sığdırılır (kırpılmaz).
+ */
+function SlideImage({ slide, squareOnMobile }: { slide: Slider; squareOnMobile: boolean }) {
+    const alt = slide.title || "Slayt Kampanya Görseli";
+    const { props: desktop } = getImageProps({
+        src: slide.imageUrl,
+        alt,
+        fill: true,
+        priority: true,
+        sizes: "(max-width: 1280px) 100vw, 1216px",
+    });
+    const mobileSrcSet = slide.mobileImageUrl
+        ? getImageProps({ src: slide.mobileImageUrl, alt, fill: true, priority: true, sizes: "100vw" }).props.srcSet
+        : undefined;
+    const fit = squareOnMobile && !slide.mobileImageUrl ? "object-contain md:object-cover" : "object-cover";
+    return (
+        <picture>
+            {mobileSrcSet && <source media="(max-width: 767px)" srcSet={mobileSrcSet} sizes="100vw" />}
+            {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
+            <img {...desktop} className={fit} />
+        </picture>
+    );
 }
 
 interface HeroSliderProps {
@@ -77,12 +104,14 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
 
     const currentSlide = sliders[current] || sliders[0];
     if (!currentSlide) return null;
+    // Herhangi bir slaytın mobil görseli varsa telefonda slider kare olur
+    const squareOnMobile = sliders.some((s) => s.mobileImageUrl);
 
     return (
         // Kutu slider görselinin oranında (yüklenen görseller ~2:1 - 2.5:1). Eskiden sabit 400/500px yükseklikti;
         // telefonda kutu neredeyse kare olduğu için görselin yarısı (yazılar) kesiliyordu.
         <div
-            className="relative w-full aspect-[2.2/1] max-h-[520px] overflow-hidden bg-gray-100 dark:bg-gray-800"
+            className={`relative w-full ${squareOnMobile ? "aspect-square md:aspect-[2.2/1]" : "aspect-[2.2/1]"} max-h-[520px] overflow-hidden bg-gray-100 dark:bg-gray-800`}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
         >
@@ -107,16 +136,7 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
                             )}
                             <div className="absolute inset-0">
-                                {currentSlide.imageUrl && (
-                                    <Image
-                                        src={currentSlide.imageUrl}
-                                        alt={currentSlide.title || "Slayt Kampanya Görseli"}
-                                        fill
-                                        className="object-cover"
-                                        priority={true}
-                                        sizes="(max-width: 1280px) 100vw, 1216px"
-                                    />
-                                )}
+                                {currentSlide.imageUrl && <SlideImage slide={currentSlide} squareOnMobile={squareOnMobile} />}
                             </div>
 
                             {/* Content */}
@@ -163,16 +183,7 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
                             )}
                             <div className="absolute inset-0">
-                                {currentSlide.imageUrl && (
-                                    <Image
-                                        src={currentSlide.imageUrl}
-                                        alt={currentSlide.title || "Slayt Kampanya Görseli"}
-                                        fill
-                                        className="object-cover"
-                                        priority={true}
-                                        sizes="(max-width: 1280px) 100vw, 1216px"
-                                    />
-                                )}
+                                {currentSlide.imageUrl && <SlideImage slide={currentSlide} squareOnMobile={squareOnMobile} />}
                             </div>
 
                             {/* Content */}

@@ -16,6 +16,7 @@ interface SliderFormProps {
         title?: string | null;
         subtitle?: string | null;
         imageUrl: string;
+        mobileImageUrl?: string | null;
         linkUrl?: string | null;
         store?: "BIKE" | "MOTOR" | "BOTH";
         order: number;
@@ -35,6 +36,7 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
     const [isActive, setIsActive] = useState(initialData ? initialData.isActive : true);
     const [showOverlay, setShowOverlay] = useState(initialData ? initialData.showOverlay : true);
     const [images, setImages] = useState<string[]>(initialData?.imageUrl ? [initialData.imageUrl] : []);
+    const [mobileImages, setMobileImages] = useState<string[]>(initialData?.mobileImageUrl ? [initialData.mobileImageUrl] : []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,6 +56,7 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
             isActive,
             showOverlay,
             imageUrl: images[0],
+            mobileImageUrl: mobileImages[0] || null,
         };
 
         try {
@@ -90,6 +93,23 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
                     value={images}
                     onChange={(urls) => setImages(urls)}
                     onRemove={(url) => setImages(images.filter((i) => i !== url))}
+                    maxFiles={1}
+                    disabled={loading}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label>Mobil Görsel (Opsiyonel)</Label>
+                <div className="text-xs text-muted-foreground mb-2">
+                    Önerilen boyut: <span className="font-bold">1080x1080px</span> (kare). Sadece telefonda gösterilir; yazılar büyük ve okunaklı olur.
+                    Boş bırakılırsa telefonda da yukarıdaki geniş görsel küçültülerek gösterilir.
+                    <br />
+                    <span className="text-[10px] text-orange-600 font-medium italic">* Bir slayda mobil görsel eklediyseniz diğer slaytlara da ekleyin; telefonda slider kare olur ve mobil görseli olmayan slayt kutuya sığdırılır (kenarlarda boşluk kalır).</span>
+                </div>
+                <ImageUpload
+                    value={mobileImages}
+                    onChange={(urls) => setMobileImages(urls)}
+                    onRemove={(url) => setMobileImages(mobileImages.filter((i) => i !== url))}
                     maxFiles={1}
                     disabled={loading}
                 />
