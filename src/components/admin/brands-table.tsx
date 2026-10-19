@@ -627,7 +627,7 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                                     <Label htmlFor="logoUpload">Marka Logosu (Opsiyonel)</Label>
                                     <p className="text-xs text-muted-foreground">
                                         Önerilen boyut: <span className="font-bold">400x200px</span> (oran 2:1), <span className="font-bold">şeffaf arka planlı PNG</span>.
-                                        Logo ortada, kenarlarda boşluk olsun. Ana sayfadaki "Markalarımız" şeridinde gri tonlu görünür, üzerine gelince renklenir.
+                                        Logo ortada, kenarlarda boşluk olsun. Ana sayfadaki "Markalarımız" şeridinde görünür.
                                     </p>
                                     <div className="flex items-center gap-3">
                                         {logoUrl && (

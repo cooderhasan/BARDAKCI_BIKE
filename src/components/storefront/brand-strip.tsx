@@ -10,7 +10,8 @@ interface BrandLogo {
 
 /**
  * Ana sayfa marka şeridi: logosu yüklenmiş markalar (admin > Markalar).
- * Logolar gri tonlu durur, üzerine gelince renklenir. Tıklayınca o markanın ürünleri listelenir.
+ * Logolar her zaman renkli (gri ton fazla soluk duruyordu); üzerine gelince kutu kalkar, gölge ve lacivert çerçeve
+ * belirir, logo hafifçe büyür. Tıklayınca o markanın ürünleri listelenir.
  */
 export function BrandStrip({ brands }: { brands: BrandLogo[] }) {
     const list = brands.filter((b) => b.logoUrl);
@@ -33,14 +34,14 @@ export function BrandStrip({ brands }: { brands: BrandLogo[] }) {
                         key={brand.id}
                         href={`/products?brands=${encodeURIComponent(brand.slug)}`}
                         title={`${brand.name} ürünleri`}
-                        className="group relative aspect-[2/1] rounded-xl bg-white dark:bg-gray-800 ring-1 ring-gray-200/60 dark:ring-gray-700 hover:ring-[#17457C]/30 hover:shadow-md transition-all duration-300"
+                        className="group relative aspect-[2/1] rounded-xl bg-white dark:bg-gray-800 ring-1 ring-gray-200/60 dark:ring-gray-700 hover:ring-2 hover:ring-[#17457C]/40 hover:shadow-[0_10px_28px_-8px_rgba(23,69,124,0.25)] md:hover:-translate-y-1 transition-all duration-300"
                     >
                         <Image
                             src={brand.logoUrl as string}
                             alt={brand.name}
                             fill
                             sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 200px"
-                            className="object-contain p-3 md:p-4 grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-300"
+                            className="object-contain p-3 md:p-4 transition-transform duration-300 group-hover:scale-105"
                         />
                     </Link>
                 ))}
