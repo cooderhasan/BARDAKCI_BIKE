@@ -11,7 +11,9 @@ export default async function CheckoutPage() {
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: {
+                name: true,
                 companyName: true,
+                taxNumber: true,
                 phone: true,
                 address: true,
                 city: true,
@@ -28,8 +30,11 @@ export default async function CheckoutPage() {
 
         if (user) {
             // Address Info
+            // Bireysel üyede firma adı boş; önceden sadece firma adı alındığı için ad soyad boş geliyordu
             initialData = {
-                name: user.companyName || "",
+                isLoggedIn: true,
+                name: user.companyName || user.name || "",
+                taxNumber: user.taxNumber || "",
                 phone: user.phone || "",
                 address: user.address || "",
                 city: user.city || "",

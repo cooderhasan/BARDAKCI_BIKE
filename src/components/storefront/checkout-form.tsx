@@ -27,7 +27,9 @@ import { SearchablePicker } from "@/components/ui/searchable-picker";
 
 interface CheckoutFormProps {
     initialData?: {
+        isLoggedIn?: boolean;
         name?: string;
+        taxNumber?: string;
         phone?: string;
         city?: string;
         district?: string;
@@ -210,7 +212,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                 cargoCompany: selectedCargo?.name || String(formData.get("cargoCompany")),
                 notes: formData.get("notes") ? String(formData.get("notes")) : undefined,
                 paymentMethod: paymentMethod,
-                guestEmail: !initialData?.name ? String(formData.get("email")) : undefined,
+                guestEmail: !initialData?.isLoggedIn ? String(formData.get("email")) : undefined,
                 discountRate: Number(discountRate),
                 shippingCost: shippingCost,
                 shippingDesi: summary.totalDesi,
@@ -303,7 +305,8 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                             }}
                                         />
                                     </div>
-                                    {!initialData?.name && (
+                                    {/* E-posta sadece misafirden istenir (üyenin e-postası hesabında kayıtlı) */}
+                                    {!initialData?.isLoggedIn && (
                                         <div className="space-y-2">
                                             <Label htmlFor="email">E-posta Adresi * (Sipariş Takibi İçin)</Label>
                                             <Input
@@ -320,6 +323,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                         <Input
                                             id="idNumber"
                                             name="idNumber"
+                                            defaultValue={initialData?.taxNumber}
                                             inputMode="numeric"
                                             maxLength={11}
                                             placeholder="Faturanız için (10 veya 11 hane)"
