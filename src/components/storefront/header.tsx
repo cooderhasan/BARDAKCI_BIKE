@@ -58,6 +58,13 @@ interface StorefrontHeaderProps {
     isMotor?: boolean;
 }
 
+/** Telefonu okunaklı göster: 05540144142 -> 0554 014 41 42 (zaten biçimliyse olduğu gibi) */
+function displayPhone(phone: string) {
+    const d = phone.replace(/\D/g, "");
+    if (d.length === 11 && d.startsWith("0")) return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7, 9)} ${d.slice(9)}`;
+    return phone;
+}
+
 export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sidebarCategories = [], phone, facebookUrl, instagramUrl, twitterUrl, linkedinUrl, isMotor = false }: StorefrontHeaderProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -120,9 +127,10 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
         <header className="sticky top-0 z-50 w-full bg-white/95 supports-[backdrop-filter]:bg-white/80 dark:bg-gray-900/95 supports-[backdrop-filter]:dark:bg-gray-900/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 dark:border-gray-800/50 transition-all duration-300">
 
             {/* Top Row: Logo, Search, User Actions */}
-            <div className="border-b dark:border-gray-800/50 py-2">
+            <div className="border-b dark:border-gray-800/50 py-2 lg:py-1">
                 <div className="container mx-auto px-4 max-w-7xl">
-                    <div className="flex h-16 lg:h-24 items-center justify-between gap-2 lg:gap-6">
+                    {/* Masaüstünde 96px'ten 80px'e: öğeler küçük ve aralar boş duruyordu */}
+                    <div className="flex h-16 lg:h-20 items-center justify-between gap-2 lg:gap-6">
                         {/* Left: Logo + Phone */}
                         <div className="flex items-center gap-2 md:gap-4 shrink-0">
                             {/* Logo */}
@@ -159,26 +167,26 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             {phone && (
                                 <a
                                     href={`tel:${phone.replace(/\s/g, '')}`}
-                                    className="hidden lg:flex items-center gap-3 text-gray-600 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-all duration-200 px-4 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-800 ml-4 shadow-2xs"
+                                    className="group/phone hidden lg:flex items-center gap-3 ml-2 xl:ml-4 shrink-0"
                                 >
-                                    <div className="w-9 h-9 bg-green-50 dark:bg-green-950/40 rounded-full flex items-center justify-center shrink-0">
-                                        <Phone className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                    <div className="w-11 h-11 bg-green-500 rounded-full flex items-center justify-center shrink-0 shadow-md shadow-green-500/25 transition-transform duration-200 group-hover/phone:scale-105">
+                                        <Phone className="h-5 w-5 text-white" />
                                     </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider leading-none mb-1">Çağrı Merkezi</span>
-                                        <span className="text-sm font-extrabold text-gray-900 dark:text-white leading-none">{phone}</span>
+                                    <div className="flex flex-col leading-tight">
+                                        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">Pzt–Cmt 09:00–18:00</span>
+                                        <span className="text-[17px] font-extrabold tracking-tight text-[#17457C] dark:text-white whitespace-nowrap group-hover/phone:underline">{displayPhone(phone)}</span>
                                     </div>
                                 </a>
                             )}
                         </div>
 
                         {/* Center: Search Bar */}
-                        <div className="flex-1 max-w-3xl lg:max-w-4xl mx-auto hidden sm:block px-2 lg:px-8">
+                        <div className="flex-1 min-w-0 max-w-3xl mx-auto hidden sm:block px-2 lg:px-4 xl:px-8">
                             <SearchInput />
                         </div>
 
                         {/* Right Actions */}
-                        <div className="flex items-center gap-2 md:gap-6 shrink-0">
+                        <div className="flex items-center gap-1 md:gap-2 lg:gap-3 shrink-0">
 
                             {/* User Panel */}
                             <div
@@ -191,10 +199,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                                             <User className="h-5 w-5" />
                                         </div>
-                                        <div className="hidden sm:flex flex-col items-start">
-                                            <span className="text-[10px] text-gray-500">Kullanıcı</span>
-                                            <span className="text-sm font-semibold">Giriş Yap</span>
-                                        </div>
+                                        <span className="hidden sm:inline text-sm font-semibold">Giriş Yap</span>
                                     </button>
                                 ) : (
                                     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen} modal={false}>
@@ -203,12 +208,9 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                                 <div className={`w-10 h-10 ${user ? 'bg-[#17457C]/10' : 'bg-gray-100'} rounded-full flex items-center justify-center`}>
                                                     <User className={`h-5 w-5 ${user ? 'text-[#17457C]' : ''}`} />
                                                 </div>
-                                                <div className="hidden sm:flex flex-col items-start">
-                                                    <span className="text-[10px] text-gray-500">Kullanıcı</span>
-                                                    <span className="text-sm font-semibold">
-                                                        {user ? "Hesabım" : "Giriş Yap"}
-                                                    </span>
-                                                </div>
+                                                <span className="hidden sm:inline text-sm font-semibold">
+                                                    {user ? "Hesabım" : "Giriş Yap"}
+                                                </span>
                                             </button>
                                         </DropdownMenuTrigger>
 
@@ -296,10 +298,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             </div>
 
                             {/* Cart - Visible for everyone */}
-                            <Link href="/cart" aria-label="Alışveriş Sepetim" className={cn(
-                                "flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100",
-                                user && "border-l border-gray-100 dark:border-gray-800 ml-1 pl-2 md:pl-4"
-                            )}>
+                            <Link href="/cart" aria-label="Alışveriş Sepetim" className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100">
                                 <div className="relative">
                                     <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                                         <ShoppingCart className="h-5 w-5 text-orange-600" />
@@ -308,12 +307,9 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                         {mounted ? itemCount : 0}
                                     </span>
                                 </div>
-                                <div className="hidden sm:flex flex-col items-start">
-                                    <span className="text-[10px] text-gray-500">Sepetim</span>
-                                    <span className="text-sm font-bold text-orange-600">
-                                        <CartTotalDisplay />
-                                    </span>
-                                </div>
+                                <span className="hidden sm:inline text-sm font-bold text-orange-600 whitespace-nowrap">
+                                    <CartTotalDisplay />
+                                </span>
                             </Link>
 
                             {/* Mobile Menu Toggle */}
