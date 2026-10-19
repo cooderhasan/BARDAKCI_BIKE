@@ -102,6 +102,16 @@ export async function setupRepeatableJobs() {
         jobId: 'abandoned-card-orders-cron'
     });
     console.log("⏰ Abandoned Card Orders Cleanup Cron (15m) registered.");
+
+    // Gogo XML stok güncellemesi (motor sitesi): her gün 07:30; admin'de "Otomatik" açık değilse iş hiçbir şey yapmaz
+    await queue.add("gogo-stock-sync", {}, {
+        repeat: {
+            pattern: '30 7 * * *',
+            tz: 'Europe/Istanbul',
+        },
+        jobId: 'gogo-stock-sync-cron'
+    });
+    console.log("⏰ Gogo Stock Sync Cron (daily 07:30) registered.");
 }
 
 export function initializeWorker() {
@@ -196,6 +206,15 @@ export function initializeWorker() {
                     console.log(`✅ Cron Sonucu: ${result.message}`);
                     const { runPttavmStatusCatchUp } = await import("@/lib/order-status-runners");
                     console.log(`✅ ePttAVM durum güncelleme:`, await runPttavmStatusCatchUp().catch((e: any) => ({ error: e.message })));
+                    return;
+                }
+
+                if (job.name === "gogo-stock-sync") {
+                    const { getGogoSettings, runGogoStockSync } = await import("@/lib/supplier-stock/gogo");
+                    const settings = await getGogoSettings();
+                    if (!settings.enabled || !settings.url) return;
+                    const report = await runGogoStockSync({ dryRun: false });
+                    console.log(`✅ Gogo stok: ${report.message}`);
                     return;
                 }
 
