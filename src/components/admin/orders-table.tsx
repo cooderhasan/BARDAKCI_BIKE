@@ -55,7 +55,9 @@ interface OrdersTableProps {
 
 const orderStatuses = [
     { value: "ALL", label: "Tümü" },
-    { value: "PENDING", label: "Ödeme Bekleniyor" },
+    // PENDING = havale bekleyen / yeni sipariş; WAITING_FOR_PAYMENT = kart ödemesi tamamlanmamış (varsayılan listede gizli)
+    { value: "PENDING", label: "Havale / Yeni Sipariş" },
+    { value: "WAITING_FOR_PAYMENT", label: "Kart Ödemesi Bekleniyor" },
     { value: "CONFIRMED", label: "Onaylandı" },
     { value: "PROCESSING", label: "Hazırlanıyor" },
     { value: "SHIPPED", label: "Kargolandı" },
