@@ -1167,6 +1167,11 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                                 <p>{(selectedOrder.shippingAddress as any).address}</p>
                                                 <p className="mt-1 font-medium">{(selectedOrder.shippingAddress as any).district} / {(selectedOrder.shippingAddress as any).city}</p>
                                                 <p className="mt-1 text-gray-500">Tel: {(selectedOrder.shippingAddress as any).phone}</p>
+                                                {(selectedOrder.shippingAddress as any).taxNumber && (
+                                                    <p className="mt-1 text-gray-500">
+                                                        {String((selectedOrder.shippingAddress as any).taxNumber).length === 10 ? "Vergi No" : "TC Kimlik"}: {(selectedOrder.shippingAddress as any).taxNumber}
+                                                    </p>
+                                                )}
                                             </>
                                         ) : (
                                             <p className="text-red-500">Adres bilgisi bulunamadı.</p>

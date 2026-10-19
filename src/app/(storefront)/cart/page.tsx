@@ -203,12 +203,12 @@ export default function CartPage() {
                             </div>
                             {summary.discountAmount > 0 && (
                                 <div className="flex justify-between text-green-600">
-                                    <span>İskonto ({Math.round((summary.discountAmount / (summary.total + summary.discountAmount)) * 100)}%)</span>
+                                    <span>İndirim</span>
                                     <span>-{formatPrice(summary.discountAmount)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between">
-                                <span className="text-gray-500">KDV</span>
+                                <span className="text-gray-500">KDV (fiyatlara dahil)</span>
                                 <span>{formatPrice(summary.vatAmount)}</span>
                             </div>
                             <Separator />

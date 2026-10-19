@@ -536,8 +536,9 @@ function buildReceiverInfo(order: any): UblReceiverInfo {
     let vkn = "11111111111"; // Varsayılan (nihai tüketici)
     let taxOffice = "";
 
-    // VKN/TCKN
-    if (user?.taxNumber) vkn = user.taxNumber;
+    // VKN/TCKN: siparişte müşterinin girdiği öncelikli, yoksa üyelikteki
+    if (shippingAddress?.taxNumber) vkn = String(shippingAddress.taxNumber);
+    else if (user?.taxNumber) vkn = user.taxNumber;
 
     // Şirket ise
     if (user?.companyName) {

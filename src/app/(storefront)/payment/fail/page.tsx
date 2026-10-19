@@ -24,8 +24,15 @@ export default function PaymentFailPage() {
                 </p>
 
                 <div className="pt-8 flex flex-col gap-3">
+                    {/* Başarısız ödemede sipariş iptal edilip stok iade ediliyor; geri dönmek iptal siparişin ödeme
+                        ekranını açıp hata veriyordu. Sepet dolu kaldığı için ödeme sayfasından yeniden denenir. */}
                     <Button
-                        onClick={() => router.back()}
+                        onClick={() => {
+                            const target = "/checkout";
+                            // PayTR iframe içinde açıldıysa üst pencereyi yönlendir
+                            if (window.top && window.top !== window.self) window.top.location.href = target;
+                            else router.push(target);
+                        }}
                         className="w-full bg-red-600 hover:bg-red-700 h-12 text-lg"
                     >
                         <RefreshCcw className="mr-2 h-5 w-5" />

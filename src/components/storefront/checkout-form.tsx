@@ -60,7 +60,13 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [selectedCargoId, setSelectedCargoId] = useState<string | null>(cargoCompanies[0]?.id || null);
-    const [paymentMethod, setPaymentMethod] = useState<"BANK_TRANSFER" | "CREDIT_CARD" | "CURRENT_ACCOUNT">("BANK_TRANSFER");
+    // Önceden seçili gelmez: eskiden Havale seçili geliyordu, kartla ödeyeceğini sanan müşteri farkında olmadan
+    // havale siparişi verip sonra kartla ikinci siparişi açıyordu
+    const [paymentMethod, setPaymentMethod] = useState<"BANK_TRANSFER" | "CREDIT_CARD" | "CURRENT_ACCOUNT" | null>(null);
+    const [paymentMissing, setPaymentMissing] = useState(false);
+    // Mesafeli Satış Sözleşmesi / Ön Bilgilendirme onayı (zorunlu onay kutusu)
+    const [agreed, setAgreed] = useState(false);
+    const [agreeMissing, setAgreeMissing] = useState(false);
     const [selectedCity, setSelectedCity] = useState<string>(initialData?.city || "");
     const [selectedDistrict, setSelectedDistrict] = useState<string>(initialData?.district || "");
     const cities = getCities();
@@ -157,6 +163,31 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
             return;
         }
 
+        if (!paymentMethod) {
+            setPaymentMissing(true);
+            toast.error("Lütfen bir ödeme yöntemi seçin: Kredi Kartı veya Havale / EFT.");
+            document.getElementById("payment-method")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            setLoading(false);
+            return;
+        }
+
+        // TC Kimlik (11) / Vergi No (10) — opsiyonel; girildiyse siparişe yazılır (e-fatura alıcısı)
+        const taxNumber = String(formData.get("idNumber") || "").replace(/\D/g, "");
+        if (taxNumber && taxNumber.length !== 10 && taxNumber.length !== 11) {
+            toast.error("TC Kimlik No 11, Vergi No 10 haneli olmalıdır.");
+            document.getElementById("idNumber")?.focus();
+            setLoading(false);
+            return;
+        }
+
+        if (!agreed) {
+            setAgreeMissing(true);
+            toast.error("Siparişi tamamlamak için sözleşmeleri onaylamanız gerekiyor.");
+            document.getElementById("agree-terms")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            setLoading(false);
+            return;
+        }
+
         try {
             const result = await createOrder({
                 items: items.map((item) => ({
@@ -173,6 +204,8 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                     city: String(formData.get("city")),
                     district: formData.get("district") ? String(formData.get("district")) : undefined,
                     phone: String(formData.get("phone")),
+                    // Önceden formda alınıp hiç kaydedilmiyordu
+                    taxNumber: taxNumber || undefined,
                 },
                 cargoCompany: selectedCargo?.name || String(formData.get("cargoCompany")),
                 notes: formData.get("notes") ? String(formData.get("notes")) : undefined,
@@ -287,7 +320,9 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                         <Input
                                             id="idNumber"
                                             name="idNumber"
-                                            placeholder="Fatura için gereklidir"
+                                            inputMode="numeric"
+                                            maxLength={11}
+                                            placeholder="Faturanız için (10 veya 11 hane)"
                                         />
                                     </div>
                                 </div>
@@ -363,17 +398,22 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                         </Card>
 
                         {/* Payment Method */}
-                        <Card>
+                        <Card id="payment-method" className={paymentMissing && !paymentMethod ? "ring-2 ring-red-400" : undefined}>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <CreditCard className="h-5 w-5" />
-                                    Ödeme Yöntemi
+                                    Ödeme Yöntemi *
                                 </CardTitle>
+                                {!paymentMethod && (
+                                    <p className={`text-sm ${paymentMissing ? "text-red-600 font-semibold" : "text-gray-500"}`}>
+                                        Lütfen ödeme yönteminizi seçin.
+                                    </p>
+                                )}
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div
                                     className={`flex items-start gap-4 p-4 border rounded-lg cursor-pointer transition-all ${paymentMethod === "CREDIT_CARD" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 ring-2 ring-blue-500 ring-offset-2" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-                                    onClick={() => setPaymentMethod("CREDIT_CARD")}
+                                    onClick={() => { setPaymentMethod("CREDIT_CARD"); setPaymentMissing(false); }}
                                 >
                                     <CreditCard className={`h-6 w-6 mt-1 ${paymentMethod === "CREDIT_CARD" ? "text-[#17457C]" : "text-gray-500"}`} />
                                     <div className="flex-1">
@@ -393,7 +433,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
 
                                 <div
                                     className={`flex items-start gap-4 p-4 border rounded-lg cursor-pointer transition-all ${paymentMethod === "BANK_TRANSFER" ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 ring-2 ring-blue-500 ring-offset-2" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-                                    onClick={() => setPaymentMethod("BANK_TRANSFER")}
+                                    onClick={() => { setPaymentMethod("BANK_TRANSFER"); setPaymentMissing(false); }}
                                 >
                                     <Building2 className={`h-6 w-6 mt-1 ${paymentMethod === "BANK_TRANSFER" ? "text-[#17457C]" : "text-gray-500"}`} />
                                     <div className="flex-1">
@@ -403,7 +443,8 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                             </p>
                                         </div>
                                         <p className="text-sm text-gray-500 mt-1">
-                                            Banka hesap bilgilerimize havale yaparak ödeme yapabilirsiniz.
+                                            Sipariş sonrası hesap bilgilerimiz gösterilir; ödemeniz ulaşınca siparişiniz hazırlanır.
+                                            {bankTransferDiscount > 0 && <span className="text-emerald-600 font-medium"> Havalede %{bankTransferDiscount} indirim (kampanyasız ürünlerde).</span>}
                                         </p>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === "BANK_TRANSFER" ? "border-blue-600 bg-[#17457C] text-white" : "border-gray-300"}`}>
@@ -543,7 +584,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                     </div>
                                     {summary.discountAmount > 0 && (
                                         <div className="flex justify-between text-green-600 font-medium">
-                                            <span>Müşteri İskontosu</span>
+                                            <span>İndirim</span>
                                             <span>-{formatPrice(summary.discountAmount)}</span>
                                         </div>
                                     )}
@@ -554,7 +595,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                         </div>
                                     )}
                                     <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                                        <span>KDV Toplam</span>
+                                        <span>KDV (fiyatlara dahil)</span>
                                         <span>{formatPrice(summary.vatAmount)}</span>
                                     </div>
                                     <div className="flex justify-between items-center font-medium">
@@ -587,27 +628,48 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                     </div>
                                 </div>
 
+                                <label
+                                    id="agree-terms"
+                                    className={`flex items-start gap-2.5 text-xs leading-snug text-gray-600 dark:text-gray-300 cursor-pointer rounded-md p-2 -mx-2 ${agreeMissing && !agreed ? "bg-red-50 ring-1 ring-red-300" : ""}`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={agreed}
+                                        onChange={(e) => { setAgreed(e.target.checked); setAgreeMissing(false); }}
+                                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#17457C]"
+                                    />
+                                    <span>
+                                        <Link href="/policies/distance-sales" target="_blank" className="font-semibold underline">Ön Bilgilendirme Koşulları ve Mesafeli Satış Sözleşmesi</Link>
+                                        {"'ni ve "}
+                                        <Link href="/policies/cancellation" target="_blank" className="font-semibold underline">İptal ve İade Koşulları</Link>
+                                        {"'nı okudum, onaylıyorum."}
+                                    </span>
+                                </label>
+
                                 <Button
                                     type="submit"
-                                    className="w-full h-12 text-lg font-semibold bg-[#17457C] hover:bg-[#0f3460] shadow-lg shadow-[#17457C]/20"
+                                    className="w-full h-12 text-base sm:text-lg font-semibold bg-[#17457C] hover:bg-[#0f3460] shadow-lg shadow-[#17457C]/20"
                                     disabled={loading}
                                 >
                                     {loading ? (
                                         "Sipariş Oluşturuluyor..."
-                                    ) : (
+                                    ) : paymentMethod === "CREDIT_CARD" ? (
                                         <>
-                                            Siparişi Onayla
-                                            <span className="ml-2 font-normal text-blue-100/80">
-                                                • {formatPrice(grandTotal)}
-                                            </span>
+                                            Kartla Ödemeye Geç
+                                            <span className="ml-2 font-normal text-blue-100/80">• {formatPrice(grandTotal)}</span>
                                         </>
+                                    ) : paymentMethod === "BANK_TRANSFER" ? (
+                                        <>
+                                            Siparişi Onayla (Havale)
+                                            <span className="ml-2 font-normal text-blue-100/80">• {formatPrice(grandTotal)}</span>
+                                        </>
+                                    ) : (
+                                        "Ödeme Yöntemi Seçin"
                                     )}
                                 </Button>
-
-                                <div className="text-[10px] text-center text-gray-400 leading-tight">
-                                    <p>Siparişi onaylayarak <Link href="/policies/distance-sales" className="underline hover:text-gray-600">Mesafeli Satış Sözleşmesi</Link>'ni</p>
-                                    <p>kabul etmiş olursunuz.</p>
-                                </div>
+                                {paymentMethod === "CREDIT_CARD" && (
+                                    <p className="text-[11px] text-center text-gray-500 -mt-2">Bir sonraki adımda PayTR güvenli ödeme ekranında kart bilgilerinizi gireceksiniz.</p>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
