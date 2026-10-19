@@ -1032,6 +1032,10 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                  </div>
                                 <div className="space-y-2">
                                     <Label>Kategori Görseli</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Önerilen boyut: <span className="font-bold">1200x800px</span> (oran 3:2, yatay). Ana sayfadaki öne çıkan kategori kartlarında kullanılır; tüm kartlar bu oranda.
+                                        Yazıları kenarlardan biraz içeride tutun. JPG/PNG/WebP (otomatik WebP'ye çevrilir).
+                                    </p>
                                     <div className="flex items-center gap-4">
                                         {imageUrl && (
                                             <div className="relative w-16 h-16 border rounded-md overflow-hidden">
@@ -1055,6 +1059,10 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Mega Menü Görseli</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Önerilen boyut: <span className="font-bold">1200x600px</span> (oran 2:1). Menüde kategorinin üzerine gelince sağda çıkar, kırpılmadan sığdırılır.
+                                        En iyi sonuç: <span className="font-bold">şeffaf arka planlı PNG</span> ürün görseli. Boş bırakılırsa kategori görseli kullanılır.
+                                    </p>
                                     <div className="flex items-center gap-4">
                                         {menuImageUrl && (
                                             <div className="relative w-16 h-16 border rounded-md overflow-hidden">

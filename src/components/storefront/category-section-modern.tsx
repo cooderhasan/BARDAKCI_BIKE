@@ -17,6 +17,8 @@ interface CategorySectionProps {
 export function CategorySectionModern({ categories, row = "all" }: CategorySectionProps) {
     if (!categories || categories.length === 0) return null;
 
+    // Kartlar sabit 3:2 oranında (admin'de önerilen ölçü 1200x800). Eskiden sabit yükseklikti; oran ekran genişliğine
+    // göre değiştiği için hangi ölçüde görsel hazırlanacağı belli değildi ve görseller farklı yerlerden kırpılıyordu.
     const topRow = categories.slice(0, 2);
     const bottomRow = categories.slice(2, 5);
 
@@ -32,7 +34,7 @@ export function CategorySectionModern({ categories, row = "all" }: CategorySecti
                                 href={`/category/${category.slug}`}
                                 className="group block"
                             >
-                                <div className="relative h-64 sm:h-72 md:h-96 rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-2xl transition-all duration-500">
+                                <div className="relative aspect-[3/2] rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-2xl transition-all duration-500">
                                     {category.imageUrl ? (
                                         <Image
                                             src={category.imageUrl}
@@ -69,7 +71,7 @@ export function CategorySectionModern({ categories, row = "all" }: CategorySecti
                                 href={`/category/${category.slug}`}
                                 className={`group block ${index === bottomRow.length - 1 ? 'hidden sm:block' : ''}`}
                             >
-                                <div className="relative h-56 sm:h-64 md:h-72 rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500">
+                                <div className="relative aspect-[3/2] rounded-2xl overflow-hidden mb-4 ring-1 ring-black/5 dark:ring-white/10 group-hover:shadow-xl transition-all duration-500">
                                     {category.imageUrl ? (
                                         <Image
                                             src={category.imageUrl}
