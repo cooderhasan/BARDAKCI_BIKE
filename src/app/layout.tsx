@@ -4,16 +4,15 @@ import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers/session-provider";
 import { GoogleAnalytics } from '@next/third-parties/google';
 import Script from "next/script";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
-// const geistSans = Geist({
-//   variable: "--font-geist-sans",
-//   subsets: ["latin"],
-// });
-
-// const geistMono = Geist_Mono({
-//   variable: "--font-geist-mono",
-//   subsets: ["latin"],
-// });
+// Site yazı tipi: build sırasında indirilip kendi sunucumuzdan verilir (Google'a istek gitmez).
+// latin-ext: Türkçe karakterler (ğ ş İ ı). display swap: yazı tipi gelene kadar metin sistem fontuyla görünür.
+const fontSans = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+});
 
 import { prisma } from "@/lib/db";
 
@@ -152,7 +151,7 @@ export default async function RootLayout({
 
   return (
     <html lang="tr">
-      <body className="antialiased">
+      <body className={`${fontSans.variable} ${fontSans.className} antialiased`}>
         <Providers>
           {children}
           <Toaster position="top-center" richColors />
