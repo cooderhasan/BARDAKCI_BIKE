@@ -471,6 +471,7 @@ export function ProductDetail({
                                                 src={image}
                                                 alt={`${product.name} - ${index + 1}`}
                                                 fill
+                                                sizes="96px"
                                                 className="object-contain p-1"
                                             />
                                         </button>
@@ -609,7 +610,7 @@ export function ProductDetail({
                                                             )}
                                                         >
                                                             <div className="w-full h-full rounded-md overflow-hidden relative">
-                                                                <Image src={img} alt={color} fill className="object-contain" />
+                                                                <Image src={img} alt={color} fill sizes="64px" className="object-contain" />
                                                             </div>
                                                         </button>
                                                     ) : (
