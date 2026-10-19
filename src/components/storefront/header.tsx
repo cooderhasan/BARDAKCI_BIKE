@@ -89,19 +89,14 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
     // Akıllı sabit header: aşağı kaydırırken gizlenir (okuma alanı açılır), yukarı kaydırınca hemen geri gelir
     const [headerHidden, setHeaderHidden] = useState(false);
     useEffect(() => {
+        // Hafif hesap; requestAnimationFrame'e bağlı değil (arka plandaki sekmede rAF durunca header takılı kalmasın)
         let lastY = window.scrollY;
-        let ticking = false;
         const onScroll = () => {
-            if (ticking) return;
-            ticking = true;
-            requestAnimationFrame(() => {
-                const y = window.scrollY;
-                if (y < 160) setHeaderHidden(false);
-                else if (y > lastY + 8) setHeaderHidden(true);
-                else if (y < lastY - 8) setHeaderHidden(false);
-                if (Math.abs(y - lastY) > 8 || y < 160) lastY = y;
-                ticking = false;
-            });
+            const y = window.scrollY;
+            if (y < 160) setHeaderHidden(false);
+            else if (y > lastY + 8) setHeaderHidden(true);
+            else if (y < lastY - 8) setHeaderHidden(false);
+            if (Math.abs(y - lastY) > 8 || y < 160) lastY = y;
         };
         window.addEventListener("scroll", onScroll, { passive: true });
         return () => window.removeEventListener("scroll", onScroll);
