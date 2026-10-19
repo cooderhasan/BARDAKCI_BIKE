@@ -75,6 +75,8 @@ async function getHomeData() {
             prisma.product.findMany({
                 where: { isActive: true, isFeatured: true, store: storeFilter },
                 include: { category: true, brand: true, _count: { select: { variants: true } } },
+                // Sabit sıra (önceden sırasızdı; düzenlenen ürün listede yer değiştirebiliyordu)
+                orderBy: [{ createdAt: "desc" }, { id: "asc" }],
                 take: 8,
             }).catch((err) => {
                 console.error("Failed to fetch featured products:", err);
@@ -83,6 +85,8 @@ async function getHomeData() {
             prisma.product.findMany({
                 where: { isActive: true, isNew: true, store: storeFilter },
                 include: { category: true, brand: true, _count: { select: { variants: true } } },
+                // Sabit sıra (önceden sırasızdı; düzenlenen ürün listede yer değiştirebiliyordu)
+                orderBy: [{ createdAt: "desc" }, { id: "asc" }],
                 take: 8,
             }).catch((err) => {
                 console.error("Failed to fetch new products:", err);
@@ -91,6 +95,8 @@ async function getHomeData() {
             prisma.product.findMany({
                 where: { isActive: true, isBestSeller: true, store: storeFilter },
                 include: { category: true, brand: true, _count: { select: { variants: true } } },
+                // Sabit sıra (önceden sırasızdı; düzenlenen ürün listede yer değiştirebiliyordu)
+                orderBy: [{ createdAt: "desc" }, { id: "asc" }],
                 take: 8,
             }).catch((err) => {
                 console.error("Failed to fetch best sellers:", err);
@@ -98,7 +104,9 @@ async function getHomeData() {
             }),
             prisma.category.findMany({
                 where: { isActive: true, isFeatured: true, store: storeFilter },
-                orderBy: { order: "asc" },
+                // Sıra eşitse oluşturma tarihine göre: önceden eşit sıradakiler her kayıttan sonra yer değiştiriyordu
+                // (ilk 2 = üstteki büyük kartlar, sonraki 3 = alttaki küçük kartlar)
+                orderBy: [{ order: "asc" }, { createdAt: "asc" }, { id: "asc" }],
                 take: 5,
             }).catch((err) => {
                 console.error("Failed to fetch categories:", err);
