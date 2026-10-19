@@ -156,7 +156,7 @@ export function ProductCardModern({
                             src={product.images[0]}
                             alt={product.name}
                             fill
-                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                             priority={priority}
                             loading={priority ? "eager" : "lazy"}
                             className={cn(

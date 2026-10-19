@@ -62,7 +62,7 @@ export function FeaturedProducts({
             </div>
 
             {/* Products Grid */}
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {products.map((product) => (
                     <ProductCardModern
                         key={product.id}
