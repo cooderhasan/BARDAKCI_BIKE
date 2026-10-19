@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ProductCardV2 } from "./product-card-v2";
+import { ProductCardModern } from "./product-card-modern";
 import { formatPrice, calculatePrice, validateMinQuantity } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
@@ -920,18 +920,32 @@ export function ProductDetail({
                 {/* Related Products */}
                 {relatedProducts.length > 0 && (
                     <div className="border-t border-gray-200 dark:border-gray-800 pt-12 pb-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                Benzer Ürünler
-                            </h2>
-                            <Link href={`/products?category=${product.category?.slug}`} className="text-[#17457C] hover:underline font-semibold text-sm">
-                                Tümünü Gör →
+                        {/* Ana sayfadaki bölüm başlıklarıyla aynı görünüm */}
+                        <div className="flex items-end justify-between gap-4 mb-5 md:mb-7">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <span className="h-px w-6 bg-[#17457C] dark:bg-blue-400" />
+                                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.18em] text-[#17457C] dark:text-blue-400">
+                                        Bunlara da Göz Atın
+                                    </span>
+                                </div>
+                                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                                    Benzer Ürünler
+                                </h2>
+                            </div>
+                            <Link
+                                href={`/products?category=${product.category?.slug}`}
+                                className="group/all shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[#17457C]/20 bg-white dark:bg-gray-900 dark:border-gray-700 px-3.5 py-2 text-xs md:text-sm font-semibold text-[#17457C] dark:text-blue-300 hover:bg-[#17457C] hover:text-white hover:border-[#17457C] transition-colors"
+                            >
+                                Tümünü Gör
+                                <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4 transition-transform group-hover/all:translate-x-0.5" />
                             </Link>
                         </div>
 
-                        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+                        {/* 6 ürün: telefonda 2, tablette 3 (2 tam satır), geniş ekranda 6 (tek satır) */}
+                        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                             {relatedProducts.map((p) => (
-                                <ProductCardV2
+                                <ProductCardModern
                                     key={p.id}
                                     product={p as any}
                                     discountRate={discountRate}

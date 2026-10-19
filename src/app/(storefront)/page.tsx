@@ -74,7 +74,7 @@ async function getHomeData() {
             }),
             prisma.product.findMany({
                 where: { isActive: true, isFeatured: true, store: storeFilter },
-                include: { category: true, brand: true },
+                include: { category: true, brand: true, _count: { select: { variants: true } } },
                 take: 8,
             }).catch((err) => {
                 console.error("Failed to fetch featured products:", err);
@@ -82,7 +82,7 @@ async function getHomeData() {
             }),
             prisma.product.findMany({
                 where: { isActive: true, isNew: true, store: storeFilter },
-                include: { category: true, brand: true },
+                include: { category: true, brand: true, _count: { select: { variants: true } } },
                 take: 8,
             }).catch((err) => {
                 console.error("Failed to fetch new products:", err);
@@ -90,7 +90,7 @@ async function getHomeData() {
             }),
             prisma.product.findMany({
                 where: { isActive: true, isBestSeller: true, store: storeFilter },
-                include: { category: true, brand: true },
+                include: { category: true, brand: true, _count: { select: { variants: true } } },
                 take: 8,
             }).catch((err) => {
                 console.error("Failed to fetch best sellers:", err);

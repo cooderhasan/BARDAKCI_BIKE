@@ -152,6 +152,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         include: {
             category: true,
             brand: true,
+            _count: { select: { variants: true } },
             categories: {
                 include: {
                     parent: {
