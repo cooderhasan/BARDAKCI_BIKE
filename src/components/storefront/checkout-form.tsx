@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice, calculatePrice, SHIPPING_FREE_LIMIT } from "@/lib/helpers";
 import { createOrder } from "@/app/(storefront)/checkout/actions";
+import { saveAddress, type SavedAddress } from "@/app/(storefront)/account/addresses/actions";
 import { toast } from "sonner";
 import { CreditCard, Building2, ArrowLeft, Truck } from "lucide-react";
 import Link from "next/link";
@@ -53,9 +54,11 @@ interface CheckoutFormProps {
     }[];
     freeShippingLimit: number;
     bankTransferDiscount: number;
+    /** Üyenin adres defteri (varsayılan önce) */
+    savedAddresses?: SavedAddress[];
 }
 
-export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, bankTransferDiscount }: CheckoutFormProps) {
+export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, bankTransferDiscount, savedAddresses = [] }: CheckoutFormProps) {
     // ...
     const router = useRouter();
     const { items, getSummary, discountRate, clearCart } = useCartStore();
@@ -69,8 +72,26 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
     // Mesafeli Satış Sözleşmesi / Ön Bilgilendirme onayı (zorunlu onay kutusu)
     const [agreed, setAgreed] = useState(false);
     const [agreeMissing, setAgreeMissing] = useState(false);
-    const [selectedCity, setSelectedCity] = useState<string>(initialData?.city || "");
-    const [selectedDistrict, setSelectedDistrict] = useState<string>(initialData?.district || "");
+    // Kayıtlı adres seçimi: varsayılan adres seçili gelir; "new" = elle yeni adres
+    const defaultSaved = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+    const [selectedAddressId, setSelectedAddressId] = useState<string>(defaultSaved?.id || "new");
+    const selectedSaved = savedAddresses.find((a) => a.id === selectedAddressId);
+    const [saveNewAddress, setSaveNewAddress] = useState(true);
+    const [newAddressTitle, setNewAddressTitle] = useState("");
+    const [selectedCity, setSelectedCity] = useState<string>(defaultSaved?.city || initialData?.city || "");
+    const [selectedDistrict, setSelectedDistrict] = useState<string>(defaultSaved?.district || initialData?.district || "");
+    // Seçilen adrese göre alanların başlangıç değerleri (alanlar her seçimde yeniden oluşturulur, müşteri yine değiştirebilir)
+    const addrDefaults = selectedSaved
+        ? { name: selectedSaved.name, phone: selectedSaved.phone, address: selectedSaved.address }
+        : savedAddresses.length > 0
+            ? { name: initialData?.name || "", phone: initialData?.phone || "", address: "" }
+            : { name: initialData?.name || "", phone: initialData?.phone || "", address: initialData?.address || "" };
+    const selectAddress = (id: string) => {
+        setSelectedAddressId(id);
+        const a = savedAddresses.find((x) => x.id === id);
+        setSelectedCity(a?.city || "");
+        setSelectedDistrict(a?.district || "");
+    };
     const cities = getCities();
     const orderCompleted = useRef(false);
 
@@ -222,6 +243,18 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                 // Mark order as completed to prevent empty cart redirect
                 orderCompleted.current = true;
 
+                // Üye yeni adres girdiyse ve "adreslerime kaydet" seçiliyse deftere ekle (hata siparişi etkilemez)
+                if (initialData?.isLoggedIn && selectedAddressId === "new" && saveNewAddress) {
+                    await saveAddress({
+                        title: newAddressTitle.trim() || "Yeni Adres",
+                        name: String(formData.get("name") || ""),
+                        phone: String(formData.get("phone") || ""),
+                        city: selectedCity,
+                        district: selectedDistrict,
+                        address: String(formData.get("address") || ""),
+                    }).catch(() => null);
+                }
+
                 if (paymentMethod === "CREDIT_CARD") {
                     router.push(`/payment/paytr/${result.orderId}`);
                     // Note: Cart is not cleared yet, it will be cleared after successful payment notification
@@ -268,25 +301,58 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
+                                {/* Kayıtlı adresler (üye) */}
+                                {savedAddresses.length > 0 && (
+                                    <div className="space-y-2">
+                                        <Label>Teslimat Adresi</Label>
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            {savedAddresses.map((a) => (
+                                                <button
+                                                    key={a.id}
+                                                    type="button"
+                                                    onClick={() => selectAddress(a.id)}
+                                                    className={`text-left rounded-lg border p-3 transition-all ${selectedAddressId === a.id ? "border-[#17457C] bg-blue-50/60 dark:bg-blue-900/20 ring-1 ring-[#17457C]" : "border-gray-200 dark:border-gray-700 hover:border-gray-300"}`}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="font-semibold text-sm truncate">{a.title}</span>
+                                                        {a.isDefault && <span className="text-[10px] font-bold text-[#17457C] uppercase">Varsayılan</span>}
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                                        {a.name} · {a.address} {a.district}/{a.city}
+                                                    </p>
+                                                </button>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => selectAddress("new")}
+                                                className={`text-left rounded-lg border border-dashed p-3 text-sm font-semibold transition-all ${selectedAddressId === "new" ? "border-[#17457C] text-[#17457C] bg-blue-50/60 dark:bg-blue-900/20" : "border-gray-300 text-gray-600 hover:border-gray-400"}`}
+                                            >
+                                                + Yeni adres gir
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="name">Ad Soyad / Firma *</Label>
                                         <Input
+                                            key={`name-${selectedAddressId}`}
                                             id="name"
                                             name="name"
                                             required
-                                            defaultValue={initialData?.name}
+                                            defaultValue={addrDefaults.name}
                                             placeholder="Adınız veya Firma Adı"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="phone">Telefon *</Label>
                                         <Input
+                                            key={`phone-${selectedAddressId}`}
                                             id="phone"
                                             name="phone"
                                             type="tel"
                                             required
-                                            defaultValue={initialData?.phone}
+                                            defaultValue={addrDefaults.phone}
                                             placeholder="05XX XXX XX XX"
                                             maxLength={15}
                                             onChange={(e) => {
@@ -364,14 +430,37 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                 <div className="space-y-2">
                                     <Label htmlFor="address">Adres *</Label>
                                     <Textarea
+                                        key={`address-${selectedAddressId}`}
                                         id="address"
                                         name="address"
                                         rows={2}
                                         required
-                                        defaultValue={initialData?.address}
+                                        defaultValue={addrDefaults.address}
                                         placeholder="Tam adresiniz..."
                                     />
                                 </div>
+                                {initialData?.isLoggedIn && selectedAddressId === "new" && (
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer shrink-0">
+                                            <input
+                                                type="checkbox"
+                                                checked={saveNewAddress}
+                                                onChange={(e) => setSaveNewAddress(e.target.checked)}
+                                                className="h-4 w-4 accent-[#17457C]"
+                                            />
+                                            Bu adresi adreslerime kaydet
+                                        </label>
+                                        {saveNewAddress && (
+                                            <Input
+                                                value={newAddressTitle}
+                                                onChange={(e) => setNewAddressTitle(e.target.value)}
+                                                placeholder="Adres adı (Ev, İş...)"
+                                                maxLength={30}
+                                                className="h-9 sm:max-w-[200px]"
+                                            />
+                                        )}
+                                    </div>
+                                )}
 
                                 <Separator />
 

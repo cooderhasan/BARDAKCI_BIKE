@@ -96,6 +96,7 @@ model User {
   reviews         Review[]
   wishlist        Wishlist[]
   returnRequests  ReturnRequest[]
+  addresses       UserAddress[]  // Adres defteri (varsayılan adres User.address alanlarıyla eşit tutulur)
 
   // Current Account / Bakiye Sistemi
   creditLimit      Decimal        @default(0)   // Tanımlı Kredi Limiti
@@ -1196,4 +1197,21 @@ model CiceksepetiCategoryAttribute {
   @@map("ciceksepeti_category_attributes")
 }
 
+// Üye adres defteri (Hesabım > Adreslerim, ödeme sayfasında seçilir)
+model UserAddress {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   // Ev, İş, Annem ...
+  name      String   // Alıcı ad soyad / firma
+  phone     String
+  city      String
+  district  String
+  address   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@index([userId])
+  @@map("user_addresses")
+}

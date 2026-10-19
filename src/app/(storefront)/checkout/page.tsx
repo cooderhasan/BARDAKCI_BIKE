@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
 import { CheckoutForm } from "@/components/storefront/checkout-form";
+import { getMyAddresses } from "@/app/(storefront)/account/addresses/actions";
 
 export default async function CheckoutPage() {
     const session = await auth();
@@ -71,6 +72,9 @@ export default async function CheckoutPage() {
         orderBy: { name: "asc" },
     }) as any[]; // Casting to any to bypass Prisma Client lock issues on Windows
 
+    // Üyenin adres defteri (ödemede tek tıkla seçilir)
+    const savedAddresses = session?.user?.id ? await getMyAddresses().catch(() => []) : [];
+
     const settings = await getSiteSettings();
     const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
     const bankTransferDiscount = Number(settings.bankTransferDiscount) || 0;
@@ -92,6 +96,7 @@ export default async function CheckoutPage() {
     return (
         <CheckoutForm
             initialData={initialData}
+            savedAddresses={savedAddresses}
             cargoCompanies={serializedCargoCompanies}
             freeShippingLimit={freeShippingLimit}
             bankTransferDiscount={bankTransferDiscount}
