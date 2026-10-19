@@ -25,7 +25,8 @@ function toTitleCaseTurkish(text: string): string {
 
 interface ProductFiltersProps {
     categories: { id: string; name: string; slug: string }[];
-    brands: { id: string; name: string; slug: string }[];
+    /** count: o listede (kategori/mağaza) markanın ürün sayısı; varsa çoktan aza sıralanır */
+    brands: { id: string; name: string; slug: string; count?: number }[];
     colors: string[];
     sizes: string[];
     activeCategorySlug?: string;
@@ -127,31 +128,18 @@ export function ProductFilters({
                     </AccordionContent>
                 </AccordionItem>
 
-                {/* Brands */}
+                {/* Brands: uzun listede ilk 8 + "Tümünü göster" ve arama (motor yedek parçada 33 marka alt alta çıkıyordu) */}
                 {brands.length > 0 && (
                     <AccordionItem value="brands" className="border-t border-gray-100 dark:border-gray-800">
                         <AccordionTrigger className="text-sm font-semibold text-gray-900 dark:text-gray-100 hover:no-underline py-3">
                             Markalar
                         </AccordionTrigger>
                         <AccordionContent>
-                            <div className="space-y-2.5 pt-1 pr-1">
-                                {brands.map((brand) => (
-                                    <div key={brand.id} className="flex items-center space-x-3 group">
-                                        <Checkbox
-                                            id={`brand-${brand.id}`}
-                                            checked={isSelected("brands", brand.slug)}
-                                            onCheckedChange={() => toggleFilter("brands", brand.slug)}
-                                            className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
-                                        />
-                                        <Label
-                                            htmlFor={`brand-${brand.id}`}
-                                            className="cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
-                                        >
-                                            {brand.name}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </div>
+                            <BrandFilterList
+                                brands={brands}
+                                isSelected={(slug) => isSelected("brands", slug)}
+                                onToggle={(slug) => toggleFilter("brands", slug)}
+                            />
                         </AccordionContent>
                     </AccordionItem>
                 )}
@@ -374,3 +362,67 @@ const COLOR_MAP: Record<string, string> = {
         "Fuşya": "#D946EF",
         "Mint": "#6EE7B7",
 };
+
+const BRAND_PREVIEW = 8;
+
+function BrandFilterList({
+    brands,
+    isSelected,
+    onToggle,
+}: {
+    brands: { id: string; name: string; slug: string; count?: number }[];
+    isSelected: (slug: string) => boolean;
+    onToggle: (slug: string) => void;
+}) {
+    const [showAll, setShowAll] = useState(false);
+    const [query, setQuery] = useState("");
+    // Çok ürünü olan marka üstte; seçili markalar her zaman görünür
+    const sorted = [...brands].sort((a, b) => (b.count ?? 0) - (a.count ?? 0) || a.name.localeCompare(b.name, "tr"));
+    const q = query.trim().toLocaleLowerCase("tr-TR");
+    const matched = q ? sorted.filter((b) => b.name.toLocaleLowerCase("tr-TR").includes(q)) : sorted;
+    let visible = showAll || q ? matched : matched.slice(0, BRAND_PREVIEW);
+    const hiddenSelected = matched.filter((b) => isSelected(b.slug) && !visible.includes(b));
+    visible = [...visible, ...hiddenSelected];
+    const hasMore = !q && !showAll && matched.length > BRAND_PREVIEW;
+
+    return (
+        <div className="space-y-2.5 pt-1 pr-1">
+            {brands.length > BRAND_PREVIEW && (
+                <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Marka ara..."
+                    className="h-8 text-sm"
+                />
+            )}
+            {visible.map((brand) => (
+                <div key={brand.id} className="flex items-center space-x-3 group">
+                    <Checkbox
+                        id={`brand-${brand.id}`}
+                        checked={isSelected(brand.slug)}
+                        onCheckedChange={() => onToggle(brand.slug)}
+                        className="data-[state=checked]:bg-[#17457C] data-[state=checked]:border-[#17457C]"
+                    />
+                    <Label
+                        htmlFor={`brand-${brand.id}`}
+                        className="flex-1 flex items-center justify-between gap-2 cursor-pointer text-sm font-normal text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
+                    >
+                        <span className="truncate">{brand.name}</span>
+                        {typeof brand.count === "number" && <span className="text-xs text-gray-400 shrink-0">{brand.count}</span>}
+                    </Label>
+                </div>
+            ))}
+            {q && matched.length === 0 && <p className="text-xs text-gray-400">Marka bulunamadı.</p>}
+            {hasMore && (
+                <button type="button" onClick={() => setShowAll(true)} className="text-xs font-semibold text-[#17457C] hover:underline">
+                    Tümünü göster ({matched.length})
+                </button>
+            )}
+            {showAll && !q && brands.length > BRAND_PREVIEW && (
+                <button type="button" onClick={() => setShowAll(false)} className="text-xs font-semibold text-gray-500 hover:underline">
+                    Daha az göster
+                </button>
+            )}
+        </div>
+    );
+}

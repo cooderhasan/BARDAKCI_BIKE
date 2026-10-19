@@ -1,3 +1,4 @@
+import { findProductsInStockFirst } from "@/lib/product-listing";
 import { sortSizes } from "@/lib/helpers";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -248,8 +249,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         });
     }
 
-    const [products, totalCount, brands, variants] = await Promise.all([
-        prisma.product.findMany({
+    const [{ products, totalCount }, brandRows, variants] = await Promise.all([
+        // Stoktakiler önce, tükenenler sonda (lib/product-listing)
+        findProductsInStockFirst({
             where,
             include: {
                 category: true,
@@ -260,14 +262,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             skip,
             take: PAGE_SIZE,
         }),
-        prisma.product.count({ where }),
         prisma.brand.findMany({
             where: { 
                 isActive: true,
                 store: getStoreFilter(activeStore)
             },
             orderBy: { name: "asc" },
-            select: { id: true, name: true, slug: true }
+            // Markanın bu listedeki ürün sayısı (filtrede çoktan aza sıralanır, sayı yanında görünür)
+            select: { id: true, name: true, slug: true, _count: { select: { products: { where: { isActive: true, store: storeFilter as any } } } } }
         }),
         prisma.productVariant.findMany({
             // Sadece bu mağazanın satıştaki ürünlerinin varyantları (önceden bisiklet varyantları motor sitesinde de çıkıyordu)
@@ -278,6 +280,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     ]);
 
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+    const brands = brandRows
+        .map((b: any) => ({ id: b.id, name: b.name, slug: b.slug, count: b._count?.products ?? 0 }))
+        .filter((b) => b.count > 0);
 
     // Extract unique colors and sizes
     const uniqueColors = (Array.from(new Set(variants.map(v => v.color).filter(Boolean))) as string[]).sort((a, b) => a.localeCompare(b, "tr"));
