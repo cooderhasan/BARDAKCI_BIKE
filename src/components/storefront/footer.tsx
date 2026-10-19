@@ -25,16 +25,27 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
     // However, usually "Payment Methods" is a policy too.
 
     const footerPolicies = policies || [];
+    // Kategori adları veritabanında BÜYÜK harfle olabiliyor ("ÇOCUK BİSİKLETİ"); diğer linklerle aynı görünsün diye
+    // Türkçe kurallarıyla "Çocuk Bisikleti" biçimine çevrilir
+    const titleCaseTr = (text: string) =>
+        text
+            .toLocaleLowerCase("tr-TR")
+            .split(" ")
+            .map((w) => (w ? w.charAt(0).toLocaleUpperCase("tr-TR") + w.slice(1) : w))
+            .join(" ");
+    // Telefonda sütunlar sola yaslı (önceden ortalıydı; iki satıra taşan linkler ortalanıp tek satırlılar solda kalıyordu)
+    const linkClass = "text-gray-400 hover:text-white md:hover:translate-x-1 transition-all duration-300 flex items-start gap-2 text-[13px] md:text-sm leading-snug";
+    const headingClass = "font-bold text-white mb-4 md:mb-6 uppercase tracking-wide md:tracking-wider text-xs md:text-sm border-b border-white/10 pb-2 inline-block whitespace-nowrap";
 
     return (
         <footer className="bg-gradient-to-b from-[#002838] to-[#001018] text-gray-300 border-t border-white/10 relative overflow-hidden">
             {/* Subtle Top Glow */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#17457C]/50 to-transparent" />
 
-            <div className="container mx-auto px-4 py-16 pb-24 md:pb-16 text-center md:text-left relative z-10">
-                <div className="grid gap-12 grid-cols-2 md:grid-cols-4">
+            <div className="container mx-auto px-4 py-12 md:py-16 pb-24 md:pb-16 relative z-10">
+                <div className="grid gap-x-6 gap-y-10 md:gap-12 grid-cols-2 md:grid-cols-4">
                     {/* Company Info */}
-                    <div className="space-y-6 col-span-2 md:col-span-1">
+                    <div className="space-y-6 col-span-2 md:col-span-1 text-center md:text-left">
                         <div className="flex items-center justify-center md:justify-start gap-2 group">
                             {settings?.logoUrl ? (
                                 <Image
@@ -141,31 +152,27 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
 
                     {/* Quick Links */}
                     <div className="md:pl-8">
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#17457C]/30 pb-2 inline-block">Hızlı Bağlantılar</h4>
-                        <ul className="space-y-3 text-sm">
+                        <h4 className={headingClass}>Hızlı Bağlantılar</h4>
+                        <ul className="space-y-2.5">
                             {categories.map((category) => (
                                 <li key={category.id}>
-                                    <Link href={`/category/${category.slug}`} className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 uppercase text-xs font-semibold tracking-wider">
-                                        <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
-                                        {category.name}
+                                    <Link href={`/category/${category.slug}`} className={linkClass}>
+                                        {titleCaseTr(category.name)}
                                     </Link>
                                 </li>
                             ))}
                             <li>
-                                <Link href="/about" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                <Link href="/about" className={linkClass}>
                                     Hakkımızda
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/contact" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                <Link href="/contact" className={linkClass}>
                                     İletişim
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/sss" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                    <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                <Link href="/sss" className={linkClass}>
                                     Sıkça Sorulan Sorular (S.S.S)
                                 </Link>
                             </li>
@@ -174,12 +181,11 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
 
                     {/* Corporate & Policies */}
                     <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#17457C]/30 pb-2 inline-block">Kurumsal</h4>
-                        <ul className="space-y-3 text-sm">
+                        <h4 className={headingClass}>Kurumsal</h4>
+                        <ul className="space-y-2.5">
                             {footerPolicies.map((policy) => (
                                 <li key={policy.slug}>
-                                    <Link href={`/policies/${policy.slug}`} className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
-                                        <span className="h-1 w-1 bg-[#17457C] rounded-full opacity-0 hover:opacity-100 transition-opacity"></span>
+                                    <Link href={`/policies/${policy.slug}`} className={linkClass}>
                                         {policy.title}
                                     </Link>
                                 </li>
@@ -188,8 +194,8 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
                     </div>
 
                     {/* Contact */}
-                    <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider text-sm border-b border-[#17457C]/30 pb-2 inline-block">Bize Ulaşın</h4>
+                    <div className="col-span-2 md:col-span-1">
+                        <h4 className={headingClass}>Bize Ulaşın</h4>
                         <ul className="space-y-4 text-sm text-gray-400">
                             {settings?.phone && (
                                 <li className="flex items-start gap-3 group">
