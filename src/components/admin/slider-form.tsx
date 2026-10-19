@@ -82,9 +82,9 @@ export function SliderForm({ initialData, onSuccess }: SliderFormProps) {
             <div className="space-y-2">
                 <Label>Görsel (Zorunlu)</Label>
                 <div className="text-xs text-muted-foreground mb-2">
-                    Önerilen boyut: <span className="font-bold">1920x600px</span>. Format: <span className="font-bold">JPG</span> veya <span className="font-bold">WebP</span>.
+                    Önerilen boyut: <span className="font-bold">2200x1000px</span> (oran 2.2:1). Format: <span className="font-bold">JPG</span>, <span className="font-bold">PNG</span> veya <span className="font-bold">WebP</span> (yüklerken otomatik WebP'ye çevrilir).
                     <br />
-                    <span className="text-[10px] text-orange-600 font-medium italic">* Metinler sol tarafta olduğu için ana görsel objesinin sağ tarafta olması önerilir.</span>
+                    <span className="text-[10px] text-orange-600 font-medium italic">* Yazı ve logoları kenarlardan biraz içeride tutun; geniş ekranda üstten ve alttan az bir kısım kırpılabilir.</span>
                 </div>
                 <ImageUpload
                     value={images}

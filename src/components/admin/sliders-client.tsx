@@ -89,9 +89,9 @@ export function SlidersClient({ initialSliders }: SlidersClientProps) {
                         Anasayfa manşet alanını buradan yönetebilirsiniz.
                     </p>
                     <div className="mt-2 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 p-2 rounded-md border border-blue-100 dark:border-blue-800 inline-block">
-                        <span className="font-bold">İdeal Slider Ölçüsü:</span> 1920x600px | <span className="font-bold">Format:</span> JPG/WebP
+                        <span className="font-bold">İdeal Slider Ölçüsü:</span> 2200x1000px (oran 2.2:1) | <span className="font-bold">Format:</span> JPG/PNG/WebP
                         <br />
-                        <span className="italic">* Metinler sol tarafta olduğu için ana görsel objesinin sağ tarafta olması önerilir.</span>
+                        <span className="italic">* Yazı ve logoları kenarlardan biraz içeride tutun; geniş ekranda üstten ve alttan az bir kısım kırpılabilir.</span>
                     </div>
                 </div>
                 <Dialog open={open} onOpenChange={(val) => {
