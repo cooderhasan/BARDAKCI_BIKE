@@ -130,6 +130,7 @@ export function ProductDetail({
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const isMotorStore = typeof window !== "undefined" && (window.location.host.includes("motovitrin") || window.location.host.startsWith("motor."));
     const addItem = useCartStore((state) => state.addItem);
+    const openAddedToCartModal = useCartStore((state) => state.openAddedToCartModal);
 
     // Reviews & URL navigation
     const searchParams = useSearchParams();
@@ -310,7 +311,7 @@ export function ProductDetail({
             ? ((product.listPrice - product.salePrice) / product.listPrice) * 100
             : 0;
 
-        addItem({
+        const cartItem = {
             productId: product.id,
             name: product.name,
             slug: product.slug,
@@ -328,8 +329,10 @@ export function ProductDetail({
             // Önceden hiç gönderilmiyordu: siparişte varyant stoğu düşmüyordu
             variantId: currentVariant?.id,
             variantInfo: variantInfo,
-        });
-        toast.success("Ürün sepete eklendi!");
+        };
+        addItem(cartItem);
+        // Kartlardaki gibi "Sepetinize eklendi" penceresi (önceden sadece köşede küçük bildirim çıkıyordu)
+        openAddedToCartModal(cartItem as any);
     };
 
     // Helper to build category breadcrumbs
