@@ -129,13 +129,16 @@
   }
 
   html {
+    /* clip: yana taşmayı keser ama (hidden gibi) kaydırma kabı oluşturmaz; hidden, header'ın sabit (sticky) kalmasını bozuyordu */
     overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100vw;
   }
 
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    overflow-x: clip;
     max-width: 100vw;
   }
 }

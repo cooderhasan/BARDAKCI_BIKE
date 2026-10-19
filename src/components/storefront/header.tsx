@@ -86,6 +86,27 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
         setMounted(true);
     }, []);
 
+    // Akıllı sabit header: aşağı kaydırırken gizlenir (okuma alanı açılır), yukarı kaydırınca hemen geri gelir
+    const [headerHidden, setHeaderHidden] = useState(false);
+    useEffect(() => {
+        let lastY = window.scrollY;
+        let ticking = false;
+        const onScroll = () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => {
+                const y = window.scrollY;
+                if (y < 160) setHeaderHidden(false);
+                else if (y > lastY + 8) setHeaderHidden(true);
+                else if (y < lastY - 8) setHeaderHidden(false);
+                if (Math.abs(y - lastY) > 8 || y < 160) lastY = y;
+                ticking = false;
+            });
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
+
     const handleMouseEnter = () => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
@@ -124,7 +145,12 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
     }, [sidebarCategories, categories]);
 
     return (
-        <header className="sticky top-0 z-50 w-full bg-white/95 supports-[backdrop-filter]:bg-white/80 dark:bg-gray-900/95 supports-[backdrop-filter]:dark:bg-gray-900/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 dark:border-gray-800/50 transition-all duration-300">
+        <header
+            className={cn(
+                "sticky top-0 z-50 w-full bg-white/95 supports-[backdrop-filter]:bg-white/80 dark:bg-gray-900/95 supports-[backdrop-filter]:dark:bg-gray-900/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 dark:border-gray-800/50 transition-transform duration-300",
+                headerHidden && !isMobileMenuOpen && !hoveredCategory ? "-translate-y-full" : "translate-y-0"
+            )}
+        >
 
             {/* Top Row: Logo, Search, User Actions */}
             <div className="border-b dark:border-gray-800/50 py-2 lg:py-1">
