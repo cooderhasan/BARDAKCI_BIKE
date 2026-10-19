@@ -10,7 +10,7 @@ import { formatPrice, calculatePrice, validateMinQuantity } from "@/lib/helpers"
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/stores/cart-store";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { ShoppingCart, Minus, Plus, Package, Truck, ChevronLeft, ChevronRight, Shield, CreditCard, ChevronRight as ChevronRightIcon, FileText, Star } from "lucide-react";
 import { InstallmentTable } from "./installment-table";
@@ -134,6 +134,29 @@ export function ProductDetail({
     // Reviews & URL navigation
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<string>("description");
+
+    // Telefonda sabit "Sepete Ekle" çubuğu: asıl buton ekranın üstünden çıkınca görünür
+    // (telefonda buton görselin, fiyatın ve kargo kutusunun altında kalıyor; aşağı inen müşteri butonu kaybediyordu)
+    const ctaRef = useRef<HTMLDivElement>(null);
+    const [showStickyCart, setShowStickyCart] = useState(false);
+    useEffect(() => {
+        const el = ctaRef.current;
+        if (!el || typeof IntersectionObserver === "undefined") return;
+        const io = new IntersectionObserver(([entry]) => {
+            setShowStickyCart(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+        });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [product.id]);
+    useEffect(() => {
+        // WhatsApp düğmesi çubuğun üstüne binmesin (globals.css: .has-sticky-cart .wa-float)
+        document.body.classList.toggle("has-sticky-cart", showStickyCart);
+        return () => document.body.classList.remove("has-sticky-cart");
+    }, [showStickyCart]);
+    const openPaymentTab = () => {
+        setActiveTab("payment");
+        document.getElementById("reviews-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
     const [initialRating, setInitialRating] = useState<number>(0);
 
     useEffect(() => {
@@ -328,7 +351,7 @@ export function ProductDetail({
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
-            <div className="container mx-auto px-4 py-6 animate-in fade-in duration-500">
+            <div className="container mx-auto px-4 py-6">
                 {/* Breadcrumb */}
                 <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6 overflow-x-auto whitespace-nowrap">
                     <Link href="/" className="hover:text-[#17457C] transition-colors">
@@ -481,7 +504,8 @@ export function ProductDetail({
                                 {product.name}
                             </h1>
 
-                            {/* Rating Summary */}
+                            {/* Rating Summary: yorum yoksa gösterilmez ("0 Değerlendirme" ve boş yıldızlar olumsuz görünüyordu) */}
+                            {reviewStats.totalReviews > 0 && (
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="flex gap-0.5">
                                     {[1, 2, 3, 4, 5].map((star) => (
@@ -500,6 +524,7 @@ export function ProductDetail({
                                     ({reviewStats.totalReviews} Değerlendirme)
                                 </span>
                             </div>
+                            )}
 
                             {/* Price */}
                             <div className="mb-4 pb-4 border-b border-gray-100 dark:border-gray-800">
@@ -514,6 +539,14 @@ export function ProductDetail({
                                     )}
                                 </div>
                                 <p className="text-xs text-gray-400 mt-1">KDV Dahil</p>
+                                <button
+                                    type="button"
+                                    onClick={openPaymentTab}
+                                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[#17457C] dark:text-blue-300 hover:underline"
+                                >
+                                    <CreditCard className="w-3.5 h-3.5" />
+                                    Kredi kartına taksit imkânı · Taksit seçenekleri
+                                </button>
 
                                 {bankTransferDiscount > 0 && !hasSalePrice && (
                                     <div className="flex items-center gap-2 mt-3 text-sm">
@@ -536,22 +569,10 @@ export function ProductDetail({
                                             <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{product.sku}</span>
                                         </div>
                                     )}
-                                    {product.barcode && (
-                                        <div>
-                                            <span className="text-gray-400 block mb-0.5">Barkod</span>
-                                            <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">{product.barcode}</span>
-                                        </div>
-                                    )}
                                     {product.origin && (
                                         <div>
                                             <span className="text-gray-400 block mb-0.5">Menşei</span>
                                             <span className="font-semibold text-gray-700 dark:text-gray-300">{product.origin}</span>
-                                        </div>
-                                    )}
-                                    {product.brand && (
-                                        <div>
-                                            <span className="text-gray-400 block mb-0.5">Marka</span>
-                                            <span className="font-semibold text-gray-700 dark:text-gray-300">{product.brand.name}</span>
                                         </div>
                                     )}
                                 </div>
@@ -641,9 +662,6 @@ export function ProductDetail({
                             <div className="mt-auto space-y-3">
                                 {product.stock > 0 ? (
                                     <>
-                                        {/* Dynamic Shipping Banner */}
-                                        <ShippingInfoBanner />
-
                                         {/* Seçilen beden/renk tükenmişse "Gelince Haber Ver" */}
                                         {hasVariants && currentVariant && currentVariant.stock <= 0 && (
                                             <StockNotifyForm
@@ -660,7 +678,7 @@ export function ProductDetail({
                                             <span className="text-xs font-medium text-green-600 dark:text-green-400">Stokta Mevcut</span>
                                         </div>
 
-                                        <div className="grid grid-cols-12 gap-3 sm:flex sm:flex-wrap sm:items-center">
+                                        <div ref={ctaRef} className="grid grid-cols-12 gap-3 sm:flex sm:flex-wrap sm:items-center">
                                             {/* Quantity selector */}
                                             <div className="col-span-4 sm:w-auto flex items-center bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shrink-0">
                                                 <Button
@@ -738,6 +756,11 @@ export function ProductDetail({
                                                 className="col-span-2 sm:col-auto h-11 w-full sm:h-12 sm:w-12 border border-gray-200 dark:border-gray-700 rounded-lg shrink-0"
                                             />
                                         </div>
+
+                                        {/* Dynamic Shipping Banner (önceden butonların üstündeydi; Sepete Ekle'yi aşağı itiyordu) */}
+                                        <div className="pt-2">
+                                            <ShippingInfoBanner />
+                                        </div>
                                     </>
                                 ) : (
                                     <>
@@ -755,7 +778,7 @@ export function ProductDetail({
                                     <div className="w-8 h-8 rounded-lg bg-[#17457C]/10 flex items-center justify-center shrink-0">
                                         <Truck className="w-4 h-4 text-[#17457C]" />
                                     </div>
-                                    <span className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-tight">Hızlı Kargo</span>
+                                    <span className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-tight">Aynı Gün Kargo</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 rounded-lg bg-[#17457C]/10 flex items-center justify-center shrink-0">
@@ -767,7 +790,7 @@ export function ProductDetail({
                                     <div className="w-8 h-8 rounded-lg bg-[#17457C]/10 flex items-center justify-center shrink-0">
                                         <Package className="w-4 h-4 text-[#17457C]" />
                                     </div>
-                                    <span className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-tight">Orjinal Ürün</span>
+                                    <span className="text-[11px] text-gray-600 dark:text-gray-400 font-medium leading-tight">Orijinal Ürün</span>
                                 </div>
                             </div>
                         </div>
@@ -918,6 +941,32 @@ export function ProductDetail({
                     </div>
                 )}
             </div>
+
+            {/* Telefonda sabit Sepete Ekle çubuğu (asıl buton ekranın üstünden çıkınca) */}
+            {product.stock > 0 && (
+                <div
+                    aria-hidden={!showStickyCart}
+                    className={cn(
+                        "md:hidden fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] transition-transform duration-300",
+                        showStickyCart ? "translate-y-0" : "translate-y-full pointer-events-none"
+                    )}
+                >
+                    <div className="min-w-0 flex-1">
+                        {showStrikethrough && (
+                            <div className="text-[11px] text-gray-400 line-through leading-none">{formatPrice(strikethroughPrice)}</div>
+                        )}
+                        <div className="text-lg font-extrabold text-[#17457C] dark:text-blue-300 leading-tight truncate">{formatPrice(displayFinalPrice)}</div>
+                    </div>
+                    <Button
+                        tabIndex={showStickyCart ? 0 : -1}
+                        className="h-11 px-6 text-sm font-bold bg-[#17457C] hover:bg-[#0f3460] text-white rounded-lg shadow-lg shadow-[#17457C]/20 shrink-0"
+                        onClick={handleAddToCart}
+                    >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Sepete Ekle
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

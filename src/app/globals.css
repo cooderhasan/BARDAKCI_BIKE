@@ -322,3 +322,9 @@
   color: #e2e8f0;
 }
 
+/* Ürün sayfasında telefonda sabit "Sepete Ekle" çubuğu açıkken WhatsApp düğmesi çubuğun üstüne çıkar */
+@media (max-width: 767px) {
+  body.has-sticky-cart .wa-float {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom)) !important;
+  }
+}
