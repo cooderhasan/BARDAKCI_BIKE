@@ -120,10 +120,11 @@ export function ProductCardModern({
 
     return (
         <Link href={`/products/${product.slug}`} className="group block h-full">
-            <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] h-full flex flex-col relative group/card border border-transparent hover:border-gray-100 dark:hover:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden transition-all duration-300 ring-1 ring-gray-200/60 dark:ring-gray-700 hover:ring-gray-200 hover:shadow-[0_12px_32px_-8px_rgba(23,69,124,0.18)] md:hover:-translate-y-1 h-full flex flex-col relative group/card">
 
-                {/* Image Section - Cleaner, Larger */}
-                <div className="relative aspect-square bg-white p-4 flex items-center justify-center overflow-hidden">
+                {/* Görsel alanı: açık gri zemin. Ürün fotoğrafları çoğunlukla beyaz zeminli; mix-blend-multiply ile beyaz,
+                    zemin rengine karışır ve ürün "kutu içinde beyaz dikdörtgen" gibi değil, zeminde duruyormuş gibi görünür */}
+                <div className="relative aspect-square m-2 md:m-2.5 rounded-xl bg-[#f3f5f8] dark:bg-gray-900 flex items-center justify-center overflow-hidden">
                     {/* Sol üst: Sadece İndirim etiketi */}
                     {(isDealer && discountRate > 0 || hasSalePrice) && (
                         <div className="absolute top-2.5 left-2.5 z-10">
@@ -160,7 +161,7 @@ export function ProductCardModern({
                             priority={priority}
                             loading={priority ? "eager" : "lazy"}
                             className={cn(
-                                "object-contain p-2 transition-all duration-700 ease-in-out group-hover/card:scale-110",
+                                "object-contain p-3 md:p-4 mix-blend-multiply dark:mix-blend-normal transition-transform duration-500 ease-out group-hover/card:scale-105",
                                 product.stock === 0 && "opacity-50 grayscale"
                             )}
                         />
@@ -174,29 +175,30 @@ export function ProductCardModern({
                 </div>
 
                 {/* Content Section */}
-                <div className="p-3 md:p-5 flex-1 flex flex-col bg-white dark:bg-gray-800/50">
-                    {/* Brand + Ücretsiz Kargo */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1.5 md:mb-2.5">
-                        {product.brand && (
-                            <span className="inline-flex items-center self-start bg-[#17457C]/8 dark:bg-[#17457C]/20 text-[#17457C] dark:text-blue-300 font-extrabold text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md whitespace-nowrap leading-tight" title={product.brand.name}>
+                <div className="px-3 pb-3 pt-1 md:px-4 md:pb-4 flex-1 flex flex-col">
+                    {/* Marka + Ücretsiz Kargo: tek satır, sade yazı (önceden her kartta yeşil çerçeveli büyük rozet vardı) */}
+                    <div className="flex items-center justify-between gap-2 mb-1 md:mb-1.5 min-w-0">
+                        {product.brand ? (
+                            <span className="truncate text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500" title={product.brand.name}>
                                 {product.brand.name}
                             </span>
-                        )}
+                        ) : <span />}
                         {product.isFreeShipping && (
-                            <span className="inline-flex items-center self-start gap-1 bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 text-[10px] font-bold px-2 py-0.5 rounded-md leading-tight shadow-sm transition-all duration-300 group-hover/card:bg-emerald-500 group-hover/card:text-white group-hover/card:border-transparent whitespace-nowrap shrink-0">
-                                <Truck className="w-3 h-3 shrink-0" />
-                                <span>ÜCRETSİZ KARGO</span>
+                            <span className="inline-flex items-center gap-1 shrink-0 text-[10px] md:text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 whitespace-nowrap" title="Ücretsiz Kargo">
+                                <Truck className="w-3.5 h-3.5 shrink-0" />
+                                <span className="hidden sm:inline">Ücretsiz Kargo</span>
+                                <span className="sm:hidden">Ücretsiz</span>
                             </span>
                         )}
                     </div>
 
                     {/* Product Name */}
-                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm leading-relaxed line-clamp-2 h-10 mb-2 md:mb-4 group-hover:text-[#17457C] transition-colors">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-[13px] md:text-sm leading-snug line-clamp-2 min-h-[2.5rem] mb-2 md:mb-3 group-hover:text-[#17457C] transition-colors">
                         {product.name}
                     </h3>
 
                     {/* Price Section */}
-                    <div className="mt-auto pt-3 md:pt-4 border-t border-dashed border-gray-200 dark:border-gray-700">
+                    <div className="mt-auto">
                         <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-1.5 min-w-0">
                             <div className="flex flex-col min-w-0 pr-1">
                                 {showStrikethrough && (
@@ -204,7 +206,7 @@ export function ProductCardModern({
                                         {formatPrice(strikethroughPrice)}
                                     </span>
                                 )}
-                                <span className="text-base md:text-lg font-black text-gray-900 dark:text-white tracking-tight truncate">
+                                <span className="text-lg md:text-xl font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
                                     {formatPrice(displayPrice)}
                                 </span>
                             </div>
