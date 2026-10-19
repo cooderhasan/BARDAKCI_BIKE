@@ -1,3 +1,4 @@
+import { sortSizes } from "@/lib/helpers";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { ProductCardModern } from "@/components/storefront/product-card-modern";
@@ -269,7 +270,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             select: { id: true, name: true, slug: true }
         }),
         prisma.productVariant.findMany({
-            where: { isActive: true },
+            // Sadece bu mağazanın satıştaki ürünlerinin varyantları (önceden bisiklet varyantları motor sitesinde de çıkıyordu)
+            where: { isActive: true, product: { isActive: true, store: storeFilter as any } },
             select: { color: true, size: true },
             distinct: ['color', 'size']
         })
@@ -278,8 +280,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
     // Extract unique colors and sizes
-    const uniqueColors = Array.from(new Set(variants.map(v => v.color).filter(Boolean))) as string[];
-    const uniqueSizes = Array.from(new Set(variants.map(v => v.size).filter(Boolean))) as string[];
+    const uniqueColors = (Array.from(new Set(variants.map(v => v.color).filter(Boolean))) as string[]).sort((a, b) => a.localeCompare(b, "tr"));
+    const uniqueSizes = sortSizes(Array.from(new Set(variants.map(v => v.size).filter(Boolean))) as string[]);
 
     return (
         <div className="container mx-auto px-4 py-8">

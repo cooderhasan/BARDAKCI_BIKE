@@ -1,3 +1,4 @@
+import { sortSizes } from "@/lib/helpers";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { ProductCardModern } from "@/components/storefront/product-card-modern";
@@ -154,6 +155,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             { categoryId: { in: categoryIds } },
         ]
     });
+    // Filtre seçenekleri (renk, beden, marka) bu kategorinin ürünlerinden: önceden tüm siteden (motor dahil)
+    // toplanıyordu; varyantlı ürünü olmayan kategoride de renk/beden filtresi çıkıyordu
+    const categoryScope: Prisma.ProductWhereInput = { AND: [...andConditions] };
 
     // In Stock
     if (searchParamsValues.in_stock === "true") {
@@ -280,21 +284,23 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         prisma.brand.findMany({
             where: { 
                 isActive: true,
-                store: getStoreFilter(activeStore)
+                store: getStoreFilter(activeStore),
+                // Sadece bu kategoride ürünü olan markalar
+                products: { some: categoryScope },
             },
             orderBy: { name: "asc" },
             select: { id: true, name: true, slug: true }
         }),
         prisma.productVariant.findMany({
-            where: { isActive: true },
+            where: { isActive: true, product: categoryScope },
             select: { color: true, size: true },
             distinct: ['color', 'size']
         })
     ]);
 
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-    const uniqueColors = Array.from(new Set(variants.map(v => v.color).filter(Boolean))) as string[];
-    const uniqueSizes = Array.from(new Set(variants.map(v => v.size).filter(Boolean))) as string[];
+    const uniqueColors = (Array.from(new Set(variants.map(v => v.color).filter(Boolean))) as string[]).sort((a, b) => a.localeCompare(b, "tr"));
+    const uniqueSizes = sortSizes(Array.from(new Set(variants.map(v => v.size).filter(Boolean))) as string[]);
 
     return (
         <>

@@ -272,7 +272,7 @@ export function ProductFilters({
                             Renkler
                         </AccordionTrigger>
                         <AccordionContent>
-                            <div className="grid grid-cols-6 gap-2 pt-1 pr-1">
+                            <div className="grid grid-cols-4 gap-x-2 gap-y-3 pt-1 pr-1">
                                 {colors.map((color) => (
                                     <button
                                         key={color}
@@ -287,10 +287,10 @@ export function ProductFilters({
                                                     ? "ring-2 ring-[#17457C] ring-offset-2 dark:ring-offset-gray-900 scale-110"
                                                     : "hover:scale-110 hover:border-gray-400"
                                             )}
-                                            style={{ backgroundColor: mapColorToCss(color) }}
+                                            style={{ background: colorSwatchCss(color) }}
                                         />
                                         <span className={cn(
-                                            "text-[10px] text-center w-full truncate px-0.5",
+                                            "text-[10px] text-center w-full leading-tight line-clamp-2 break-words px-0.5",
                                             isSelected("colors", color) ? "text-[#17457C] font-medium" : "text-gray-500"
                                         )}>
                                             {color}
@@ -333,9 +333,21 @@ export function ProductFilters({
     );
 }
 
-// Helper to map standard colors to CSS values
-function mapColorToCss(colorName: string): string {
-    const map: Record<string, string> = {
+// "Siyah / Mavi" gibi çok renkli değerler yarım yarım iki renkli yuvarlak; bilinmeyen renk gri
+// (önceden bilinmeyen değer beyaz/boş daire görünüyordu)
+function colorSwatchCss(colorName: string): string {
+    const parts = colorName.split(/\s*[\/,-]\s*/).map((p) => p.trim()).filter(Boolean);
+    const cssOf = (n: string) => {
+        const key = Object.keys(COLOR_MAP).find((k) => k.toLocaleLowerCase("tr-TR") === n.toLocaleLowerCase("tr-TR"));
+        return key ? COLOR_MAP[key] : null;
+    };
+    const known = parts.map(cssOf).filter(Boolean) as string[];
+    if (known.length >= 2) return `linear-gradient(135deg, ${known[0]} 50%, ${known[1]} 50%)`;
+    if (known.length === 1) return known[0];
+    return "#D1D5DB";
+}
+
+const COLOR_MAP: Record<string, string> = {
         "Kırmızı": "#EF4444",
         "Mavi": "#3B82F6",
         "Yeşil": "#22C55E",
@@ -358,6 +370,7 @@ function mapColorToCss(colorName: string): string {
         "Haki": "#4a5d23",
         "Vişne": "#800000",
         "Pudra": "#E8BFB9",
-    };
-    return map[colorName] || colorName;
-}
+        "Füme": "#4B5563",
+        "Fuşya": "#D946EF",
+        "Mint": "#6EE7B7",
+};

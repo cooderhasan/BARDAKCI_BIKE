@@ -318,3 +318,15 @@ export function stripHtmlToText(html: string | null | undefined): string {
         .replace(/\s+/g, " ")
         .trim();
 }
+
+/** Beden sırası: XS < S < M < L < XL < XXL ...; sayısal bedenler küçükten büyüğe (filtrede karışık görünüyordu) */
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "XXXL", "3XL", "4XL", "5XL"];
+export function sortSizes(list: string[]): string[] {
+    const rank = (s: string) => {
+        const i = SIZE_ORDER.indexOf(s.toUpperCase().trim());
+        if (i >= 0) return i;
+        const n = parseFloat(s.replace(",", "."));
+        return Number.isFinite(n) ? 100 + n : 1000;
+    };
+    return [...list].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, "tr"));
+}
