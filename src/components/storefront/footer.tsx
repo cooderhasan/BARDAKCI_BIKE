@@ -250,7 +250,14 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
 
                     {/* Payment Icons + ETBİS */}
                     <div className="flex flex-col items-center md:items-end gap-3">
-                        <div className="flex items-center gap-3 opacity-80 grayscale hover:grayscale-0 transition-all duration-300">
+                        {/* Ödemeler PayTR üzerinden */}
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-emerald-400">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                            <span><strong className="text-white font-bold">PayTR</strong> güvencesiyle 3D Secure ödeme</span>
+                        </div>
+                        <div className="flex flex-wrap justify-center items-center gap-3 opacity-80 grayscale hover:grayscale-0 transition-all duration-300">
                             <div className="bg-white rounded px-2 h-8 min-w-[3rem] flex items-center justify-center p-1 shadow-sm" title="Visa">
                                 <strong style={{ color: "#1A1F71", fontStyle: "italic", fontFamily: "Helvetica, Arial, sans-serif", fontSize: "1rem", lineHeight: 1, letterSpacing: "-0.5px", fontWeight: 900 }}>VISA</strong>
                             </div>

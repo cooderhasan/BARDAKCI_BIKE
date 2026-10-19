@@ -6,7 +6,8 @@ import { FeaturedProducts } from "@/components/storefront/featured-products";
 import { CategorySectionModern } from "@/components/storefront/category-section-modern";
 import Link from "next/link";
 import Image from "next/image";
-import { Truck, Shield, HeadphonesIcon, ArrowRight } from "lucide-react";
+import { Truck, ShieldCheck, CreditCard, Zap, MessageCircle, ArrowRight } from "lucide-react";
+import { BrandStrip } from "@/components/storefront/brand-strip";
 import { FrameSizeCalculator } from "@/components/storefront/frame-size-calculator";
 import { JsonLd } from "@/components/seo/json-ld";
 import type { Metadata } from "next";
@@ -62,7 +63,7 @@ async function getHomeData() {
     const activeStore = await getStoreType();
     const storeFilter = getStoreFilter(activeStore);
 
-    const [sliders, featuredProducts, newProducts, bestSellers, categories, sidebarCategories, banners, blogPosts] =
+    const [sliders, featuredProducts, newProducts, bestSellers, categories, sidebarCategories, banners, blogPosts, brands] =
         await Promise.all([
             prisma.slider.findMany({
                 where: { isActive: true, store: storeFilter },
@@ -143,7 +144,17 @@ async function getHomeData() {
             }).catch((err) => {
                 console.error("Failed to fetch blog posts:", err);
                 return [];
-            })
+            }),
+            // Marka şeridi: logosu olan markalar, en çok ürünü olan önce
+            prisma.brand.findMany({
+                where: { isActive: true, store: storeFilter, logoUrl: { not: null } },
+                orderBy: { products: { _count: "desc" } },
+                select: { id: true, name: true, slug: true, logoUrl: true },
+                take: 12,
+            }).catch((err) => {
+                console.error("Failed to fetch brands:", err);
+                return [];
+            }),
         ]);
 
     const validBanners = (banners || []).filter((b: any) => b && b.imageUrl && b.imageUrl.trim() !== "");
@@ -191,6 +202,7 @@ async function getHomeData() {
         sidebarCategories: sidebarCategories || [],
         banners: validBanners.map(transformBanner),
         blogPosts: blogPosts || [],
+        brands: (brands || []).filter((b: any) => b.logoUrl && String(b.logoUrl).trim() !== ""),
     };
 }
 
@@ -269,43 +281,35 @@ export default async function HomePage() {
                         <HeroSlider sliders={data.sliders} />
                     </div>
 
-                    {/* Features - Modern Frameless Design */}
-                    <section className="grid gap-2 grid-cols-3 py-4 border-y border-gray-100 dark:border-gray-800">
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 group text-center md:text-left">
-                            <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 shrink-0">
-                                <Truck className="h-5 w-5 text-[#17457C]" />
+                    {/* Güven çubuğu: somut bilgiler (önceden "7/24 Destek" gibi genel ifadeler vardı) */}
+                    <section className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-4">
+                        {(isMotor
+                            ? [
+                                { icon: Zap, title: "Aynı Gün Kargo", text: "Siparişiniz hızla yola çıkar" },
+                                { icon: CreditCard, title: "Taksit İmkânı", text: "Kredi kartına taksit" },
+                                { icon: ShieldCheck, title: "Güvenli Ödeme", text: "PayTR 3D Secure" },
+                                { icon: MessageCircle, title: "WhatsApp Destek", text: "Parça seçiminde yardım" },
+                            ]
+                            : [
+                                { icon: Zap, title: "Aynı Gün Kargo", text: "Siparişiniz hızla yola çıkar" },
+                                { icon: Truck, title: "Ücretsiz Kargo", text: "Tüm bisikletlerde" },
+                                { icon: CreditCard, title: "Taksit İmkânı", text: "Kredi kartına taksit" },
+                                { icon: ShieldCheck, title: "Güvenli Ödeme", text: "PayTR 3D Secure" },
+                            ]
+                        ).map(({ icon: Icon, title, text }) => (
+                            <div
+                                key={title}
+                                className="flex items-center gap-2.5 md:gap-3 rounded-xl bg-white dark:bg-gray-800 ring-1 ring-gray-200/60 dark:ring-gray-700 px-3 py-3 md:px-4 md:py-4"
+                            >
+                                <div className="w-9 h-9 md:w-11 md:h-11 shrink-0 rounded-lg bg-[#17457C]/[0.07] dark:bg-blue-900/30 flex items-center justify-center">
+                                    <Icon className="w-[18px] h-[18px] md:w-5 md:h-5 text-[#17457C] dark:text-blue-300" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-xs md:text-sm leading-tight">{title}</h3>
+                                    <p className="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5">{text}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight">
-                                    Hızlı Teslimat
-                                </h3>
-                                <p className="hidden md:block text-xs text-gray-500">Aynı gün kargo imkanı</p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 group text-center md:text-left">
-                            <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3 shrink-0">
-                                <Shield className="h-5 w-5 text-green-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight">
-                                    Güvenli Ödeme
-                                </h3>
-                                <p className="hidden md:block text-xs text-gray-500">256-bit SSL sertifikası</p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 group text-center md:text-left">
-                            <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 shrink-0">
-                                <HeadphonesIcon className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white text-[10px] md:text-sm leading-tight">
-                                    7/24 Destek
-                                </h3>
-                                <p className="hidden md:block text-xs text-gray-500">Müşteri hizmetleri desteği</p>
-                            </div>
-                        </div>
+                        ))}
                     </section>
 
                     {/* Categories (Top Row - 2 Large Categories) */}
@@ -352,6 +356,9 @@ export default async function HomePage() {
                             variant="bestseller"
                         />
                     )}
+
+                    {/* Marka şeridi (logosu yüklenmiş markalar; en az 2 logo yoksa görünmez) */}
+                    <BrandStrip brands={data.brands} />
 
                     {/* Kadro Boyu Hesaplama Robotu */}
                     {!isMotor && (

@@ -442,6 +442,28 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState("");
     const [logoUrl, setLogoUrl] = useState("");
+    const [logoUploading, setLogoUploading] = useState(false);
+
+    // Logo yükleme (ana sayfadaki marka şeridinde gösterilir)
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setLogoUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const res = await fetch("/api/upload", { method: "POST", body: formData });
+            if (!res.ok) throw new Error("Upload failed");
+            const data = await res.json();
+            setLogoUrl(data.url);
+            toast.success("Logo yüklendi, kaydetmeyi unutmayın");
+        } catch {
+            toast.error("Logo yüklenirken hata oluştu");
+        } finally {
+            setLogoUploading(false);
+            e.target.value = "";
+        }
+    };
     const [store, setStore] = useState<"BIKE" | "MOTOR" | "BOTH">("BIKE");
     const [trendyolBrandId, setTrendyolBrandId] = useState<number | undefined>(undefined);
     const [n11BrandId, setN11BrandId] = useState<number | undefined>(undefined);
@@ -466,7 +488,7 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
 
         try {
             if (editBrand) {
-                await updateBrand(editBrand.id, { name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId, manufacturerFirmId: manufacturerFirmId || null, importerFirmId: importerFirmId || null });
+                await updateBrand(editBrand.id, { name, logoUrl, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId, manufacturerFirmId: manufacturerFirmId || null, importerFirmId: importerFirmId || null });
                 toast.success("Marka güncellendi.");
             } else {
                 await createBrand({ name, logoUrl: logoUrl || undefined, store, trendyolBrandId, n11BrandId, hbBrandId, idefixBrandId, pazaramaBrandId, manufacturerFirmId: manufacturerFirmId || null, importerFirmId: importerFirmId || null });
@@ -602,13 +624,28 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="logoUrl">Logo URL (Opsiyonel)</Label>
-                                    <Input
-                                        id="logoUrl"
-                                        value={logoUrl}
-                                        onChange={(e) => setLogoUrl(e.target.value)}
-                                        placeholder="https://..."
-                                    />
+                                    <Label htmlFor="logoUpload">Marka Logosu (Opsiyonel)</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Önerilen boyut: <span className="font-bold">400x200px</span> (oran 2:1), <span className="font-bold">şeffaf arka planlı PNG</span>.
+                                        Logo ortada, kenarlarda boşluk olsun. Ana sayfadaki "Markalarımız" şeridinde gri tonlu görünür, üzerine gelince renklenir.
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        {logoUrl && (
+                                            <div className="relative w-24 h-12 shrink-0 rounded-md border bg-white overflow-hidden">
+                                                <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setLogoUrl("")}
+                                                    className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl"
+                                                    title="Logoyu kaldır"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <Input id="logoUpload" type="file" accept="image/*" onChange={handleLogoUpload} disabled={logoUploading} />
+                                        {logoUploading && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+                                    </div>
                                 </div>
                                 <div className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
                                     <Label htmlFor="brandStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</Label>
