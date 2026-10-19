@@ -134,7 +134,9 @@ export const useCartStore = create<CartState>()(
             name: "b2b-cart",
             // IMPORTANT: Do not persist the hydration flag itself
             partialize: (state) => {
-                const { _hasHydrated, ...rest } = state;
+                // "Sepetinize eklendi" penceresi de saklanmaz: açıkken sayfa değişince/yenilenince sonraki açılışta
+                // (çoğu zaman "0 ürün" ile) yeniden çıkıyordu
+                const { _hasHydrated, isAddedToCartModalOpen, lastAddedItem, ...rest } = state as any;
                 return rest;
             },
             onRehydrateStorage: () => {
@@ -144,6 +146,8 @@ export const useCartStore = create<CartState>()(
                         console.error("STORE_LOG: Rehydration error:", error);
                     } else {
                         console.log("STORE_LOG: Rehydration finished successfully.");
+                        // Eski sürümlerin tarayıcıya kaydettiği "pencere açık" bilgisi açılışta pencereyi göstermesin
+                        state?.closeAddedToCartModal();
                         state?.setHasHydrated(true);
                     }
                 };
