@@ -118,7 +118,7 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                     <div className="n11-section flex justify-between items-center bg-white">
                                          <div className="flex-1"></div>
                                          <img src="/n11_logo.fw.png" alt="N11" className="h-10 object-contain" />
-                                         <div className="flex-1 text-right text-sm font-bold">{new Date(order.createdAt).toLocaleDateString('tr-TR')}</div>
+                                         <div className="flex-1 text-right text-sm font-bold">{new Date(order.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" })}</div>
                                     </div>
 
                                     <div className="n11-section grid grid-cols-2">
@@ -213,7 +213,7 @@ export default async function BulkShippingLabelPage({ searchParams }: BulkShippi
                                             </div>
                                             <div className="text-right">
                                                 <h2 className="text-xs font-bold text-gray-500 uppercase mb-1">TARİH</h2>
-                                                <p className="font-bold text-lg">{new Date(order.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                                <p className="font-bold text-lg">{new Date(order.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", day: 'numeric', month: 'long', year: 'numeric' })}</p>
                                             </div>
                                         </div>
                                     </div>

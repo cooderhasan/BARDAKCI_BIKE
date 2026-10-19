@@ -613,7 +613,7 @@ export function BlogTable({ posts }: BlogTableProps) {
                                         {post.title}
                                     </TableCell>
                                     <TableCell className="text-sm text-gray-500">
-                                        {new Date(post.createdAt).toLocaleDateString("tr-TR")}
+                                        {new Date(post.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" })}
                                     </TableCell>
                                     <TableCell className="text-sm">
                                         {post.readTime} Dk

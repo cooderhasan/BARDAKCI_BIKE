@@ -161,7 +161,7 @@ export function YurticiKargoPanel({ order, onUpdate }: YurticiKargoPanelProps) {
                         )}
                         {ykSyncedAt && (
                             <div className="col-span-2 text-gray-400 text-[10px]">
-                                Son güncelleme: {new Date(ykSyncedAt).toLocaleString("tr-TR")}
+                                Son güncelleme: {new Date(ykSyncedAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
                             </div>
                         )}
                     </div>

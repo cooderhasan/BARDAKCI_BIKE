@@ -374,7 +374,7 @@ export default async function StorefrontBlogPostDetailPage({ params }: PageProps
                         <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800">
                             <div className="flex items-center gap-1.5">
                                 <Calendar className="w-4 h-4 text-gray-400" />
-                                {new Date(post.createdAt).toLocaleDateString("tr-TR", {
+                                {new Date(post.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", 
                                     day: "numeric",
                                     month: "long",
                                     year: "numeric",

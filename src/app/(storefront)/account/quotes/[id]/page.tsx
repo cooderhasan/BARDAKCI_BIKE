@@ -140,7 +140,7 @@ export default function AccountQuoteDetailPage() {
                         <Badge className={status.color}>{status.label}</Badge>
                     </div>
                     <p className="text-gray-500">
-                        {new Date(quote.createdAt).toLocaleDateString("tr-TR", {
+                        {new Date(quote.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", 
                             day: "numeric",
                             month: "long",
                             year: "numeric"
@@ -173,7 +173,7 @@ export default function AccountQuoteDetailPage() {
                         <p className={isExpired ? "text-red-800" : "text-blue-800"}>
                             {isExpired
                                 ? "Bu teklifin süresi dolmuştur"
-                                : `Teklif geçerlilik tarihi: ${new Date(quote.validUntil).toLocaleDateString("tr-TR")}`
+                                : `Teklif geçerlilik tarihi: ${new Date(quote.validUntil).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" })}`
                             }
                         </p>
                     </CardContent>

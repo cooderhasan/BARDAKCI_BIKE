@@ -155,7 +155,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
                         <Badge className={status.color}>{status.label}</Badge>
                     </div>
                     <p className="text-gray-500">
-                        {new Date(quote.createdAt).toLocaleDateString("tr-TR", {
+                        {new Date(quote.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", 
                             day: "numeric",
                             month: "long",
                             year: "numeric",
@@ -335,7 +335,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
                             <div>
                                 <Label className="text-gray-500">Son Geçerlilik</Label>
                                 <p className="font-medium">
-                                    {new Date(quote.validUntil).toLocaleDateString("tr-TR")}
+                                    {new Date(quote.validUntil).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" })}
                                 </p>
                             </div>
                         )}

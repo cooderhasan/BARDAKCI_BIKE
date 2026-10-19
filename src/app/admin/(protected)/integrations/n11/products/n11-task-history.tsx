@@ -84,7 +84,7 @@ export function N11TaskHistory() {
                             tasks.map((task) => (
                                 <TableRow key={task.id} className="hover:bg-gray-50/50 transition-colors">
                                     <TableCell className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                        {new Date(task.createdAt).toLocaleString('tr-TR')}
+                                        {new Date(task.createdAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
                                     </TableCell>
                                     <TableCell className="font-medium text-xs max-w-[200px] truncate">
                                         {task.n11Product?.product?.name || "Bilinmeyen Ürün"}

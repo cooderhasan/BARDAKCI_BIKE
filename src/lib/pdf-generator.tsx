@@ -153,7 +153,7 @@ const PreInformationFormDocument: React.FC<OrderPdfProps> = (props) => {
     
     // Subtotal and tax calculation for display
     const itemsTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-    const dateOfForm = dateStr || new Date().toLocaleDateString('tr-TR');
+    const dateOfForm = dateStr || new Date().toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" });
 
     let displayPaymentMethod = paymentMethod;
     if (paymentMethod === 'BANK_TRANSFER') displayPaymentMethod = 'Havale / EFT';
@@ -287,7 +287,7 @@ const PreInformationFormDocument: React.FC<OrderPdfProps> = (props) => {
 const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
     const { orderNumber, customerName, customerPhone, customerEmail, shippingAddress, items, totalAmount, paymentMethod, shippingCost = 0, dateStr } = props;
     const itemsTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-    const dateOfForm = dateStr || new Date().toLocaleDateString('tr-TR');
+    const dateOfForm = dateStr || new Date().toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" });
 
     let displayPaymentMethod = paymentMethod;
     if (paymentMethod === 'BANK_TRANSFER') displayPaymentMethod = 'Havale / EFT';
@@ -435,7 +435,7 @@ const DistanceSalesContractDocument: React.FC<OrderPdfProps> = (props) => {
 
 // 3. İPTAL VE İADE KOŞULLARI Component
 const CancellationRefundPolicyDocument: React.FC<{ dateStr?: string }> = ({ dateStr }) => {
-    const dateOfForm = dateStr || new Date().toLocaleDateString('tr-TR');
+    const dateOfForm = dateStr || new Date().toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" });
     return (
         <Document title="Iptal-ve-Iade-Kosullari">
             <Page size="A4" style={styles.page}>

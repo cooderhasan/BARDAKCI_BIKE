@@ -130,7 +130,7 @@ export default function AccountQuotesPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-gray-500">
-                                                {new Date(quote.createdAt).toLocaleDateString("tr-TR")}
+                                                {new Date(quote.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" })}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Link href={`/account/quotes/${quote.id}`}>

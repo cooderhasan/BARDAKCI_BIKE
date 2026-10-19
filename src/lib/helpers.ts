@@ -221,7 +221,9 @@ export function validateMinQuantity(
  */
 export function formatDate(date: Date | string): string {
     const d = typeof date === "string" ? new Date(date) : date;
+    // Sunucu UTC çalışıyor: saat dilimi verilmeyince sipariş saatleri 3 saat geri görünüyordu
     return new Intl.DateTimeFormat("tr-TR", {
+        timeZone: "Europe/Istanbul",
         year: "numeric",
         month: "long",
         day: "numeric",

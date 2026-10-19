@@ -463,7 +463,7 @@ export default async function HomePage() {
                                     <div className="p-5 flex flex-col flex-1">
                                         {/* Date */}
                                         <span className="text-[10px] text-gray-400 mb-2 block font-medium">
-                                            {new Date(post.createdAt).toLocaleDateString("tr-TR", {
+                                            {new Date(post.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", 
                                                 day: "numeric",
                                                 month: "long",
                                                 year: "numeric",

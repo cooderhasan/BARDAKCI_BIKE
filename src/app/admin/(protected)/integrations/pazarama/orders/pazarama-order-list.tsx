@@ -121,7 +121,7 @@ export function PazaramaOrderList({ initialOrders }: PazaramaOrderListProps) {
                       <TableCell className="text-sm">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          {new Date(order.orderDate).toLocaleDateString("tr-TR")}
+                          {new Date(order.orderDate).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" })}
                         </div>
                       </TableCell>
                       <TableCell>

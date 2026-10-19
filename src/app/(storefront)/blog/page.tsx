@@ -74,7 +74,7 @@ export default async function StorefrontBlogPage() {
                                     {/* Date */}
                                     <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-3">
                                         <Calendar className="w-3.5 h-3.5" />
-                                        {new Date(post.createdAt).toLocaleDateString("tr-TR", {
+                                        {new Date(post.createdAt).toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul", 
                                             day: "numeric",
                                             month: "long",
                                             year: "numeric",

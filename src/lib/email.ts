@@ -282,7 +282,7 @@ export async function sendInvoiceNotificationEmail(props: SendInvoiceNotificatio
                 invoiceNo: props.invoiceNo,
                 invoiceUrl: props.invoiceUrl,
                 totalAmount: props.totalAmount,
-                invoiceDate: new Date().toLocaleDateString('tr-TR'),
+                invoiceDate: new Date().toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" }),
             }),
         });
 
