@@ -23,7 +23,8 @@ export function CategorySectionModern({ categories, row = "all" }: CategorySecti
     const bottomRow = categories.slice(2, 5);
 
     return (
-        <section className="container mx-auto px-4">
+        // Sayfa zaten container + px-4 içinde (burada tekrar container/px-4 telefonda kenar boşluğunu ikiye katlıyordu)
+        <section>
             <div className="space-y-10">
                 {/* Top Row: 2 Large Cards */}
                 {(row === "all" || row === "top") && (
