@@ -358,14 +358,14 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 <Link
                                     href="/"
                                     onClick={() => setHoveredCategory(null)}
-                                    className={`flex flex-col items-center justify-center px-4 py-4 md:px-6 md:py-5 transition-colors duration-150 ${
+                                    className={`flex flex-col items-center justify-center px-2.5 py-4 xl:px-5 xl:py-5 2xl:px-6 transition-colors duration-150 ${
                                         hoveredCategory === 'home' ? "bg-white" : "hover:bg-white/10"
                                     }`}
                                 >
-                                    <span className={`flex items-center gap-2 text-sm font-bold transition-colors text-center whitespace-nowrap ${
+                                    <span className={`flex items-center gap-2 text-[13px] xl:text-sm font-bold transition-colors text-center whitespace-nowrap ${
                                         hoveredCategory === 'home' ? "text-[#17457C]" : "text-white"
                                     }`}>
-                                        <Home className="w-4 h-4" />
+                                        <Home className="w-4 h-4 hidden xl:block" />
                                         ANASAYFA
                                     </span>
                                 </Link>
@@ -387,11 +387,11 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                             <Link
                                                 href={`/category/${category.slug}`}
                                                 onClick={() => setHoveredCategory(null)}
-                                                className={`flex flex-col items-center justify-center px-4 py-4 md:px-6 md:py-5 transition-colors duration-150 ${
+                                                className={`flex flex-col items-center justify-center px-2.5 py-4 xl:px-5 xl:py-5 2xl:px-6 transition-colors duration-150 ${
                                                     isHovered ? "bg-white" : "hover:bg-white/10"
                                                 }`}
                                             >
-                                                <span className={`text-sm font-bold transition-colors text-center whitespace-nowrap uppercase ${
+                                                <span className={`text-[13px] xl:text-sm font-bold transition-colors text-center whitespace-nowrap uppercase ${
                                                     isHovered ? "text-[#17457C]" : "text-white"
                                                 }`}>
                                                     {category.name}
