@@ -8,6 +8,7 @@ import { CheckCircle2, Building2, Package, MapPin, AlertTriangle, Truck, Externa
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BankTransferForm } from "@/components/storefront/bank-transfer-form";
+import { PayByCardButton } from "@/components/storefront/pay-by-card-button";
 
 interface OrderPageProps {
     params: Promise<{
@@ -60,6 +61,12 @@ export default async function OrderPage({ params }: OrderPageProps) {
 
     const settings = (generalSettings?.value as Record<string, string>) || {};
     const isBankTransfer = order.payment?.method === "BANK_TRANSFER";
+    // Havale siparişi henüz ödenmediyse karta çevrilebilir (havale indirimi kaldırılır: satır toplamları + kargo)
+    const canSwitchToCard =
+        isBankTransfer && order.payment?.status === "PENDING" && order.status === "PENDING" && order.source === "WEB";
+    const cardTotal = order.items.reduce((sum, it) => sum + Number(it.lineTotal), 0) + Number((order as any).shippingCost || 0);
+    // Kartlı sipariş ödeme ekranında yarım bırakıldıysa ödemeye dönülebilir
+    const isAwaitingCard = order.payment?.method === "CREDIT_CARD" && order.status === "WAITING_FOR_PAYMENT";
 
     // Detect if buyer pays (Alıcı Ödemeli)
     const cargoCompanyDetails = order.cargoCompany
@@ -154,6 +161,38 @@ export default async function OrderPage({ params }: OrderPageProps) {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Kartlı sipariş ödeme bekliyor: ödemeye dön */}
+                        {isAwaitingCard && (
+                            <Card className="border-amber-300">
+                                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                        Kart ödemeniz henüz tamamlanmadı. Ödeme yapılmayan siparişler kısa süre sonra otomatik iptal edilir.
+                                    </p>
+                                    <Button asChild className="bg-[#17457C] hover:bg-[#0f3460] shrink-0">
+                                        <Link href={`/payment/paytr/${order.id}`}>Ödemeyi Tamamla</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Havaleden karta geçiş (müşteri ikinci sipariş açmasın) */}
+                        {canSwitchToCard && (
+                            <Card>
+                                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                                    <div className="text-sm">
+                                        <p className="font-semibold text-gray-900 dark:text-white">Kredi kartıyla ödemek ister misiniz?</p>
+                                        <p className="text-gray-500 mt-0.5">
+                                            Bu siparişi yeni sipariş açmadan kartla ödeyebilirsiniz.
+                                            {cardTotal > Number(order.total) + 0.009 && (
+                                                <> Havale indirimi kart ödemesinde uygulanmaz; kartla tutar <strong className="text-gray-900 dark:text-white">{formatPrice(cardTotal)}</strong>.</>
+                                            )}
+                                        </p>
+                                    </div>
+                                    <PayByCardButton orderId={order.id} amountLabel={formatPrice(cardTotal)} />
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Bank Payment Info - Only show for bank transfer */}
                         {isBankTransfer && (

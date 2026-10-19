@@ -46,10 +46,27 @@ export async function POST(req: NextRequest) {
             }
 
             // Ödeme Başarılı
-            await prisma.order.update({
-                where: { id: order.id },
-                data: { status: "CONFIRMED" },
-            });
+            // Sipariş zaman aşımıyla iptal edilip stoğu iade edildiyse (lib/abandoned-payments) stok yeniden düşülür
+            if (order.status === "CANCELLED") {
+                const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
+                const affected = await prisma.$transaction(async (tx) => {
+                    await tx.order.update({
+                        where: { id: order.id },
+                        data: {
+                            status: "CONFIRMED",
+                            notes: (order.notes ? order.notes + " | " : "") + "Ödeme iptalden sonra geldi; sipariş yeniden onaylandı, stok düşüldü.",
+                        },
+                    });
+                    return decrementOrderStock(tx, order.items);
+                });
+                if (affected.length > 0) handlePostOrderStockSync(affected, "site").catch(console.error);
+                console.warn(`Order ${order.orderNumber}: iptal edilmiş siparişe başarılı ödeme geldi, yeniden onaylandı.`);
+            } else {
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: { status: "CONFIRMED" },
+                });
+            }
 
             await prisma.payment.upsert({
                 where: { orderId: order.id },

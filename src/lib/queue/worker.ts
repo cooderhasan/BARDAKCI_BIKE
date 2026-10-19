@@ -93,6 +93,15 @@ export async function setupRepeatableJobs() {
         jobId: 'stock-notify-send-cron'
     });
     console.log("⏰ Stock Notification Email Cron (daily 11:00) registered.");
+
+    // Yarım bırakılan kart ödemeleri: iptal + stok iadesi (lib/abandoned-payments.ts)
+    await queue.add("abandoned-card-orders", {}, {
+        repeat: {
+            pattern: '*/15 * * * *' // Every 15 minutes
+        },
+        jobId: 'abandoned-card-orders-cron'
+    });
+    console.log("⏰ Abandoned Card Orders Cleanup Cron (15m) registered.");
 }
 
 export function initializeWorker() {
@@ -187,6 +196,13 @@ export function initializeWorker() {
                     console.log(`✅ Cron Sonucu: ${result.message}`);
                     const { runPttavmStatusCatchUp } = await import("@/lib/order-status-runners");
                     console.log(`✅ ePttAVM durum güncelleme:`, await runPttavmStatusCatchUp().catch((e: any) => ({ error: e.message })));
+                    return;
+                }
+
+                if (job.name === "abandoned-card-orders") {
+                    const { cancelAbandonedCardOrders } = await import("@/lib/abandoned-payments");
+                    const result = await cancelAbandonedCardOrders();
+                    if (result.cancelled > 0) console.log(`✅ ${result.message}`);
                     return;
                 }
 

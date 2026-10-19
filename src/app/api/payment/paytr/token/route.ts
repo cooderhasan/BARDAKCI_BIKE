@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
             where: { id: orderId },
             include: {
                 items: true,
+                payment: true,
             },
         });
 
@@ -31,6 +32,12 @@ export async function POST(req: NextRequest) {
 
         if (order.status !== "PENDING" && order.status !== "WAITING_FOR_PAYMENT") {
             return NextResponse.json({ error: "Sipariş ödeme bekliyor durumunda değil" }, { status: 400 });
+        }
+
+        // Havale siparişi (havale indirimli tutar) bu ekrandan kartla ödenemez; önce sipariş sayfasındaki
+        // "Kartla Öde" ile karta çevrilir (indirim kaldırılır)
+        if (order.payment && order.payment.method !== "CREDIT_CARD") {
+            return NextResponse.json({ error: "Bu sipariş havale ile verilmiş. Kartla ödemek için sipariş sayfanızdaki \"Kartla Öde\" düğmesini kullanın." }, { status: 400 });
         }
 
         const shippingAddress = order.shippingAddress as any;

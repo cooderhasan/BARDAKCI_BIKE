@@ -100,3 +100,48 @@ export async function getReorderItems(orderId: string) {
 
     return reorderItems;
 }
+
+/**
+ * Havale siparişini kart ödemesine çevirir (müşteri "Kartla Öde"ye bastığında; ikinci sipariş açılmasın diye).
+ * Havale indirimi kaldırılır: havale indirimi sadece sipariş toplamına uygulanıyor, satır toplamları indirimsiz;
+ * kart tutarı = satır toplamları + kargo. Stok zaten düşülmüş; durum "Ödeme Bekleniyor" olur, ödeme yapılmazsa
+ * yarım kalan kart siparişi gibi otomatik iptal edilir (lib/abandoned-payments).
+ */
+export async function switchOrderToCardPayment(orderId: string): Promise<{ success: boolean; error?: string }> {
+    const session = await auth();
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { items: true, payment: true, bankTransferNotifications: { select: { id: true } } },
+    });
+    if (!order) return { success: false, error: "Sipariş bulunamadı." };
+    // Sipariş sayfasıyla aynı erişim kuralı: üyenin siparişini sadece kendisi, misafir siparişini linke sahip olan
+    if (order.userId && order.userId !== session?.user?.id) return { success: false, error: "Yetkisiz işlem." };
+    if (order.source !== "WEB" || order.status !== "PENDING" || order.payment?.method !== "BANK_TRANSFER" || order.payment?.status !== "PENDING") {
+        return { success: false, error: "Bu sipariş kart ödemesine çevrilemez." };
+    }
+    if (order.bankTransferNotifications.length > 0) {
+        return { success: false, error: "Bu sipariş için havale bildirimi yapılmış. Lütfen bizimle iletişime geçin." };
+    }
+
+    const cardTotal = Math.round((order.items.reduce((s, it) => s + Number(it.lineTotal), 0) + Number(order.shippingCost || 0)) * 100) / 100;
+    const bankDiscount = Math.max(0, cardTotal - Number(order.total));
+    const newDiscountAmount = Math.max(0, Number(order.discountAmount) - bankDiscount);
+
+    await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+            where: { id: order.id },
+            data: {
+                total: cardTotal,
+                discountAmount: newDiscountAmount,
+                status: "WAITING_FOR_PAYMENT",
+                notes: (order.notes ? order.notes + " | " : "") +
+                    `Müşteri havaleden kart ödemesine geçti${bankDiscount > 0 ? ` (havale indirimi ${bankDiscount.toFixed(2)} TL kaldırıldı)` : ""}.`,
+            },
+        });
+        await tx.payment.update({
+            where: { orderId: order.id },
+            data: { method: "CREDIT_CARD", amount: cardTotal },
+        });
+    });
+    return { success: true };
+}
