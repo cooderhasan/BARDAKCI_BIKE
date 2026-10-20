@@ -1,3 +1,4 @@
+import { sortSidebarCategories } from "@/lib/category-sort";
 import { findProductsInStockFirst } from "@/lib/product-listing";
 import { sortSizes } from "@/lib/helpers";
 import { prisma } from "@/lib/db";
@@ -97,7 +98,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         include: { 
             children: {
                 where: { isActive: true, store: storeFilter as any },
-                select: { id: true, name: true, slug: true, imageUrl: true }
+                select: { id: true, name: true, slug: true, imageUrl: true, order: true },
+                orderBy: { order: "asc" },
             },
             parent: {
                 include: {
@@ -269,6 +271,16 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     }
 
 
+    // Yan menü sırası: Denge önce, jant ölçüsüne göre küçükten büyüğe, Ekonomik sonda (lib/category-sort)
+    sidebarCategories = sortSidebarCategories(sidebarCategories);
+    // Kategori listesinin üstü: alt kategorisi olan sayfada "Tüm <Kategori>", alt kategoride "← <Üst kategori>"
+    const catTitle = (t: string) => t.toLocaleLowerCase("tr-TR").replace(/(?:^|[\s-/])\S/g, (m) => m.toLocaleUpperCase("tr-TR"));
+    const categoryNav = category.children.length > 0
+        ? { label: `Tüm ${catTitle(category.name)}`, href: `/category/${category.slug}`, active: true }
+        : category.parent
+            ? { label: catTitle(category.parent.name), href: `/category/${category.parent.slug}`, active: false, back: true }
+            : { label: "Tüm Ürünler", href: "/products", active: false };
+
     const [{ products, totalCount }, brandRows, variants] = await Promise.all([
         // Stoktakiler önce, tükenenler sonda (lib/product-listing)
         findProductsInStockFirst({
@@ -354,6 +366,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                             colors={uniqueColors}
                             sizes={uniqueSizes}
                             activeCategorySlug={slug}
+                            categoryNav={categoryNav}
                             isMotor={isMotor}
                         />
                     </div>
@@ -381,6 +394,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                             colors={uniqueColors}
                             sizes={uniqueSizes}
                             activeCategorySlug={slug}
+                            categoryNav={categoryNav}
                             isMotor={isMotor}
                         />
                     </div>

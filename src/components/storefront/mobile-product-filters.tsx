@@ -15,6 +15,8 @@ interface MobileProductFiltersProps {
     sizes: string[];
     activeCategorySlug?: string;
     isMotor?: boolean;
+    /** Kategori listesinin üstündeki bağlantı (kategori sayfasında: "Tüm X" ya da "← Üst kategori"); yoksa "Tüm Kategoriler" */
+    categoryNav?: { label: string; href: string; active: boolean; back?: boolean };
 }
 
 export function MobileProductFilters({
@@ -24,6 +26,7 @@ export function MobileProductFilters({
     sizes,
     activeCategorySlug,
     isMotor,
+    categoryNav,
 }: MobileProductFiltersProps) {
     const [open, setOpen] = useState(false);
     const searchParams = useSearchParams();
@@ -63,6 +66,7 @@ export function MobileProductFilters({
                         sizes={sizes}
                         activeCategorySlug={activeCategorySlug}
                         isMotor={isMotor}
+                        categoryNav={categoryNav}
                         onFilterApply={() => setTimeout(() => setOpen(false), 300)}
                     />
                     </div>

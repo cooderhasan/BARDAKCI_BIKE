@@ -32,6 +32,8 @@ interface ProductFiltersProps {
     activeCategorySlug?: string;
     isMotor?: boolean;
     onFilterApply?: () => void;
+    /** Kategori listesinin üstündeki bağlantı (kategori sayfasında: "Tüm X" ya da "← Üst kategori"); yoksa "Tüm Kategoriler" */
+    categoryNav?: { label: string; href: string; active: boolean; back?: boolean };
 }
 
 export function ProductFilters({
@@ -42,6 +44,7 @@ export function ProductFilters({
     activeCategorySlug,
     isMotor = false,
     onFilterApply,
+    categoryNav,
 }: ProductFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -99,16 +102,18 @@ export function ProductFilters({
                     </AccordionTrigger>
                     <AccordionContent>
                         <div className="space-y-1 pr-1">
+                            {/* Kategori sayfasında "Tüm Kategoriler" tüm siteye götürüyordu; artık bulunulan kategori / üst kategori */}
                             <button
-                                onClick={() => { router.push("/products"); onFilterApply?.(); }}
+                                onClick={() => { router.push(categoryNav?.href || "/products"); onFilterApply?.(); }}
                                 className={cn(
                                     "w-full text-left px-3 py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer",
-                                    !activeCategorySlug && !searchParams.get("category")
+                                    (categoryNav ? categoryNav.active : !activeCategorySlug && !searchParams.get("category"))
                                         ? "text-[#17457C] font-semibold bg-blue-50/60 dark:bg-blue-950/30"
-                                        : "text-gray-600 dark:text-gray-400 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/40"
+                                        : "text-gray-600 dark:text-gray-400 hover:text-[#17457C] hover:bg-gray-50/50 dark:hover:bg-gray-800/40",
+                                    categoryNav?.back && "font-semibold text-[#17457C]"
                                 )}
                             >
-                                Tüm Kategoriler
+                                {categoryNav ? (categoryNav.back ? `← ${categoryNav.label}` : categoryNav.label) : "Tüm Kategoriler"}
                             </button>
                             {categories.map((category) => (
                                 <button
