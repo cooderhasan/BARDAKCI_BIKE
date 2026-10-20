@@ -135,6 +135,7 @@ export function ProductDetail({
     // Reviews & URL navigation
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<string>("description");
+    const galleryTouch = useRef<{ x: number; y: number } | null>(null);
 
     // Telefonda sabit "Sepete Ekle" çubuğu: asıl buton ekranın üstünden çıkınca görünür
     // (telefonda buton görselin, fiyatın ve kargo kutusunun altında kalıyor; aşağı inen müşteri butonu kaybediyordu)
@@ -388,11 +389,30 @@ export function ProductDetail({
 
                 {/* Main Product Section */}
                 <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden mb-8">
-                    <div className="grid lg:grid-cols-2 gap-0">
+                    {/* min-w-0: küçük resim şeridi telefonda sütunu genişletip sayfayı sağdan taşırıyordu */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                         {/* Left: Image Gallery */}
-                        <div className="p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 dark:border-gray-800">
-                            {/* Main Image */}
-                            <div className="relative aspect-square bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden group mb-4 border border-gray-100 dark:border-gray-800">
+                        <div className="min-w-0 p-4 sm:p-6 lg:p-8 border-b lg:border-b-0 lg:border-r border-gray-100 dark:border-gray-800">
+                            {/* Main Image (telefonda parmakla kaydırarak görsel değişir) */}
+                            <div
+                                className="relative aspect-square bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden group mb-4 border border-gray-100 dark:border-gray-800 touch-pan-y"
+                                onTouchStart={(e) => {
+                                    const t = e.touches[0];
+                                    galleryTouch.current = t ? { x: t.clientX, y: t.clientY } : null;
+                                }}
+                                onTouchEnd={(e) => {
+                                    const start = galleryTouch.current;
+                                    galleryTouch.current = null;
+                                    const t = e.changedTouches[0];
+                                    if (!start || !t || galleryImages.length < 2) return;
+                                    const dx = t.clientX - start.x;
+                                    const dy = t.clientY - start.y;
+                                    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+                                    setActiveImageIndex((prev) =>
+                                        dx < 0 ? (prev + 1) % galleryImages.length : prev === 0 ? galleryImages.length - 1 : prev - 1
+                                    );
+                                }}
+                            >
                                 {galleryImages[0] ? (
                                     <Image
                                         src={galleryImages[activeImageIndex] || galleryImages[0]}
@@ -423,6 +443,13 @@ export function ProductDetail({
                                         <Badge className="bg-red-500 hover:bg-red-600 text-white border-none px-3 py-1 text-sm font-bold shadow-lg">
                                             %{Math.max(discountRate, saleDiscountRate)} İndirim
                                         </Badge>
+                                    </div>
+                                )}
+
+                                {/* Telefonda kaçıncı görsel olduğu (kaydırılabildiği belli olsun) */}
+                                {galleryImages.length > 1 && (
+                                    <div className="lg:hidden absolute bottom-3 right-3 z-10 rounded-full bg-black/55 text-white text-[11px] font-semibold px-2 py-0.5">
+                                        {activeImageIndex + 1} / {galleryImages.length}
                                     </div>
                                 )}
 
@@ -484,7 +511,7 @@ export function ProductDetail({
                         </div>
 
                         {/* Right: Product Info & Buy Box */}
-                        <div className="p-6 lg:p-8 flex flex-col">
+                        <div className="min-w-0 p-4 sm:p-6 lg:p-8 flex flex-col">
                             {/* Category & Brand */}
                             <div className="flex items-center gap-2 mb-3">
                                 {product.category && (
