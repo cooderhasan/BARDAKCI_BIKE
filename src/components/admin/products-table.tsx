@@ -28,7 +28,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw, Copy } from "lucide-react";
+import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw, Copy, Power } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 import { deleteProduct, toggleProductStatus, toggleTrendyolStatus, toggleN11Status, toggleHepsiburadaStatus, toggleProductFeature } from "@/app/admin/(protected)/products/actions";
 import { syncProductsToHepsiburada } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
@@ -309,18 +309,20 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                             <RefreshCw className="h-4 w-4 mr-2 text-red-600" />
                             {product.isHepsiburadaActive ? "Hepsiburada'da Satışa Kapat" : "Hepsiburada'da Satışa Aç"}
                         </DropdownMenuItem>
+                        {/* Sadece telefonda: masaüstünde HB sütunundaki yeşil simge aynı işi yapıyor (menüde tekrar ediyordu) */}
+                        {product.isHepsiburadaActive && (
+                            <DropdownMenuItem
+                                onClick={() => handleHepsiburadaSync(product.id)}
+                                disabled={hbSyncing === product.id}
+                            >
+                                <RefreshCw className={`h-4 w-4 mr-2 ${hbSyncing === product.id ? 'animate-spin' : ''}`} />
+                                HB Fiyat/Stok Güncelle
+                            </DropdownMenuItem>
+                        )}
                     </>
                 )}
-                {product.isHepsiburadaActive && (
-                    <DropdownMenuItem
-                        onClick={() => handleHepsiburadaSync(product.id)}
-                        disabled={hbSyncing === product.id}
-                    >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${hbSyncing === product.id ? 'animate-spin' : ''}`} />
-                        HB Fiyat/Stok Güncelle
-                    </DropdownMenuItem>
-                )}
                 <DropdownMenuItem onClick={() => handleToggleStatus(product.id, product.isActive)}>
+                    <Power className="h-4 w-4 mr-2" />
                     {product.isActive ? "Pasif Yap" : "Aktif Yap"}
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(product.id)}>
