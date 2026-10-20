@@ -18,6 +18,7 @@ import { WishlistButton } from "@/components/products/wishlist-button";
 import { ReviewForm } from "@/components/products/review-form";
 import { ReviewList } from "@/components/products/review-list";
 import { ShippingInfoBanner } from "./shipping-info-banner";
+import { RecentlyViewed, trackRecentlyViewed } from "./recently-viewed";
 import { StockNotifyForm } from "./stock-notify-form";
 import {
     Tabs,
@@ -136,6 +137,11 @@ export function ProductDetail({
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<string>("description");
     const galleryTouch = useRef<{ x: number; y: number } | null>(null);
+
+    // "Son görüntülenenler" listesine ekle (müşterinin tarayıcısında)
+    useEffect(() => {
+        trackRecentlyViewed(product.id);
+    }, [product.id]);
 
     // Telefonda sabit "Sepete Ekle" çubuğu: asıl buton ekranın üstünden çıkınca görünür
     // (telefonda buton görselin, fiyatın ve kargo kutusunun altında kalıyor; aşağı inen müşteri butonu kaybediyordu)
@@ -986,6 +992,11 @@ export function ProductDetail({
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Son görüntülenenler (bu ürün hariç) */}
+            <div className="container mx-auto px-4 pb-10">
+                <RecentlyViewed excludeId={product.id} />
             </div>
 
             {/* Telefonda sabit Sepete Ekle çubuğu (asıl buton ekranın üstünden çıkınca) */}

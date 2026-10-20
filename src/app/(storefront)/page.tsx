@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Truck, ShieldCheck, CreditCard, Zap, MessageCircle, ArrowRight } from "lucide-react";
 import { BrandStrip } from "@/components/storefront/brand-strip";
+import { RecentlyViewed } from "@/components/storefront/recently-viewed";
 import { FrameSizeCalculator } from "@/components/storefront/frame-size-calculator";
 import { JsonLd } from "@/components/seo/json-ld";
 import type { Metadata } from "next";
@@ -372,6 +373,9 @@ export default async function HomePage() {
                     {!isMotor && (
                         <FrameSizeCalculator categories={data.sidebarCategories} />
                     )}
+
+                    {/* Son görüntülenenler (müşteri daha önce ürün baktıysa görünür) */}
+                    <RecentlyViewed />
                 </div>
             </div>
 
