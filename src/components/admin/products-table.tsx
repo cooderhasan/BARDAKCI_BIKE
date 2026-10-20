@@ -1,4 +1,5 @@
 "use client";
+import { useDuplicateProduct } from "@/components/admin/duplicate-product-button";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -27,7 +28,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw } from "lucide-react";
+import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw, Copy } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 import { deleteProduct, toggleProductStatus, toggleTrendyolStatus, toggleN11Status, toggleHepsiburadaStatus, toggleProductFeature } from "@/app/admin/(protected)/products/actions";
 import { syncProductsToHepsiburada } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
@@ -102,6 +103,7 @@ const featureOptions = [
 
 export function ProductsTable({ products: initialProducts, brands, pagination }: ProductsTableProps) {
     const router = useRouter();
+    const duplicate = useDuplicateProduct();
     const searchParams = useSearchParams();
 
     // Filter States
@@ -282,6 +284,10 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                         <Edit className="h-4 w-4 mr-2" />
                         Düzenle
                     </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => duplicate.run(product.id)} disabled={duplicate.busy}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Kopyala
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                     <Link href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer">

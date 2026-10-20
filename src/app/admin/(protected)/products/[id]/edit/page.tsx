@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { ProductForm } from "@/components/admin/product-form";
+import { DuplicateProductButton } from "@/components/admin/duplicate-product-button";
 
 interface EditProductPageProps {
     params: Promise<{ id: string }>;
@@ -127,13 +128,17 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Ürün Düzenle
-                </h2>
-                <p className="text-gray-500 dark:text-gray-400">
-                    {product.name}
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Ürün Düzenle
+                    </h2>
+                    <p className="text-gray-500 dark:text-gray-400">
+                        {product.name}
+                    </p>
+                </div>
+                {/* Aynı ürünün farklı renk/modelini hızlı açmak için */}
+                <DuplicateProductButton productId={product.id} />
             </div>
 
             <ProductForm

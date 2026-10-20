@@ -1012,3 +1012,71 @@ export async function getVariantValueSuggestions(): Promise<{ colors: string[]; 
         sizes: pick(sizeRows.map((r) => ({ value: r.size, count: r._count._all }))),
     };
 }
+
+/**
+ * Ürünü kopyalar (aynı ürünün farklı renk/model kartlarını hızlı açmak için).
+ * Kopyalanan: ad (+ " (Kopya)"), açıklamalar, fiyatlar, KDV, ölçüler, görseller, kategori, marka, mağaza, pazaryeri seçimleri,
+ * varyant yapısı ve set içeriği.
+ * Kopyalanmayan: stok kodu, barkod, GTIN/MPN (benzersiz olmalı, kullanıcı girer), stok (0), pazaryeri ilan kayıtları
+ * (yeni ürün henüz hiçbir pazaryerinde yok), öne çıkan / yeni / çok satan işaretleri.
+ * Kopya PASİF (taslak) oluşur: kullanıcı kod, barkod, görsel ve stoğu düzenleyip aktif eder; yarım ürün satışa / pazaryerine gitmez.
+ */
+export async function duplicateProduct(productId: string): Promise<{ success: boolean; id?: string; error?: string }> {
+    await requireAdmin();
+    try {
+        const src: any = await prisma.product.findUnique({
+            where: { id: productId },
+            include: { categories: { select: { id: true } }, variants: true, bundleItems: true },
+        });
+        if (!src) return { success: false, error: "Ürün bulunamadı." };
+
+        const name = `${src.name} (Kopya)`;
+        const baseSlug = generateSlug(name);
+        let slug = baseSlug;
+        for (let i = 1; await prisma.product.findFirst({ where: { slug }, select: { id: true } }); i++) slug = `${baseSlug}-${i}`;
+
+        const {
+            id: _id, slug: _slug, sku: _sku, barcode: _barcode, gtin: _gtin, mpn: _mpn, n11CatalogId: _n11,
+            pazaramaStatus: _ps, pazaramaBatchId: _pb, createdAt: _c, updatedAt: _u,
+            categories, variants, bundleItems, name: _name, stock: _stock,
+            isActive: _a, isFeatured: _f, isNew: _n, isBestSeller: _b,
+            ...rest
+        } = src;
+
+        const created = await prisma.product.create({
+            data: {
+                ...rest,
+                name,
+                slug,
+                sku: null,
+                barcode: null,
+                stock: 0,
+                isActive: false,
+                isFeatured: false,
+                isNew: false,
+                isBestSeller: false,
+                categories: { connect: (categories || []).map((c: any) => ({ id: c.id })) },
+                variants: {
+                    create: (variants || []).map((v: any) => ({
+                        color: v.color,
+                        size: v.size,
+                        priceAdjustment: v.priceAdjustment,
+                        images: v.images || [],
+                        isActive: v.isActive,
+                        stock: 0,
+                    })),
+                },
+                bundleItems: {
+                    create: (bundleItems || []).map((b: any) => ({ childProductId: b.childProductId, quantity: b.quantity })),
+                },
+            } as any,
+            select: { id: true },
+        });
+
+        revalidatePath("/admin/products");
+        return { success: true, id: created.id };
+    } catch (e: any) {
+        console.error("duplicateProduct error:", e);
+        return { success: false, error: "Ürün kopyalanamadı: " + (e?.message || "") };
+    }
+}
