@@ -174,9 +174,10 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                                     {shippingAddress?.address || shippingAddress?.addressText || order.user?.address || "Belirtilmedi"}
                                 </span>
                             </div>
-                            {shippingAddress?.taxNumber && (
+                            {/* 11 haneli TC kimlik no basılmaz (form paketin üstüne yapıştırılıyor; KVKK). Firma vergi no (10 hane) basılır. */}
+                            {shippingAddress?.taxNumber && String(shippingAddress.taxNumber).replace(/\D/g, "").length !== 11 && (
                                 <div className="grid grid-cols-[100px_1fr]">
-                                    <span className="font-bold text-gray-500 uppercase">Vergi/T.C. No:</span>
+                                    <span className="font-bold text-gray-500 uppercase">Vergi No:</span>
                                     <span className="font-bold text-black">{shippingAddress.taxNumber}</span>
                                 </div>
                             )}

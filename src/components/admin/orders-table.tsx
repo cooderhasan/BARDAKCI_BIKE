@@ -498,12 +498,13 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
     const renderOrderActions = (order: OrderWithItems) => (
         <>
             <div className="flex gap-1">
-                {(order.source === "TRENDYOL" || order.source === "N11" || order.source === "HEPSIBURADA" || order.source === "IDEFIX") && (
+                {/* Kargo etiketi: site siparişlerinde de (paketin üstüne yapıştırmak için; TC içermez) */}
+                {(order.source === "WEB" || order.source === "TRENDYOL" || order.source === "N11" || order.source === "HEPSIBURADA" || order.source === "IDEFIX") && (
                     <Button
                         variant="outline"
                         size="icon"
                         className="border-blue-200 text-[#17457C] hover:bg-blue-50 h-9 w-9"
-                        title="Sistem Barkodu (Hızlı)"
+                        title="Kargo Etiketi Yazdır"
                         onClick={() => window.open(`/admin/orders/bulk-shipping-labels?ids=${order.id}`, '_blank')}
                     >
                         <Barcode className="h-4 w-4" />
