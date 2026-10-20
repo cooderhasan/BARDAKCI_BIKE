@@ -269,7 +269,8 @@ export function initializeWorker() {
                     const idefixConfig = await (prisma as any).idefixConfig.findFirst({ where: { isActive: true } });
                     if (idefixConfig) {
                         const { syncProductsToIdefix } = await import("@/app/admin/(protected)/integrations/idefix/actions");
-                        const result = await syncProductsToIdefix(job.data.productIds);
+                        // Stok işi ilan göndermez (sadece Idefix'teki ürünlerin stok/fiyatı)
+                        const result = await syncProductsToIdefix(job.data.productIds, { stockOnly: job.data.type === "stocks" });
                         if (!result.success) throw new Error(result.message);
                         console.log(`✅ Tamamlandı: Idefix Sync - ${result.message}`);
                     }

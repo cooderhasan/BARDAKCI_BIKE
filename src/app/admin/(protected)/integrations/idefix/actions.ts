@@ -169,8 +169,28 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       return { success: false, message: "Idefix batch sonucu henüz hazır değil veya bulunamadı." };
     }
 
-    const items = result.items || result.products || [];
-    const firstItem = items[0] || {};
+    const items: any[] = result.items || result.products || [];
+    // Toplu gönderimde (Tümünü Sync Et) aynı işlem numarasında çok ürün var; önceden sadece ilk satıra bakılıyordu ve
+    // başka bir ürünün sonucu (ör. reddedilen) bu ürüne yazılıyordu. Bu ürünün barkod / stok kodlarına ait satır seçilir.
+    const prodCodes: any = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { barcode: true, sku: true, variants: { select: { barcode: true, sku: true } } },
+    });
+    const myCodes = new Set(
+      [prodCodes?.barcode, prodCodes?.sku, ...(prodCodes?.variants || []).flatMap((v: any) => [v.barcode, v.sku])]
+        .filter(Boolean)
+        .map((c: any) => String(c).trim())
+    );
+    const mine = items.filter((it: any) => myCodes.has(String(it.barcode || "").trim()) || myCodes.has(String(it.vendorStockCode || "").trim()));
+    if (items.length > 1 && mine.length === 0) {
+      return {
+        success: false,
+        message: "Bu ürünün son gönderimi toplu bir işlemin içinde ve sonuçta ürüne ait satır bulunamadı. Ürün Idefix'te satıştaysa 'Idefix ile Eşleştir' ile durumu güncelleyebilirsiniz.",
+      };
+    }
+    // Varyantlıda bir satır onaylıysa ürün onaylı sayılır
+    const firstItem =
+      mine.find((it: any) => /success|complet|approv/i.test(String(it.status || ""))) || mine[0] || items[0] || {};
     const rawErrorCode = firstItem.errorCode || firstItem.failureReason || firstItem.errorReason || firstItem.rejectionReason || firstItem.reason || result.errorMessage || result.message || null;
     const itemStatus = String(firstItem.status || result.batchStatus || result.status || "").toUpperCase();
 
@@ -183,7 +203,8 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       BRAND_EXCLUSIVE_NOT_AUTHORIZED: "Bu markaya ait ürünleri satmak için Idefix yetkiniz bulunmuyor.",
     };
 
-    const resultStr = JSON.stringify(result);
+    // Hata kodu sadece bu ürüne ait satırlarda aranır (toplu sonuçta başka ürünlerin hataları var)
+    const resultStr = JSON.stringify(mine.length > 0 ? mine : items.length === 1 ? items : result);
     let matchedReason: string | null = null;
     for (const [code, translation] of Object.entries(errorTranslations)) {
       if (resultStr.includes(code)) {
@@ -192,7 +213,9 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       }
     }
 
-    const isSuccess = itemStatus === "SUCCESS" || itemStatus === "COMPLETED" || itemStatus === "APPROVED";
+    // "Zaten havuzda tanımlı" = ürün Idefix'te var (toplu yeniden gönderimde bu cevap dönüyor) -> senkronize say
+    const alreadyExists = resultStr.includes("PRODUCT_POOL_ALREADY_EXIST");
+    const isSuccess = alreadyExists || itemStatus === "SUCCESS" || itemStatus === "COMPLETED" || itemStatus === "APPROVED";
     const isDecline = itemStatus === "DECLINE" || itemStatus === "DECLINED" || itemStatus === "FAILED";
 
     let failureReason = matchedReason || rawErrorCode;
@@ -200,7 +223,7 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       failureReason = `Idefix Yanıtı: ${resultStr.slice(0, 250)}`;
     }
 
-    const actualError = isDecline ? (failureReason || "Idefix reddetti") : null;
+    const actualError = !isSuccess && isDecline ? (failureReason || "Idefix reddetti") : null;
     const finalBatchStatus = isSuccess ? "COMPLETED" : (isDecline ? "FAILED" : "PENDING");
 
     await (prisma as any).idefixProduct.update({
@@ -254,7 +277,7 @@ export async function enqueueIdefixSync() {
  * - Yeni urunler: fast-listing (katalogda olanlar icin) ile dene
  * productIds bos ise tum aktif urunler islenir.
  */
-export async function syncProductsToIdefix(productIds?: string[], options: { activate?: boolean } = {}): Promise<{
+export async function syncProductsToIdefix(productIds?: string[], options: { activate?: boolean; stockOnly?: boolean } = {}): Promise<{
   success: boolean;
   message: string;
   synced?: number;
@@ -313,6 +336,13 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
     const newProducts: any[] = [];
 
     for (const p of products) {
+      if (options.stockOnly) {
+        // Stok işi (sipariş, Gogo XML vb.): sadece Idefix'e daha önce gönderilmiş ürünlerin stoğu gider; ilan açılmaz /
+        // yeniden gönderilmez. Önceden stok işleri senkronize görünmeyen ürünleri toplu ilan olarak yeniden gönderiyor,
+        // ürünlerin işlem numarasını ezip "Beklemede"ye düşürüyordu.
+        if ((p as any).idefixProduct) alreadySyncedProducts.push(p);
+        continue;
+      }
       if (isSingleSync || (p as any).idefixProduct?.isSynced) {
         alreadySyncedProducts.push(p);
       }
