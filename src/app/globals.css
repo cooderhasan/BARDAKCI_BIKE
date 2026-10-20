@@ -331,3 +331,12 @@
     bottom: calc(5.25rem + env(safe-area-inset-bottom)) !important;
   }
 }
+
+/* Yatay kayan şeritlerde kaydırma çubuğunu gizle (sınıf kullanılıyordu ama tanımlı değildi; telefonda gri çizgi görünüyordu) */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
