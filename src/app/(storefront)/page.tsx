@@ -462,7 +462,7 @@ export default async function HomePage() {
                                                 Bardakcı Bike
                                             </div>
                                         )}
-                                        <div className="absolute top-3 left-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xs px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#17457C] shadow-xs">
+                                        <div className="absolute top-3 right-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xs px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#17457C] shadow-xs">
                                             {post.readTime} Dk Okuma
                                         </div>
                                     </Link>

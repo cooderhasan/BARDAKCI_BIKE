@@ -63,7 +63,7 @@ export default async function StorefrontBlogPage() {
                                             {isMotor ? "Motovitrin" : "Bardakcı Bike"}
                                         </div>
                                     )}
-                                    <div className="absolute top-4 left-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs px-3 py-1 rounded-full text-xs font-semibold text-[#17457C] flex items-center gap-1.5 shadow-sm">
+                                    <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xs px-3 py-1 rounded-full text-xs font-semibold text-[#17457C] flex items-center gap-1.5 shadow-sm">
                                         <Clock className="w-3.5 h-3.5" />
                                         {post.readTime} Dk Okuma
                                     </div>
