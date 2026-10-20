@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2, ArrowRight, FolderOpen } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/helpers";
 
@@ -27,8 +27,18 @@ const toTitle = (t: string) => t.toLocaleLowerCase("tr-TR").replace(/(?:^|[\s-/]
 export function SearchInput() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
     const [value, setValue] = useState(searchParams.get("search") || "");
     const [isPending, startTransition] = useTransition();
+
+    // Sayfa değişince: arama sonuçlarında aranan kelime kutuda kalır (düzeltmek için), başka sayfada kutu temizlenir.
+    // Önceden header yeniden yüklenmediği için ürün/kategori sayfasına geçince de eski kelime kutuda kalıyordu.
+    const urlSearch = searchParams.get("search") || "";
+    useEffect(() => {
+        setValue(pathname === "/products" ? urlSearch : "");
+        setOpen(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname, urlSearch]);
 
     // Canlı öneriler: yazarken ilk ürünler ve kategoriler (api/search/suggest)
     const [open, setOpen] = useState(false);
