@@ -143,6 +143,16 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
       const res = await checkIdefixBatchStatus(productId);
       if (res.success) {
         toast.success(res.message, { duration: 6000 });
+        // Listede durumu hemen güncelle (önceden F5 gerekiyordu)
+        const msg = String(res.message || "");
+        const synced = /senkronize|onaylandı|satışta/i.test(msg);
+        setProducts((prev: any[]) =>
+          prev.map((x: any) =>
+            x.id === productId
+              ? { ...x, idefixProduct: { ...(x.idefixProduct || {}), ...(synced ? { isSynced: true, batchStatus: "COMPLETED", lastSyncError: null } : {}) } }
+              : x
+          )
+        );
       } else {
         toast.error(res.message, { duration: 6000 });
       }
