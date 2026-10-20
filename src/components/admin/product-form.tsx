@@ -217,12 +217,19 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         : 0;
 
     const handleChange = (field: string, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-
-        // Auto-generate slug if name changes and it's a new product (no ID)
-        if (field === "name" && !product) {
-            setFormData(prev => ({ ...prev, slug: generateSlug(value), name: value }));
+        // Ad değişince adres (slug) otomatik: yeni üründe her zaman; kopyalanmış / henüz yayına alınmamış (pasif) üründe
+        // adres hâlâ otomatik üretilmişse (elle değiştirilmemişse) ada uyar. Yayındaki üründe adres değişmez (link kırılmasın).
+        if (field === "name") {
+            setFormData(prev => {
+                const slugIsAuto = prev.slug === generateSlug(prev.name) || /-kopya(-\d+)?$/.test(prev.slug);
+                if (!product || (!product.isActive && slugIsAuto)) {
+                    return { ...prev, name: value, slug: generateSlug(value) };
+                }
+                return { ...prev, name: value };
+            });
+            return;
         }
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const hasVariants = formData.variants.length > 0;

@@ -264,9 +264,18 @@ export async function updateProduct(productId: string, formData: FormData) {
             console.log(`${key}:`, value);
         }
 
+        // Adres (slug) başka bir üründe varsa sonuna -1, -2 eklenir (kopya ürünün adı kaynakla aynı yapılınca çakışıyordu)
+        let updateSlug = ((formData.get("slug") as string) || "").trim();
+        if (updateSlug) {
+            const baseUpdateSlug = updateSlug;
+            for (let i = 1; await prisma.product.findFirst({ where: { slug: updateSlug, id: { not: productId } }, select: { id: true } }); i++) {
+                updateSlug = `${baseUpdateSlug}-${i}`;
+            }
+        }
+
         const rawData = {
             name: formData.get("name") as string,
-            slug: formData.get("slug") as string,
+            slug: updateSlug,
             sku: (formData.get("sku") as string) || undefined,
             barcode: (formData.get("barcode") as string) || undefined,
             brandId: (formData.get("brandId") as string) === "none" ? undefined : (formData.get("brandId") as string) || undefined,
