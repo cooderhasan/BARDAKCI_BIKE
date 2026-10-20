@@ -491,7 +491,8 @@ export function ProductDetail({
                                             type="button"
                                             onClick={() => setActiveImageIndex(index)}
                                             className={cn(
-                                                "relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
+                                                // Telefonda 5 küçük resim satıra tam sığar (önceden sabit 64px'ti, 5. resim yarım/kesik görünüyordu)
+                                                "relative w-[calc((100%-2rem)/5)] aspect-square sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all shrink-0",
                                                 activeImageIndex === index
                                                     ? "border-[#17457C] ring-1 ring-[#17457C]/30"
                                                     : "border-gray-200 dark:border-gray-700 hover:border-gray-300 opacity-60 hover:opacity-100"
