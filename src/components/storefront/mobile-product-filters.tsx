@@ -16,7 +16,7 @@ interface MobileProductFiltersProps {
     activeCategorySlug?: string;
     isMotor?: boolean;
     /** Kategori listesinin üstündeki bağlantı (kategori sayfasında: "Tüm X" ya da "← Üst kategori"); yoksa "Tüm Kategoriler" */
-    categoryNav?: { label: string; href: string; active: boolean; back?: boolean };
+    categoryNav?: { label: string; href: string; active: boolean; back?: boolean } | null;
 }
 
 export function MobileProductFilters({

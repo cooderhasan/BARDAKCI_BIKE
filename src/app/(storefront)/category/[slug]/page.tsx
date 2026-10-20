@@ -279,7 +279,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         ? { label: `Tüm ${catTitle(category.name)}`, href: `/category/${category.slug}`, active: true }
         : category.parent
             ? { label: catTitle(category.parent.name), href: `/category/${category.parent.slug}`, active: false, back: true }
-            : { label: "Tüm Ürünler", href: "/products", active: false };
+            // Alt kategorisi olmayan ana kategori: liste zaten ana kategoriler, üst satır gerekmez
+            : null;
 
     const [{ products, totalCount }, brandRows, variants] = await Promise.all([
         // Stoktakiler önce, tükenenler sonda (lib/product-listing)

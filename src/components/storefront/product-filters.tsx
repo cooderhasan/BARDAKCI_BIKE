@@ -33,7 +33,7 @@ interface ProductFiltersProps {
     isMotor?: boolean;
     onFilterApply?: () => void;
     /** Kategori listesinin üstündeki bağlantı (kategori sayfasında: "Tüm X" ya da "← Üst kategori"); yoksa "Tüm Kategoriler" */
-    categoryNav?: { label: string; href: string; active: boolean; back?: boolean };
+    categoryNav?: { label: string; href: string; active: boolean; back?: boolean } | null;
 }
 
 export function ProductFilters({
@@ -102,7 +102,9 @@ export function ProductFilters({
                     </AccordionTrigger>
                     <AccordionContent>
                         <div className="space-y-1 pr-1">
-                            {/* Kategori sayfasında "Tüm Kategoriler" tüm siteye götürüyordu; artık bulunulan kategori / üst kategori */}
+                            {/* Kategori sayfasında "Tüm Kategoriler" tüm siteye götürüyordu; artık bulunulan kategori / üst kategori.
+                                null = gösterme (alt kategorisi olmayan ana kategori) */}
+                            {categoryNav !== null && (
                             <button
                                 onClick={() => { router.push(categoryNav?.href || "/products"); onFilterApply?.(); }}
                                 className={cn(
@@ -115,6 +117,7 @@ export function ProductFilters({
                             >
                                 {categoryNav ? (categoryNav.back ? `← ${categoryNav.label}` : categoryNav.label) : "Tüm Kategoriler"}
                             </button>
+                            )}
                             {categories.map((category) => (
                                 <button
                                     key={category.id}
