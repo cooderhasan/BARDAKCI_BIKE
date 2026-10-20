@@ -200,7 +200,7 @@ export function SearchInput() {
                                             {p.image && (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img
-                                                    src={`/_next/image?url=${encodeURIComponent(p.image)}&w=96&q=70`}
+                                                    src={`/_next/image?url=${encodeURIComponent(p.image)}&w=96&q=75`}
                                                     alt=""
                                                     className="w-full h-full object-contain p-1 mix-blend-multiply dark:mix-blend-normal"
                                                     loading="lazy"
