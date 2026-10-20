@@ -15,7 +15,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ShoppingCart, User, Menu, LogOut, Package, Settings, LayoutDashboard, X, Phone, Zap, ChevronDown, Home, Car, Truck, Building2, Mail, Info, Cog, Plus, Minus, ChevronRight } from "lucide-react";
+import { ShoppingCart, ShoppingBag, User, Menu, LogOut, Package, Settings, LayoutDashboard, X, Phone, Zap, ChevronDown, Home, Car, Truck, Building2, Mail, Info, Cog, Plus, Minus, ChevronRight } from "lucide-react";
 
 
 
@@ -218,7 +218,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 {!mounted ? (
                                     <button aria-label="Giriş Yap" className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100">
                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                            <User className="h-5 w-5" />
+                                            <User className="h-5 w-5" strokeWidth={1.6} />
                                         </div>
                                         <span className="hidden sm:inline text-sm font-semibold">Giriş Yap</span>
                                     </button>
@@ -227,7 +227,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                         <DropdownMenuTrigger asChild>
                                             <button aria-label={user ? "Hesabım" : "Giriş Yap"} className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100 outline-none">
                                                 <div className={`w-10 h-10 ${user ? 'bg-[#17457C]/10' : 'bg-gray-100'} rounded-full flex items-center justify-center`}>
-                                                    <User className={`h-5 w-5 ${user ? 'text-[#17457C]' : ''}`} />
+                                                    <User className={`h-5 w-5 ${user ? 'text-[#17457C]' : ''}`} strokeWidth={1.6} />
                                                 </div>
                                                 <span className="hidden sm:inline text-sm font-semibold">
                                                     {user ? "Hesabım" : "Giriş Yap"}
@@ -319,18 +319,25 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                             </div>
 
                             {/* Cart - Visible for everyone */}
-                            <Link href="/cart" aria-label="Alışveriş Sepetim" className="flex items-center gap-1 md:gap-3 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100">
+                            {/* Sepet: çizgi (outline) çanta ikonu; boşken sayı balonu ve "₺0" yerine sadece "Sepetim" */}
+                            <Link href="/cart" aria-label="Alışveriş Sepetim" className="group/cart flex items-center gap-1 md:gap-2.5 text-gray-700 hover:text-[#17457C] transition-colors px-1.5 md:px-3 py-1.5 md:py-2 rounded-lg hover:bg-gray-100">
                                 <div className="relative">
-                                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                                        <ShoppingCart className="h-5 w-5 text-orange-600" />
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 group-hover/cart:bg-[#17457C]/10 flex items-center justify-center transition-colors">
+                                        <ShoppingBag className="h-[21px] w-[21px] text-[#17457C]" strokeWidth={1.6} />
                                     </div>
-                                    <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white border-2 border-white">
-                                        {mounted ? itemCount : 0}
-                                    </span>
+                                    {mounted && itemCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 flex items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold text-white border-2 border-white">
+                                            {itemCount > 99 ? "99+" : itemCount}
+                                        </span>
+                                    )}
                                 </div>
-                                <span className="hidden sm:inline text-sm font-bold text-orange-600 whitespace-nowrap">
-                                    <CartTotalDisplay />
-                                </span>
+                                {mounted && itemCount > 0 ? (
+                                    <span className="hidden sm:inline text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                                        <CartTotalDisplay />
+                                    </span>
+                                ) : (
+                                    <span className="hidden sm:inline text-sm font-semibold whitespace-nowrap">Sepetim</span>
+                                )}
                             </Link>
 
                             {/* Mobile Menu Toggle */}
