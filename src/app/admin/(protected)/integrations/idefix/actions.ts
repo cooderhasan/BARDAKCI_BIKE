@@ -150,6 +150,29 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
       isTestMode: Boolean(config.isTestMode),
     });
 
+    // Önce ürünün Idefix'teki gerçek durumu (barkodla): satıştaysa son gönderimin sonucu önemsiz. Önceden sadece son
+    // işlem numarasına bakılıyordu; satıştaki ürün gereksiz yeniden gönderimde reddedilince "Hata/Beklemede" görünüyordu.
+    const codeRow: any = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { barcode: true, variants: { select: { barcode: true } } },
+    });
+    const barcodes = [codeRow?.barcode, ...(codeRow?.variants || []).map((v: any) => v.barcode)]
+      .filter(Boolean)
+      .map((b: any) => String(b).trim());
+    for (const bc of [...new Set(barcodes)]) {
+      const poolItems = await client.getPoolProducts(1, 50, bc).catch(() => [] as any[]);
+      const hit = poolItems.find((it: any) => String(it.barcode || "").trim() === bc);
+      if (!hit) continue;
+      const poolStatus = String(hit.status || "");
+      if (IDEFIX_LIVE_STATUS.test(poolStatus) && !IDEFIX_NOT_LIVE_STATUS.test(poolStatus)) {
+        await (prisma as any).idefixProduct.update({
+          where: { productId },
+          data: { batchStatus: "COMPLETED", isSynced: true, lastSyncError: null, lastSyncedAt: new Date() },
+        });
+        return { success: true, data: hit, message: `Ürün Idefix'te satışta (durum: ${poolStatus}). Durum 'Senkronize' yapıldı.` };
+      }
+    }
+
     let result = await client.getBatchResult(idefixProd.batchId, "fast-listing").catch(() => null);
     if (!result || result.code === 404 || result.status === "NOT_FOUND") {
       result = await client.getBatchResult(idefixProd.batchId, "create").catch(() => null);
