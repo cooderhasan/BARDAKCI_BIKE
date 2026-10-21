@@ -275,10 +275,14 @@ export async function sendOrderInvoiceNes(orderId: string) {
                     receiver.receiverAlias = taxpayerCheck.alias;
                 }
                 console.log(`🔍 Mükellef Sorgusu: VKN=${taxId} → ${useEInvoice ? `E-FATURA MÜKELLEFİ ✅ (alias: ${taxpayerCheck.alias})` : "E-FATURA MÜKELLEFİ DEĞİL → E-ARŞİV"}`);
-            } catch (e) {
-                console.warn(`⚠️ Mükellef sorgusu başarısız, e-Arşiv olarak devam ediliyor.`);
+            } catch (e: any) {
+                // Mükellefse NES e-Arşiv'i zaten reddeder; mükellef değilse e-Arşiv doğru tür
+                console.warn(`⚠️ Mükellef sorgusu başarısız, e-Arşiv olarak devam ediliyor: ${e?.message}`);
             }
         }
+
+        // e-Fatura serisi NES'te tanımlı varsayılan seri (yoksa eski sabit "MFB")
+        const eInvoicePrefix = useEInvoice ? await client.getEInvoiceSeriesPrefix() : null;
 
         // 8. Sipariş kaynağına göre bilgiler
         const purchaseUrlMap: Record<string, string> = {
@@ -327,6 +331,7 @@ export async function sendOrderInvoiceNes(orderId: string) {
 
         const invoiceOptions: Partial<UblInvoiceOptions> = {
             profileId,
+            ...(eInvoicePrefix ? { prefix: eInvoicePrefix } : {}),
             invoiceTypeCode: "SATIS",
             orderNumber: order.orderNumber,
             carrier: cargoInfo,
@@ -540,14 +545,18 @@ function buildReceiverInfo(order: any): UblReceiverInfo {
     if (shippingAddress?.taxNumber) vkn = String(shippingAddress.taxNumber);
     else if (user?.taxNumber) vkn = user.taxNumber;
 
+    // Pazaryeri siparişlerinde (ör. PttAVM) fatura bilgileri adreste: firma ünvanı, vergi dairesi, fatura adresi
+    if (shippingAddress?.taxOffice) taxOffice = String(shippingAddress.taxOffice).trim();
+
     // Şirket ise
-    if (user?.companyName) {
-        title = user.companyName;
-        name = user.companyName;
+    const companyName = String(shippingAddress?.companyName || "").trim() || user?.companyName;
+    if (companyName) {
+        title = companyName;
+        name = companyName;
     }
 
     // Bireysel müşteri
-    const fullName = shippingAddress?.fullName || shippingAddress?.name || user?.name || "";
+    const fullName = shippingAddress?.billingFullName || shippingAddress?.fullName || shippingAddress?.name || user?.name || "";
     if (fullName) {
         const nameParts = fullName.trim().split(" ");
         name = nameParts.slice(0, -1).join(" ") || fullName;
@@ -559,9 +568,9 @@ function buildReceiverInfo(order: any): UblReceiverInfo {
         name: name || "Müşteri",
         surname: surname || ".",
         title: title || `${name} ${surname}`.trim() || "Müşteri",
-        address: shippingAddress?.address || user?.address || ".",
-        city: shippingAddress?.city || user?.city || "ISTANBUL",
-        district: shippingAddress?.district || user?.district || "Merkez",
+        address: shippingAddress?.billingAddressText || shippingAddress?.address || shippingAddress?.addressText || user?.address || ".",
+        city: shippingAddress?.billingCity || shippingAddress?.city || user?.city || "ISTANBUL",
+        district: shippingAddress?.billingDistrict || shippingAddress?.district || user?.district || "Merkez",
         country: "Turkiye",
         email: user?.email || order.guestEmail || "",
         taxOffice: taxOffice || undefined,

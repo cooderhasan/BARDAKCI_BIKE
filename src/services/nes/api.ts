@@ -162,63 +162,57 @@ export class NesClient {
      * aliasType: All, Pk, Gb
      */
     async checkTaxpayer(vkn: string): Promise<NesTaxpayerResult> {
+        // Yanıt (UserInfo): { identifier, title, type, aliases: [{ alias, type: "Pk"|"Gb", creationTime }] }
+        // Faturayı alıcının posta kutusu (Pk) etiketine göndeririz. Önceden üst düzeyde "alias" aranıyordu; bulunamadığı
+        // için mükellefler "değil" sayılıp e-Arşiv kesiliyor, NES de "ALICI EFATURA MUKELLEFIDIR" diye reddediyordu.
+        const endpoint = `/einvoice/v1/users/${encodeURIComponent(vkn)}/Pk`;
+        console.log(`🔍 NES Mükellef Sorgusu: ${endpoint}`);
+        const response = await fetch(`${this.baseUrl}${endpoint}`, {
+            method: "GET",
+            headers: this.headers,
+            signal: AbortSignal.timeout(15000),
+        });
+
+        // 404 = GİB mükellef listesinde yok → e-Arşiv
+        if (response.status === 404) return { isEInvoiceUser: false };
+        if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(`Mükellef sorgusu başarısız (${response.status}): ${text.slice(0, 200)}`);
+        }
+
+        const data = await response.json();
+        console.log(`📋 Mükellef Yanıtı:`, JSON.stringify(data));
+        const info = Array.isArray(data) ? data[0] : data;
+        const aliases: Array<{ alias: string; type: string; title?: string }> = (info?.aliases || info?.Aliases || []).map((a: any) => ({
+            alias: a.alias || a.Alias || "",
+            type: a.type || a.Type || "",
+        }));
+        const pk = aliases.filter((a) => a.alias && (!a.type || a.type.toLowerCase() === "pk"));
+        // En yeni oluşturulan etiket genelde güncel olanı; NES sıralamasına güvenip ilk Pk'yi alıyoruz
+        const alias = pk[0]?.alias || info?.alias || info?.Alias;
+        if (!alias) return { isEInvoiceUser: false };
+        return { isEInvoiceUser: true, alias, title: info?.title || info?.Title, aliases };
+    }
+
+    /**
+     * E-Fatura serisi (3 harf): NES'te tanımlı aktif ve varsayılan seri. Numara NES tarafından verilir.
+     * GET /einvoice/v1/definitions/series
+     */
+    async getEInvoiceSeriesPrefix(): Promise<string | null> {
         try {
-            // Birden fazla endpoint deneyelim
-            const endpoints = [
-                `/einvoice/v1/users/${vkn}/All`,
-                `/einvoice/v1/users/${vkn}/Pk`,
-            ];
-
-            for (const endpoint of endpoints) {
-                try {
-                    console.log(`🔍 NES Mükellef Sorgusu: ${endpoint}`);
-                    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-                        method: "GET",
-                        headers: this.headers,
-                        signal: AbortSignal.timeout(15000),
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log(`📋 Mükellef Yanıtı:`, JSON.stringify(data, null, 2));
-
-                        // API dizi veya obje dönebilir
-                        if (Array.isArray(data) && data.length > 0) {
-                            return {
-                                isEInvoiceUser: true,
-                                alias: data[0].alias || data[0].Alias || data[0].identifier,
-                                title: data[0].title || data[0].Title || data[0].name,
-                                aliases: data.map((item: any) => ({
-                                    alias: item.alias || item.Alias || "",
-                                    type: item.type || item.Type || item.aliasType || "",
-                                    title: item.title || item.Title || "",
-                                })),
-                            };
-                        }
-
-                        // Tek obje döndüyse
-                        if (data && (data.alias || data.Alias)) {
-                            return {
-                                isEInvoiceUser: true,
-                                alias: data.alias || data.Alias,
-                                title: data.title || data.Title,
-                            };
-                        }
-                    }
-
-                    // 404 = e-Fatura mükellefi değil
-                    if (response.status === 404) {
-                        return { isEInvoiceUser: false };
-                    }
-                } catch (endpointError: any) {
-                    console.warn(`⚠️ Endpoint ${endpoint} başarısız:`, endpointError.message);
-                }
-            }
-
-            return { isEInvoiceUser: false };
-        } catch (error: any) {
-            console.error("❌ Mükellef sorgusu hatası:", error.message);
-            return { isEInvoiceUser: false };
+            const response = await fetch(`${this.baseUrl}/einvoice/v1/definitions/series?status=Active`, {
+                method: "GET",
+                headers: this.headers,
+                signal: AbortSignal.timeout(15000),
+            });
+            if (!response.ok) return null;
+            const list = await response.json();
+            if (!Array.isArray(list) || list.length === 0) return null;
+            const active = list.filter((s: any) => !s.activeStatus || String(s.activeStatus).toLowerCase() === "active");
+            const pick = active.find((s: any) => s.isDefault) || active[0];
+            return pick?.serie || null;
+        } catch {
+            return null;
         }
     }
 
@@ -335,6 +329,8 @@ export class NesClient {
         formData.append("IsDirectSend", "true");
         formData.append("SenderAlias", this.config.senderAlias || "urn:mail:defaultgb@nes.com.tr");
         formData.append("ReceiverAlias", receiver.receiverAlias || "urn:mail:defaultpk@nes.com.tr");
+        // NES e-Fatura yüklemesinde zorunlu alan; alıcıyı NES firma listesine kaydetmesin
+        formData.append("AutoSaveCompany", "false");
 
         if (invoiceOptions.orderNumber) {
             formData.append("SourceAppRecordId", invoiceOptions.orderNumber);
