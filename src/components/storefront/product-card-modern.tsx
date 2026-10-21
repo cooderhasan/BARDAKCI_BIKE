@@ -214,7 +214,7 @@ export function ProductCardModern({
                             <button
                                 type="button"
                                 onClick={handleAddToCart}
-                                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-[#17457C]/30 dark:border-blue-400/40 bg-white dark:bg-transparent text-[#17457C] dark:text-blue-300 text-[13px] font-bold hover:bg-[#17457C] hover:text-white hover:border-[#17457C] hover:shadow-md hover:shadow-[#17457C]/20 active:scale-[0.98] transition-all duration-200 whitespace-nowrap"
+                                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#1d5594] to-[#17457C] text-white text-[13px] font-bold tracking-wide shadow-md shadow-[#17457C]/25 ring-1 ring-inset ring-white/10 hover:from-[#17457C] hover:to-[#0f3460] hover:shadow-lg hover:shadow-[#17457C]/35 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-200 whitespace-nowrap"
                             >
                                 <ShoppingBag className="w-4 h-4" strokeWidth={2} />
                                 Sepete Ekle
