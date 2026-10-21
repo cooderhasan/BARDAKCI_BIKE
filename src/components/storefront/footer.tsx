@@ -42,7 +42,7 @@ export function StorefrontFooter({ settings, policies, categories = [] }: Storef
             {/* Subtle Top Glow */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#17457C]/50 to-transparent" />
 
-            <div className="container mx-auto px-4 py-12 md:py-16 pb-24 md:pb-16 relative z-10">
+            <div className="container mx-auto px-4 py-12 md:py-16 pb-24 md:pb-24 relative z-10">
                 <div className="grid gap-x-6 gap-y-10 md:gap-12 grid-cols-2 md:grid-cols-4">
                     {/* Company Info */}
                     <div className="space-y-6 col-span-2 md:col-span-1 text-center md:text-left">

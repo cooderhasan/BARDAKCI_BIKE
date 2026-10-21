@@ -999,29 +999,43 @@ export function ProductDetail({
                 <RecentlyViewed excludeId={product.id} />
             </div>
 
-            {/* Telefonda sabit Sepete Ekle çubuğu (asıl buton ekranın üstünden çıkınca) */}
+            {/* Sabit Sepete Ekle çubuğu (asıl buton ekranın üstünden çıkınca). Telefonda fiyat + buton; masaüstünde ayrıca
+                küçük görsel, ürün adı ve seçili renk/beden */}
             {product.stock > 0 && (
                 <div
                     aria-hidden={!showStickyCart}
                     className={cn(
-                        "md:hidden fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur px-4 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] transition-transform duration-300",
+                        "fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur shadow-[0_-4px_16px_rgba(0,0,0,0.08)] transition-transform duration-300",
                         showStickyCart ? "translate-y-0" : "translate-y-full pointer-events-none"
                     )}
                 >
-                    <div className="min-w-0 flex-1">
-                        {showStrikethrough && (
-                            <div className="text-[11px] text-gray-400 line-through leading-none">{formatPrice(strikethroughPrice)}</div>
+                    <div className="container mx-auto max-w-7xl flex items-center gap-3 md:gap-4 px-4 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] md:py-3">
+                        {galleryImages[0] && (
+                            <div className="hidden md:block relative w-12 h-12 shrink-0 rounded-lg bg-[#f3f5f8] dark:bg-gray-800 overflow-hidden">
+                                <Image src={galleryImages[activeImageIndex] || galleryImages[0]} alt="" fill sizes="48px" className="object-contain p-1 mix-blend-multiply dark:mix-blend-normal" />
+                            </div>
                         )}
-                        <div className="text-lg font-extrabold text-[#17457C] dark:text-blue-300 leading-tight truncate">{formatPrice(displayFinalPrice)}</div>
+                        <div className="hidden md:block min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{product.name}</p>
+                            {currentVariant && (
+                                <p className="text-xs text-gray-500 truncate">{[currentVariant.color, currentVariant.size].filter(Boolean).join(" / ")}</p>
+                            )}
+                        </div>
+                        <div className="min-w-0 flex-1 md:flex-none md:text-right">
+                            {showStrikethrough && (
+                                <div className="text-[11px] text-gray-400 line-through leading-none">{formatPrice(strikethroughPrice)}</div>
+                            )}
+                            <div className="text-lg font-extrabold text-[#17457C] dark:text-blue-300 leading-tight truncate">{formatPrice(displayFinalPrice)}</div>
+                        </div>
+                        <Button
+                            tabIndex={showStickyCart ? 0 : -1}
+                            className="h-11 px-6 md:px-8 text-sm font-bold bg-[#17457C] hover:bg-[#0f3460] text-white rounded-lg shadow-lg shadow-[#17457C]/20 shrink-0"
+                            onClick={handleAddToCart}
+                        >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Sepete Ekle
+                        </Button>
                     </div>
-                    <Button
-                        tabIndex={showStickyCart ? 0 : -1}
-                        className="h-11 px-6 text-sm font-bold bg-[#17457C] hover:bg-[#0f3460] text-white rounded-lg shadow-lg shadow-[#17457C]/20 shrink-0"
-                        onClick={handleAddToCart}
-                    >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Sepete Ekle
-                    </Button>
                 </div>
             )}
         </div>
