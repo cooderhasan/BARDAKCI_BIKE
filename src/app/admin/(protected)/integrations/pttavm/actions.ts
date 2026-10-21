@@ -1127,19 +1127,39 @@ export async function uploadInvoiceToPttavm(orderNumber: string, invoiceUrl: str
       lineItemIds = [1];
     }
 
+    // PDF'in kendisini gönder (PTT dosyayı kendinde saklar). URL verilirse PTT URL'yi esas alıyor ve linki kendisi
+    // açamazsa panelde fatura görünmüyordu. PDF indirilemezse eski yöntem: URL.
+    let content = pdfBase64 || null;
+    if (!content && invoiceUrl) {
+      try {
+        const pdfRes = await fetch(invoiceUrl, { signal: AbortSignal.timeout(20000) });
+        const type = pdfRes.headers.get("content-type") || "";
+        if (pdfRes.ok && type.includes("pdf")) {
+          content = Buffer.from(await pdfRes.arrayBuffer()).toString("base64");
+        } else {
+          console.warn(`PttAVM fatura PDF indirilemedi (${pdfRes.status} ${type}), URL ile gönderiliyor`);
+        }
+      } catch (e: any) {
+        console.warn("PttAVM fatura PDF indirme hatası, URL ile gönderiliyor:", e.message);
+      }
+    }
+
     const payload: any = {
       lineItemId: lineItemIds,
-      url: invoiceUrl || null,
-      content: pdfBase64 || null,
+      url: content ? null : invoiceUrl || null,
+      content,
     };
 
     const res = await client.sendInvoice(orderNumber, payload);
-    const isSuccess = res?.success === true || res?.isSuccess === true || !res?.error_Message;
+    console.log(`PttAVM fatura yanıtı (${orderNumber}, lineItemId=${lineItemIds.join(",")}):`, JSON.stringify(res));
+    // Cevap: { success: boolean, error_Message: string|null }. Önceden "hata mesajı yoksa başarılı" sayılıyordu;
+    // success:false + boş mesaj da başarılı görünüyordu.
+    const isSuccess = (res?.success === true || res?.Success === true || res?.isSuccess === true) && !res?.error_Message && !res?.Error_Message;
 
     if (isSuccess) {
-      return { success: true, message: "Fatura ePttAVM'ye başarıyla yüklendi ✅" };
+      return { success: true, message: `Fatura ePttAVM'ye başarıyla yüklendi ✅${content ? " (PDF)" : ""}` };
     } else {
-      return { success: false, message: res?.error_Message || res?.message || "ePttAVM fatura yükleme başarısız" };
+      return { success: false, message: res?.error_Message || res?.message || `ePttAVM fatura yükleme başarısız: ${JSON.stringify(res)?.slice(0, 200)}` };
     }
   } catch (error: any) {
     console.error("uploadInvoiceToPttavm Error:", error);
