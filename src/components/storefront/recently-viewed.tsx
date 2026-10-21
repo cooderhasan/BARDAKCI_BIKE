@@ -9,7 +9,8 @@ import { formatPrice } from "@/lib/helpers";
  * Bisiklet ve motor sitesi ayrı alan adı olduğu için listeleri de ayrı. Fiyat/stok gösterirken güncel alınır.
  */
 const KEY = "recently_viewed_v1";
-const MAX = 12;
+const MAX = 12; // tarayıcıda tutulan
+const SHOW = 6; // gösterilen: tek satır (ürün sayfasında açık ürün hariç)
 
 function readIds(): string[] {
     try {
@@ -45,7 +46,7 @@ export function RecentlyViewed({ excludeId, className }: { excludeId?: string; c
     const [products, setProducts] = useState<RecentProduct[]>([]);
 
     useEffect(() => {
-        const ids = readIds().filter((id) => id !== excludeId).slice(0, MAX);
+        const ids = readIds().filter((id) => id !== excludeId).slice(0, SHOW);
         if (ids.length === 0) return;
         let cancelled = false;
         fetch(`/api/products/recent?ids=${ids.join(",")}`)
