@@ -214,18 +214,18 @@ export function ProductCardModern({
                             <button
                                 type="button"
                                 onClick={handleAddToCart}
-                                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#1d5594] to-[#17457C] text-white text-[13px] font-bold tracking-wide shadow-md shadow-[#17457C]/25 ring-1 ring-inset ring-white/10 hover:from-[#17457C] hover:to-[#0f3460] hover:shadow-lg hover:shadow-[#17457C]/35 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-200 whitespace-nowrap"
+                                className="w-full h-10 md:h-11 flex items-center justify-center gap-2 md:gap-2.5 rounded-xl bg-gradient-to-b from-[#1d5594] to-[#17457C] text-white text-[13px] md:text-[15px] font-bold tracking-wide shadow-md shadow-[#17457C]/25 ring-1 ring-inset ring-white/10 hover:from-[#17457C] hover:to-[#0f3460] hover:shadow-lg hover:shadow-[#17457C]/35 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-200 whitespace-nowrap"
                             >
-                                <ShoppingBag className="w-4 h-4" strokeWidth={2} />
+                                <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" strokeWidth={2} />
                                 Sepete Ekle
                             </button>
                         ) : hasVariants && product.stock > 0 ? (
                             // Kartın kendisi ürün sayfasına gider; seçim orada yapılır
-                            <span className="w-full h-10 flex items-center justify-center gap-2 rounded-xl border border-[#17457C]/30 dark:border-blue-400/40 text-[#17457C] dark:text-blue-300 text-[13px] font-bold group-hover/card:bg-[#17457C] group-hover/card:text-white group-hover/card:border-[#17457C] transition-all duration-200 whitespace-nowrap">
+                            <span className="w-full h-10 md:h-11 flex items-center justify-center gap-2 rounded-xl border border-[#17457C]/30 dark:border-blue-400/40 text-[#17457C] dark:text-blue-300 text-[13px] md:text-[15px] font-bold group-hover/card:bg-[#17457C] group-hover/card:text-white group-hover/card:border-[#17457C] transition-all duration-200 whitespace-nowrap">
                                 Seçenekleri Gör
                             </span>
                         ) : (
-                            <span className="w-full h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 text-[13px] font-bold whitespace-nowrap">
+                            <span className="w-full h-10 md:h-11 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 text-[13px] md:text-[15px] font-bold whitespace-nowrap">
                                 Tükendi
                             </span>
                         )}
