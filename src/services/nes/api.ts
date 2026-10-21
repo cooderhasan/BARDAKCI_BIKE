@@ -195,6 +195,32 @@ export class NesClient {
     }
 
     /**
+     * Gönderici (bizim) e-Fatura gönderici kutusu (Gb) etiketi. Ayardaki etiket GİB listesindeyse o, değilse listedeki ilk Gb.
+     * Ayara yazım hatasıyla girilen etiket ("defaulttgb") e-Arşiv'de fark edilmiyor, e-Fatura'da reddediliyordu.
+     */
+    async resolveSenderAlias(): Promise<string | undefined> {
+        const configured = this.config.senderAlias?.trim();
+        try {
+            const response = await fetch(`${this.baseUrl}/einvoice/v1/users/${encodeURIComponent(this.config.senderVkn)}/Gb`, {
+                method: "GET",
+                headers: this.headers,
+                signal: AbortSignal.timeout(15000),
+            });
+            if (!response.ok) return configured;
+            const data = await response.json();
+            const info = Array.isArray(data) ? data[0] : data;
+            const gb: string[] = (info?.aliases || [])
+                .filter((a: any) => a?.alias && (!a.type || String(a.type).toLowerCase() === "gb"))
+                .map((a: any) => a.alias);
+            if (configured && gb.includes(configured)) return configured;
+            if (gb[0]) console.warn(`⚠️ Ayardaki gönderici etiketi (${configured}) GİB listesinde yok, ${gb[0]} kullanılıyor`);
+            return gb[0] || configured;
+        } catch {
+            return configured;
+        }
+    }
+
+    /**
      * E-Fatura serisi (3 harf): NES'te tanımlı aktif ve varsayılan seri. Numara NES tarafından verilir.
      * GET /einvoice/v1/definitions/series
      */
@@ -327,7 +353,8 @@ export class NesClient {
         formData.append("PreviewType", "Html");
         formData.append("SourceApp", this.config.sourceApp || "BardakciBike");
         formData.append("IsDirectSend", "true");
-        formData.append("SenderAlias", this.config.senderAlias || "urn:mail:defaultgb@nes.com.tr");
+        const senderAlias = await this.resolveSenderAlias();
+        formData.append("SenderAlias", senderAlias || "urn:mail:defaultgb@nes.com.tr");
         formData.append("ReceiverAlias", receiver.receiverAlias || "urn:mail:defaultpk@nes.com.tr");
         // NES e-Fatura yüklemesinde zorunlu alan; alıcıyı NES firma listesine kaydetmesin
         formData.append("AutoSaveCompany", "false");
