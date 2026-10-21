@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface Slider {
     id: string;
@@ -21,27 +20,34 @@ interface Slider {
  * Slayt görseli. Mobil görsel varsa <picture> ile telefonda (768px altı) kare mobil görsel, büyük ekranda geniş görsel
  * indirilir (ikisi birden indirilmez). Mobil görseli olmayan slayt, slider kare iken kutuya sığdırılır (kırpılmaz).
  */
-function SlideImage({ slide, squareOnMobile }: { slide: Slider; squareOnMobile: boolean }) {
+function SlideImage({ slide, squareOnMobile, priority, active }: { slide: Slider; squareOnMobile: boolean; priority: boolean; active: boolean }) {
     const alt = slide.title || "Slayt Kampanya Görseli";
     const { props: desktop } = getImageProps({
         src: slide.imageUrl,
         alt,
         fill: true,
-        priority: true,
+        priority,
         sizes: "(max-width: 1280px) 100vw, 1216px",
     });
     const mobileSrcSet = slide.mobileImageUrl
-        ? getImageProps({ src: slide.mobileImageUrl, alt, fill: true, priority: true, sizes: "100vw" }).props.srcSet
+        ? getImageProps({ src: slide.mobileImageUrl, alt, fill: true, priority, sizes: "100vw" }).props.srcSet
         : undefined;
     const fit = squareOnMobile && !slide.mobileImageUrl ? "object-contain md:object-cover" : "object-cover";
     return (
         <picture>
             {mobileSrcSet && <source media="(max-width: 767px)" srcSet={mobileSrcSet} sizes="100vw" />}
+            {/* Aktif slaytta 6 sn'de çok hafif yakınlaşma; diğer slaytlar da önceden yüklenir (geçişte geç gelmesin) */}
             {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
-            <img {...desktop} className={fit} />
+            <img
+                {...desktop}
+                loading="eager"
+                className={`${fit} transition-transform ease-out ${active ? "scale-[1.04] duration-[6000ms]" : "scale-100 duration-700"}`}
+            />
         </picture>
     );
 }
+
+const SLIDE_MS = 6000;
 
 interface HeroSliderProps {
     sliders: Slider[];
@@ -49,16 +55,14 @@ interface HeroSliderProps {
 
 export function HeroSlider({ sliders }: HeroSliderProps) {
     const [current, setCurrent] = useState(0);
+    const [paused, setPaused] = useState(false);
 
+    // Her slayt değişiminde süre baştan başlar (elle geçişten hemen sonra atlamasın); fare üstündeyken durur
     useEffect(() => {
-        if (!sliders || sliders.length <= 1) return;
-
-        const interval = setInterval(() => {
-            setCurrent((prev) => (prev + 1) % sliders.length);
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [sliders?.length]);
+        if (!sliders || sliders.length <= 1 || paused) return;
+        const t = setTimeout(() => setCurrent((prev) => (prev + 1) % sliders.length), SLIDE_MS);
+        return () => clearTimeout(t);
+    }, [sliders?.length, current, paused]);
 
     // Telefonda parmakla kaydırma
     const touchX = useRef<number | null>(null);
@@ -102,123 +106,60 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
         );
     }
 
-    const currentSlide = sliders[current] || sliders[0];
-    if (!currentSlide) return null;
     // Herhangi bir slaytın mobil görseli varsa telefonda slider kare olur
     const squareOnMobile = sliders.some((s) => s.mobileImageUrl);
 
+    const renderOverlay = (slide: Slider, active: boolean) =>
+        slide.showOverlay && (
+            <div className="relative z-20 h-full flex items-center">
+                <div className="container mx-auto px-4 md:pl-24">
+                    <div className={`max-w-2xl transition-all duration-700 delay-300 ${active ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+                        {slide.title && <h2 className="text-lg md:text-5xl font-bold text-white mb-2 md:mb-4">{slide.title}</h2>}
+                        {slide.subtitle && <p className="hidden md:block text-xl text-gray-200 mb-6">{slide.subtitle}</p>}
+                        {slide.linkUrl && <Button size="lg">Keşfet</Button>}
+                    </div>
+                </div>
+            </div>
+        );
+
     return (
-        // Kutu slider görselinin oranında (yüklenen görseller ~2:1 - 2.5:1). Eskiden sabit 400/500px yükseklikti;
-        // telefonda kutu neredeyse kare olduğu için görselin yarısı (yazılar) kesiliyordu.
+        // Kutu slider görselinin oranında (yüklenen görseller ~2:1 - 2.5:1)
         <div
             className={`relative w-full ${squareOnMobile ? "aspect-square md:aspect-[2.2/1]" : "aspect-[2.2/1]"} max-h-[520px] overflow-hidden bg-gray-100 dark:bg-gray-800`}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
         >
-            {/* initial={false}: ilk slayt animasyonsuz, sunucudan gelen HTML'de hemen görünür (önce soluk/boş geliyordu) */}
-            <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                    key={currentSlide.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.7 }}
-                    className="absolute inset-0"
-                >
-                    {currentSlide.linkUrl ? (
-                        <Link 
-                            href={currentSlide.linkUrl} 
-                            className="absolute inset-0 block"
-                            aria-label={currentSlide.title || "Slayt Kampanya Detayı"}
-                        >
-                            {/* Background */}
-                            {currentSlide.showOverlay && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
-                            )}
-                            <div className="absolute inset-0">
-                                {currentSlide.imageUrl && <SlideImage slide={currentSlide} squareOnMobile={squareOnMobile} />}
-                            </div>
-
-                            {/* Content */}
-                            {currentSlide.showOverlay && (
-                                <div className="relative z-20 h-full flex items-center">
-                                    <div className="container mx-auto px-4 md:pl-24">
-                                        <div className="max-w-2xl">
-                                            {currentSlide.title && (
-                                                <motion.h2
-                                                    initial={{ y: 20, opacity: 0 }}
-                                                    animate={{ y: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.3, duration: 0.5 }}
-                                                    className="text-lg md:text-5xl font-bold text-white mb-2 md:mb-4"
-                                                >
-                                                    {currentSlide.title}
-                                                </motion.h2>
-                                            )}
-                                            {currentSlide.subtitle && (
-                                                <motion.p
-                                                    initial={{ y: 20, opacity: 0 }}
-                                                    animate={{ y: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.5, duration: 0.5 }}
-                                                    className="hidden md:block text-xl text-gray-200 mb-6"
-                                                >
-                                                    {currentSlide.subtitle}
-                                                </motion.p>
-                                            )}
-                                            <motion.div
-                                                initial={{ y: 20, opacity: 0 }}
-                                                animate={{ y: 0, opacity: 1 }}
-                                                transition={{ delay: 0.7, duration: 0.5 }}
-                                            >
-                                                <Button size="lg">Keşfet</Button>
-                                            </motion.div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </Link>
-                    ) : (
+            {/* Tüm slaytlar üst üste: eski solarken yeni aynı anda belirir (çapraz geçiş). Önceden eski tamamen kaybolup
+                arada gri arka plan görünüyordu. İlk slayt sunucudan hemen görünür. */}
+            {sliders.map((slide, i) => {
+                const active = i === current;
+                const body = (
+                    <>
+                        {slide.showOverlay && <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />}
                         <div className="absolute inset-0">
-                            {/* Background */}
-                            {currentSlide.showOverlay && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent z-10" />
-                            )}
-                            <div className="absolute inset-0">
-                                {currentSlide.imageUrl && <SlideImage slide={currentSlide} squareOnMobile={squareOnMobile} />}
-                            </div>
-
-                            {/* Content */}
-                            {currentSlide.showOverlay && (
-                                <div className="relative z-20 h-full flex items-center">
-                                    <div className="container mx-auto px-4 md:pl-24">
-                                        <div className="max-w-2xl">
-                                            {currentSlide.title && (
-                                                <motion.h2
-                                                    initial={{ y: 20, opacity: 0 }}
-                                                    animate={{ y: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.3, duration: 0.5 }}
-                                                    className="text-lg md:text-5xl font-bold text-white mb-2 md:mb-4"
-                                                >
-                                                    {currentSlide.title}
-                                                </motion.h2>
-                                            )}
-                                            {currentSlide.subtitle && (
-                                                <motion.p
-                                                    initial={{ y: 20, opacity: 0 }}
-                                                    animate={{ y: 0, opacity: 1 }}
-                                                    transition={{ delay: 0.5, duration: 0.5 }}
-                                                    className="hidden md:block text-xl text-gray-200 mb-6"
-                                                >
-                                                    {currentSlide.subtitle}
-                                                </motion.p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                            {slide.imageUrl && <SlideImage slide={slide} squareOnMobile={squareOnMobile} priority={i === 0} active={active} />}
                         </div>
-                    )}
-                </motion.div>
-            </AnimatePresence>
+                        {renderOverlay(slide, active)}
+                    </>
+                );
+                return (
+                    <div
+                        key={slide.id}
+                        aria-hidden={!active}
+                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${active ? "opacity-100 z-[1]" : "opacity-0 z-0 pointer-events-none"}`}
+                    >
+                        {slide.linkUrl ? (
+                            <Link href={slide.linkUrl} className="absolute inset-0 block" aria-label={slide.title || "Slayt Kampanya Detayı"} tabIndex={active ? 0 : -1}>
+                                {body}
+                            </Link>
+                        ) : (
+                            <div className="absolute inset-0">{body}</div>
+                        )}
+                    </div>
+                );
+            })}
 
             {/* Navigation Buttons */}
             {sliders.length > 1 && (
@@ -245,8 +186,8 @@ export function HeroSlider({ sliders }: HeroSliderProps) {
                                 key={index}
                                 onClick={() => setCurrent(index)}
                                 aria-label={`${index + 1}. slayt`}
-                                className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-colors ${
-                                    index === current ? "bg-white" : "bg-white/40"
+                                className={`h-2 rounded-full transition-all duration-500 shadow-sm ${
+                                    index === current ? "w-6 md:w-8 bg-white" : "w-2 bg-white/50 hover:bg-white/80"
                                 }`}
                             />
                         ))}
