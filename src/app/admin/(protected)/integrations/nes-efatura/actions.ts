@@ -136,6 +136,10 @@ export async function sendOrderInvoiceNes(orderId: string) {
                     where: { id: orderId },
                     data: { invoiceUrl },
                 });
+            } else if (invoiceUrl?.includes("DocumentType=EInvoice&")) {
+                // İlk e-Fatura'larda yanlış belge türüyle kaydedilen link (404) düzeltilir, pazaryerine doğrusu gider
+                invoiceUrl = invoiceUrl.replace("DocumentType=EInvoice&", "DocumentType=OutgoingInvoice&");
+                await prisma.order.update({ where: { id: orderId }, data: { invoiceUrl } });
             }
 
             // Pazaryerine link yeniden gönder
@@ -358,7 +362,8 @@ export async function sendOrderInvoiceNes(orderId: string) {
 
         // 10. NES Doğrudan PDF URL'i oluştur (Pazaryerlerinde yeni sekmede direkt PDF açılması için)
         const partyId = config.senderVkn || "25403236566";
-        const nesDocType = useEInvoice ? "EInvoice" : "EArchiveInvoice";
+        // belge.nes.com.tr: e-Fatura için "OutgoingInvoice" ("EInvoice" 404 veriyor), e-Arşiv için "EArchiveInvoice"
+        const nesDocType = useEInvoice ? "OutgoingInvoice" : "EArchiveInvoice";
         const pdfProxyUrl = `https://belge.nes.com.tr/document?PartyIdentification=${partyId}&Uuid=${result.uuid}&DocumentType=${nesDocType}&PreviewType=PDF&fileName=${result.uuid}.pdf`;
 
         // 11. DB'ye kaydet
