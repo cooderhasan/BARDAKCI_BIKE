@@ -523,7 +523,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                     </Button>
                 ) : (
                     <div className="flex items-center gap-1">
-                        {(order.source === "TRENDYOL" || order.source === "HEPSIBURADA" || order.source === "N11" || order.source === "IDEFIX" || order.source === "PAZARAMA" || order.source === "CICEKSEPETI") && (
+                        {(order.source === "TRENDYOL" || order.source === "HEPSIBURADA" || order.source === "N11" || order.source === "IDEFIX" || order.source === "PAZARAMA" || order.source === "CICEKSEPETI" || order.source === "PTTAVM" || order.source === "PTT") && (
                             <Button
                                 variant="outline"
                                 size="icon"
