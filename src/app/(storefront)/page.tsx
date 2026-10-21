@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { HeroSlider } from "@/components/storefront/hero-slider";
 import { FeaturedProducts } from "@/components/storefront/featured-products";
-import { CategorySectionModern } from "@/components/storefront/category-section-modern";
+import { CategorySectionModern, CategoryCaption } from "@/components/storefront/category-section-modern";
 import Link from "next/link";
 import Image from "next/image";
 import { Truck, ShieldCheck, CreditCard, Zap, MessageCircle, ArrowRight } from "lucide-react";
@@ -418,17 +418,8 @@ export default async function HomePage() {
                                         className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
                                     />
                                 </div>
-                                {banner.title && (
-                                    <div className="space-y-1.5 px-1">
-                                        <h3 className="text-gray-900 dark:text-white font-bold text-lg group-hover:text-[#17457C] transition-colors">
-                                            {banner.title}
-                                        </h3>
-                                        <div className="flex items-center gap-1.5 text-[#17457C] font-bold">
-                                            <span className="text-xs uppercase tracking-wider">Ürünleri İncele</span>
-                                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
-                                        </div>
-                                    </div>
-                                )}
+                                {/* Kategori kartlarıyla aynı alt yazı: ad + yuvarlak ok */}
+                                {banner.title && <CategoryCaption category={{ id: banner.id, name: banner.title, slug: "" }} />}
                             </Link>
                         ))}
                     </div>

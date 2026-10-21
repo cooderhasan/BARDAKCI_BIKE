@@ -15,7 +15,7 @@ const titleTr = (t: string) =>
     t.toLocaleLowerCase("tr-TR").replace(/(?:^|[\s-/])\S/g, (m) => m.toLocaleUpperCase("tr-TR"));
 
 /** Görselin altı: ad + ürün sayısı solda, yuvarlak ok sağda (önceden büyük harfli kalın ad + "Ürünleri İncele") */
-function CategoryCaption({ category, large }: { category: Category; large?: boolean }) {
+export function CategoryCaption({ category, large }: { category: Category; large?: boolean }) {
     return (
         <div className="flex items-center justify-between gap-3 px-1">
             <div className="min-w-0">
