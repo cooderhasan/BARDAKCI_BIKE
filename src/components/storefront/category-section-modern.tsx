@@ -7,6 +7,34 @@ interface Category {
     name: string;
     slug: string;
     imageUrl?: string | null;
+    productCount?: number;
+}
+
+// "DAĞ BİSİKLETİ" -> "Dağ Bisikleti" (Türkçe kurallarıyla)
+const titleTr = (t: string) =>
+    t.toLocaleLowerCase("tr-TR").replace(/(?:^|[\s-/])\S/g, (m) => m.toLocaleUpperCase("tr-TR"));
+
+/** Görselin altı: ad + ürün sayısı solda, yuvarlak ok sağda (önceden büyük harfli kalın ad + "Ürünleri İncele") */
+function CategoryCaption({ category, large }: { category: Category; large?: boolean }) {
+    return (
+        <div className="flex items-center justify-between gap-3 px-1">
+            <div className="min-w-0">
+                <h3
+                    className={`font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-[#17457C] dark:group-hover:text-blue-300 transition-colors truncate ${large ? "text-lg md:text-xl" : "text-base md:text-lg"}`}
+                >
+                    {titleTr(category.name)}
+                </h3>
+                {typeof category.productCount === "number" && category.productCount > 0 && (
+                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-0.5">{category.productCount} ürün</p>
+                )}
+            </div>
+            <span
+                className={`shrink-0 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center text-[#17457C] dark:text-blue-300 group-hover:bg-[#17457C] group-hover:text-white group-hover:border-[#17457C] transition-all duration-300 ${large ? "w-10 h-10 md:w-11 md:h-11" : "w-9 h-9 md:w-10 md:h-10"}`}
+            >
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            </span>
+        </div>
+    );
 }
 
 interface CategorySectionProps {
@@ -49,15 +77,7 @@ export function CategorySectionModern({ categories, row = "all" }: CategorySecti
                                         <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" />
                                     )}
                                 </div>
-                                <div className="space-y-2 px-1">
-                                    <h3 className="text-gray-900 dark:text-white font-black text-xl md:text-2xl group-hover:text-[#17457C] transition-colors">
-                                        {category.name}
-                                    </h3>
-                                    <div className="flex items-center gap-2 text-[#17457C] font-bold">
-                                        <span className="text-xs uppercase tracking-widest">Ürünleri İncele</span>
-                                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-2" />
-                                    </div>
-                                </div>
+                                <CategoryCaption category={category} large />
                             </Link>
                         ))}
                     </div>
@@ -85,15 +105,7 @@ export function CategorySectionModern({ categories, row = "all" }: CategorySecti
                                         <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800" />
                                     )}
                                 </div>
-                                <div className="space-y-1.5 px-1">
-                                    <h3 className="text-gray-900 dark:text-white font-extrabold text-lg group-hover:text-[#17457C] transition-colors">
-                                        {category.name}
-                                    </h3>
-                                    <div className="flex items-center gap-1.5 text-[#17457C] font-bold">
-                                        <span className="text-[10px] uppercase tracking-widest">İncele</span>
-                                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5" />
-                                    </div>
-                                </div>
+                                <CategoryCaption category={category} />
                             </Link>
                         ))}
                     </div>

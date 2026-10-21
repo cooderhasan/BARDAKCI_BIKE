@@ -108,6 +108,7 @@ async function getHomeData() {
                 // Sıra eşitse oluşturma tarihine göre: önceden eşit sıradakiler her kayıttan sonra yer değiştiriyordu
                 // (ilk 2 = üstteki büyük kartlar, sonraki 3 = alttaki küçük kartlar)
                 orderBy: [{ order: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+                include: { children: { where: { isActive: true }, select: { id: true } } },
                 take: 5,
             }).catch((err) => {
                 console.error("Failed to fetch categories:", err);
@@ -207,7 +208,23 @@ async function getHomeData() {
         featuredProducts: (featuredProducts || []).map(transformProduct),
         newProducts: (newProducts || []).map(transformProduct),
         bestSellers: (bestSellers || []).map(transformProduct),
-        categories: (categories || []).map(transformCategory),
+        categories: await Promise.all(
+            (categories || []).map(async (c: any) => {
+                // Kartın altındaki "X ürün": kategori sayfasındaki toplamla aynı (alt kategoriler dahil, aktif, bu mağaza)
+                const ids = [c.id, ...((c.children || []) as any[]).map((ch: any) => ch.id)];
+                const productCount = await prisma.product
+                    .count({
+                        where: {
+                            isActive: true,
+                            store: storeFilter,
+                            OR: [{ categories: { some: { id: { in: ids } } } }, { categoryId: { in: ids } }],
+                        },
+                    })
+                    .catch(() => 0);
+                const { children, ...rest } = c;
+                return { ...transformCategory(rest), productCount };
+            })
+        ),
         sidebarCategories: sidebarCategories || [],
         banners: validBanners.map(transformBanner),
         blogPosts: blogPosts || [],
