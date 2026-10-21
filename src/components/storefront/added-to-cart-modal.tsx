@@ -32,6 +32,8 @@ export function AddedToCartModal() {
         <Dialog open={isAddedToCartModalOpen} onOpenChange={(open) => !open && closeAddedToCartModal()}>
             <DialogContent
                 showCloseButton={false}
+                // Kapanırken odağı ürün sayfasındaki düğmeye geri verip sayfayı kaydırmasın (Sepete Git'te konum bozuluyordu)
+                onCloseAutoFocus={(e) => e.preventDefault()}
                 className="z-[100] gap-0 p-0 overflow-hidden border-0 bg-white dark:bg-gray-900 shadow-2xl sm:max-w-[440px] rounded-2xl max-sm:top-auto max-sm:bottom-0 max-sm:translate-y-0 max-sm:max-w-full max-sm:rounded-b-none max-sm:data-[state=open]:slide-in-from-bottom"
             >
                 {/* Başlık */}

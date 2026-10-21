@@ -18,6 +18,9 @@ export default function CartPage() {
 
     useEffect(() => {
         setMounted(true);
+        // Sayfa önce "Yükleniyor" gösterip sonra uzadığı için önceki sayfanın kaydırma konumu kalıyor, sepete gelen
+        // müşteri kendini footer'da buluyordu: her zaman en üstten başla
+        window.scrollTo(0, 0);
     }, []);
 
     if (!mounted) {

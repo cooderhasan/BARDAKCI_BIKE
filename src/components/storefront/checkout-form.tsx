@@ -97,6 +97,8 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
 
     useEffect(() => {
         setMounted(true);
+        // Önceki sayfanın kaydırma konumu kalmasın (sayfa önce "Yükleniyor" gösteriyor)
+        window.scrollTo(0, 0);
     }, []);
 
     useEffect(() => {
