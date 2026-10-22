@@ -398,8 +398,7 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
                                 </Link>
                             </div>
 
-                            {categories
-                                .filter(c => c.name !== "Home" && c.name !== "Root")
+                            {categoryTree
                                 .map((category) => {
                                     const hasChildren = category.children && category.children.length > 0;
                                     const isHovered = hoveredCategory === category.id;
