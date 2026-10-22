@@ -330,6 +330,12 @@ body.has-sticky-cart .wa-float {
   bottom: calc(5.25rem + env(safe-area-inset-bottom)) !important;
 }
 
+/* Açılır pencere varken (Sepetinize eklendi, menü, filtre...) WhatsApp düğmesi gizlenir; telefonda "Sepete Git"in
+   üstüne biniyordu. Radix pencereleri açıkken body'ye data-scroll-locked ekliyor. */
+body[data-scroll-locked] .wa-float {
+  display: none !important;
+}
+
 /* Yatay kayan şeritlerde kaydırma çubuğunu gizle (sınıf kullanılıyordu ama tanımlı değildi; telefonda gri çizgi görünüyordu) */
 @utility no-scrollbar {
   scrollbar-width: none;
