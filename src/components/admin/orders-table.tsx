@@ -77,6 +77,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
     const [sourceFilter, setSourceFilter] = useState(searchParams.get("source") || "ALL");
     const [invoiceFilter, setInvoiceFilter] = useState(searchParams.get("invoice") || "ALL");
     const [printedFilter, setPrintedFilter] = useState(searchParams.get("printed") || "ALL");
+    const [customerFilter, setCustomerFilter] = useState(searchParams.get("customer") || "ALL");
     const [startDate, setStartDate] = useState(searchParams.get("startDate") || "");
     const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
 
@@ -161,6 +162,9 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
         if (printedFilter && printedFilter !== "ALL") params.set("printed", printedFilter);
         else params.delete("printed");
 
+        if (customerFilter && customerFilter !== "ALL") params.set("customer", customerFilter);
+        else params.delete("customer");
+
         if (startDate) params.set("startDate", startDate);
         else params.delete("startDate");
 
@@ -181,6 +185,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
         setSourceFilter("ALL");
         setInvoiceFilter("ALL");
         setPrintedFilter("ALL");
+        setCustomerFilter("ALL");
         setStartDate("");
         setEndDate("");
         router.push("/admin/orders");
@@ -786,6 +791,21 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                         </Select>
                     </div>
 
+                    {/* Üye / Misafir */}
+                    <div className="min-w-0 w-full md:w-[140px] space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Müşteri</label>
+                        <Select value={customerFilter} onValueChange={setCustomerFilter}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Tümü" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Tümü</SelectItem>
+                                <SelectItem value="MEMBER">👤 Üye</SelectItem>
+                                <SelectItem value="GUEST">🕶️ Misafir (site)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* Date Range */}
                     <div className="contents md:flex md:items-center md:gap-2 md:w-auto">
                         <div className="space-y-2 min-w-0 md:w-[140px]">
@@ -1149,6 +1169,19 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                             </p>
                                             <p>{selectedOrder.user?.email || selectedOrder.guestEmail}</p>
                                             <p>{selectedOrder.user?.phone || "-"}</p>
+                                            {/* Üye / misafir (site siparişleri); üyede kaçıncı siparişi */}
+                                            {(selectedOrder as any).userId ? (
+                                                <span className="inline-flex items-center gap-1 mt-1 text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                                    👤 Üye
+                                                    {(selectedOrder as any).memberOrderNth
+                                                        ? ` · ${(selectedOrder as any).memberOrderNth}. siparişi${(selectedOrder as any).memberOrderTotal > 1 ? ` (toplam ${(selectedOrder as any).memberOrderTotal})` : ""}`
+                                                        : ""}
+                                                </span>
+                                            ) : (selectedOrder.source || "WEB") === "WEB" ? (
+                                                <span className="inline-flex items-center gap-1 mt-1 text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full">
+                                                    🕶️ Misafir
+                                                </span>
+                                            ) : null}
                                         </div>
                                     </div>
                                     <div>
