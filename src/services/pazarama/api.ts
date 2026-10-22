@@ -219,9 +219,11 @@ export class PazaramaClient {
       const rawText = await res.text().catch(() => "");
       console.log(`[Pazarama] Attribute HTTP ${res.status}:`, rawText.substring(0, 500));
 
-      if (!res.ok) return [];
-
-      const data = JSON.parse(rawText);
+      const data = rawText ? JSON.parse(rawText) : {};
+      // Hata ile "özelliği yok" ayrı: hata ise mesaj gösterilir (ör. alt kırılım olmayan kategori), boşsa doğrudan gönderilir
+      if (!res.ok || data?.success === false) {
+        throw new Error(`Pazarama kategori özellikleri alınamadı (${res.status}): ${data?.userMessage || data?.message || rawText.slice(0, 200)}`);
+      }
       const attrs = data?.data?.attributes || [];
 
       if (!Array.isArray(attrs) || attrs.length === 0) {
@@ -243,7 +245,7 @@ export class PazaramaClient {
       }));
     } catch (error) {
       console.error("Pazarama getCategoryAttributes error:", error);
-      return [];
+      throw error;
     }
   }
 

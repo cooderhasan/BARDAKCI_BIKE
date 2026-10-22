@@ -394,7 +394,13 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
     
     try {
       const res = await getPazaramaCategoryAttributes(categoryId);
-      if (res.success && res.data && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data) && res.data.length === 0) {
+        // Özelliği olmayan kategori (ör. bakım ürünleri): pencere açık kalır, doğrudan gönderilebilir.
+        // Önceden pencere hemen kapanıyordu ve ürün gönderilemiyordu.
+        setCategoryAttributes([]);
+        setSelectedAttributes({});
+        setVariantAttrValues({});
+      } else if (res.success && res.data && res.data.length > 0) {
         setCategoryAttributes(res.data);
         setSelectedAttributes({});
         // Varyant değerleri sitedeki renk / bedenden (listede birebir varsa) otomatik seçilir
