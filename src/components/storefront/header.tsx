@@ -133,9 +133,14 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
     // Use sidebar categories for mobile menu (all 11 categories with subcategories)
     const mobileCategoryTree = useMemo(() => {
         const source = sidebarCategories.length > 0 ? sidebarCategories : categories;
+        // Ana başlıklar masaüstü üst menüyle aynı sırada; üst menüde olmayanlar (Yol Yarış, Katlanabilir...) arkasından
+        const headerRank = new Map(categories.map((c, i) => [c.id, i]));
+        const rank = (id: string) => headerRank.get(id) ?? Number.MAX_SAFE_INTEGER;
         return source
             .filter(c => c.name !== "Root" && c.name !== "Home")
-            .map(c => ({
+            .map((c, i) => ({ c, i }))
+            .sort((a, b) => rank(a.c.id) - rank(b.c.id) || a.i - b.i)
+            .map(({ c }) => ({
                 ...c,
                 // Alt kategoriler filtre menüsüyle aynı sırada: Denge, jant ölçüsü küçükten büyüğe, Ekonomik en sonda
                 children: sortSidebarCategories((c.children || []) as Category[])
