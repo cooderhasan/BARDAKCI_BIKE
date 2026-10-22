@@ -610,6 +610,9 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                         {filteredProducts.map((product) => {
                             const isSynced = !!product.trendyolProduct?.isSynced;
                             const mappedCat = product.categories.find((c: any) => c.trendyolCategoryId !== null);
+                            // Gönderilebilir mi: site kategorisi eşleşmesi ya da ürüne özel Trendyol kategorisi (Özel Kat).
+                            // Önceden sadece site eşleşmesine bakılıyordu; Özel Kat'lı ürünlerde düğme pasif kalıyordu.
+                            const hasTrendyolCat = !!product.trendyolProduct?.trendyolCategoryId || !!mappedCat;
                             const mappedBrand = product.brand?.trendyolBrandId !== null;
                             const isSelected = selectedIds.includes(product.id);
 
@@ -802,7 +805,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <Button size="sm" className="gap-2 text-xs bg-orange-600 hover:bg-orange-700 text-white shadow-md shadow-orange-500/20" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !mappedCat || !mappedBrand}>
+                                                <Button size="sm" className="gap-2 text-xs bg-orange-600 hover:bg-orange-700 text-white shadow-md shadow-orange-500/20" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id || !hasTrendyolCat || !mappedBrand}>
                                                     <Send className="w-3 h-3" />
                                                     Trendyol'a Gönder
                                                 </Button>
