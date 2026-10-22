@@ -249,8 +249,10 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
     useEffect(() => {
         getVariantValueSuggestions().then(setSavedVariantValues).catch(() => {});
     }, []);
-    const canonKey = (t: string) => t.toLocaleLowerCase("tr-TR").replace(/\s+/g, "");
-    /** Kayıtlı bir yazımla aynıysa (büyük/küçük harf ve boşluk farkı) kayıtlı yazımı döner */
+    // Ayraçlar (/ - + & | \ ve "ve") aynı sayılır: "siyah-kırmızı", "Siyah/Kırmızı", "siyah ve kırmızı" → aynı anahtar
+    const canonKey = (t: string) =>
+        t.toLocaleLowerCase("tr-TR").replace(/\s+ve\s+/g, "/").replace(/[-/+&|\\]+/g, "/").replace(/\s+/g, "");
+    /** Kayıtlı bir yazımla aynıysa (büyük/küçük harf, boşluk, ayraç farkı) kayıtlı yazımı döner */
     const canonicalVariantValue = (value: string, kind: "color" | "size") => {
         const v = (value || "").trim();
         if (!v) return v;
@@ -258,7 +260,15 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
             ? [...formData.variants.map((x) => (x.color || "").trim()), ...savedVariantValues.colors]
             : [...formData.variants.map((x) => (x.size || "").trim()), ...savedVariantValues.sizes, ...VARIANT_SIZE_ORDER];
         const hit = pool.find((p) => p && p !== v && canonKey(p) === canonKey(v));
-        return hit || v;
+        if (hit) return hit;
+        if (kind !== "color") return v;
+        // İlk kez yazılan renk standart biçime: kelime başları büyük, çok renkte "Siyah / Kırmızı"
+        return v
+            .replace(/\s+ve\s+/gi, "/")
+            .split(/\s*[-/+&|\\]+\s*/)
+            .filter(Boolean)
+            .map((part) => part.replace(/(^|\s)(\S)/g, (_m, sp, ch) => sp + ch.toLocaleUpperCase("tr-TR")))
+            .join(" / ");
     };
     const splitList = (text: string) => [...new Set(text.split(",").map((x) => x.trim()).filter(Boolean))];
     const colorImagesOf = (color: string) =>
