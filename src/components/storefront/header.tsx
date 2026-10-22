@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { sortSidebarCategories } from "@/lib/category-sort";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -124,7 +125,8 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
             .filter(c => c.name !== "Root" && c.name !== "Home")
             .map(c => ({
                 ...c,
-                children: (c.children || []) as Category[]
+                // Alt kategoriler filtre menüsüyle aynı sırada: Denge, jant ölçüsü küçükten büyüğe, Ekonomik en sonda
+                children: sortSidebarCategories((c.children || []) as Category[])
             }));
     }, [categories]);
 
@@ -135,7 +137,8 @@ export function StorefrontHeader({ user, logoUrl, siteName, categories = [], sid
             .filter(c => c.name !== "Root" && c.name !== "Home")
             .map(c => ({
                 ...c,
-                children: (c.children || []) as Category[]
+                // Alt kategoriler filtre menüsüyle aynı sırada: Denge, jant ölçüsü küçükten büyüğe, Ekonomik en sonda
+                children: sortSidebarCategories((c.children || []) as Category[])
             }));
     }, [sidebarCategories, categories]);
 
