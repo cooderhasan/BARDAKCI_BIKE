@@ -640,15 +640,15 @@ export function ProductDetail({
                                                             title={color}
                                                             onClick={() => selectColor(color)}
                                                             className={cn(
-                                                                // Telefonda satıra 4 kare (~80px), geniş ekranda 88px; önceden 56/64px idi, ürün seçilemeyecek kadar küçüktü
-                                                                "w-[calc((100%-1.5rem)/4)] aspect-square sm:w-[88px] rounded-xl border-2 transition-all p-1 bg-white",
+                                                                // Telefonda satıra 5 kare (ekran genişliğine yayılır), geniş ekranda 88px; önceden 56/64px sabitti
+                                                                "w-[calc((100%-2rem)/5)] aspect-square sm:w-[88px] rounded-xl border-2 transition-all p-1 bg-white",
                                                                 selectedColor === color
                                                                     ? "border-[#17457C] ring-2 ring-[#17457C]/15"
                                                                     : "border-gray-200 hover:border-gray-400"
                                                             )}
                                                         >
                                                             <div className="w-full h-full rounded-lg overflow-hidden relative">
-                                                                <Image src={img} alt={color} fill sizes="(max-width: 640px) 25vw, 88px" className="object-contain" />
+                                                                <Image src={img} alt={color} fill sizes="(max-width: 640px) 20vw, 88px" className="object-contain" />
                                                             </div>
                                                         </button>
                                                     ) : (
