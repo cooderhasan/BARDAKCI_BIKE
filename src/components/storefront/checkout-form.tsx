@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { getCities, getDistrictsOfCity, getCityNames } from "@/lib/cities";
 import { SearchablePicker } from "@/components/ui/searchable-picker";
+import { readVisitSource } from "@/lib/visit-source";
 
 interface CheckoutFormProps {
     initialData?: {
@@ -239,6 +240,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                 discountRate: Number(discountRate),
                 shippingCost: shippingCost,
                 shippingDesi: summary.totalDesi,
+                visitSource: readVisitSource() || undefined,
             });
 
             if (result.success) {

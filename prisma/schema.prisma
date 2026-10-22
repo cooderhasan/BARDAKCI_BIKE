@@ -400,6 +400,7 @@ model Order {
   ykSyncedAt          DateTime?     // Son YK senkronizasyon zamanı
   ykError             String?       // Son YK hata mesajı
   notes                String?
+  attribution          Json?         // Site siparişinin ziyaret kaynağı (Google/direkt/Instagram, utm) ve cihaz (telefon/masaüstü)
   items                OrderItem[]
   payment              Payment?
   transactions         CurrentAccountTransaction[] // Cari hareket bağlantısı

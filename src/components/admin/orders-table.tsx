@@ -1,5 +1,6 @@
 "use client";
 
+import { describeVisitSource, type OrderAttribution } from "@/lib/visit-source";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -1156,6 +1157,32 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                             {selectedOrder.notes || "Not yok."}
                                         </p>
                                     </div>
+                                    {/* Site siparişlerinde müşterinin nereden geldiği ve cihazı (2026-10-22'den sonraki siparişlerde) */}
+                                    {(selectedOrder.source || "WEB") === "WEB" && (() => {
+                                        const at = (selectedOrder as any).attribution as OrderAttribution | null;
+                                        return (
+                                            <div>
+                                                <h4 className="font-semibold mb-2 text-sm">Ziyaret Kaynağı</h4>
+                                                {at ? (
+                                                    <div className="text-sm space-y-1 text-gray-600 dark:text-gray-300 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                                        <p className="font-medium text-gray-900 dark:text-gray-100">{describeVisitSource(at)}</p>
+                                                        {at.device && (
+                                                            <p>{[at.device, at.os, at.browser].filter(Boolean).join(" · ")}</p>
+                                                        )}
+                                                        {at.utmCampaign && <p className="text-xs">Kampanya: {at.utmCampaign}</p>}
+                                                        {at.landing && <p className="text-xs break-all">İlk sayfa: {at.landing}</p>}
+                                                        {at.at && (
+                                                            <p className="text-xs">
+                                                                Geliş: {new Date(at.at).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-500">Bu özellikten önceki sipariş; kaynak bilgisi yok.</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Column 2: Shipping Address */}

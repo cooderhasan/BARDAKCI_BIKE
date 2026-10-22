@@ -7,6 +7,8 @@ import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email"
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 import { decrementOrderStock } from "@/lib/stock-sync";
 import { getStoreType } from "@/lib/store-helper";
+import { headers } from "next/headers";
+import { sanitizeVisitSource, parseUserAgent, type VisitSource } from "@/lib/visit-source";
 
 interface OrderItem {
     productId: string;
@@ -35,6 +37,7 @@ interface CreateOrderData {
     paymentMethod?: "BANK_TRANSFER" | "CREDIT_CARD" | "CURRENT_ACCOUNT";
     shippingCost?: number;
     shippingDesi?: number;
+    visitSource?: VisitSource; // müşterinin siteye geldiği kaynak (tarayıcıdan)
 }
 
 export async function createOrder(data: CreateOrderData) {
@@ -211,6 +214,11 @@ export async function createOrder(data: CreateOrderData) {
 
         // Create order with transaction
         const orderStore = await getStoreType();
+        // Ziyaret kaynağı (Google/direkt...) + cihaz (telefon/masaüstü): admin sipariş detayında gösterilir
+        const attribution = {
+            ...sanitizeVisitSource(data.visitSource),
+            ...parseUserAgent((await headers()).get("user-agent")),
+        };
         const transactionResult = await prisma.$transaction(async (tx) => {
             // Check Critical Limit for Current Account (only for logged in users)
             if (paymentMethod === "CURRENT_ACCOUNT" && userId) {
@@ -263,6 +271,7 @@ export async function createOrder(data: CreateOrderData) {
                     shippingCost: data.shippingCost,
                     shippingDesi: data.shippingDesi,
                     notes: data.notes,
+                    attribution: attribution as any,
                     items: {
                         create: orderItems,
                     },

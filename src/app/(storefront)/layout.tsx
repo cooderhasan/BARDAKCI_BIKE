@@ -11,6 +11,7 @@ import { AddedToCartModal } from "@/components/storefront/added-to-cart-modal";
 
 import { CookieConsent } from "@/components/storefront/cookie-consent";
 import { WhatsAppButton } from "@/components/storefront/whatsapp-button";
+import { VisitSourceTracker } from "@/components/storefront/visit-source-tracker";
 import { getStoreType, getStoreSettings, getStoreFilter } from "@/lib/store-helper";
 
 export const dynamic = "force-dynamic";
@@ -320,6 +321,7 @@ export default async function StorefrontLayout({
             <main className="flex-1">{children}</main>
             <StorefrontFooter settings={settings} policies={policies} categories={categories} />
             <WhatsAppButton phone={settings.whatsappNumber || settings.phone} />
+            <VisitSourceTracker />
         </div>
     );
 }
