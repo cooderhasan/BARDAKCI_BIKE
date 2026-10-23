@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { ADMIN_MFA_COOKIE, verifyAdminMfaCookie, isAdminMfaDisabled } from "@/lib/admin-mfa-cookie";
 
 // Simple in-memory rate limiter
 const rateLimitMap = new Map();
@@ -61,7 +62,10 @@ export async function middleware(request: NextRequest) {
             if (token && (token.role === "ADMIN" || token.role === "OPERATOR")) {
                 return NextResponse.redirect(new URL("/admin", request.url));
             }
-            return NextResponse.next();
+            // Çıkıştan sonra giriş sayfası: eski doğrulama çerezi silinir, yeni girişte kod tekrar istenir
+            const loginResponse = NextResponse.next();
+            if (request.cookies.has(ADMIN_MFA_COOKIE)) loginResponse.cookies.delete(ADMIN_MFA_COOKIE);
+            return loginResponse;
         }
 
         if (!token) {
@@ -70,9 +74,22 @@ export async function middleware(request: NextRequest) {
         if (token.role !== "ADMIN" && token.role !== "OPERATOR") {
             return NextResponse.redirect(new URL("/", request.url));
         }
+
+        // İki adımlı doğrulama: kod bu tarayıcıda girilmediyse doğrulama sayfasına
+        if (pathname !== "/admin/2fa" && !isAdminMfaDisabled()) {
+            const mfaOk = await verifyAdminMfaCookie(request.cookies.get(ADMIN_MFA_COOKIE)?.value, token.id as string);
+            if (!mfaOk) {
+                return NextResponse.redirect(new URL("/admin/2fa", request.url));
+            }
+        }
     }
 
     const response = NextResponse.next();
+
+    // Çıkış yapılmışsa doğrulama çerezi de silinir: bir sonraki girişte kod tekrar istenir
+    if (!token && request.cookies.has(ADMIN_MFA_COOKIE)) {
+        response.cookies.delete(ADMIN_MFA_COOKIE);
+    }
 
     // Security Headers
     response.headers.set("X-Frame-Options", "DENY");

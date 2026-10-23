@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { loginSchema } from "@/lib/validations";
 import type { UserRole, UserStatus } from "@prisma/client";
+import { ADMIN_MFA_COOKIE, verifyAdminMfaCookie, isAdminMfaDisabled } from "@/lib/admin-mfa-cookie";
 
 declare module "next-auth" {
     interface User {
@@ -17,6 +18,8 @@ declare module "next-auth" {
         companyName?: string | null;
         discountGroupId?: string | null;
         discountRate?: number;
+        /** Yönetici/operatör: iki adımlı doğrulama kodu bu tarayıcıda henüz girilmedi (yetki verilmez) */
+        mfaPending?: boolean;
     }
 
     interface Session {
@@ -260,6 +263,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 session.user.discountRate = token.discountRate as number;
                 if (token.picture) {
                     session.user.image = token.picture as string;
+                }
+
+                // İki adımlı doğrulama: yönetici/operatör, bu tarayıcıda Authenticator kodunu girmediyse yönetim yetkisi
+                // taşımaz. Tek yerden zorlanır; rol kontrolü yapan her yer (sayfa, server action, API) otomatik korunur.
+                // Şifreyle, ortam değişkeni şifresiyle ya da Google ile giriş fark etmez.
+                if ((session.user.role === "ADMIN" || session.user.role === "OPERATOR") && !isAdminMfaDisabled()) {
+                    let verified = false;
+                    try {
+                        const { cookies } = await import("next/headers");
+                        const value = (await cookies()).get(ADMIN_MFA_COOKIE)?.value;
+                        verified = await verifyAdminMfaCookie(value, session.user.id);
+                    } catch {
+                        verified = false;
+                    }
+                    if (!verified) {
+                        session.user.mfaPending = true;
+                        session.user.role = "CUSTOMER";
+                    }
                 }
             }
 

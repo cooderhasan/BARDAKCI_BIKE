@@ -98,6 +98,12 @@ model User {
   returnRequests  ReturnRequest[]
   addresses       UserAddress[]  // Adres defteri (varsayılan adres User.address alanlarıyla eşit tutulur)
 
+  // Yönetim paneli iki adımlı doğrulama (Google Authenticator / TOTP); yönetici ve operatör için zorunlu
+  twoFactorSecret      String?       // base32 gizli anahtar (kurulum bitmeden de dolu olabilir)
+  twoFactorEnabled     Boolean       @default(false)
+  twoFactorBackupCodes String[]      @default([]) // tek kullanımlık yedek kodların sha256 özetleri
+  twoFactorLastStep    Int?          // son kabul edilen kodun zaman adımı (aynı kod iki kez kullanılamaz)
+
   // Current Account / Bakiye Sistemi
   creditLimit      Decimal        @default(0)   // Tanımlı Kredi Limiti
   riskLimit        Decimal        @default(0)   // Risk Limiti (Opsiyonel)

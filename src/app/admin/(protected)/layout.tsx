@@ -26,6 +26,11 @@ export default async function AdminLayout({
     //    redirect("/admin/login");
     // }
 
+    // Kod girilmemiş yönetici (middleware'den kaçarsa): doğrulama sayfasına
+    if (session?.user?.mfaPending) {
+        redirect("/admin/2fa");
+    }
+
     if (session?.user && session.user.role !== "ADMIN" && session.user.role !== "OPERATOR") {
         redirect("/");
     }
