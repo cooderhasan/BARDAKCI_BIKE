@@ -3,6 +3,7 @@ import { OrdersTable } from "@/components/admin/orders-table";
 import { OrderStatus } from "@prisma/client";
 import { formatPrice } from "@/lib/helpers";
 import { ORDER_SOURCE_LABELS } from "@/lib/order-sources";
+import { backfillEInvoiceNumbers } from "@/lib/nes-invoice-number";
 import { buildCargoGroups, NO_CARGO_KEY } from "@/lib/cargo-groups";
 
 interface OrdersPageProps {
@@ -213,8 +214,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         }
     }
 
+    // e-Fatura'da numara yerine sadece seri öneki ("MFB") kalmış siparişler: gerçek numara NES'ten tamamlanır
+    const fixedInvoiceNos = await backfillEInvoiceNumbers(orders as any[]);
+
     const serializedOrders = orders.map((order: any) => ({
         ...order,
+        invoiceNo: fixedInvoiceNos.get(order.id) ?? order.invoiceNo,
         createdAt: order.createdAt.toISOString(),
         deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
         reviewEmailSentAt: order.reviewEmailSentAt ? order.reviewEmailSentAt.toISOString() : null,

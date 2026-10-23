@@ -397,16 +397,36 @@ export class NesClient {
                 throw new Error(`NES E-Fatura API Hatası (${response.status}): ${errorDetails}`);
             }
 
+            // NES numarayı "documentNumber" ile döner (e-Arşiv'de okunuyordu, burada okunmadığı için sadece seri öneki
+            // "MFB" kaydediliyordu). Yanıtta yoksa belge detayından alınır.
+            const uuid = responseData.uuid || generated.uuid;
+            const documentNumber = responseData.documentNumber || responseData.invoiceNumber || (await this.getEInvoiceNumber(uuid));
             return {
                 ...generated,
                 ...responseData,
-                uuid: responseData.uuid || generated.uuid,
-                invoiceNumber: responseData.invoiceNumber || generated.invoiceNumber,
+                uuid,
+                invoiceNumber: documentNumber || generated.invoiceNumber,
                 status: "SUCCESS",
             };
         } catch (error: any) {
             console.error("❌ NES E-Fatura gönderim hatası:", error.message);
             throw error;
+        }
+    }
+
+    /** Giden e-Fatura numarası (ör. MFB2026000000012): GET /einvoice/v1/outgoing/invoices/{uuid} → documentNumber */
+    async getEInvoiceNumber(uuid: string): Promise<string | null> {
+        try {
+            const response = await fetch(`${this.baseUrl}/einvoice/v1/outgoing/invoices/${encodeURIComponent(uuid)}`, {
+                method: "GET",
+                headers: this.headers,
+                signal: AbortSignal.timeout(15000),
+            });
+            if (!response.ok) return null;
+            const data = await response.json();
+            return data?.documentNumber || null;
+        } catch {
+            return null;
         }
     }
 
