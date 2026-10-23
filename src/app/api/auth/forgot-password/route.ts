@@ -66,7 +66,12 @@ export async function POST(request: NextRequest) {
             });
 
             // Build reset URL
-            const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+            // Sıfırlama linki isteğin geldiği siteye (bisiklet / motor); önceden hep tek adrese gidiyordu
+            const fwdHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
+            const fwdProto = request.headers.get("x-forwarded-proto") || "https";
+            const baseUrl = fwdHost && /(^|\.)(bardakcibike\.com\.tr|motovitrin\.com)$/.test(fwdHost.split(":")[0])
+                ? `${fwdProto.split(",")[0]}://${fwdHost}`
+                : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
             const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
             // Send email

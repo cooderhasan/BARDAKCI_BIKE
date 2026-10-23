@@ -46,6 +46,12 @@ const googleClientId = (process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_
 
 const googleClientSecret = (process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "").trim();
 
+// İki alan adı (bisiklet + motor): AUTH_URL/NEXTAUTH_URL tanımlıysa next-auth her isteği o adrese çeviriyor; motor
+// sitesinde Google dönüş adresi bisiklet sitesi oluyor, oturum orada açıldığı için motorda giriş çalışmıyordu.
+// Adres isteğin geldiği alan adından alınsın (trustHost: true, proxy'nin x-forwarded-host/proto başlıkları).
+delete process.env.AUTH_URL;
+delete process.env.NEXTAUTH_URL;
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     trustHost: true,
     // Google OAuth integration with dual-domain support (bardakcibike & motovitrin)
