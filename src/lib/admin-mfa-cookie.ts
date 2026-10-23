@@ -42,3 +42,25 @@ export async function verifyAdminMfaCookie(value: string | undefined | null, use
     for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
     return diff === 0;
 }
+
+/**
+ * Kurulum bitiş belgesi (15 dk): kod doğrulanınca verilir, yedek kodlar gösterildikten sonra çerezle değiştirilir.
+ * Çerez doğrulama anında verilseydi Next.js sayfayı yenileyip yedek kodlar görünmeden panele geçiriyordu.
+ */
+export async function signSetupToken(userId: string): Promise<string> {
+    const exp = Math.floor(Date.now() / 1000) + 15 * 60;
+    const payload = `setup:${userId}.${exp}`;
+    return `${userId}.${exp}.${await hmac(payload)}`;
+}
+
+export async function verifySetupToken(token: string, userId: string): Promise<boolean> {
+    const parts = (token || "").split(".");
+    if (parts.length !== 3) return false;
+    const [uid, expStr, sig] = parts;
+    if (uid !== userId || !(Number(expStr) > Date.now() / 1000)) return false;
+    const expected = await hmac(`setup:${uid}.${expStr}`);
+    if (expected.length !== sig.length) return false;
+    let diff = 0;
+    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
+    return diff === 0;
+}

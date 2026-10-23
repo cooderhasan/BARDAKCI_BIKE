@@ -10,6 +10,7 @@ import {
     Package,
     ShoppingCart,
     Settings,
+    ShieldCheck,
     Tag,
     FileText,
     ChevronLeft,
@@ -101,6 +102,7 @@ const menuGroups: MenuGroup[] = [
         items: [
             { title: "Mağaza Ayarları", href: "/admin/store-settings", icon: Store },
             { title: "Ayarlar", href: "/admin/settings", icon: Settings },
+            { title: "Güvenlik (2FA)", href: "/admin/security", icon: ShieldCheck },
             { title: "İskonto Grupları", href: "/admin/discount-groups", icon: FileText },
             { title: "Politikalar", href: "/admin/policies", icon: Scale },
             { title: "SSS Yönetimi", href: "/admin/faqs", icon: FileQuestion },

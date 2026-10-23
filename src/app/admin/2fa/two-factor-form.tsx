@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ShieldCheck, Loader2, Smartphone, KeyRound, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { confirmTwoFactorSetup, verifyTwoFactorLogin, signOutFromTwoFactor } from "./actions";
+import { confirmTwoFactorSetup, finishTwoFactorSetup, verifyTwoFactorLogin, signOutFromTwoFactor } from "./actions";
 
 interface Props {
     mode: "setup" | "verify";
@@ -19,6 +19,7 @@ export function TwoFactorForm({ mode, email, qrDataUrl, secret }: Props) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+    const [setupToken, setSetupToken] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
 
     // Tam sayfa geçiş: oturum yeniden okunur ve yönetici yetkisi gelir
@@ -33,7 +34,10 @@ export function TwoFactorForm({ mode, email, qrDataUrl, secret }: Props) {
         try {
             if (mode === "setup") {
                 const res = await confirmTwoFactorSetup(code);
-                if (res.success && res.backupCodes) setBackupCodes(res.backupCodes);
+                if (res.success && res.backupCodes) {
+                    setBackupCodes(res.backupCodes);
+                    setSetupToken(res.setupToken || null);
+                }
                 else setError(res.message || "Doğrulanamadı.");
             } else {
                 const res = await verifyTwoFactorLogin(code, useBackup);
@@ -44,6 +48,17 @@ export function TwoFactorForm({ mode, email, qrDataUrl, secret }: Props) {
             setError("Bir hata oluştu, tekrar deneyin.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Yedek kodlar gösterildi: doğrulama çerezi şimdi alınır, sonra panele
+    const finishSetup = async () => {
+        setLoading(true);
+        const res = await finishTwoFactorSetup(setupToken || "").catch(() => ({ success: false, message: "Bir hata oluştu." }));
+        if (res.success) goPanel();
+        else {
+            setLoading(false);
+            setError(res.message || "Bir hata oluştu.");
         }
     };
 
@@ -87,8 +102,9 @@ export function TwoFactorForm({ mode, email, qrDataUrl, secret }: Props) {
                                 {copied ? "Kopyalandı" : "Kodları kopyala"}
                             </button>
                         </div>
-                        <Button onClick={goPanel} className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl">
-                            Kodları sakladım, panele geç
+                        {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+                        <Button onClick={finishSetup} disabled={loading} className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl">
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Kodları sakladım, panele geç"}
                         </Button>
                     </div>
                 ) : (

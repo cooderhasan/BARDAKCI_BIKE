@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { verifyTotp, generateBackupCodes, hashBackupCode } from "@/lib/totp";
-import { ADMIN_MFA_COOKIE, ADMIN_MFA_MAX_AGE, signAdminMfaCookie } from "@/lib/admin-mfa-cookie";
+import { ADMIN_MFA_COOKIE, ADMIN_MFA_MAX_AGE, signAdminMfaCookie, signSetupToken, verifySetupToken } from "@/lib/admin-mfa-cookie";
 
 // Kod tahmini engeli: kullanıcı başına 10 dakikada en fazla 5 yanlış deneme (tek sunucu, bellekte)
 const failures = new Map<string, { count: number; since: number }>();
@@ -51,7 +51,7 @@ async function grantCookie(userId: string) {
 }
 
 /** İlk kurulum: QR okutulduktan sonra uygulamadaki kod girilir; doğruysa açılır ve yedek kodlar bir kez gösterilir */
-export async function confirmTwoFactorSetup(code: string): Promise<{ success: boolean; message?: string; backupCodes?: string[] }> {
+export async function confirmTwoFactorSetup(code: string): Promise<{ success: boolean; message?: string; backupCodes?: string[]; setupToken?: string }> {
     const user = await currentPanelUser();
     if (!user) return { success: false, message: "Oturum bulunamadı, tekrar giriş yapın." };
     if (user.twoFactorEnabled) return { success: false, message: "İki adımlı doğrulama zaten açık." };
@@ -74,8 +74,18 @@ export async function confirmTwoFactorSetup(code: string): Promise<{ success: bo
         },
     });
     failures.delete(user.id);
+    // Çerez burada verilmez (sayfa yenilenip yedek kodlar görünmeden panele geçiyordu); kodlar gösterildikten sonra
+    // finishTwoFactorSetup ile bu belge karşılığında verilir
+    return { success: true, backupCodes, setupToken: await signSetupToken(user.id) };
+}
+
+/** Kurulum sonu: yedek kodlar gösterildi, "panele geç" denince doğrulama çerezi verilir */
+export async function finishTwoFactorSetup(setupToken: string): Promise<{ success: boolean; message?: string }> {
+    const user = await currentPanelUser();
+    if (!user || !user.twoFactorEnabled) return { success: false, message: "Oturum bulunamadı, tekrar giriş yapın." };
+    if (!(await verifySetupToken(setupToken, user.id))) return { success: false, message: "Süre doldu, kodla giriş yapın." };
     await grantCookie(user.id);
-    return { success: true, backupCodes };
+    return { success: true };
 }
 
 /** Girişte kod (ya da yedek kod) doğrulama */
