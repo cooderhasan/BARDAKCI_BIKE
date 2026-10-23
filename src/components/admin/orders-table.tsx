@@ -1059,6 +1059,18 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                                 <div className="flex flex-col gap-0.5">
                                                     <span className="text-[10px] text-gray-400 uppercase font-bold">TAKİP NO</span>
                                                     <span className="text-xs font-mono select-all bg-gray-50 dark:bg-gray-800/50 px-1 rounded">{order.cargoTrackingNumber}</span>
+                                                    {/* Takip no varken fatura no da görünsün (önceden sadece takip no yoksa çıkıyordu) */}
+                                                    {(order as any).invoiceNo && (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <span className="text-[10px] text-orange-400 uppercase font-bold">Fatura</span>
+                                                            <span className="text-[11px] font-mono select-all text-gray-600 dark:text-gray-300">{(order as any).invoiceNo}</span>
+                                                            {(order as any).invoiceUrl && (
+                                                                <a href={(order as any).invoiceUrl} target="_blank" rel="noopener noreferrer" title="Faturayı aç">
+                                                                    <ExternalLink className="h-3 w-3 text-orange-500" />
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (order as any).invoiceNo ? (
                                                 <div className="flex flex-col gap-0.5">
