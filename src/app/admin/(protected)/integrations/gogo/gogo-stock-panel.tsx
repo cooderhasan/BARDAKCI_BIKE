@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Eye, Play, Save } from "lucide-react";
+import { Loader2, Eye, Play, Save, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { updateGogoConfig, runGogoSync } from "./actions";
+import { updateGogoConfig, runGogoSync, exportProductsNotInGogo } from "./actions";
 import type { GogoReport, GogoSettings } from "@/lib/supplier-stock/gogo";
 
 const fmt = (iso?: string) =>
@@ -22,6 +22,25 @@ export function GogoStockPanel({ initial }: { initial: GogoSettings }) {
     const [report, setReport] = useState<GogoReport | undefined>(initial.lastReport);
     const [lastRunAt, setLastRunAt] = useState<string | undefined>(initial.lastRunAt);
     const [previewOk, setPreviewOk] = useState(false);
+    const [exporting, setExporting] = useState(false);
+
+    // Sitede olup Gogo'da olmayan ürünler: Excel'de açılır dosya indirilir
+    const exportMissing = async () => {
+        setExporting(true);
+        const res = await exportProductsNotInGogo();
+        setExporting(false);
+        if (!res.success || !res.csv) {
+            toast.error(res.error || "Liste hazırlanamadı.");
+            return;
+        }
+        const blob = new Blob([res.csv], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `gogoda-olmayan-urunler-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast.success(`${res.count} ürün listelendi.`);
+    };
 
     const save = async () => {
         setSaving(true);
@@ -85,6 +104,10 @@ export function GogoStockPanel({ initial }: { initial: GogoSettings }) {
                         <Button onClick={() => run(false)} disabled={!!running || !previewOk} className="bg-emerald-600 hover:bg-emerald-700">
                             {running === "apply" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
                             Uygula
+                        </Button>
+                        <Button variant="outline" onClick={exportMissing} disabled={exporting || !!running || !initial.url}>
+                            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                            Gogo&apos;da olmayan ürünler (Excel)
                         </Button>
                     </div>
                     <p className="text-xs text-gray-500">
