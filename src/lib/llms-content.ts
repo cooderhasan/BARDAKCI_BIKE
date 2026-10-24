@@ -134,11 +134,12 @@ export async function getCategoryTree(ctx: LlmsContext): Promise<LlmsCategory[]>
             a.order - b.order ||
             a.name.localeCompare(b.name, "tr")
     );
+    // Adlardaki baş/son boşluklar (admin'de " Hava - Yağ Filtreleri" gibi girilmiş) temizlenir
     return roots.map((r) => ({
-        name: r.name,
+        name: r.name.trim(),
         slug: r.slug,
         description: r.description,
-        children: sortSidebarCategories(all.filter((c) => c.parentId === r.id)).map((c) => ({ name: c.name, slug: c.slug })),
+        children: sortSidebarCategories(all.filter((c) => c.parentId === r.id)).map((c) => ({ name: c.name.trim(), slug: c.slug })),
     }));
 }
 
