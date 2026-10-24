@@ -221,12 +221,26 @@ export function mapCiceksepetiItemStatus(statusId: any, statusText: any): Market
     return null;
 }
 
-/** ePttAVM sipariş durumu: import ile aynı anahtar kelimeler; bilinmeyen durumda null (varsayım yok) */
+/**
+ * ePttAVM sipariş durumu (import da bunu kullanır); bilinmeyen durumda null (varsayım yok).
+ * Kargo barkodu PTT panelinde barkod yazdırılınca oluşuyor, paket henüz şubeye verilmemiş olabilir: barkod tek başına
+ * "Hazırlanıyor"dur. Önceden barkod = Kargolandı sayılıyordu ("gönderime hazır" siparişler Kargolandı görünüyordu).
+ */
 export function mapPttavmOrderStatus(statusText: any, cargoBarcode?: any): MarketplaceStatus | null {
     const v = String(statusText || "").toLocaleLowerCase("tr-TR");
     if (v.includes("iade")) return null; // iadeler kapsam dışı
+    // "gondericisine_teslim_edildi": alıcıya ulaşmadan satıcıya geri döndü (iade gibi, elle değerlendirilir); önceden "teslim" diye Teslim Edildi sayılıyordu
+    if (v.includes("gondericisine") || v.includes("göndericisine")) return null;
     if (v.includes("iptal") || v.includes("gecersiz") || v.includes("geçersiz")) return "CANCELLED";
     if (v.includes("tamamlandi") || v.includes("tamamlandı") || v.includes("teslim")) return "DELIVERED";
-    if (v.includes("gonderilmis") || v.includes("gönderilmiş") || cargoBarcode) return "SHIPPED";
+    // PTT dokümanında "gonderilmiş" (o düz, ş Türkçe) yazıyor; tüm yazımlar "gonderilmi/gönderilmi" ile yakalanır
+    if (v.includes("gonderilmi") || v.includes("gönderilmi")) return "SHIPPED";
+    if (cargoBarcode) return "PROCESSING";
     return null;
+}
+
+/** PTT'de paket henüz kargoya verilmemiş durumlar (barkod yazdırılmış olsa da) */
+export function isPttavmPreShipment(statusText: any): boolean {
+    const v = String(statusText || "").toLocaleLowerCase("tr-TR");
+    return v.includes("kargo_yapilmasi") || v.includes("kargo yapılması") || v.includes("onay_surecinde") || v.includes("havale_onayi");
 }

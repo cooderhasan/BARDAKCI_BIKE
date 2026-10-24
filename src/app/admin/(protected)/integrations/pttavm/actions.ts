@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { PttavmClient, PttavmStockPriceItem, PttavmProductUpsertItem } from "@/services/pttavm/api";
+import { mapPttavmOrderStatus, isPttavmPreShipment } from "@/lib/order-status-sync";
 
 // ==================== CONFIG ACTIONS ====================
 
@@ -713,23 +714,31 @@ export async function syncOrdersFromPttavm() {
           const shipmentPackageId = cargoTrackingNumber || orderNumber;
           const trackingUrl = cargoTrackingNumber ? `https://gonderitakip.ptt.gov.tr/Track/Detail?id=${cargoTrackingNumber}` : null;
 
-          // Map ePttAVM order status to local Order status
-          const rawStatusStr = String(item.siparisDurumu || item.durum || state || "").toLowerCase();
-          let targetOrderStatus: "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED" = "CONFIRMED";
-          if (rawStatusStr.includes("gonderilmis") || rawStatusStr.includes("gönderilmiş") || cargoTrackingNumber) {
-            targetOrderStatus = "SHIPPED";
-          }
-          if (rawStatusStr.includes("tamamlandi") || rawStatusStr.includes("tamamlandı") || rawStatusStr.includes("teslim")) {
-            targetOrderStatus = "DELIVERED";
-          }
-          if (rawStatusStr.includes("iptal") || rawStatusStr.includes("iade") || rawStatusStr.includes("gecersiz")) {
-            targetOrderStatus = "CANCELLED";
-          }
+          // ePttAVM durumu → site durumu (durum takibiyle aynı kurallar, order-status-sync.ts).
+          // Barkod yazdırılmış ama kargoya verilmemiş sipariş "Hazırlanıyor"; önceden barkod = Kargolandı sayılıyordu.
+          const rawStatus = item.siparisDurumu || item.durum || state || "";
+          const rawStatusStr = String(rawStatus).toLowerCase();
+          // İade bu içe aktarımda eskisi gibi iptal sayılır (stok geri eklenir); durum takibi ise iadelere dokunmuyor
+          const mappedStatus = rawStatusStr.includes("iade") ? "CANCELLED" : mapPttavmOrderStatus(rawStatus, cargoTrackingNumber);
 
           const existingOrder = await prisma.order.findUnique({
             where: { orderNumber },
             include: { items: true },
           });
+
+          // Yeni siparişte PTT durumu; mevcutta sadece ileri (iptal hariç). Tek istisna: barkod yüzünden yanlışlıkla
+          // Kargolandı olmuş, PTT'de hâlâ kargo bekleyen sipariş Hazırlanıyor'a düzeltilir.
+          const RANK: Record<string, number> = { PENDING: 0, WAITING_FOR_PAYMENT: 0, CONFIRMED: 1, PROCESSING: 2, SHIPPED: 3, DELIVERED: 4 };
+          let targetOrderStatus: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" = (mappedStatus as any) || "CONFIRMED";
+          if (existingOrder) {
+            const cur = String(existingOrder.status);
+            if (!mappedStatus) targetOrderStatus = cur as any;
+            else if (mappedStatus === "CANCELLED") targetOrderStatus = "CANCELLED";
+            else if (cur === "CANCELLED") targetOrderStatus = "CANCELLED";
+            else if (RANK[mappedStatus] >= (RANK[cur] ?? 0)) targetOrderStatus = mappedStatus;
+            else if (cur === "SHIPPED" && mappedStatus === "PROCESSING" && isPttavmPreShipment(rawStatusStr)) targetOrderStatus = "PROCESSING";
+            else targetOrderStatus = cur as any;
+          }
 
           if (!existingOrder) {
             const { decrementOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
