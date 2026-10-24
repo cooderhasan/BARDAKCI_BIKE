@@ -728,6 +728,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         selected={formData.categoryIds}
                                         onChange={(vals: string[]) => handleChange("categoryIds", vals)}
                                         placeholder="Kategori seçin"
+                                        autoSelectParents
                                     />
                                 </div>
                                 <div className="space-y-2">
