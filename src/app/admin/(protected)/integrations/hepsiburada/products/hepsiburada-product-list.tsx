@@ -41,6 +41,7 @@ import {
     getHepsiburadaAttributeValues, 
     updateHepsiburadaSku, 
     enqueueHepsiburadaSync,
+    syncProductsToHepsiburada,
     setHepsiburadaProductCategory,
     setBulkHepsiburadaProductCategory,
     matchHepsiburadaListings
@@ -723,9 +724,28 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                                     <Button size="sm" variant="outline" title="Özellikleri Düzenle" className="h-8 w-8 p-0 border-blue-200 text-[#17457C]" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id}>
                                                         <Box className="w-3.5 h-3.5" />
                                                     </Button>
-                                                    <Button size="sm" variant="outline" className="h-8 border-blue-200 text-[#17457C]" onClick={() => handleOpenWizard(product)} disabled={loadingProductId === product.id}>
+                                                    {/* Sadece bu ürünün stok ve fiyatı (önceden bu düğme de özellik penceresini açıyordu; tek ürün stok/fiyat gönderilemiyordu) */}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 border-blue-200 text-[#17457C]"
+                                                        title="Bu ürünün stok ve fiyatını Hepsiburada'ya gönder"
+                                                        disabled={loadingProductId === product.id}
+                                                        onClick={async () => {
+                                                            setLoadingProductId(product.id);
+                                                            try {
+                                                                const res = await syncProductsToHepsiburada([product.id]);
+                                                                if (res.success) toast.success(res.message);
+                                                                else toast.error(res.message);
+                                                            } catch {
+                                                                toast.error("Stok/fiyat gönderilemedi.");
+                                                            } finally {
+                                                                setLoadingProductId(null);
+                                                            }
+                                                        }}
+                                                    >
                                                         <RefreshCcw className={`w-3 h-3 mr-1 ${loadingProductId === product.id ? 'animate-spin' : ''}`} />
-                                                        Güncelle
+                                                        Stok/Fiyat
                                                     </Button>
                                                 </>
                                             ) : (
