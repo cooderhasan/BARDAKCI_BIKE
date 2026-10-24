@@ -12,6 +12,7 @@ import { RecentlyViewed } from "@/components/storefront/recently-viewed";
 import { FrameSizeCalculator } from "@/components/storefront/frame-size-calculator";
 import { JsonLd } from "@/components/seo/json-ld";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { getSiteSettings } from "@/lib/settings";
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
         const general = await getSiteSettings();
         const ogImage = general.ogImageUrl
             ? (general.ogImageUrl.startsWith("http") ? general.ogImageUrl : `${siteUrl}${general.ogImageUrl}`)
-            : `${siteUrl}/img/og-default.jpg`;
+            : (general.logoUrl ? (general.logoUrl.startsWith("http") ? general.logoUrl : `${siteUrl}${general.logoUrl}`) : `${siteUrl}/img/og-default.jpg`);
         const rawTitle = storeSettings.siteTitle || (isMotor ? "Motovitrin - Motosiklet Yedek Parça & Aksesuar" : "Bardakcı Bisiklet");
         const description = storeSettings.seoDescription || (isMotor
             ? "Motovitrin ile en kaliteli motosiklet yedek parça ve aksesuarlarına uygun fiyatlarla ulaşın."
@@ -71,8 +72,7 @@ const safeToISO = (d: any) => {
     }
 };
 
-async function getHomeData() {
-    const activeStore = await getStoreType();
+async function loadHomeData(activeStore: "BIKE" | "MOTOR") {
     const storeFilter = getStoreFilter(activeStore);
 
     const [sliders, featuredProducts, newProducts, bestSellers, categories, sidebarCategories, banners, blogPosts, brands] =
@@ -243,11 +243,17 @@ async function getHomeData() {
     };
 }
 
+// Ana sayfa verisi herkese aynı (bayi fiyatı oturuma göre ayrıca hesaplanıyor): mağaza başına 60 sn önbellek.
+// Önceden her ziyarette ~15 sorgu çalışıyordu; ilk yanıt rakip sitelerden 0,1-0,2 sn geç geliyordu.
+// Admin'deki değişiklik (ürün, slider, kategori) ana sayfaya en geç 1 dakikada yansır.
+const getHomeData = unstable_cache((store: "BIKE" | "MOTOR") => loadHomeData(store), ["home-data-v1"], { revalidate: 60, tags: ["home-data"] });
+
 export default async function HomePage() {
     const session = await auth();
     const activeStore = await getStoreType();
     const isMotor = activeStore === "MOTOR";
-    const data = await getHomeData();
+    const data = await getHomeData(activeStore === "MOTOR" ? "MOTOR" : "BIKE");
+    const storeSettings = await getStoreSettings(activeStore);
     const discountRate = session?.user?.discountRate || 0;
     const isDealer =
         session?.user?.role === "DEALER" && session?.user?.status === "APPROVED";
@@ -256,16 +262,21 @@ export default async function HomePage() {
         where: { key: "general" },
     }).catch(() => null);
     const general = (generalSettings?.value as any) || {};
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    // Motor sitesi önceden kendini "Bardakcı Bike" ve bisiklet adresiyle tanıtıyordu; mağazaya göre
+    const baseUrl = isMotor ? "https://motor.bardakcibike.com.tr" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr");
+    const storeName = isMotor ? "Moto Vitrin" : (general.siteName || "Bardakcı Bike");
+    const abs = (u?: string) => (u ? (u.startsWith("http") ? u : `${baseUrl}${u}`) : undefined);
+    // og-default.jpg sunucuda yok (404); paylaşım görseli ya da logo kullanılır
+    const storeImage = abs(general.ogImageUrl) || abs(general.logoUrl);
 
     const organizationSchema = {
         "@context": "https://schema.org",
         "@type": "Store",
-        "name": general.siteName || "Bardakcı Bike",
+        "name": storeName,
         "url": baseUrl,
-        "logo": general.logoUrl ? (general.logoUrl.startsWith("http") ? general.logoUrl : `${baseUrl}${general.logoUrl}`) : `${baseUrl}/img/og-default.jpg`,
-        "image": `${baseUrl}/img/og-default.jpg`,
-        "description": general.seoDescription || "Toptan Bisiklet ve Yedek Parça Satış Platformu",
+        ...(abs(general.logoUrl) ? { "logo": abs(general.logoUrl) } : {}),
+        ...(storeImage ? { "image": storeImage } : {}),
+        "description": storeSettings.seoDescription || general.seoDescription || (isMotor ? "Motosiklet yedek parça ve aksesuar" : "Bisiklet, yedek parça ve aksesuar"),
         "telephone": general.phone || "+905540144142",
         "address": {
             "@type": "PostalAddress",
@@ -294,7 +305,7 @@ export default async function HomePage() {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "url": baseUrl,
-        "name": general.siteName || "Bardakcı Bike",
+        "name": storeName,
         "potentialAction": {
             "@type": "SearchAction",
             "target": {
@@ -310,6 +321,12 @@ export default async function HomePage() {
             <JsonLd data={organizationSchema} />
             <JsonLd data={websiteSchema} />
             <div className="container mx-auto px-4 py-8 max-w-7xl">
+            {/* Sayfanın ana başlığı (H1): görsel tasarımı değiştirmemek için ekranda gizli; Google ve ekran okuyucular okur */}
+            <h1 className="sr-only">
+                {isMotor
+                    ? "Moto Vitrin – Motosiklet Yedek Parça, Kask ve Aksesuar"
+                    : "Bardakcı Bike – Konya Bisiklet Mağazası: Dağ, Şehir, Çocuk ve Elektrikli Bisiklet, Yedek Parça ve Aksesuar"}
+            </h1>
             <div className="space-y-12">
                 {/* Main Content */}
                 <div className="space-y-12">
