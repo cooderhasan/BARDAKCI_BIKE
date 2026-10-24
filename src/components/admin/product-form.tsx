@@ -249,6 +249,20 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
     useEffect(() => {
         getVariantValueSuggestions().then(setSavedVariantValues).catch(() => {});
     }, []);
+    // AI açıklama: "site" (uzun, teknik tablolu) ya da "marketplace" (kısa, tablosuz, site metninden farklı cümlelerle)
+    const [aiStep, setAiStep] = useState<"site" | "marketplace" | null>(null);
+    const stripHtmlText = (h?: string | null) => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const requestAiDescription = async (mode: "site" | "marketplace", avoidText?: string) => {
+        const ref = (formData.referenceUrl || "").trim();
+        const isUrl = ref.startsWith("http://") || ref.startsWith("https://");
+        // Pazaryeri metni için ham metin yoksa sitedeki açıklama kaynak olarak kullanılır
+        const source = ref || stripHtmlText(formData.description);
+        const payload = isUrl
+            ? { url: ref, mode, avoidText }
+            : { text: source, productName: formData.name, mode, avoidText };
+        const res = await fetch("/api/admin/ai/generate-description", { method: "POST", body: JSON.stringify(payload) });
+        return res.json();
+    };
     // Ayraçlar (/ - + & | \ ve "ve") aynı sayılır: "siyah-kırmızı", "Siyah/Kırmızı", "siyah ve kırmızı" → aynı anahtar
     const canonKey = (t: string) =>
         t.toLocaleLowerCase("tr-TR").replace(/\s+ve\s+/g, "/").replace(/[-/+&|\\]+/g, "/").replace(/\s+/g, "");
@@ -817,22 +831,27 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                 }
                                                 setLoading(true);
                                                 try {
-                                                    const isUrl = formData.referenceUrl.trim().startsWith("http://") || formData.referenceUrl.trim().startsWith("https://");
-                                                    const payload = isUrl 
-                                                        ? { url: formData.referenceUrl.trim() } 
-                                                        : { text: formData.referenceUrl, productName: formData.name };
-
-                                                    const res = await fetch("/api/admin/ai/generate-description", {
-                                                        method: "POST",
-                                                        body: JSON.stringify(payload),
-                                                    });
-                                                    const result = await res.json();
+                                                    setAiStep("site");
+                                                    const result = await requestAiDescription("site");
                                                     if (result.success && result.data) {
                                                         handleChange("description", result.data);
                                                         if (!formData.name && result.sourceName) {
                                                             handleChange("name", result.sourceName);
                                                         }
-                                                        toast.success("Özgün içerik başarıyla oluşturuldu.");
+                                                        // Ardından pazaryeri için kısa, tablosuz, siteden farklı metin (alan boşsa; elle yazılanı ezmez)
+                                                        if (!stripHtmlText(formData.marketplaceDescription)) {
+                                                            setAiStep("marketplace");
+                                                            const mp = await requestAiDescription("marketplace", result.data);
+                                                            if (mp.success && mp.data) {
+                                                                handleChange("marketplaceDescription", mp.data);
+                                                                toast.success("Site ve pazaryeri açıklamaları oluşturuldu.");
+                                                            } else {
+                                                                toast.success("Site açıklaması oluşturuldu.");
+                                                                toast.error(mp.error || "Pazaryeri açıklaması oluşturulamadı; alttaki düğmeyle tekrar deneyin.");
+                                                            }
+                                                        } else {
+                                                            toast.success("Site açıklaması oluşturuldu. Pazaryeri açıklaması dolu olduğu için değiştirilmedi.");
+                                                        }
                                                     } else if (result.success && !result.data) {
                                                         toast.error("Yapay zeka içerik üretemedi. Lütfen tekrar deneyin.");
                                                     } else {
@@ -842,6 +861,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                     toast.error("Bir hata oluştu.");
                                                 } finally {
                                                     setLoading(false);
+                                                    setAiStep(null);
                                                 }
                                             }}
                                             disabled={loading}
@@ -850,18 +870,18 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                             {loading ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                                    <span>İçerik Oluşturuluyor...</span>
+                                                    <span>{aiStep === "marketplace" ? "Pazaryeri açıklaması yazılıyor..." : "İçerik Oluşturuluyor..."}</span>
                                                 </>
                                             ) : (
                                                 <>
                                                     <Brain className="w-4 h-4" />
-                                                    <span>AI ile Açıklama ve Teknik Tablo Oluştur</span>
+                                                    <span>AI ile Açıklama, Teknik Tablo ve Pazaryeri Metni Oluştur</span>
                                                 </>
                                             )}
                                         </Button>
                                     </div>
                                     <p className="text-[10px] text-gray-500 italic">
-                                        * Yapıştırılan ham metin veya linkten çekilen bilgiler AI tarafından SEO'ya uygun şekilde düzenlenir, önemli kısımlar vurgulanır ve teknik özellik tablosu oluşturulur.
+                                        * Yapıştırılan ham metin veya linkten çekilen bilgiler AI tarafından SEO'ya uygun şekilde düzenlenir, önemli kısımlar vurgulanır ve teknik özellik tablosu oluşturulur. Pazaryeri açıklaması boşsa ona da kısa, tablosuz ve site metninden farklı bir açıklama yazılır.
                                     </p>
                                 </div>
                             </div>
@@ -876,11 +896,43 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             </div>
 
                             <div className="space-y-2">
-                                <div className="flex flex-col gap-1">
-                                    <Label>Pazar Yeri Açıklaması (Opsiyonel)</Label>
-                                    <span className="text-xs text-gray-500">
-                                        Pazar yerleri için özel açıklama. Boş bırakılırsa normal ürün açıklaması gönderilir. Pazar yerleri çok uzun açıklamaları kabul etmediği için buraya daha kısa ve öz açıklamalar girebilirsiniz.
-                                    </span>
+                                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                                    <div className="flex flex-col gap-1">
+                                        <Label>Pazar Yeri Açıklaması (Opsiyonel)</Label>
+                                        <span className="text-xs text-gray-500">
+                                            Pazar yerleri için özel açıklama. Boş bırakılırsa normal ürün açıklaması gönderilir. Pazar yerleri çok uzun açıklamaları kabul etmediği için buraya daha kısa ve öz açıklamalar girebilirsiniz.
+                                        </span>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={loading}
+                                        className="shrink-0 gap-1.5 border-[#17457C]/30 text-[#17457C]"
+                                        onClick={async () => {
+                                            if (!formData.referenceUrl && !stripHtmlText(formData.description)) {
+                                                toast.error("Önce AI asistanına ham metin girin ya da ürün açıklamasını doldurun.");
+                                                return;
+                                            }
+                                            setLoading(true);
+                                            setAiStep("marketplace");
+                                            try {
+                                                const mp = await requestAiDescription("marketplace", formData.description);
+                                                if (mp.success && mp.data) {
+                                                    handleChange("marketplaceDescription", mp.data);
+                                                    toast.success("Pazaryeri açıklaması yazıldı.");
+                                                } else toast.error(mp.error || "Pazaryeri açıklaması oluşturulamadı.");
+                                            } catch {
+                                                toast.error("Bir hata oluştu.");
+                                            } finally {
+                                                setLoading(false);
+                                                setAiStep(null);
+                                            }
+                                        }}
+                                    >
+                                        {aiStep === "marketplace" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Brain className="w-3.5 h-3.5" />}
+                                        AI ile yeniden yaz
+                                    </Button>
                                 </div>
                                 <RichTextEditor
                                     content={formData.marketplaceDescription}

@@ -7,7 +7,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 export async function POST(req: NextRequest) {
   if (!(await isAdminRequest())) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   try {
-    const { url, text, productName: reqProductName } = await req.json();
+    // mode "marketplace": pazaryeri için kısa açıklama (tablo yok, site metninden farklı cümleler); avoidText: sitedeki açıklama
+    const { url, text, productName: reqProductName, mode, avoidText } = await req.json();
+    const isMarketplace = mode === "marketplace";
 
     let productName = reqProductName || "";
     let productDescription = text || "";
@@ -85,11 +87,39 @@ export async function POST(req: NextRequest) {
     6. TEKNİK TABLO: Yapıştırılan metinden çıkarabildiğin tüm teknik detayları (Malzeme, Boyut, Jant Boyutu, Ağırlık, Renk, Uyumluluk vb.) içeren şık ve standart bir HTML <table> yapısı oluştur. Tabloda <thead> (<th> kullanarak) ve <tbody> (<td> kullanarak) bölümlerini mutlaka ayır. Eğer girdi metninde hiç teknik detay yoksa ürünün adından yola çıkarak mantıklı varsayılan teknik özelliklerle bir tablo oluştur.
     7. HTML BİÇİMİ: Çıktıyı doğrudan HTML formatında ver. Ekstra markdown işaretlemeleri (\`\`\`html vb.) kullanma.`;
 
-    const userPrompt = `Aşağıdaki ham verileri e-ticaret sitemiz için profesyonelce düzenle:
-      
+    const siteUserPrompt = `Aşağıdaki ham verileri e-ticaret sitemiz için profesyonelce düzenle:
+
       ${productName ? `ÜRÜN ADI: ${productName}` : ""}
-      KAYNAK METİN (ÜRETİCİ BİLGİLERİ): 
+      KAYNAK METİN (ÜRETİCİ BİLGİLERİ):
       ${productDescription}`;
+
+    // Pazaryeri (Trendyol, Hepsiburada vb.) için kısa sürüm: sitedeki açıklamanın kopyası olmasın (kopya içerik),
+    // teknik tablo yok (tablo sitede), pazaryerlerinin yasakladığı yönlendirmeler (site adresi, telefon, mağaza adı) yok
+    const marketplaceSystemPrompt = `Sen pazaryerleri (Trendyol, Hepsiburada, N11 vb.) için ürün açıklaması yazan profesyonel bir e-ticaret içerik uzmanısın.
+
+    KURALLAR:
+    1. UZUNLUK: Kısa ve öz. Toplam 80-150 kelime: 1-2 kısa tanıtım paragrafı ve ardından 4-6 maddelik öne çıkan özellikler listesi.
+    2. TABLO YASAK: Kesinlikle <table> kullanma, "Teknik Özellikler" başlığı ekleme.
+    3. ÖZGÜNLÜK: Sana verilen "SİTE AÇIKLAMASI" ile aynı cümleleri, aynı giriş cümlesini ve aynı sıralamayı KULLANMA. Aynı bilgileri farklı kelimelerle, farklı bir sırayla ve farklı bir bakış açısıyla (kullanıcıya sağladığı fayda) anlat. Hiçbir cümleyi kopyalama.
+    4. YÖNLENDİRME YASAK: Web sitesi adresi, link, telefon, e-posta, WhatsApp, mağaza/firma adı, "sitemizden", "mağazamızdan" gibi ifadeler kullanma.
+    5. GARANTİ YASAĞI: "garanti", "garantili" gibi ifadeler kullanma.
+    6. VURGULAMA: Önemli özellikleri <b>...</b> ile vurgula; özellikleri <ul><li> ile listele; paragraflar <p>.
+    7. BAŞLIK: <h1>/<h2> kullanma.
+    8. ÜSLUP: Kurumsal, ikna edici, profesyonel. Kişisel veya usta ağzı ifadeler yok.
+    9. HTML BİÇİMİ: Çıktıyı doğrudan HTML olarak ver; markdown kod bloğu kullanma.`;
+
+    const plain = (h: string) => String(h || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const avoidBlock = avoidText
+        ? `\n      SİTE AÇIKLAMASI (bundan FARKLI yaz, cümle kopyalama):\n      ${plain(avoidText).slice(0, 4000)}`
+        : "";
+    const marketplaceUserPrompt = `Aşağıdaki ürün için pazaryeri açıklaması yaz:
+
+      ${productName ? `ÜRÜN ADI: ${productName}` : ""}
+      KAYNAK METİN (ÜRETİCİ BİLGİLERİ):
+      ${productDescription}${avoidBlock}`;
+
+    const activeSystemPrompt = isMarketplace ? marketplaceSystemPrompt : systemPrompt;
+    const userPrompt = isMarketplace ? marketplaceUserPrompt : siteUserPrompt;
 
     let generatedHtml = "";
 
@@ -113,7 +143,7 @@ export async function POST(req: NextRequest) {
                 model: modelId,
                 temperature: 1.0, // Maksimum yaratıcılık
                 messages: [
-                    { role: "system", content: systemPrompt },
+                    { role: "system", content: activeSystemPrompt },
                     { role: "user", content: userPrompt }
                 ]
             })
@@ -145,7 +175,7 @@ export async function POST(req: NextRequest) {
         
         const model = genAI.getGenerativeModel({ 
             model: modelIdFromConfig,
-            systemInstruction: systemPrompt 
+            systemInstruction: activeSystemPrompt
         });
 
         const result = await model.generateContent({
@@ -168,8 +198,11 @@ export async function POST(req: NextRequest) {
     // This is a safety layer for models like Qwen.
     generatedHtml = generatedHtml.replace(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uff00-\uffef]/g, "").trim();
 
-    return NextResponse.json({ 
-        success: true, 
+    // Pazaryeri metninde tablo kalmasın (model kurala uymazsa)
+    if (isMarketplace) generatedHtml = generatedHtml.replace(/<table[\s\S]*?<\/table>/gi, "").trim();
+
+    return NextResponse.json({
+        success: true,
         data: generatedHtml,
         sourceName: productName
     });
