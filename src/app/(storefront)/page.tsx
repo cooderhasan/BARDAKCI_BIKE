@@ -321,18 +321,25 @@ export default async function HomePage() {
             <JsonLd data={organizationSchema} />
             <JsonLd data={websiteSchema} />
             <div className="container mx-auto px-4 py-8 max-w-7xl">
-            {/* Sayfanın ana başlığı (H1): görsel tasarımı değiştirmemek için ekranda gizli; Google ve ekran okuyucular okur */}
-            <h1 className="sr-only">
-                {isMotor
-                    ? "Moto Vitrin – Motosiklet Yedek Parça, Kask ve Aksesuar"
-                    : "Bardakcı Bike – Konya Bisiklet Mağazası: Dağ, Şehir, Çocuk ve Elektrikli Bisiklet, Yedek Parça ve Aksesuar"}
-            </h1>
             <div className="space-y-12">
                 {/* Main Content */}
                 <div className="space-y-12">
                     {/* Hero Slider */}
                     <div className="rounded-xl overflow-hidden shadow-sm">
                         <HeroSlider sliders={data.sliders} />
+                    </div>
+
+                    {/* Sayfanın ana başlığı (H1), görünür ve kısa. Önceden gizliydi; gizli başlığa Google daha az değer veriyor.
+                        Şehir adı bilerek yok: sipariş Türkiye geneli, "yerel dükkân" izlenimi vermesin (Konya yapısal veride var) */}
+                    <div className="text-center -mb-4 md:-mb-6">
+                        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                            {isMotor ? "Motosiklet Yedek Parça ve Aksesuar" : "Online Bisiklet Mağazası"}
+                        </h1>
+                        <p className="mt-1.5 text-sm md:text-base text-gray-500 dark:text-gray-400">
+                            {isMotor
+                                ? "Mondial, CG, Falcon, Honda, Yamaha ve daha fazlası için parça · Türkiye geneline aynı gün kargo"
+                                : "Bisan, Corelli, Ümit ve Mosso yetkili satıcısı · Türkiye'nin her yerine kargo"}
+                        </p>
                     </div>
 
                     {/* Güven çubuğu: somut bilgiler (önceden "7/24 Destek" gibi genel ifadeler vardı) */}
