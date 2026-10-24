@@ -1202,6 +1202,14 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                             {selectedOrder.notes || "Not yok."}
                                         </p>
                                     </div>
+                                    {(selectedOrder as any).marketplaceStatusText && (
+                                        <div>
+                                            <h4 className="font-semibold mb-2 text-sm">PTT&apos;deki durum</h4>
+                                            <p className="text-xs font-mono text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-md p-2 break-all">
+                                                {(selectedOrder as any).marketplaceStatusText}
+                                            </p>
+                                        </div>
+                                    )}
                                     {/* Site siparişlerinde müşterinin nereden geldiği ve cihazı (2026-10-22'den sonraki siparişlerde) */}
                                     {(selectedOrder.source || "WEB") === "WEB" && (() => {
                                         const at = (selectedOrder as any).attribution as OrderAttribution | null;
