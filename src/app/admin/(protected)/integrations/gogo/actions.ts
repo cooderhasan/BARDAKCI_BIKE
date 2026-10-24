@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/admin-guard";
-import { getGogoSettings, saveGogoSettings, runGogoStockSync, listSiteProductsNotInGogo, type GogoReport, type GogoSettings } from "@/lib/supplier-stock/gogo";
+import { getGogoSettings, saveGogoSettings, runGogoStockSync, type GogoReport, type GogoSettings } from "@/lib/supplier-stock/gogo";
 import { revalidatePath } from "next/cache";
 
 export async function getGogoConfig(): Promise<GogoSettings> {
@@ -28,24 +28,5 @@ export async function runGogoSync(dryRun: boolean): Promise<{ success: boolean; 
         return { success: true, report };
     } catch (e: any) {
         return { success: false, error: e?.message || "Gogo stok güncellemesi yapılamadı." };
-    }
-}
-
-/** Sitede olup Gogo XML'inde olmayan ürünler: Excel'de açılan CSV (noktalı virgül, Türkçe karakterler için BOM) */
-export async function exportProductsNotInGogo(): Promise<{ success: boolean; csv?: string; count?: number; error?: string }> {
-    await requireAdmin();
-    try {
-        const { rows } = await listSiteProductsNotInGogo();
-        const cell = (v: unknown) => {
-            const t = String(v ?? "");
-            return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
-        };
-        const lines = [
-            ["Stok Kodu", "Ürün Adı", "Marka", "Stok", "Durum", "Mağaza", "Sebep"].join(";"),
-            ...rows.map((r) => [r.sku, r.name, r.brand, r.stock, r.isActive ? "Aktif" : "Pasif", r.store === "BOTH" ? "Ortak" : "Motor", r.reason].map(cell).join(";")),
-        ];
-        return { success: true, csv: String.fromCharCode(0xfeff) + lines.join("\r\n"), count: rows.length };
-    } catch (e: any) {
-        return { success: false, error: e?.message || "Liste hazırlanamadı." };
     }
 }
