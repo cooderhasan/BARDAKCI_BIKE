@@ -712,7 +712,9 @@ export async function syncOrdersFromPttavm() {
           const cargoTrackingNumber = item.kargoBarkod ? String(item.kargoBarkod).trim() : null;
           const cargoCompany = "PTT Kargo";
           const shipmentPackageId = cargoTrackingNumber || orderNumber;
-          const trackingUrl = cargoTrackingNumber ? `https://gonderitakip.ptt.gov.tr/Track/Detail?id=${cargoTrackingNumber}` : null;
+          // Eski takip sitesi (gonderitakip.ptt.gov.tr) kapandı, ana sayfaya yönlendiriyor; yeni sorgu ptt.gov.tr ana sayfasındaki
+          // "Gönderi Takip" kutusunda (doğrulamalı, barkodla doğrudan açılan adres yok): takip no kutuya yapıştırılır
+          const trackingUrl = cargoTrackingNumber ? "https://www.ptt.gov.tr/" : null;
 
           // ePttAVM durumu → site durumu (durum takibiyle aynı kurallar, order-status-sync.ts).
           // Barkod yazdırılmış ama kargoya verilmemiş sipariş "Hazırlanıyor"; önceden barkod = Kargolandı sayılıyordu.
@@ -806,7 +808,8 @@ export async function syncOrdersFromPttavm() {
             const cargoChanged = cargoTrackingNumber && existingOrder.cargoTrackingNumber !== cargoTrackingNumber;
             const hasIncompleteItems = existingOrder.items.some(i => i.productName === "ePttAVM Ürünü" || Number(i.unitPrice) === 0);
 
-            if (statusChanged || cargoChanged || hasIncompleteItems || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
+            const staleTrackingUrl = !!existingOrder.trackingUrl?.includes("gonderitakip.ptt.gov.tr");
+            if (statusChanged || cargoChanged || staleTrackingUrl || hasIncompleteItems || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
               const { restoreOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
 
               const affectedIds = await prisma.$transaction(async (tx) => {
@@ -823,7 +826,7 @@ export async function syncOrdersFromPttavm() {
                     cargoCompany,
                     cargoTrackingNumber: cargoTrackingNumber || existingOrder.cargoTrackingNumber,
                     shipmentPackageId: shipmentPackageId || existingOrder.shipmentPackageId,
-                    trackingUrl: trackingUrl || existingOrder.trackingUrl,
+                    trackingUrl: trackingUrl || (staleTrackingUrl ? null : existingOrder.trackingUrl),
                     total: finalTotal,
                     subtotal: finalTotal,
                     vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
