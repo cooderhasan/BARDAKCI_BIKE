@@ -227,7 +227,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         (pttRaw as any[]).map((r) => {
             const raw: any = r.rawData || {};
             const lines = Array.isArray(raw.siparisUrunler) ? raw.siparisUrunler.map((l: any) => l?.siparisDurumu).filter(Boolean) : [];
-            const text = `${pttavmRawStatus(raw) || "-"}${lines.length > 1 ? ` (satırlar: ${lines.join(", ")})` : ""} · barkod: ${raw.kargoBarkod || "yok"} · son çekim: ${new Date(r.updatedAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}`;
+            // inCargo: 2 = paket tedarikçide (bizde), 3 = PTT şubesinde, 1 = dağıtımda
+            const cargo = Array.isArray(raw._cargoInfos) ? raw._cargoInfos.map((c: any) => c?.inCargo ?? "-").join(",") : null;
+            const cargoText = cargo ? ` · kargo yeri: ${cargo.replace(/2/g, "2 (bizde)").replace(/3/g, "3 (PTT şubesi)").replace(/1/g, "1 (dağıtımda)")}` : "";
+            const text = `${pttavmRawStatus(raw) || "-"}${lines.length > 1 ? ` (satırlar: ${lines.join(", ")})` : ""} · barkod: ${raw.kargoBarkod || "yok"}${cargoText} · son çekim: ${new Date(r.updatedAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}`;
             return [r.orderNumber, text];
         })
     );

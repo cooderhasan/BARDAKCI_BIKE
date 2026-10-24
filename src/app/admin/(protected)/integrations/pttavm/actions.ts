@@ -720,12 +720,33 @@ export async function syncOrdersFromPttavm() {
           const rawStatusStr = String(rawStatus).toLowerCase();
           // İade null (kapsam dışı, elle). Durum yazısı önceden hiç okunamadığı için buradaki iptal/iade kodu fiilen çalışmıyordu;
           // artık iptal ortak kuralla (cancelOrderFromMarketplace: sadece kargolanmamışta, 16.10 sonrası stok) işleniyor.
-          const mappedStatus = mapPttavmOrderStatus(rawStatus, cargoTrackingNumber);
+          let mappedStatus = mapPttavmOrderStatus(rawStatus, cargoTrackingNumber);
 
           const existingOrder = await prisma.order.findUnique({
             where: { orderNumber },
             include: { items: true },
           });
+
+          // PTT, barkod yazdırılınca API'de "gonderilmis" diyor (panelde "Gönderime Hazır" iken). Paketin gerçekten
+          // şubeye verilip verilmediği kargo bilgisi servisinden: inCargo 2 = KargoTedarikcide (paket hâlâ bizde),
+          // 3 = PTT şubesinde, 1 = dağıtımda. Sadece son 10 günün teslim edilmemiş siparişlerinde sorulur.
+          let notHandedOver = false;
+          const orderDate = new Date(item.islemTarihi || Date.now());
+          const recent = Date.now() - orderDate.getTime() < 10 * 24 * 60 * 60 * 1000;
+          if (mappedStatus === "SHIPPED" && recent && (!existingOrder || ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"].includes(String(existingOrder.status)))) {
+            const infos: any = await client.getOrderCargoInfos(pttavmOrderId).catch(() => null);
+            const list: any[] = Array.isArray(infos) ? infos : Array.isArray(infos?.data) ? infos.data : [];
+            if (list.length > 0) {
+              const states = list.map((c) => String(c?.inCargo ?? "").toLocaleLowerCase("tr-TR"));
+              const shippedOut = (v: string) => v === "1" || v === "3" || v.includes("dagitim") || v.includes("dağıtım") || v.includes("sube") || v.includes("şube");
+              notHandedOver = !states.some(shippedOut);
+              if (notHandedOver) mappedStatus = "PROCESSING";
+              // Teşhis için ham kayda eklenir (sipariş detayında "PTT'deki durum")
+              await (prisma as any).pttavmOrder
+                .update({ where: { pttavmOrderId }, data: { rawData: { ...item, _cargoInfos: list } } })
+                .catch(() => {});
+            }
+          }
 
           // Yeni siparişte PTT durumu; mevcutta sadece ileri (iptal hariç). Tek istisna: barkod yüzünden yanlışlıkla
           // Kargolandı olmuş, PTT'de hâlâ kargo bekleyen sipariş Hazırlanıyor'a düzeltilir.
@@ -737,7 +758,7 @@ export async function syncOrdersFromPttavm() {
             else if (mappedStatus === "CANCELLED") targetOrderStatus = cur as any; // iptal aşağıda ortak kuralla
             else if (cur === "CANCELLED") targetOrderStatus = "CANCELLED";
             else if (RANK[mappedStatus] >= (RANK[cur] ?? 0)) targetOrderStatus = mappedStatus;
-            else if (cur === "SHIPPED" && mappedStatus === "PROCESSING" && isPttavmPreShipment(rawStatusStr)) targetOrderStatus = "PROCESSING";
+            else if (cur === "SHIPPED" && mappedStatus === "PROCESSING" && (isPttavmPreShipment(rawStatusStr) || notHandedOver)) targetOrderStatus = "PROCESSING";
             else targetOrderStatus = cur as any;
           }
 
