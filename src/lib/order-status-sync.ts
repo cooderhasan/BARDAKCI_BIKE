@@ -239,6 +239,24 @@ export function mapPttavmOrderStatus(statusText: any, cargoBarcode?: any): Marke
     return null;
 }
 
+/**
+ * PTT siparişinin durum yazısı: API durumu siparişte değil ürün satırlarında veriyor (siparisUrunler[].siparisDurumu).
+ * Önceden sadece sipariş seviyesine bakılıyordu; durum hiç okunamıyor, sadece barkoda göre karar veriliyordu.
+ * Birden çok satırda en geride olan esas alınır (biri hâlâ kargo bekliyorsa sipariş kargolanmış sayılmaz).
+ */
+export function pttavmRawStatus(o: any): string {
+    const lines: string[] = (Array.isArray(o?.siparisUrunler) ? o.siparisUrunler : [])
+        .map((l: any) => String(l?.siparisDurumu || "").trim())
+        .filter(Boolean);
+    if (lines.length === 0) return String(o?.siparisDurumu || o?.durum || o?.state || o?.status || "");
+    const low = lines.map((l) => l.toLocaleLowerCase("tr-TR"));
+    const pre = lines.find((_, i) => isPttavmPreShipment(low[i]));
+    if (pre) return pre;
+    if (low.every((l) => l.includes("iptal") || l.includes("gecersiz"))) return lines[0];
+    const active = lines.filter((_, i) => !low[i].includes("iptal"));
+    return active[0] || lines[0];
+}
+
 /** PTT'de paket henüz kargoya verilmemiş durumlar (barkod yazdırılmış olsa da) */
 export function isPttavmPreShipment(statusText: any): boolean {
     const v = String(statusText || "").toLocaleLowerCase("tr-TR");

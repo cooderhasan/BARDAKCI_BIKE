@@ -11,6 +11,7 @@ import {
     mapTrendyolPackageStatus,
     mapCiceksepetiItemStatus,
     mapPttavmOrderStatus,
+    pttavmRawStatus,
 } from "@/lib/order-status-sync";
 
 /**
@@ -219,6 +220,6 @@ export async function runPttavmStatusCatchUp() {
         const d = res?.data ?? res?.result ?? res;
         const o = Array.isArray(d) ? d[0] : d;
         if (!o) return null;
-        return mapPttavmOrderStatus(o.siparisDurumu ?? o.durum ?? o.state ?? o.status, o.kargoBarkod);
+        return mapPttavmOrderStatus(pttavmRawStatus(o), o.kargoBarkod);
     }, { delayMs: 1000 });
 }

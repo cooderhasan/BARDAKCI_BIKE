@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { PttavmClient, PttavmStockPriceItem, PttavmProductUpsertItem } from "@/services/pttavm/api";
-import { mapPttavmOrderStatus, isPttavmPreShipment } from "@/lib/order-status-sync";
+import { mapPttavmOrderStatus, isPttavmPreShipment, pttavmRawStatus, cancelOrderFromMarketplace } from "@/lib/order-status-sync";
 
 // ==================== CONFIG ACTIONS ====================
 
@@ -716,10 +716,11 @@ export async function syncOrdersFromPttavm() {
 
           // ePttAVM durumu → site durumu (durum takibiyle aynı kurallar, order-status-sync.ts).
           // Barkod yazdırılmış ama kargoya verilmemiş sipariş "Hazırlanıyor"; önceden barkod = Kargolandı sayılıyordu.
-          const rawStatus = item.siparisDurumu || item.durum || state || "";
+          const rawStatus = pttavmRawStatus(item) || state || "";
           const rawStatusStr = String(rawStatus).toLowerCase();
-          // İade bu içe aktarımda eskisi gibi iptal sayılır (stok geri eklenir); durum takibi ise iadelere dokunmuyor
-          const mappedStatus = rawStatusStr.includes("iade") ? "CANCELLED" : mapPttavmOrderStatus(rawStatus, cargoTrackingNumber);
+          // İade null (kapsam dışı, elle). Durum yazısı önceden hiç okunamadığı için buradaki iptal/iade kodu fiilen çalışmıyordu;
+          // artık iptal ortak kuralla (cancelOrderFromMarketplace: sadece kargolanmamışta, 16.10 sonrası stok) işleniyor.
+          const mappedStatus = mapPttavmOrderStatus(rawStatus, cargoTrackingNumber);
 
           const existingOrder = await prisma.order.findUnique({
             where: { orderNumber },
@@ -733,7 +734,7 @@ export async function syncOrdersFromPttavm() {
           if (existingOrder) {
             const cur = String(existingOrder.status);
             if (!mappedStatus) targetOrderStatus = cur as any;
-            else if (mappedStatus === "CANCELLED") targetOrderStatus = "CANCELLED";
+            else if (mappedStatus === "CANCELLED") targetOrderStatus = cur as any; // iptal aşağıda ortak kuralla
             else if (cur === "CANCELLED") targetOrderStatus = "CANCELLED";
             else if (RANK[mappedStatus] >= (RANK[cur] ?? 0)) targetOrderStatus = mappedStatus;
             else if (cur === "SHIPPED" && mappedStatus === "PROCESSING" && isPttavmPreShipment(rawStatusStr)) targetOrderStatus = "PROCESSING";
@@ -767,6 +768,8 @@ export async function syncOrdersFromPttavm() {
                 },
               });
 
+              // PTT'de zaten iptal olarak gelen siparişte stok düşülmez
+              if (targetOrderStatus === "CANCELLED") return [] as string[];
               return decrementOrderStock(
                 tx,
                 orderItemsPayload.filter((_, i) => !fallbackIndexes.has(i)).map(i => ({ productId: i.productId, quantity: i.quantity }))
@@ -820,6 +823,11 @@ export async function syncOrdersFromPttavm() {
               if (affectedIds.length > 0) {
                 handlePostOrderStockSync(affectedIds, "pttavm").catch(console.error);
               }
+            }
+
+            // PTT'de iptal: diğer pazaryerleriyle aynı kural (kargolanmamışsa iptal, 16.10 sonrası stok geri + senkron, not)
+            if (mappedStatus === "CANCELLED") {
+              await cancelOrderFromMarketplace(existingOrder.id, "pttavm").catch((e: any) => console.error("PTT iptal işlenemedi:", e?.message));
             }
           }
         }
