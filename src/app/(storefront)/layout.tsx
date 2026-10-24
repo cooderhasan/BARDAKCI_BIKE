@@ -13,81 +13,69 @@ import { CookieConsent } from "@/components/storefront/cookie-consent";
 import { WhatsAppButton } from "@/components/storefront/whatsapp-button";
 import { VisitSourceTracker } from "@/components/storefront/visit-source-tracker";
 import { getStoreType, getStoreSettings, getStoreFilter } from "@/lib/store-helper";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
-export default async function StorefrontLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
-    const session = await auth();
-    const activeStore = await getStoreType();
-    const storeSettings = await getStoreSettings(activeStore);
-    const storeFilter = getStoreFilter(activeStore);
-
-    const siteSettings = await getSiteSettings();
-    const settings: Record<string, any> = {
-        ...siteSettings,
-        logoUrl: storeSettings.logoUrl,
-        siteName: storeSettings.siteTitle,
-        seoDescription: storeSettings.seoDescription,
-        phone: storeSettings.phone,
-        email: storeSettings.email,
-        address: storeSettings.address,
+// Menü kategorileri, mobil menü, site ayarları ve footer linkleri herkese aynı: mağaza başına 60 sn önbellek.
+// Önceden her sayfa açılışında 6-8 sorgu sırayla çalışıyordu (ilk yanıt rakiplerden ~0,1 sn geç). Oturum, bayi indirimi
+// ve sepet kişiye özel olduğu için her istekte ayrıca okunuyor. Admin'deki menü/ayar değişikliği en geç 1 dakikada yansır.
+function sortHeaderCategories(cats: any[]) {
+    const getPriority = (name: string): number => {
+        const n = (name || "").toLocaleLowerCase("tr-TR").trim();
+        
+        // Yedek Parça is ALWAYS LAST
+        if (n.includes("yedek parça") || n.includes("yedek parca") || n.includes("yedek")) {
+            return 990;
+        }
+        // Aksesuar is ALWAYS NEXT TO LAST (before Yedek Parça)
+        if (n.includes("aksesuar") || n.includes("ekipman")) {
+            return 880;
+        }
+        
+        // Bike categories standard hierarchy
+        if (n.includes("çocuk") || n.includes("cocuk")) return 10;
+        if (n.includes("dağ") || n.includes("dag")) return 20;
+        if (n.includes("şehir") || n.includes("sehir")) return 30;
+        if (n.includes("elektrikli") || n.includes("e-bike")) return 40;
+        if (n.includes("katlanabilir") || n.includes("katlanır")) return 50;
+        if (n.includes("yol") || n.includes("yarış") || n.includes("yaris") || n.includes("gravel")) return 60;
+        
+        return 100;
     };
 
+    return cats.sort((a, b) => {
+        const orderA = a.headerOrder ?? 0;
+        const orderB = b.headerOrder ?? 0;
+        
+        // If explicit headerOrder differs, respect admin manual headerOrder
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        
+        // If both have same headerOrder (e.g. both 0), apply deterministic business rules
+        const prioA = getPriority(a.name || "");
+        const prioB = getPriority(b.name || "");
+        if (prioA !== prioB) {
+            return prioA - prioB;
+        }
+        
+        const sideOrderA = a.order ?? 0;
+        const sideOrderB = b.order ?? 0;
+        if (sideOrderA !== sideOrderB) {
+            return sideOrderA - sideOrderB;
+        }
+        
+        return (a.name || "").localeCompare(b.name || "", "tr-TR");
+    });
+}
+
+
+async function loadLayoutData(activeStore: "BIKE" | "MOTOR") {
+    const storeFilter = getStoreFilter(activeStore);
+    const [storeSettings, siteSettings] = await Promise.all([getStoreSettings(activeStore), getSiteSettings()]);
+
     let categories: any[] = [];
-
-    function sortHeaderCategories(cats: any[]) {
-        const getPriority = (name: string): number => {
-            const n = (name || "").toLocaleLowerCase("tr-TR").trim();
-            
-            // Yedek Parça is ALWAYS LAST
-            if (n.includes("yedek parça") || n.includes("yedek parca") || n.includes("yedek")) {
-                return 990;
-            }
-            // Aksesuar is ALWAYS NEXT TO LAST (before Yedek Parça)
-            if (n.includes("aksesuar") || n.includes("ekipman")) {
-                return 880;
-            }
-            
-            // Bike categories standard hierarchy
-            if (n.includes("çocuk") || n.includes("cocuk")) return 10;
-            if (n.includes("dağ") || n.includes("dag")) return 20;
-            if (n.includes("şehir") || n.includes("sehir")) return 30;
-            if (n.includes("elektrikli") || n.includes("e-bike")) return 40;
-            if (n.includes("katlanabilir") || n.includes("katlanır")) return 50;
-            if (n.includes("yol") || n.includes("yarış") || n.includes("yaris") || n.includes("gravel")) return 60;
-            
-            return 100;
-        };
-
-        return cats.sort((a, b) => {
-            const orderA = a.headerOrder ?? 0;
-            const orderB = b.headerOrder ?? 0;
-            
-            // If explicit headerOrder differs, respect admin manual headerOrder
-            if (orderA !== orderB) {
-                return orderA - orderB;
-            }
-            
-            // If both have same headerOrder (e.g. both 0), apply deterministic business rules
-            const prioA = getPriority(a.name || "");
-            const prioB = getPriority(b.name || "");
-            if (prioA !== prioB) {
-                return prioA - prioB;
-            }
-            
-            const sideOrderA = a.order ?? 0;
-            const sideOrderB = b.order ?? 0;
-            if (sideOrderA !== sideOrderB) {
-                return sideOrderA - sideOrderB;
-            }
-            
-            return (a.name || "").localeCompare(b.name || "", "tr-TR");
-        });
-    }
 
     try {
         if (activeStore === "MOTOR") {
@@ -275,7 +263,36 @@ export default async function StorefrontLayout({
         sidebarCategories = [];
     }
 
-    const policies = await getAllPolicies();
+
+    // Footer sadece başlık ve link gösteriyor; politika metinlerinin tamamı önbelleğe alınmaz
+    const policies = ((await getAllPolicies(activeStore)) || []).map((p: any) => ({ id: p.id, slug: p.slug, title: p.title }));
+
+    return { storeSettings, siteSettings, categories, sidebarCategories, policies };
+}
+
+const getLayoutData = unstable_cache((store: "BIKE" | "MOTOR") => loadLayoutData(store), ["storefront-layout-v1"], {
+    revalidate: 60,
+    tags: ["storefront-layout"],
+});
+
+export default async function StorefrontLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const activeStore = await getStoreType();
+    const [session, layoutData] = await Promise.all([auth(), getLayoutData(activeStore === "MOTOR" ? "MOTOR" : "BIKE")]);
+    const { storeSettings, siteSettings, categories, sidebarCategories, policies } = layoutData;
+
+    const settings: Record<string, any> = {
+        ...siteSettings,
+        logoUrl: storeSettings.logoUrl,
+        siteName: storeSettings.siteTitle,
+        seoDescription: storeSettings.seoDescription,
+        phone: storeSettings.phone,
+        email: storeSettings.email,
+        address: storeSettings.address,
+    };
 
     let userDiscountRate = 0;
     if (session?.user?.id) {
