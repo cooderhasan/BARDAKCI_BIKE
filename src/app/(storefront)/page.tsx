@@ -331,7 +331,7 @@ export default async function HomePage() {
 
                     {/* Sayfanın ana başlığı (H1), görünür ve kısa. Önceden gizliydi; gizli başlığa Google daha az değer veriyor.
                         Şehir adı bilerek yok: sipariş Türkiye geneli, "yerel dükkân" izlenimi vermesin (Konya yapısal veride var) */}
-                    <div className="text-center -mb-4 md:-mb-6">
+                    <div className="text-center -mt-4 md:-mt-6 !mb-6 md:!mb-8">
                         <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
                             {isMotor ? "Motosiklet Yedek Parça ve Aksesuar" : "Online Bisiklet Mağazası"}
                         </h1>
