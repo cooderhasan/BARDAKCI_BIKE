@@ -170,6 +170,21 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
     }
   }
 
+  // Satırdan tek ürün fiyat/stok (toplu "Fiyat/Stok Güncelle" ile aynı işlem)
+  const [rowSyncId, setRowSyncId] = useState<string | null>(null);
+  async function handleRowStockSync(productId: string) {
+    setRowSyncId(productId);
+    try {
+      const res: any = await syncProductsToCiceksepeti([productId], "prices");
+      if (res.success) toast.success(res.message);
+      else toast.error(res.error || res.message || "Fiyat/stok gönderilemedi.");
+    } catch {
+      toast.error("Fiyat/stok gönderilemedi.");
+    } finally {
+      setRowSyncId(null);
+    }
+  }
+
   async function handleToggleStatus(productId: string, currentActive: boolean) {
     const res: any = await toggleCiceksepetiProductStatus(productId, !currentActive);
     // Sitede durum her durumda değişir; Çiçeksepeti'ye iletim sonucu ayrıca bildirilir
@@ -565,6 +580,19 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
                           <SlidersHorizontal className="w-3 h-3" />
                           Gönder
                         </Button>
+                        {p.isCiceksepetiActive && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRowStockSync(p.id)}
+                            disabled={rowSyncId === p.id}
+                            className="h-7 text-xs border-rose-200 text-rose-700 hover:bg-rose-50 gap-1 px-2"
+                            title="Bu ürünün fiyat ve stoğunu Çiçeksepeti'ne gönder"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${rowSyncId === p.id ? "animate-spin" : ""}`} />
+                            Stok/Fiyat
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"

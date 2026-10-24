@@ -79,6 +79,21 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");
   const [isPending, startTransition] = useTransition();
+  const [rowSyncId, setRowSyncId] = useState<string | null>(null);
+
+  // Satırdan tek ürün stok/fiyat (yayın durumunu değiştirmez; pasif ürün gönderilmez)
+  const handleRowStockSync = async (productId: string) => {
+    setRowSyncId(productId);
+    try {
+      const res = await syncPttavmStockAndPrice([productId]);
+      if (res.success) toast.success(res.message);
+      else toast.error(res.message);
+    } catch {
+      toast.error("Stok/fiyat gönderilemedi.");
+    } finally {
+      setRowSyncId(null);
+    }
+  };
 
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editCatValue, setEditCatValue] = useState("");
@@ -697,6 +712,19 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
                             <Search className="w-3 h-3 text-teal-600" />
                             Kontrol
                           </Button>
+                          {product.isPttavmActive && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 text-[10px] border-teal-200 text-teal-700 gap-1"
+                              onClick={() => handleRowStockSync(product.id)}
+                              disabled={rowSyncId === product.id}
+                              title="Bu ürünün stok ve fiyatını ePttAVM'ye gönder"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${rowSyncId === product.id ? "animate-spin" : ""}`} />
+                              Stok/Fiyat
+                            </Button>
+                          )}
                           {product.trackingId && (
                             <Button
                               variant="ghost"

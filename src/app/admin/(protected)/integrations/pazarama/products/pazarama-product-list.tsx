@@ -86,6 +86,21 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterActive, setFilterActive] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");
   const [isPending, startTransition] = useTransition();
+  const [rowSyncId, setRowSyncId] = useState<string | null>(null);
+
+  // Satırdan tek ürün stok/fiyat
+  const handleRowStockSync = async (productId: string) => {
+    setRowSyncId(productId);
+    try {
+      const res = await syncPazaramaStockAndPrice([productId]);
+      if (res.success) toast.success(res.message);
+      else toast.error(res.message);
+    } catch {
+      toast.error("Stok/fiyat gönderilemedi.");
+    } finally {
+      setRowSyncId(null);
+    }
+  };
   
   const [showAttributeModal, setShowAttributeModal] = useState(false);
   const [categoryAttributes, setCategoryAttributes] = useState<Array<{
@@ -1105,6 +1120,19 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                                   {product.pazaramaStatus || "Aktif"}
                                 </Badge>
                               </button>
+                            ) : null}
+                            {product.isPazaramaActive ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] border-pink-200 text-pink-700 gap-1"
+                                onClick={() => handleRowStockSync(product.id)}
+                                disabled={rowSyncId === product.id}
+                                title="Bu ürünün stok ve fiyatını Pazarama'ya gönder"
+                              >
+                                <RefreshCw className={`w-3 h-3 ${rowSyncId === product.id ? "animate-spin" : ""}`} />
+                                Stok/Fiyat
+                              </Button>
                             ) : (
                               <Badge variant="outline" className="text-muted-foreground">
                                 Pasif
