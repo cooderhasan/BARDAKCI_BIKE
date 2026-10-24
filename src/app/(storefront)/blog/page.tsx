@@ -53,10 +53,14 @@ export default async function StorefrontBlogPage() {
                                 {/* Thumbnail Image */}
                                 <Link href={`/blog/${post.slug}`} className="relative block aspect-[16/10] w-full overflow-hidden bg-gray-50 dark:bg-gray-950">
                                     {post.imageUrl ? (
-                                        <img 
-                                            src={post.imageUrl} 
+                                        // Küçültülmüş görsel (önceden tam boyut düz <img>); ilk satır hemen, diğerleri ekrana gelince
+                                        <Image
+                                            src={post.imageUrl}
                                             alt={post.title}
-                                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 400px"
+                                            priority={index < 3}
+                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-850 text-gray-400 font-medium text-sm">

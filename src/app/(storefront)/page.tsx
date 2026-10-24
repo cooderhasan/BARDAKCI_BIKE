@@ -499,10 +499,14 @@ export default async function HomePage() {
                                     {/* Image */}
                                     <Link href={`/blog/${post.slug}`} className="relative block aspect-[16/10] overflow-hidden bg-gray-50 dark:bg-gray-950">
                                         {post.imageUrl ? (
-                                            <img 
-                                                src={post.imageUrl} 
+                                            // Önceden düz <img>: 3 blog görseli tam boyut (~690 KB) sayfa açılır açılmaz iniyordu (ana sayfa
+                                            // görsel yükünün çoğu). Artık küçültülmüş ve sayfanın altına gelince yükleniyor.
+                                            <Image
+                                                src={post.imageUrl}
                                                 alt={post.title}
-                                                className="object-cover w-full h-full group-hover:scale-103 transition-transform duration-500"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, 400px"
+                                                className="object-cover group-hover:scale-103 transition-transform duration-500"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400 font-semibold text-xs">
