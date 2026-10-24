@@ -228,8 +228,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             const raw: any = r.rawData || {};
             const lines = Array.isArray(raw.siparisUrunler) ? raw.siparisUrunler.map((l: any) => l?.siparisDurumu).filter(Boolean) : [];
             // inCargo: 2 = paket tedarikçide (bizde), 3 = PTT şubesinde, 1 = dağıtımda
-            const cargo = Array.isArray(raw._cargoInfos) ? raw._cargoInfos.map((c: any) => c?.inCargo ?? "-").join(",") : null;
-            const cargoText = cargo ? ` · kargo yeri: ${cargo.replace(/2/g, "2 (bizde)").replace(/3/g, "3 (PTT şubesi)").replace(/1/g, "1 (dağıtımda)")}` : "";
+            const cargoLabel: Record<string, string> = { "1": "1 (dağıtımda)", "2": "2 (bizde)", "3": "3 (PTT şubesi)" };
+            const cargo = Array.isArray(raw._cargoInfos)
+                ? raw._cargoInfos.map((c: any) => { const v = String(c?.inCargo ?? "boş"); return cargoLabel[v] || v; }).join(", ")
+                : null;
+            const cargoText = cargo ? ` · kargo yeri: ${cargo}` : "";
             const text = `${pttavmRawStatus(raw) || "-"}${lines.length > 1 ? ` (satırlar: ${lines.join(", ")})` : ""} · barkod: ${raw.kargoBarkod || "yok"}${cargoText} · son çekim: ${new Date(r.updatedAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}`;
             return [r.orderNumber, text];
         })
