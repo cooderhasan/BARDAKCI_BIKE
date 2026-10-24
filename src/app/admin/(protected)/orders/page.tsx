@@ -4,7 +4,6 @@ import { OrderStatus } from "@prisma/client";
 import { formatPrice } from "@/lib/helpers";
 import { ORDER_SOURCE_LABELS } from "@/lib/order-sources";
 import { backfillEInvoiceNumbers } from "@/lib/nes-invoice-number";
-import { pttavmRawStatus } from "@/lib/order-status-sync";
 import { buildCargoGroups, NO_CARGO_KEY } from "@/lib/cargo-groups";
 
 interface OrdersPageProps {
@@ -218,29 +217,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     // e-Fatura'da numara yerine sadece seri öneki ("MFB") kalmış siparişler: gerçek numara NES'ten tamamlanır
     const fixedInvoiceNos = await backfillEInvoiceNumbers(orders as any[]);
 
-    // PTT siparişlerinde PTT'nin gönderdiği ham durum (sipariş detayında gösterilir; site ile PTT farklıysa teşhis için)
-    const pttNumbers = orders.filter((o: any) => o.source === "PTTAVM").map((o: any) => o.orderNumber);
-    const pttRaw = pttNumbers.length
-        ? await (prisma as any).pttavmOrder.findMany({ where: { orderNumber: { in: pttNumbers } }, select: { orderNumber: true, rawData: true, updatedAt: true } }).catch(() => [])
-        : [];
-    const pttStatusByNumber = new Map<string, string>(
-        (pttRaw as any[]).map((r) => {
-            const raw: any = r.rawData || {};
-            const lines = Array.isArray(raw.siparisUrunler) ? raw.siparisUrunler.map((l: any) => l?.siparisDurumu).filter(Boolean) : [];
-            // inCargo: 2 = paket tedarikçide (bizde), 3 = PTT şubesinde, 1 = dağıtımda
-            const cargoLabel: Record<string, string> = { "1": "1 (dağıtımda)", "2": "2 (bizde)", "3": "3 (PTT şubesi)" };
-            const cargo = Array.isArray(raw._cargoInfos)
-                ? raw._cargoInfos.map((c: any) => { const v = String(c?.inCargo ?? "boş"); return cargoLabel[v] || v; }).join(", ")
-                : null;
-            const cargoText = cargo ? ` · kargo yeri: ${cargo}` : "";
-            const text = `${pttavmRawStatus(raw) || "-"}${lines.length > 1 ? ` (satırlar: ${lines.join(", ")})` : ""} · barkod: ${raw.kargoBarkod || "yok"}${cargoText} · son çekim: ${new Date(r.updatedAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}`;
-            return [r.orderNumber, text];
-        })
-    );
-
     const serializedOrders = orders.map((order: any) => ({
         ...order,
-        marketplaceStatusText: pttStatusByNumber.get(order.orderNumber) || null,
         invoiceNo: fixedInvoiceNos.get(order.id) ?? order.invoiceNo,
         createdAt: order.createdAt.toISOString(),
         deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
