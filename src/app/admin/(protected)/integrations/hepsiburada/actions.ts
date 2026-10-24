@@ -595,6 +595,9 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
         });
 
         let hbSkuMap: Record<string, string> = {};
+        // Ters eşleme: HB SKU -> HB'deki ilanın satıcı stok kodu. Entegra'dan farklı stok koduyla açılmış ilanlarda
+        // (ör. YNT115) sadece HB SKU'su girilse de güncelleme ilandaki satıcı koduyla gönderilir; HB iki kod uyuşmazsa reddediyordu.
+        const merchantByHbSku: Record<string, string> = {};
         try {
             let offset = 0;
             let limit = 100;
@@ -616,6 +619,7 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
 
                         if (l.merchantSku && l.hepsiburadaSku) {
                             hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
+                            merchantByHbSku[String(l.hepsiburadaSku).toUpperCase()] = l.merchantSku;
                         }
                     }
                     console.log(`   📄 HB Sayfa ${pageNum} çekildi: ${listingsArray.length} ürün geldi.`);
@@ -659,12 +663,13 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                 for (const v of (p as any).variants) {
                     if (!v.sku && !v.barcode) continue;
 
-                    const merchantSku = v.sku || v.barcode;
+                    let merchantSku = v.sku || v.barcode;
                     const hepsiburadaSku = hbSkuMap[merchantSku] || hbSkuMap[hbMerchantSku] || (p as any).hepsiburadaProduct?.hbSku;
                     if (!hepsiburadaSku) {
                         console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} - atlanıyor`);
                         continue;
                     }
+                    merchantSku = merchantByHbSku[String(hepsiburadaSku).toUpperCase()] || merchantSku;
 
                     const varPrice = basePrice + Number(v.priceAdjustment || 0);
                     const availableStock = isSellableOnHb ? Math.max(0, v.stock - criticalStock) : 0;
@@ -682,12 +687,13 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     hbItems.push(hbItem);
                 }
             } else {
-                const merchantSku = hbMerchantSku;
+                let merchantSku = hbMerchantSku;
                 const hepsiburadaSku = hbSkuMap[merchantSku] || (p as any).hepsiburadaProduct?.hbSku;
                 if (!hepsiburadaSku) {
                     console.log(`⚠️ HB SKU bulunamadı: ${merchantSku} (ürün: ${p.name}) - atlanıyor`);
                     continue;
                 }
+                merchantSku = merchantByHbSku[String(hepsiburadaSku).toUpperCase()] || merchantSku;
 
                 const availableStock = isSellableOnHb ? Math.max(0, p.stock - criticalStock) : 0;
                 

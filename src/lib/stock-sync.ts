@@ -542,6 +542,8 @@ async function pushZeroStockToHepsiburada(productIds: string[], includeClosed = 
 
     // HB SKU eşleşmesi için listing'leri çekmemiz lazım
     let hbSkuMap: Record<string, string> = {};
+    // HB SKU -> ilandaki satıcı stok kodu (Entegra'dan farklı kodla açılmış ilanlar; bkz. syncProductsToHepsiburada)
+    const merchantByHbSku: Record<string, string> = {};
     try {
         let offset = 0;
         const limit = 100;
@@ -555,6 +557,7 @@ async function pushZeroStockToHepsiburada(productIds: string[], includeClosed = 
                 for (const l of arr) {
                     if (l.merchantSku && l.hepsiburadaSku) {
                         hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
+                        merchantByHbSku[String(l.hepsiburadaSku).toUpperCase()] = l.merchantSku;
                     }
                 }
                 if (arr.length < limit) hasMore = false;
@@ -580,7 +583,7 @@ async function pushZeroStockToHepsiburada(productIds: string[], includeClosed = 
 
                 hbItems.push({
                     hepsiburadaSku,
-                    merchantSku,
+                    merchantSku: merchantByHbSku[String(hepsiburadaSku).toUpperCase()] || merchantSku,
                     availableStock: 0,
                     price: Number(p.listPrice),
                     dispatchTime: 1,
@@ -595,7 +598,7 @@ async function pushZeroStockToHepsiburada(productIds: string[], includeClosed = 
 
             hbItems.push({
                 hepsiburadaSku,
-                merchantSku,
+                merchantSku: merchantByHbSku[String(hepsiburadaSku).toUpperCase()] || merchantSku,
                 availableStock: 0,
                 price: Number(p.listPrice),
                 dispatchTime: 1,
