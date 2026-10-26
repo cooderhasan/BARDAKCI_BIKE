@@ -101,7 +101,7 @@ export default async function AdminDashboardPage() {
                 <PeriodCard title="Bugün" stat={dash.today} compareLabel="düne göre" />
                 <PeriodCard title="Bu Hafta" stat={dash.week} compareLabel="geçen haftaya göre" />
                 <PeriodCard title="Bu Ay" stat={dash.month} compareLabel="geçen aya göre" />
-                <Link href="/admin/orders?status=TO_SHIP" className="block">
+                <Link prefetch={false} href="/admin/orders?status=TO_SHIP" className="block">
                     <Card className={`h-full transition-colors hover:border-[#17457C]/40 ${dash.toShipLate > 0 ? "border-amber-300 dark:border-amber-700" : ""}`}>
                         <CardHeader className="flex flex-row items-center justify-between pb-1 px-4 sm:px-5 pt-4">
                             <CardTitle className="text-xs sm:text-sm font-medium text-gray-500">Kargolanacak</CardTitle>
@@ -141,7 +141,7 @@ export default async function AdminDashboardPage() {
                             dash.bySource.map((r) => {
                                 const pct = monthTotal > 0 ? Math.round((r.revenue / monthTotal) * 100) : 0;
                                 return (
-                                    <Link key={r.source} href={`/admin/orders?source=${r.source}`} className="block group">
+                                    <Link prefetch={false} key={r.source} href={`/admin/orders?source=${r.source}`} className="block group">
                                         <div className="flex items-baseline justify-between gap-2 text-sm">
                                             <span className="font-medium text-gray-800 dark:text-gray-200 group-hover:text-[#17457C]">{sourceLabel(r.source)}</span>
                                             <span className="text-gray-500 whitespace-nowrap">{formatPrice(r.revenue)} · {r.orders}</span>
@@ -162,7 +162,7 @@ export default async function AdminDashboardPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6 pb-2">
                         <CardTitle className="text-base sm:text-lg">Kargolanacak Siparişler</CardTitle>
-                        <Link href="/admin/orders?status=TO_SHIP" className="shrink-0 whitespace-nowrap text-sm text-[#17457C] hover:text-blue-700">
+                        <Link prefetch={false} href="/admin/orders?status=TO_SHIP" className="shrink-0 whitespace-nowrap text-sm text-[#17457C] hover:text-blue-700">
                             Tümünü Gör →
                         </Link>
                     </CardHeader>
@@ -170,6 +170,7 @@ export default async function AdminDashboardPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                             {dash.toShip.map((r) => (
                                 <Link
+                                    prefetch={false}
                                     key={r.source}
                                     href={`/admin/orders?status=TO_SHIP&source=${r.source}`}
                                     className={`rounded-lg border px-3 py-2.5 transition-colors hover:border-[#17457C]/40 ${r.late > 0 ? "border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-900/10" : "border-gray-100 dark:border-gray-800"}`}
@@ -200,6 +201,7 @@ export default async function AdminDashboardPage() {
                             </div>
                         </div>
                         <Link
+                            prefetch={false}
                             href="/admin/customers?status=PENDING"
                             className="shrink-0 whitespace-nowrap text-sm font-medium text-amber-700 hover:text-amber-800 dark:text-amber-300"
                         >
@@ -226,6 +228,7 @@ export default async function AdminDashboardPage() {
                             </div>
                         </div>
                         <Link
+                            prefetch={false}
                             href="/admin/stock-alerts"
                             className="shrink-0 whitespace-nowrap text-sm font-medium text-red-700 hover:text-red-800 dark:text-red-300"
                         >
@@ -240,6 +243,7 @@ export default async function AdminDashboardPage() {
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-4 sm:px-6">
                     <CardTitle className="text-base sm:text-lg">Son Siparişler</CardTitle>
                     <Link
+                        prefetch={false}
                         href="/admin/orders"
                         className="shrink-0 whitespace-nowrap text-sm text-[#17457C] hover:text-blue-700"
                     >
@@ -255,6 +259,7 @@ export default async function AdminDashboardPage() {
                         <div className="space-y-4">
                             {stats.recentOrders.map((order) => (
                                 <Link
+                                    prefetch={false}
                                     href={`/admin/orders`}
                                     key={order.id}
                                     className="flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4 last:border-0 last:pb-0 hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded-lg transition-colors cursor-pointer group"

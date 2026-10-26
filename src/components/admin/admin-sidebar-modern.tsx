@@ -274,6 +274,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                     collapsed ? "lg:justify-center h-16 px-4 lg:px-2" : "h-16 px-4"
                 )}>
                     <Link
+                        prefetch={false}
                         href="/admin"
                         onClick={() => setMobileOpen(false)}
                         className={cn("relative block h-10", collapsed ? "w-full lg:w-11" : "w-full mr-8")}
@@ -356,6 +357,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                                             const isActive = item.href === activeHref;
                                             return (
                                                 <Link
+                                                    prefetch={false}
                                                     key={item.href}
                                                     href={item.href}
                                                     onClick={() => setMobileOpen(false)}
@@ -390,6 +392,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                     collapsed && "lg:flex-col"
                 )}>
                     <Link
+                        prefetch={false}
                         href="/"
                         target="_blank"
                         className={cn(

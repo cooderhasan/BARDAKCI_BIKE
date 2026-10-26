@@ -158,43 +158,43 @@ export function AdminHeader({ user }: AdminHeaderProps) {
 
                 {/* Hızlı Pazar Yeri Linkleri */}
                 <div className="hidden xl:flex items-center gap-2 ml-4">
-                    <Link href="/admin/integrations/trendyol">
+                    <Link prefetch={false} href="/admin/integrations/trendyol">
                         <Button variant="outline" size="sm" className="h-8 gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800 bg-white">
                             <Zap className="h-3.5 w-3.5" />
                             Trendyol
                         </Button>
                     </Link>
-                    <Link href="/admin/integrations/n11">
+                    <Link prefetch={false} href="/admin/integrations/n11">
                         <Button variant="outline" size="sm" className="h-8 gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 bg-white">
                             <Zap className="h-3.5 w-3.5" />
                             N11
                         </Button>
                     </Link>
-                    <Link href="/admin/integrations/hepsiburada">
+                    <Link prefetch={false} href="/admin/integrations/hepsiburada">
                         <Button variant="outline" size="sm" className="h-8 gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 bg-white">
                             <Zap className="h-3.5 w-3.5" />
                             Hepsiburada
                         </Button>
                     </Link>
-                    <Link href="/admin/integrations/idefix">
+                    <Link prefetch={false} href="/admin/integrations/idefix">
                         <Button variant="outline" size="sm" className="h-8 gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 bg-white">
                             <Zap className="h-3.5 w-3.5" />
                             Idefix
                         </Button>
                     </Link>
-                    <Link href="/admin/integrations/pazarama">
+                    <Link prefetch={false} href="/admin/integrations/pazarama">
                         <Button variant="outline" size="sm" className="h-8 gap-2 border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 bg-white">
                             <Zap className="h-3.5 w-3.5" />
                             Pazarama
                         </Button>
                     </Link>
-                    <Link href="/admin/integrations/pttavm">
+                    <Link prefetch={false} href="/admin/integrations/pttavm">
                         <Button variant="outline" size="sm" className="h-8 gap-2 border-teal-200 text-teal-700 hover:bg-teal-50 hover:text-teal-800 bg-white">
                             <Zap className="h-3.5 w-3.5" />
                             ePttAVM
                         </Button>
                     </Link>
-                    <Link href="/admin/integrations/ciceksepeti">
+                    <Link prefetch={false} href="/admin/integrations/ciceksepeti">
                         <Button variant="outline" size="sm" className="h-8 gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 bg-white">
                             <Zap className="h-3.5 w-3.5" />
                             Çiçeksepeti
@@ -207,7 +207,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                 {/* Hızlı Bildirim Rozetleri */}
                 <div className="hidden sm:flex items-center gap-2">
                     {notifications.find(n => n.id === "orders") && (
-                        <Link href="/admin/orders">
+                        <Link prefetch={false} href="/admin/orders">
                             <Badge className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 gap-2 animate-pulse cursor-pointer border-none shadow-lg">
                                 <ShoppingCart className="h-3.5 w-3.5" />
                                 <span className="font-bold">{notifications.find(n => n.id === "orders")?.count} Yeni Sipariş</span>
@@ -215,7 +215,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                         </Link>
                     )}
                     {notifications.find(n => n.id === "bank-transfers") && (
-                        <Link href="/admin/bank-transfers">
+                        <Link prefetch={false} href="/admin/bank-transfers">
                             <Badge className="bg-[#17457C] hover:bg-[#0f3460] text-white px-3 py-1.5 gap-2 cursor-pointer border-none shadow-lg">
                                 <Landmark className="h-3.5 w-3.5" />
                                 <span className="font-bold">{notifications.find(n => n.id === "bank-transfers")?.count} Yeni Havale</span>
@@ -251,6 +251,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                             notifications.map((notification) => (
                                 <DropdownMenuItem key={notification.id} asChild>
                                     <Link
+                                        prefetch={false}
                                         href={notification.id === "orders" ? "/admin/orders" : notification.link}
                                         className="flex items-start gap-3 p-3 cursor-pointer"
                                     >
