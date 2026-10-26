@@ -86,6 +86,12 @@ export function ProductCardModern({
 
     const hasVariants = product._count?.variants && product._count.variants > 0;
 
+    // Fare karta gelince ikinci fotoğraf: sayfa açılışında indirilmez, ilk fare girişinde istenir (telefonda hiç inmez).
+    // Yüklenmeden geçiş yapılmaz; yavaş bağlantıda kart boş görünmez.
+    const altImage = product.images[1] && product.images[1] !== product.images[0] && product.stock !== 0 ? product.images[1] : null;
+    const [altActive, setAltActive] = useState(false);
+    const [altLoaded, setAltLoaded] = useState(false);
+
     const handleAddToCart = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -119,7 +125,13 @@ export function ProductCardModern({
     };
 
     return (
-        <Link href={`/products/${product.slug}`} className="group block h-full">
+        <Link
+            href={`/products/${product.slug}`}
+            className="group block h-full"
+            onPointerEnter={(e) => {
+                if (altImage && !altActive && e.pointerType === "mouse") setAltActive(true);
+            }}
+        >
             <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden transition-all duration-300 ring-1 ring-gray-200/60 dark:ring-gray-700 hover:ring-gray-200 hover:shadow-[0_12px_32px_-8px_rgba(23,69,124,0.18)] md:hover:-translate-y-1 h-full flex flex-col relative group/card">
 
                 {/* Görsel alanı: açık gri zemin. Ürün fotoğrafları çoğunlukla beyaz zeminli; mix-blend-multiply ile beyaz,
@@ -161,8 +173,9 @@ export function ProductCardModern({
                             priority={priority}
                             loading={priority ? "eager" : "lazy"}
                             className={cn(
-                                "object-contain p-3 md:p-4 mix-blend-multiply dark:mix-blend-normal transition-transform duration-500 ease-out group-hover/card:scale-105",
-                                product.stock === 0 && "opacity-50 grayscale"
+                                "object-contain p-3 md:p-4 mix-blend-multiply dark:mix-blend-normal transition-[transform,opacity] duration-500 ease-out group-hover/card:scale-105",
+                                product.stock === 0 && "opacity-50 grayscale",
+                                altLoaded && "group-hover/card:opacity-0"
                             )}
                         />
                     ) : (
@@ -171,7 +184,20 @@ export function ProductCardModern({
                         </div>
                     )}
 
-                    {/* Hover Action Overlay (Optional - Keep clean for now or add Quick View) */}
+                    {altActive && altImage && (
+                        <Image
+                            src={altImage}
+                            alt=""
+                            aria-hidden="true"
+                            fill
+                            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            onLoad={() => setAltLoaded(true)}
+                            className={cn(
+                                "object-contain p-3 md:p-4 mix-blend-multiply dark:mix-blend-normal opacity-0 transition-opacity duration-500 ease-out",
+                                altLoaded && "group-hover/card:opacity-100"
+                            )}
+                        />
+                    )}
                 </div>
 
                 {/* Content Section */}
