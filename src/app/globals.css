@@ -336,6 +336,17 @@ body[data-scroll-locked] .wa-float {
   display: none !important;
 }
 
+/* Yönetim paneli: açılır liste (Select/Dialog) açılınca kaydırma çubuğu kaybolup sayfa ~15px genişliyordu; sınırda
+   duran filtre satırları (ör. Siparişler) alt satıra atlıyordu (%100'de, %90'da değil). Çubuğun yeri hep ayrılır ve
+   Radix'in telafi boşluğu kapatılır: liste açılınca genişlik değişmez. */
+html:has(.admin-shell) {
+  scrollbar-gutter: stable;
+}
+html:has(.admin-shell) body[data-scroll-locked] {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* Yatay kayan şeritlerde kaydırma çubuğunu gizle (sınıf kullanılıyordu ama tanımlı değildi; telefonda gri çizgi görünüyordu) */
 @utility no-scrollbar {
   scrollbar-width: none;

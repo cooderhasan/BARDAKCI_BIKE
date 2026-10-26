@@ -38,7 +38,7 @@ export default async function AdminLayout({
     const settings = await getSiteSettings();
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 print:bg-white flex">
+        <div className="admin-shell min-h-screen bg-gray-50 dark:bg-gray-900 print:bg-white flex">
             {/* New Modern Sidebar */}
             <AdminSidebarModern settings={settings} />
 
