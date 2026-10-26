@@ -47,7 +47,13 @@ export function SalesBarChart({ data }: { data: { date: string; revenue: number;
                                 opacity={isLast ? 1 : 0.75}
                             />
                             {(i % 5 === 0 || isLast) && (
-                                <text x={i * barW + barW / 2} y={H - 4} textAnchor="middle" className="fill-gray-400" fontSize="10">
+                                <text
+                                    x={isLast ? W : i === 0 ? 0 : i * barW + barW / 2}
+                                    y={H - 4}
+                                    textAnchor={isLast ? "end" : i === 0 ? "start" : "middle"}
+                                    className="fill-gray-400"
+                                    fontSize="10"
+                                >
                                     {isLast ? "Bugün" : fmtDay(d.date)}
                                 </text>
                             )}
