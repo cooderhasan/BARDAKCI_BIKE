@@ -75,7 +75,9 @@ export default function CartPage() {
                                                 src={item.image}
                                                 alt={item.name}
                                                 fill
-                                                className="object-cover"
+                                                sizes="96px"
+                                                // Kırpılmadan sığar (object-cover yatay bisikletin uçlarını kesiyordu)
+                                                className="object-contain p-1.5 mix-blend-multiply dark:mix-blend-normal"
                                             />
                                         ) : (
                                             <div className="flex items-center justify-center h-full">

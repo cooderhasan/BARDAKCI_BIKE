@@ -104,7 +104,7 @@ export function ProductCard({
                             src={product.images[0]}
                             alt={product.name}
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="object-contain p-3 mix-blend-multiply dark:mix-blend-normal group-hover:scale-105 transition-transform duration-300"
                             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                         />
                     ) : (

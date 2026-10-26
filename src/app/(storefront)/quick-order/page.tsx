@@ -201,7 +201,7 @@ export default function QuickOrderPage() {
                                         <div className="flex items-center gap-3">
                                             <div className="h-10 w-10 relative rounded overflow-hidden border bg-gray-100 flex-shrink-0">
                                                 {row.product.image ? (
-                                                    <Image src={row.product.image} alt={row.product.name} fill className="object-cover" />
+                                                    <Image src={row.product.image} alt={row.product.name} fill sizes="64px" className="object-contain p-1.5 mix-blend-multiply dark:mix-blend-normal" />
                                                 ) : (
                                                     <div className="flex items-center justify-center h-full w-full text-gray-400">
                                                         <Search className="h-4 w-4" />

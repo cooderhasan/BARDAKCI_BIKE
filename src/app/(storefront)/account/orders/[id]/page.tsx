@@ -120,7 +120,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                                                     src={item.product.images[0]}
                                                     alt={item.productName}
                                                     fill
-                                                    className="object-cover"
+                                                    className="object-contain p-1.5 mix-blend-multiply dark:mix-blend-normal"
                                                 />
                                             ) : (
                                                 <div className="flex items-center justify-center h-full text-xs text-gray-400">
