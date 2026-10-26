@@ -184,6 +184,16 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
         return () => window.removeEventListener('toggle-admin-sidebar', handleToggle);
     }, []);
 
+    // Telefonda menü, yeni sayfa gelince kapanır (tıklar tıklamaz kapanınca dönen gösterge görünmüyor, ekran tepkisiz kalıyordu)
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [pathname]);
+
+    // Zaten açık olan sayfaya dokunulursa adres değişmez; menü hemen kapansın
+    const closeIfSamePage = (href: string) => {
+        if (href === pathname) setMobileOpen(false);
+    };
+
     // Kayıtlı tercihleri yükle
     useEffect(() => {
         try {
@@ -288,7 +298,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                     <Link
                         prefetch={false}
                         href="/admin"
-                        onClick={() => setMobileOpen(false)}
+                        onClick={() => closeIfSamePage("/admin")}
                         className={cn("relative block h-10", collapsed ? "w-full lg:w-11" : "w-full mr-8")}
                         title={siteName}
                     >
@@ -372,7 +382,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                                                     prefetch={false}
                                                     key={item.href}
                                                     href={item.href}
-                                                    onClick={() => setMobileOpen(false)}
+                                                    onClick={() => closeIfSamePage(item.href)}
                                                     title={collapsed ? item.title : undefined}
                                                     aria-current={isActive ? "page" : undefined}
                                                     className={cn(
