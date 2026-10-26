@@ -59,6 +59,8 @@ const orderStatuses = [
     // PENDING = havale bekleyen / yeni sipariş; WAITING_FOR_PAYMENT = kart ödemesi tamamlanmamış (varsayılan listede gizli)
     { value: "PENDING", label: "Havale / Yeni Sipariş" },
     { value: "WAITING_FOR_PAYMENT", label: "Kart Ödemesi Bekleniyor" },
+    // Onaylandı + Hazırlanıyor birlikte (Genel Bakış'taki "kargolanacak" kutuları bu filtreyle açar)
+    { value: "TO_SHIP", label: "Kargolanacaklar" },
     { value: "CONFIRMED", label: "Onaylandı" },
     { value: "PROCESSING", label: "Hazırlanıyor" },
     { value: "SHIPPED", label: "Kargolandı" },

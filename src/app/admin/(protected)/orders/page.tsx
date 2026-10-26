@@ -64,7 +64,9 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         });
     }
 
-    if (status && status !== "ALL") {
+    if (status === "TO_SHIP") {
+        andClauses.push({ status: { in: ["CONFIRMED", "PROCESSING"] as OrderStatus[] } });
+    } else if (status && status !== "ALL") {
         const normalizedStatus = status.toUpperCase();
         if (Object.values(OrderStatus).includes(normalizedStatus as OrderStatus)) {
             andClauses.push({ status: normalizedStatus as OrderStatus });
