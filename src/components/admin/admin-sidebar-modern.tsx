@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -145,6 +145,18 @@ const menuGroups: MenuGroup[] = [
 // Menü tercihleri yalnızca bu tarayıcıda tutulur (sunucuya istek yok)
 const GROUPS_KEY = "admin-sidebar-groups";
 const COLLAPSED_KEY = "admin-sidebar-collapsed";
+
+/** Tıklanan sayfa sunucudan gelene kadar öğenin sağında küçük dönen gösterge (ön yükleme kapalı olduğu için) */
+function PendingIndicator() {
+    const { pending } = useLinkStatus();
+    if (!pending) return null;
+    return (
+        <span
+            className="absolute right-2.5 top-1/2 -mt-[7px] h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-200 border-t-[#17457C] dark:border-gray-700 dark:border-t-blue-400"
+            aria-hidden="true"
+        />
+    );
+}
 
 const allHrefs = menuGroups.flatMap((g) => g.items.map((i) => i.href));
 
@@ -376,6 +388,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
                                                     )}
                                                     {renderIcon(item, isActive)}
                                                     <span className={cn("truncate", collapsed && "lg:hidden")}>{item.title}</span>
+                                                    <PendingIndicator />
                                                 </Link>
                                             );
                                         })}
