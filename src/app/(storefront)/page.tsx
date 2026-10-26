@@ -10,6 +10,7 @@ import { Truck, ShieldCheck, CreditCard, Zap, MessageCircle, ArrowRight } from "
 import { BrandStrip } from "@/components/storefront/brand-strip";
 import { RecentlyViewed } from "@/components/storefront/recently-viewed";
 import { FrameSizeCalculator } from "@/components/storefront/frame-size-calculator";
+import { KidsAgeGuide } from "@/components/storefront/kids-age-guide";
 import { JsonLd } from "@/components/seo/json-ld";
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
@@ -75,7 +76,7 @@ const safeToISO = (d: any) => {
 async function loadHomeData(activeStore: "BIKE" | "MOTOR") {
     const storeFilter = getStoreFilter(activeStore);
 
-    const [sliders, featuredProducts, newProducts, bestSellers, categories, sidebarCategories, banners, blogPosts, brands] =
+    const [sliders, featuredProducts, newProducts, bestSellers, categories, sidebarCategories, banners, blogPosts, brands, saleCandidates] =
         await Promise.all([
             prisma.slider.findMany({
                 where: { isActive: true, store: storeFilter },
@@ -89,7 +90,8 @@ async function loadHomeData(activeStore: "BIKE" | "MOTOR") {
                 include: { category: true, brand: true, _count: { select: { variants: true } } },
                 // Sabit sıra (önceden sırasızdı; düzenlenen ürün listede yer değiştirebiliyordu)
                 orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-                take: 8,
+                // Tek satır: Fırsat Ürünleri ve yaş rehberi eklenince sayfa uzamasın diye 8'den 4'e (2026-10-26)
+                take: 4,
             }).catch((err) => {
                 console.error("Failed to fetch featured products:", err);
                 return [];
@@ -176,7 +178,31 @@ async function loadHomeData(activeStore: "BIKE" | "MOTOR") {
                 console.error("Failed to fetch brands:", err);
                 return [];
             }),
+            // Fırsat Ürünleri (şimdilik sadece bisiklet): stokta olan, indirimli fiyatı liste fiyatından düşük ürünler.
+            // İndirim oranı veritabanında sıralanamadığı için en yeni 40 aday alınıp aşağıda orana göre sıralanıyor.
+            activeStore === "MOTOR"
+                ? Promise.resolve([] as any[])
+                : prisma.product.findMany({
+                    where: {
+                        isActive: true,
+                        store: storeFilter,
+                        stock: { gt: 0 },
+                        salePrice: { not: null, lt: prisma.product.fields.listPrice },
+                    },
+                    include: { category: true, brand: true, _count: { select: { variants: true } } },
+                    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+                    take: 40,
+                }).catch((err) => {
+                    console.error("Failed to fetch sale products:", err);
+                    return [];
+                }),
         ]);
+
+    const discountOf = (p: any) => {
+        const list = Number(p.listPrice || 0);
+        return list > 0 ? (list - Number(p.salePrice || 0)) / list : 0;
+    };
+    const saleProducts = [...(saleCandidates || [])].sort((a: any, b: any) => discountOf(b) - discountOf(a)).slice(0, 4);
 
     const validBanners = (banners || []).filter((b: any) => b && b.imageUrl && b.imageUrl.trim() !== "");
 
@@ -219,6 +245,7 @@ async function loadHomeData(activeStore: "BIKE" | "MOTOR") {
         featuredProducts: (featuredProducts || []).map(transformProduct),
         newProducts: (newProducts || []).map(transformProduct),
         bestSellers: (bestSellers || []).map(transformProduct),
+        saleProducts: saleProducts.map(transformProduct),
         categories: await Promise.all(
             (categories || []).map(async (c: any) => {
                 // Kartın altındaki "X ürün": kategori sayfasındaki toplamla aynı (alt kategoriler dahil, aktif, bu mağaza)
@@ -246,7 +273,7 @@ async function loadHomeData(activeStore: "BIKE" | "MOTOR") {
 // Ana sayfa verisi herkese aynı (bayi fiyatı oturuma göre ayrıca hesaplanıyor): mağaza başına 60 sn önbellek.
 // Önceden her ziyarette ~15 sorgu çalışıyordu; ilk yanıt rakip sitelerden 0,1-0,2 sn geç geliyordu.
 // Admin'deki değişiklik (ürün, slider, kategori) ana sayfaya en geç 1 dakikada yansır.
-const getHomeData = unstable_cache((store: "BIKE" | "MOTOR") => loadHomeData(store), ["home-data-v1"], { revalidate: 60, tags: ["home-data"] });
+const getHomeData = unstable_cache((store: "BIKE" | "MOTOR") => loadHomeData(store), ["home-data-v2"], { revalidate: 60, tags: ["home-data"] });
 
 export default async function HomePage() {
     const session = await auth();
@@ -378,6 +405,9 @@ export default async function HomePage() {
                         <CategorySectionModern categories={data.categories} row="top" />
                     )}
 
+                    {/* Yaşa göre çocuk bisikleti (Çocuk Bisikleti kartının hemen altında; sadece bisiklet) */}
+                    {!isMotor && <KidsAgeGuide categories={data.sidebarCategories} />}
+
                     {/* New Products */}
                     {data.newProducts.length > 0 && (
                         <FeaturedProducts
@@ -387,6 +417,17 @@ export default async function HomePage() {
                             isDealer={isDealer}
                             badge="Yeni"
                             variant="new"
+                        />
+                    )}
+
+                    {/* Fırsat Ürünleri: en yüksek indirimli 4 ürün, tümü /indirimli-urunler'de; indirimli ürün yoksa görünmez */}
+                    {data.saleProducts.length > 0 && (
+                        <FeaturedProducts
+                            title="Fırsat Ürünleri"
+                            products={data.saleProducts}
+                            discountRate={discountRate}
+                            isDealer={isDealer}
+                            variant="deals"
                         />
                     )}
 

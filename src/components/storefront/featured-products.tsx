@@ -33,7 +33,7 @@ interface FeaturedProductsProps {
     discountRate: number;
     isDealer: boolean;
     badge?: string;
-    variant?: "featured" | "new" | "bestseller" | "default";
+    variant?: "featured" | "new" | "bestseller" | "deals" | "default";
 }
 
 export function FeaturedProducts({
@@ -51,6 +51,7 @@ export function FeaturedProducts({
         new: "Yeni Gelenler",
         featured: "Sizin İçin Seçtik",
         bestseller: "En Çok Tercih Edilenler",
+        deals: "İndirimli Fiyatlar",
         default: "",
     }[variant];
     // "Öne Çıkanlar" hafif lacivert zeminli bir bant içinde: bölümler alt alta aynı görünmesin (arka plan ritmi)
@@ -75,7 +76,7 @@ export function FeaturedProducts({
                     </h2>
                 </div>
                 <Link
-                    href={variant === "new" ? "/products?sort=newest" : "/products"}
+                    href={variant === "new" ? "/products?sort=newest" : variant === "deals" ? "/indirimli-urunler" : "/products"}
                     className="group/all shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[#17457C]/20 bg-white dark:bg-gray-900 dark:border-gray-700 px-3.5 py-2 text-xs md:text-sm font-semibold text-[#17457C] dark:text-blue-300 hover:bg-[#17457C] hover:text-white hover:border-[#17457C] transition-colors"
                 >
                     Tümünü Gör
@@ -85,17 +86,19 @@ export function FeaturedProducts({
 
             {/* Products Grid */}
             <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {products.map((product) => (
-                    <ProductCardModern
-                        key={product.id}
-                        product={{
-                            ...product,
-                            listPrice: product.listPrice,
-                        }}
-                        discountRate={discountRate}
-                        isDealer={isDealer}
-                        badge={badge}
-                    />
+                {products.map((product, i) => (
+                    // Tek satırlık (4 ürünlü) bölümde tablette 3 sütun var: 4. ürün alt satırda yalnız kalmasın
+                    <div key={product.id} className={products.length === 4 && i === 3 ? "md:hidden lg:block" : undefined}>
+                        <ProductCardModern
+                            product={{
+                                ...product,
+                                listPrice: product.listPrice,
+                            }}
+                            discountRate={discountRate}
+                            isDealer={isDealer}
+                            badge={badge}
+                        />
+                    </div>
                 ))}
             </div>
         </section>
