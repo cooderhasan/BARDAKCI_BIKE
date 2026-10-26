@@ -347,6 +347,19 @@ html:has(.admin-shell) body[data-scroll-locked] {
   padding-right: 0 !important;
 }
 
+/* Yönetim menüsü daraltılınca içerik alanı da sola yaklaşsın (önceden menü 80px'e iniyor, içerik 288px boşlukta kalıyordu) */
+@media (min-width: 1024px) {
+  html[data-admin-sidebar="collapsed"] .admin-content {
+    padding-left: 80px;
+  }
+}
+
+/* Yönetim menüsü kaydırma çubuğu: ince ve sade */
+.admin-shell .custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(209 213 219 / 0.8) transparent;
+}
+
 /* Yatay kayan şeritlerde kaydırma çubuğunu gizle (sınıf kullanılıyordu ama tanımlı değildi; telefonda gri çizgi görünüyordu) */
 @utility no-scrollbar {
   scrollbar-width: none;

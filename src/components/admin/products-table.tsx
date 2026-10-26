@@ -280,7 +280,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                    <Link href={`/admin/products/${product.id}/edit`} prefetch={true}>
+                    <Link href={`/admin/products/${product.id}/edit`}>
                         <Edit className="h-4 w-4 mr-2" />
                         Düzenle
                     </Link>
