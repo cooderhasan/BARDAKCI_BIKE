@@ -114,7 +114,7 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                             id="siteName"
                                             value={settings.siteName || ""}
                                             onChange={(e) => updateField("siteName", e.target.value)}
-                                            placeholder="B2B Toptancı"
+                                            placeholder="Mağaza adı"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -338,7 +338,7 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                         id="seoKeywords"
                                         value={settings.seoKeywords || ""}
                                         onChange={(e) => updateField("seoKeywords", e.target.value)}
-                                        placeholder="toptan, b2b, satış, e-ticaret (virgülle ayırın)"
+                                        placeholder="bisiklet, yedek parça, aksesuar (virgülle ayırın)"
                                     />
                                 </div>
                                 <div className="space-y-2">

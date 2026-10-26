@@ -85,8 +85,8 @@ export default async function AdminDashboardPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Dashboard
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    Genel Bakış
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400">
                     Hoş geldiniz! İşte güncel özet bilgiler.

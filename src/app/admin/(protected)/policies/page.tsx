@@ -10,7 +10,7 @@ export default async function PoliciesPage() {
     return (
         <div className="p-6 space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-2xl font-bold tracking-tight">Politika ve Sözleşmeler</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Politika ve Sözleşmeler</h1>
                 <Link href="/admin/policies/new">
                     <Button>
                         <Plus className="h-4 w-4 mr-2" />

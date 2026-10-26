@@ -13,10 +13,10 @@ export default async function PttavmIntegrationPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950/40 flex items-center justify-center text-lg shadow-sm">
-            📮
+            
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#00A896]">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
               ePttAVM Entegrasyonu
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">

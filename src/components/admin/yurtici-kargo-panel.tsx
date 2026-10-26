@@ -48,8 +48,8 @@ export function YurticiKargoPanel({ order, onUpdate }: YurticiKargoPanelProps) {
             if (result.success) {
                 toast.success(
                     result.isTestMode
-                        ? `✅ YK Test Ortamına gönderildi. Job ID: ${result.jobId}`
-                        : `✅ YK'ya gönderildi. Job ID: ${result.jobId}`
+                        ? `YK Test Ortamına gönderildi. Job ID: ${result.jobId}`
+                        : `YK'ya gönderildi. Job ID: ${result.jobId}`
                 );
                 onUpdate({
                     ykCargoKey: result.cargoKey,

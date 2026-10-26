@@ -84,7 +84,7 @@ export function SlidersClient({ initialSliders }: SlidersClientProps) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Slider Yönetimi</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Slider Yönetimi</h2>
                     <p className="text-muted-foreground">
                         Anasayfa manşet alanını buradan yönetebilirsiniz.
                     </p>

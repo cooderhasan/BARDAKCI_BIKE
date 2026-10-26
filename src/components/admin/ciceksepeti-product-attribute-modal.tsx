@@ -600,7 +600,7 @@ export function CiceksepetiProductAttributeModal({
               {/* Varyantlar: ÇS'de her varyant ayrı ürün; grup içinde tek varyant özelliği */}
               {!loading && variantRows.length > 0 && (
                 <div className="space-y-2 p-3 bg-blue-50/60 border border-blue-200 rounded-lg">
-                  <p className="font-semibold text-blue-900">🎨 Varyantlar ({variantRows.length})</p>
+                  <p className="font-semibold text-blue-900">Varyantlar ({variantRows.length})</p>
                   {!variantPlanInfo ? (
                     <p className="text-[11px] text-red-600">Bu Çiçeksepeti kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye doğru açılamaz.</p>
                   ) : (
@@ -663,7 +663,7 @@ export function CiceksepetiProductAttributeModal({
                       <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                       <div className="space-y-1">
                         <p className="font-bold text-red-700">
-                          ⚠️ Birden Fazla Varyant Özelliği Seçildi ({selectedVarianterAttrs.length} adet)
+                          Birden Fazla Varyant Özelliği Seçildi ({selectedVarianterAttrs.length} adet)
                         </p>
                         <p className="text-[11px] leading-relaxed">
                           Çiçeksepeti tekil ürünlerde <strong>en fazla 1 adet varyant özelliğine</strong> (örn. yalnızca Renk <u>veya</u> yalnızca Kadro Boyu) izin verir. Şu an seçili olan: <strong>{selectedVarianterAttrs.map((a) => a.name).join(", ")}</strong>. Lütfen bunlardan sadece 1 tanesini bırakıp diğerlerini <em>"-- Seçimi Kaldır --"</em> yapınız.

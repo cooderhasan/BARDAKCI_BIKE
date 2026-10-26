@@ -17,7 +17,7 @@ export default async function EditFAQPage({ params }: PageProps) {
     return (
         <div className="p-6 space-y-6 max-w-4xl">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Soru Düzenle</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Soru Düzenle</h1>
                 <p className="text-sm text-gray-500 mt-1">
                     Sıkça sorulan sorunun detaylarını veya kategorisini güncelleyin.
                 </p>

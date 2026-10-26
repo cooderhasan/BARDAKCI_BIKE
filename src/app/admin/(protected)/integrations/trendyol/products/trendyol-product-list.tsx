@@ -663,7 +663,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                                     <div className="flex flex-col">
                                                         <div className="flex items-center gap-1">
                                                             <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-950/40 dark:text-orange-300 border-orange-300 text-[10px] font-bold">
-                                                                ⭐ Özel Kat: #{product.trendyolProduct.trendyolCategoryId}
+                                                                Özel Kat: #{product.trendyolProduct.trendyolCategoryId}
                                                             </Badge>
                                                             <Button
                                                                 variant="ghost"
@@ -850,7 +850,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                             return (
                                 <div className="p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800 rounded-2xl space-y-1.5 shrink-0">
                                     <Label className="text-xs font-semibold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                                        <span>⚠️ Ürünün Birden Çok Kategorisi Var. Trendyol'a Gönderilecek Kategori:</span>
+                                        <span>Ürünün Birden Çok Kategorisi Var. Trendyol'a Gönderilecek Kategori:</span>
                                     </Label>
                                     <Select 
                                         value={selectedCategoryId?.toString()} 
@@ -979,7 +979,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                             {vRows.length > 0 && (
                                                 <div className="space-y-3 p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900/40">
                                                     <div className="text-sm font-semibold text-blue-800 dark:text-blue-300">
-                                                        🎨 Varyantlar ({vRows.length})
+                                                        Varyantlar ({vRows.length})
                                                     </div>
                                                     {vAttrs.length > 0 && sizeGoesIntoColor(vAttrs, vRows) && (
                                                         <p className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
@@ -1043,7 +1043,7 @@ export function TrendyolProductList({ initialProducts, pagination }: TrendyolPro
                                                 <details className="group border border-gray-200 dark:border-gray-800 rounded-2xl p-3.5 bg-gray-50/50 dark:bg-gray-900/30">
                                                     <summary className="cursor-pointer text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between select-none">
                                                         <span className="flex items-center gap-1.5">
-                                                            📋 İsteğe Bağlı Ek Bilgiler ({optionalAttrs.length} adet - İthalatçı vb.)
+                                                            İsteğe Bağlı Ek Bilgiler ({optionalAttrs.length} adet - İthalatçı vb.)
                                                         </span>
                                                         <span className="text-[10px] text-muted-foreground group-open:rotate-180 transition-transform">▼</span>
                                                     </summary>

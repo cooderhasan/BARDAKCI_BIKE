@@ -61,10 +61,10 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
       <Tabs defaultValue="bike" className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="bike" className="font-bold flex items-center gap-2">
-            🚲 Bardakcı Bisiklet Ayarları
+            Bardakcı Bisiklet Ayarları
           </TabsTrigger>
           <TabsTrigger value="motor" className="font-bold flex items-center gap-2">
-            🏍️ Motovitrin Ayarları
+            Motovitrin Ayarları
           </TabsTrigger>
         </TabsList>
 
@@ -72,7 +72,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
         <TabsContent value="bike">
           <Card className="border-blue-200 dark:border-blue-900">
             <CardHeader className="bg-blue-50/50 dark:bg-blue-950/20">
-              <CardTitle className="text-blue-900 dark:text-blue-300">🚲 Bardakcı Bisiklet (bardakcibike.com.tr)</CardTitle>
+              <CardTitle className="text-blue-900 dark:text-blue-300">Bardakcı Bisiklet (bardakcibike.com.tr)</CardTitle>
               <CardDescription>
                 Bisiklet mağazasına özel tema rengi, logo, iletişim ve SEO/Analitik ayarlarını buradan yönetin.
               </CardDescription>
@@ -222,7 +222,7 @@ export function StoreSettingsClient({ bikeSettings, motorSettings }: StoreSettin
         <TabsContent value="motor">
           <Card className="border-red-200 dark:border-red-900">
             <CardHeader className="bg-red-50/50 dark:bg-red-950/20">
-              <CardTitle className="text-red-900 dark:text-red-300">🏍️ Motovitrin (motovitrin.com / motor subdomain)</CardTitle>
+              <CardTitle className="text-red-900 dark:text-red-300">Motovitrin (motovitrin.com / motor subdomain)</CardTitle>
               <CardDescription>
                 Motosiklet mağazasına özel tema rengi, logo, iletişim ve SEO/Analitik ayarlarını buradan yönetin.
               </CardDescription>

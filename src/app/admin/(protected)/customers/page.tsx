@@ -98,7 +98,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                     Müşteri Yönetimi
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400">

@@ -30,7 +30,7 @@ export default async function PttavmProductsPage({ searchParams }: PttavmProduct
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-[#00A896]">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
               <Box className="w-6 h-6 text-[#00A896]" />
               ePttAVM Ürün Yönetimi
             </h1>

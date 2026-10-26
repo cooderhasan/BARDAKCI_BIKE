@@ -14,10 +14,10 @@ export default async function IdefixIntegrationPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-lg">
-            🛒
+            
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-purple-700">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
               Idefix Entegrasyonu
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
@@ -91,7 +91,7 @@ export default async function IdefixIntegrationPage() {
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >
-                    {config.isActive ? "✅ Aktif" : "⚪ Pasif"}
+                    {config.isActive ? "Aktif" : "Pasif"}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -103,7 +103,7 @@ export default async function IdefixIntegrationPage() {
                         : "bg-blue-100 text-blue-700"
                     }`}
                   >
-                    {config.isTestMode ? "🧪 Test (Stage)" : "🚀 Canlı (Prod)"}
+                    {config.isTestMode ? "Test (Stage)" : "Canlı (Prod)"}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">

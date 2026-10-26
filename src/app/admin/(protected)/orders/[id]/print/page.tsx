@@ -80,7 +80,6 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                 {/* Marketplace Warning Header */}
                 {order.source !== "WEB" && order.source && (
                     <div className="border border-black bg-gray-50 p-3 rounded flex items-center gap-3 text-xs font-bold leading-tight">
-                        <span className="text-base">⚠️</span>
                         <p className="uppercase tracking-wide">
                             Kargo şirketinin dikkatine: Bu bir {order.source.toLowerCase()}.com gönderisidir. {order.source} anlaşması kapsamında işlem yapılması rica olunur.
                         </p>
@@ -123,7 +122,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                     {/* Delivery Address (Alıcı) */}
                     <div className="space-y-3 border-r border-gray-200 pr-6">
                         <h3 className="text-xs font-black uppercase tracking-wider text-gray-900 border-b border-black pb-1.5 flex items-center gap-1.5">
-                            <span>📦</span> TESLİMAT BİLGİLERİ (ALICI)
+                            TESLİMAT BİLGİLERİ (ALICI)
                         </h3>
                         <div className="text-[11px] space-y-1.5 text-gray-800">
                             <div className="grid grid-cols-[100px_1fr]">
@@ -154,7 +153,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                     {/* Billing Address (Fatura) */}
                     <div className="space-y-3">
                         <h3 className="text-xs font-black uppercase tracking-wider text-gray-900 border-b border-black pb-1.5 flex items-center gap-1.5">
-                            <span>🧾</span> FATURA BİLGİLERİ
+                            FATURA BİLGİLERİ
                         </h3>
                         <div className="text-[11px] space-y-1.5 text-gray-800">
                             <div className="grid grid-cols-[100px_1fr]">
@@ -196,7 +195,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                     {/* Seller Details */}
                     <div className="space-y-3 border-r border-gray-200 pr-6">
                         <h3 className="text-xs font-black uppercase tracking-wider text-gray-900 border-b border-black pb-1.5 flex items-center gap-1.5">
-                            <span>🏢</span> SATICI BİLGİLERİ
+                            SATICI BİLGİLERİ
                         </h3>
                         <div className="text-[11px] space-y-1.5 text-gray-800">
                             <div className="grid grid-cols-[100px_1fr]">
@@ -223,7 +222,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                     {/* Order Details */}
                     <div className="space-y-3">
                         <h3 className="text-xs font-black uppercase tracking-wider text-gray-900 border-b border-black pb-1.5 flex items-center gap-1.5">
-                            <span>📋</span> SİPARİŞ BİLGİLERİ
+                            SİPARİŞ BİLGİLERİ
                         </h3>
                         <div className="text-[11px] space-y-1.5 text-gray-800">
                             <div className="grid grid-cols-[100px_1fr]">
@@ -255,7 +254,7 @@ export default async function OrderPrintPage({ params }: { params: Promise<{ id:
                 {/* Grid 3: Order Items */}
                 <div className="space-y-3">
                     <h3 className="text-xs font-black uppercase tracking-wider text-gray-900 border-b border-black pb-1.5 flex items-center gap-1.5">
-                        <span>🛒</span> SİPARİŞ EDİLEN ÜRÜNLER (KONTROL LİSTESİ)
+                        SİPARİŞ EDİLEN ÜRÜNLER (KONTROL LİSTESİ)
                     </h3>
                     <table className="w-full text-left border-collapse">
                         <thead>

@@ -30,7 +30,7 @@ export default async function CiceksepetiProductsPage({ searchParams }: Ciceksep
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-rose-700 dark:text-rose-400">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
               <Box className="w-6 h-6 text-rose-600" />
               Çiçeksepeti Ürün Yönetimi
             </h1>

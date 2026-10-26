@@ -12,7 +12,7 @@ export default async function N11IntegrationPage() {
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-3xl font-bold tracking-tight">N11 Entegrasyonu</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">N11 Entegrasyonu</h1>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

@@ -51,9 +51,9 @@ export default async function HepsiburadaProductsPage({ searchParams }: Hepsibur
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#17457C] dark:text-blue-500 flex items-center gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-            🔵
+            
           </div>
           Hepsiburada Ürün Yönetimi
         </h1>

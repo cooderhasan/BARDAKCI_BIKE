@@ -119,7 +119,7 @@ export function BannerForm({ initialData, onSuccess }: BannerFormProps) {
                     name="store"
                     render={({ field }) => (
                         <FormItem className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                            <FormLabel className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</FormLabel>
+                            <FormLabel className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">Mağaza Yayın Alanı</FormLabel>
                             <FormControl>
                                 <select
                                     className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -127,9 +127,9 @@ export function BannerForm({ initialData, onSuccess }: BannerFormProps) {
                                     onChange={field.onChange}
                                     disabled={loading}
                                 >
-                                    <option value="BIKE">🚲 Sadece Bardakcı Bisiklet</option>
-                                    <option value="MOTOR">🏍️ Sadece Motovitrin</option>
-                                    <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
+                                    <option value="BIKE">Sadece Bardakcı Bisiklet</option>
+                                    <option value="MOTOR">Sadece Motovitrin</option>
+                                    <option value="BOTH">Her İki Mağazada Ortak</option>
                                 </select>
                             </FormControl>
                             <FormMessage />

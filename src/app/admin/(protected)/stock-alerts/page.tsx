@@ -69,7 +69,7 @@ export default function StockAlertsPage() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
                         <AlertTriangle className="h-6 w-6 text-orange-500" />
                         Stok Uyarıları
                     </h2>
@@ -169,7 +169,7 @@ export default function StockAlertsPage() {
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                                         <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                        {search ? "Arama sonucu bulunamadı" : "Stok uyarısı bulunmuyor 🎉"}
+                                        {search ? "Arama sonucu bulunamadı" : "Stok uyarısı bulunmuyor "}
                                     </TableCell>
                                 </TableRow>
                             ) : (

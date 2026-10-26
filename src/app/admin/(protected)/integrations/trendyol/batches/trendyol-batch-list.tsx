@@ -59,7 +59,7 @@ export function TrendyolBatchList({ initialData }: { initialData: BatchItem[] })
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Trendyol İşlem (Batch) Geçmişi</h1>
+                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Trendyol İşlem (Batch) Geçmişi</h1>
                         <p className="text-sm text-muted-foreground">Trendyol'a gönderilen ürünlerin asenkron işlem sonuçlarını izleyin.</p>
                     </div>
                 </div>

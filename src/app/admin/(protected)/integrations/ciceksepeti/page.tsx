@@ -13,7 +13,7 @@ export default async function CiceksepetiIntegrationPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center text-2xl shadow-sm border border-rose-200">
-            🌸
+            
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-rose-700 dark:text-rose-400">

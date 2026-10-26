@@ -587,9 +587,9 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                     onChange={(e) => setStoreFilter(e.target.value as typeof storeFilter)}
                 >
                     <option value="ALL">Tüm Mağazalar</option>
-                    <option value="BIKE">🚲 Bisiklet</option>
-                    <option value="MOTOR">🏍️ Motor</option>
-                    <option value="BOTH">🌐 Ortak</option>
+                    <option value="BIKE">Bisiklet</option>
+                    <option value="MOTOR">Motor</option>
+                    <option value="BOTH">Ortak</option>
                 </select>
                 <span className="text-sm text-gray-500 whitespace-nowrap">
                     {filteredBrands.length} / {brands.length} marka
@@ -648,20 +648,20 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                                     </div>
                                 </div>
                                 <div className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                    <Label htmlFor="brandStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</Label>
+                                    <Label htmlFor="brandStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">Mağaza Yayın Alanı</Label>
                                     <select
                                         id="brandStore"
                                         className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         value={store}
                                         onChange={(e) => setStore(e.target.value as any)}
                                     >
-                                        <option value="BIKE">🚲 Sadece Bardakcı Bisiklet</option>
-                                        <option value="MOTOR">🏍️ Sadece Motovitrin</option>
-                                        <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
+                                        <option value="BIKE">Sadece Bardakcı Bisiklet</option>
+                                        <option value="MOTOR">Sadece Motovitrin</option>
+                                        <option value="BOTH">Her İki Mağazada Ortak</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                                    <Label className="text-blue-800 dark:text-blue-300 font-semibold text-xs uppercase tracking-wide">🏭 İmalatçı / İthalatçı (Ürün Güvenliği)</Label>
+                                    <Label className="text-blue-800 dark:text-blue-300 font-semibold text-xs uppercase tracking-wide">İmalatçı / İthalatçı (Ürün Güvenliği)</Label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <div className="space-y-1">
                                             <span className="text-[11px] text-gray-600">İmalatçı</span>
@@ -704,14 +704,14 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                                     )}
                                 </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                                    <Label className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Marka ID</Label>
+                                    <Label className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">Trendyol Marka ID</Label>
                                     <TrendyolBrandSearch
                                         value={trendyolBrandId}
                                         onChange={setTrendyolBrandId}
                                     />
                                 </div>
                                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <Label htmlFor="n11BrandId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 N11 Marka ID</Label>
+                                    <Label htmlFor="n11BrandId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">N11 Marka ID</Label>
                                     <Input
                                         id="n11BrandId"
                                         type="number"
@@ -723,7 +723,7 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                                     <p className="text-[10px] text-purple-600">N11 marka ID’si giriniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <Label className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Marka ID</Label>
+                                    <Label className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">Idefix Marka ID</Label>
                                     <IdefixBrandSearch
                                         key={editBrand?.id ?? "new"}
                                         value={idefixBrandId}
@@ -732,7 +732,7 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                                     />
                                 </div>
                                 <div className="space-y-2 p-3 bg-pink-50 dark:bg-pink-950/20 rounded-lg border border-pink-200 dark:border-pink-800">
-                                    <Label className="text-pink-700 dark:text-pink-400 font-semibold text-xs uppercase tracking-wide">🌸 Pazarama Marka Eşleştirme</Label>
+                                    <Label className="text-pink-700 dark:text-pink-400 font-semibold text-xs uppercase tracking-wide">Pazarama Marka Eşleştirme</Label>
                                     <PazaramaBrandSearch
                                         value={pazaramaBrandId}
                                         onChange={setPazaramaBrandId}
@@ -800,13 +800,13 @@ export function BrandsTable({ brands, firms: firmsProp = [] }: BrandsTableProps)
                                     </TableCell>
                                     <TableCell>
                                         {brand.store === "BIKE" && (
-                                            <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 font-semibold">🚲 Bisiklet</Badge>
+                                            <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 font-semibold">Bisiklet</Badge>
                                         )}
                                         {brand.store === "MOTOR" && (
-                                            <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 hover:bg-red-100 font-semibold">🏍️ Motor</Badge>
+                                            <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 hover:bg-red-100 font-semibold">Motor</Badge>
                                         )}
                                         {brand.store === "BOTH" && (
-                                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 hover:bg-emerald-100 font-semibold">🌐 Ortak</Badge>
+                                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 hover:bg-emerald-100 font-semibold">Ortak</Badge>
                                         )}
                                     </TableCell>
                                     <TableCell>

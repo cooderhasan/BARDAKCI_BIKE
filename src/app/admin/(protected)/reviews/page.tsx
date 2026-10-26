@@ -14,7 +14,7 @@ export default async function AdminReviewsPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Ürün Yorumları</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Ürün Yorumları</h1>
                     <p className="text-muted-foreground">
                         Müşterilerin ürünler hakkında yaptığı yorumları buradan onaylayabilir veya reddedebilirsiniz.
                     </p>

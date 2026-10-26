@@ -142,7 +142,7 @@ export default function AdminLoginPage() {
                 {/* Footer */}
                 <div className="mt-8 text-center space-y-1">
                     <p className="text-gray-500 text-sm">
-                        B2B Yönetim Sistemi © {new Date().getFullYear()}
+                        Yönetim Paneli © {new Date().getFullYear()}
                     </p>
                     <p className="text-gray-600 text-xs">
                         Coded by{" "}

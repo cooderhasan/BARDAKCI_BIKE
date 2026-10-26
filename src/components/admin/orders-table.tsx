@@ -17,7 +17,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal, Barcode, ReceiptText, RotateCcw, Star } from "lucide-react";
+import { Eye, FileDown, Search, X, Printer, CheckCircle2, Truck, MessageCircle, ExternalLink, Pencil, Package, RefreshCw, XCircle, SendHorizonal, Barcode, ReceiptText, RotateCcw, Star, User, MapPin, CreditCard } from "lucide-react";
 import {
     formatDate,
     getOrderStatusLabel,
@@ -769,9 +769,9 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="ALL">Tümü</SelectItem>
-                                <SelectItem value="SENT">✅ Kesildi</SelectItem>
-                                <SelectItem value="NONE">⏳ Kesilmedi</SelectItem>
-                                <SelectItem value="ERROR">❌ Hatalı</SelectItem>
+                                <SelectItem value="SENT">Kesildi</SelectItem>
+                                <SelectItem value="NONE">Kesilmedi</SelectItem>
+                                <SelectItem value="ERROR">Hatalı</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -785,8 +785,8 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="ALL">Tümü</SelectItem>
-                                <SelectItem value="NO">🖨️ Yazdırılmadı</SelectItem>
-                                <SelectItem value="YES">✅ Yazdırıldı</SelectItem>
+                                <SelectItem value="NO">Yazdırılmadı</SelectItem>
+                                <SelectItem value="YES">Yazdırıldı</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -800,8 +800,8 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="ALL">Tümü</SelectItem>
-                                <SelectItem value="MEMBER">👤 Üye</SelectItem>
-                                <SelectItem value="GUEST">🕶️ Misafir (site)</SelectItem>
+                                <SelectItem value="MEMBER">Üye</SelectItem>
+                                <SelectItem value="GUEST">Misafir (site)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -1173,7 +1173,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                 <div className="space-y-4">
                                     <div>
                                         <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                                            <span className="bg-blue-100 text-blue-700 p-1 rounded">👤</span> Müşteri Bilgileri
+                                            <span className="bg-blue-100 text-blue-700 p-1 rounded"><User className="w-3.5 h-3.5" /></span> Müşteri Bilgileri
                                         </h4>
                                         <div className="text-sm space-y-1 text-gray-600 dark:text-gray-300 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
                                             <p className="font-medium text-gray-900 dark:text-gray-100">
@@ -1184,14 +1184,14 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                             {/* Üye / misafir (site siparişleri); üyede kaçıncı siparişi */}
                                             {(selectedOrder as any).userId ? (
                                                 <span className="inline-flex items-center gap-1 mt-1 text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                                                    👤 Üye
+                                                    Üye
                                                     {(selectedOrder as any).memberOrderNth
                                                         ? ` · ${(selectedOrder as any).memberOrderNth}. siparişi${(selectedOrder as any).memberOrderTotal > 1 ? ` (toplam ${(selectedOrder as any).memberOrderTotal})` : ""}`
                                                         : ""}
                                                 </span>
                                             ) : (selectedOrder.source || "WEB") === "WEB" ? (
                                                 <span className="inline-flex items-center gap-1 mt-1 text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded-full">
-                                                    🕶️ Misafir
+                                                    Misafir
                                                 </span>
                                             ) : null}
                                         </div>
@@ -1233,7 +1233,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                 {/* Column 2: Shipping Address */}
                                 <div>
                                     <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                                        <span className="bg-green-100 text-green-700 p-1 rounded">📍</span> Teslimat Adresi
+                                        <span className="bg-green-100 text-green-700 p-1 rounded"><MapPin className="w-3.5 h-3.5" /></span> Teslimat Adresi
                                     </h4>
                                     <div className="text-sm text-gray-600 dark:text-gray-300 p-3 bg-gray-50 dark:bg-gray-800 rounded-md h-[calc(100%-32px)]">
                                         {selectedOrder.shippingAddress ? (
@@ -1258,7 +1258,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                 <div className="space-y-4">
                                     <div>
                                         <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                                            <span className="bg-purple-100 text-purple-700 p-1 rounded">🚚</span> Kargo Bilgileri
+                                            <span className="bg-purple-100 text-purple-700 p-1 rounded"><Truck className="w-3.5 h-3.5" /></span> Kargo Bilgileri
                                         </h4>
                                         <div className="text-sm text-gray-600 dark:text-gray-300 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
                                             <div className="flex justify-between items-center mb-2">
@@ -1320,7 +1320,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                         <div className="bg-amber-50/70 p-3 rounded-md border border-amber-200/80 space-y-2">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-xs font-semibold text-amber-950 flex items-center gap-1.5">
-                                                    <span>⭐</span> Yorum & Memnuniyet E-postası
+                                                    <Star className="w-3.5 h-3.5" /> Yorum & Memnuniyet E-postası
                                                 </span>
                                                 {selectedOrder.reviewEmailSentAt ? (
                                                     <Badge className="bg-emerald-600 text-white text-[10px] hover:bg-emerald-600">
@@ -1335,7 +1335,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
 
                                             {selectedOrder.reviewEmailSentAt ? (
                                                 <p className="text-[11px] text-emerald-700 font-medium">
-                                                    ✅ Gönderildi: {formatDate(selectedOrder.reviewEmailSentAt)}
+                                                    Gönderildi: {formatDate(selectedOrder.reviewEmailSentAt)}
                                                 </p>
                                             ) : (
                                                 <div className="space-y-2">
@@ -1354,7 +1354,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                                             onClick={() => handleSendReviewEmail(selectedOrder.id)}
                                                             className="w-full text-xs h-7 border-amber-300 bg-white hover:bg-amber-100/50 text-amber-950 font-medium"
                                                         >
-                                                            {isSendingReviewEmail ? "Gönderiliyor..." : "📧 Şimdi Manuel Gönder"}
+                                                            {isSendingReviewEmail ? "Gönderiliyor..." : "Şimdi Manuel Gönder"}
                                                         </Button>
                                                     )}
                                                     {(selectedOrder.store === "MOTOR") && (
@@ -1374,7 +1374,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                 <div className="border border-purple-100 dark:border-purple-800 rounded-lg overflow-hidden">
                                     <div className="bg-purple-50 dark:bg-purple-900/20 px-4 py-2.5 border-b border-purple-100 dark:border-purple-800">
                                         <h4 className="font-semibold text-sm flex items-center gap-2 text-purple-900 dark:text-purple-200">
-                                            <span className="bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-300 p-1 rounded">💳</span>
+                                            <span className="bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-300 p-1 rounded"><CreditCard className="w-3.5 h-3.5" /></span>
                                             Kredi Kartı İşlemleri
                                         </h4>
                                     </div>
@@ -1382,7 +1382,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                         <div>
                                             <span className="text-xs text-gray-500 block">İşlem Durumu</span>
                                             <span className={`font-medium ${selectedOrder.payment.providerData.status === "success" ? "text-green-600" : "text-red-600"}`}>
-                                                {selectedOrder.payment.providerData.status === "success" ? "✅ Başarılı" : "❌ Başarısız"}
+                                                {selectedOrder.payment.providerData.status === "success" ? "Başarılı" : "Başarısız"}
                                             </span>
                                         </div>
                                         <div>

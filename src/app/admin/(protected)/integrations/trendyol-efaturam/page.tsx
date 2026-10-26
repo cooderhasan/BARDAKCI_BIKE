@@ -10,7 +10,7 @@ export default async function TrendyolEFaturamPage() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Trendyol e-Faturam</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Trendyol e-Faturam</h1>
                     <p className="text-muted-foreground">
                         Siparişlerinizi tek tıkla e-faturaya dönüştürün.
                     </p>

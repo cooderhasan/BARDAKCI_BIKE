@@ -75,7 +75,7 @@ export default function GeminiIntegrationPage() {
                     <Brain className="w-7 h-7" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Yapay Zeka (AI) Entegrasyonu</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Yapay Zeka (AI) Entegrasyonu</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Ürün açıklamalarınızı otomatik oluşturmak için AI sağlayıcınızı yönetin.</p>
                 </div>
             </div>

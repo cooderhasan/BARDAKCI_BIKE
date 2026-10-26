@@ -611,18 +611,11 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     hasMore = false;
                 } else {
                     for (const l of listingsArray) {
-                        // HAM VERİ ARAMASI (Hiçbir filtreye takılmadan)
-                        const rawStr = JSON.stringify(l);
-                        if (rawStr.includes("HBCV000007MQETQ")) {
-                            console.log(`🔍 DEBUG - RAW MATCH FOUND IN LISTINGS:`, rawStr);
-                        }
-
                         if (l.merchantSku && l.hepsiburadaSku) {
                             hbSkuMap[l.merchantSku] = l.hepsiburadaSku;
                             merchantByHbSku[String(l.hepsiburadaSku).toUpperCase()] = l.merchantSku;
                         }
                     }
-                    console.log(`   📄 HB Sayfa ${pageNum} çekildi: ${listingsArray.length} ürün geldi.`);
                     if (listingsArray.length < limit) {
                         hasMore = false;
                     } else {
@@ -632,16 +625,6 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                 }
             }
             console.log(`📋 HB Toplam Eşleşen Listing: ${Object.keys(hbSkuMap).length} ürün bulundu`);
-            const target = "HBCV000007MQETQ";
-            const foundKeys = Object.entries(hbSkuMap).filter(([k, v]) => k.includes(target) || v.includes(target));
-            if (foundKeys.length > 0) {
-                console.log(`🔍 DEBUG - Target '${target}' eşleşmeleri:`, JSON.stringify(foundKeys));
-            } else {
-                console.log(`🔍 DEBUG - Target '${target}' HB Listing Map içinde bulunamadı!`);
-            }
-            // İlk 30 ilanın stok ve katalog kodlarını yazdır
-            const samples = Object.entries(hbSkuMap).slice(0, 30);
-            console.log(`🔍 DEBUG - Hepsiburada'dan Dönen Örnek İlk 30 İlan:`, JSON.stringify(samples));
         } catch (e: any) {
             console.error(`⚠️ HB Listing çekilemedi: ${e.message}`);
         }
@@ -683,7 +666,6 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                         cargoCompany1: "Yurtiçi Kargo",
                         maximumPurchasableQuantity: 100
                     };
-                    console.log(`📦 HB Inventory Item (Variant):`, hbItem);
                     hbItems.push(hbItem);
                 }
             } else {
@@ -706,7 +688,6 @@ export async function syncProductsToHepsiburada(productIds?: string[]) {
                     cargoCompany1: "Yurtiçi Kargo",
                     maximumPurchasableQuantity: 100
                 };
-                console.log(`📦 HB Inventory Item:`, hbItem);
                 hbItems.push(hbItem);
             }
         }

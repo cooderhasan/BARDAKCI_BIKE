@@ -51,7 +51,7 @@ export default function ReportsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
                     <BarChart3 className="h-6 w-6 text-[#17457C]" />
                     Raporlar
                 </h2>

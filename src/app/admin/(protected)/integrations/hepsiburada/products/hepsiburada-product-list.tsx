@@ -611,7 +611,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                                     <div className="flex flex-col">
                                                         <div className="flex items-center gap-1">
                                                             <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-950/40 dark:text-blue-300 border-blue-300 text-[10px] font-bold">
-                                                                ⭐ Özel Kat: #{product.hepsiburadaProduct.hbCategoryId}
+                                                                Özel Kat: #{product.hepsiburadaProduct.hbCategoryId}
                                                             </Badge>
                                                             <Button
                                                                 variant="ghost"
@@ -817,7 +817,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                 if (vRows.length === 0) return null;
                                 return (
                                     <div className="space-y-2 p-3 rounded-xl bg-blue-50/60 border border-blue-200">
-                                        <h4 className="text-xs font-bold text-blue-800">🎨 Varyantlar ({vRows.length}) — her biri HB'de ayrı ürün olarak açılır</h4>
+                                        <h4 className="text-xs font-bold text-blue-800">Varyantlar ({vRows.length}) — her biri HB'de ayrı ürün olarak açılır</h4>
                                         {vAttrs.length === 0 ? (
                                             <p className="text-[11px] text-red-600">Bu HB kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye gönderilemez.</p>
                                         ) : (

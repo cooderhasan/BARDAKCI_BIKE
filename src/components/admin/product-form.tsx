@@ -618,7 +618,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         if (filledMarketplaces.length > 0 && emptyMarketplaces.length > 0) {
             const emptyNames = emptyMarketplaces.map(f => f.label).join(", ");
             const confirmed = window.confirm(
-                `⚠️ DİKKAT!\n\nŞu pazaryerlerinin fiyatı boş: ${emptyNames}\n\nBoş bırakılan pazaryerlerine LİSTE FİYATI (${Number(formData.listPrice).toLocaleString("tr-TR")}₺) gönderilecek!\n\nBu genellikle komisyonsuz düşük fiyat demektir.\n\nDevam etmek istiyor musunuz?`
+                `DİKKAT!\n\nŞu pazaryerlerinin fiyatı boş: ${emptyNames}\n\nBoş bırakılan pazaryerlerine LİSTE FİYATI (${Number(formData.listPrice).toLocaleString("tr-TR")}₺) gönderilecek!\n\nBu genellikle komisyonsuz düşük fiyat demektir.\n\nDevam etmek istiyor musunuz?`
             );
             if (!confirmed) {
                 return;
@@ -997,7 +997,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             <div className="border rounded-lg p-4 bg-gray-50/50 dark:bg-gray-900/30 space-y-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex flex-wrap items-center gap-2">
-                                        🏪 Pazaryerleri
+                                        Pazaryerleri
                                         {rememberedApplied && (
                                             <span className="text-[10px] font-normal text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">son eklenen ürünün seçimleri getirildi</span>
                                         )}
@@ -1067,7 +1067,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                 checked={Boolean(formData.isGoogleActive)}
                                                 onCheckedChange={(c) => handleChange("isGoogleActive", c === true)}
                                             />
-                                            <span className="text-sm font-semibold text-blue-700">🛒 Google Shopping</span>
+                                            <span className="text-sm font-semibold text-blue-700">Google Shopping</span>
                                         </label>
                                         <Input
                                             id="googlePrice"
@@ -1149,12 +1149,12 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     />
                                     {!formData.isBundle && hasVariants && (
                                         <p className="text-xs text-blue-600 font-medium">
-                                            🎨 Varyantlı ürün: stok varyantlarda tutulur, burada aktif varyantların toplamı ({variantStockTotal} adet) görünür.
+                                            Varyantlı ürün: stok varyantlarda tutulur, burada aktif varyantların toplamı ({variantStockTotal} adet) görünür.
                                         </p>
                                     )}
                                     {formData.isBundle && (
                                         <p className="text-xs text-emerald-600 font-medium">
-                                            📦 Paket stoğu içeriğe göre otomatik ({bundleStock} adet) hesaplanmaktadır.
+                                            Paket stoğu içeriğe göre otomatik ({bundleStock} adet) hesaplanmaktadır.
                                         </p>
                                     )}
                                 </div>
@@ -1198,7 +1198,6 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             }`}>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-lg">🚚</span>
                                         <Label htmlFor="isFreeShipping" className="text-base font-semibold cursor-pointer">
                                             Bu Üründe Ücretsiz Kargo
                                         </Label>
@@ -1597,7 +1596,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                             {/* Mağaza Seçimi (Çoklu Mağaza Yapısı) */}
                             <div className="p-4 border rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 space-y-2">
                                 <div className="space-y-0.5">
-                                    <Label className="text-base font-bold text-emerald-800 dark:text-emerald-300">🏪 Mağaza Yayın Alanı</Label>
+                                    <Label className="text-base font-bold text-emerald-800 dark:text-emerald-300">Mağaza Yayın Alanı</Label>
                                     <p className="text-sm text-muted-foreground">Bu ürünün hangi web sitesinde / mağazada listeleneceğini seçin.</p>
                                 </div>
                                 <select
@@ -1605,9 +1604,9 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     value={formData.store}
                                     onChange={(e) => handleChange("store", e.target.value)}
                                 >
-                                    <option value="BIKE">🚲 Sadece Bardakcı Bisiklet (bardakcibike.com.tr)</option>
-                                    <option value="MOTOR">🏍️ Sadece Motovitrin (motovitrin.com / motor subdomain)</option>
-                                    <option value="BOTH">🌐 Her İki Mağazada da Yayınla (Ortak Ürün)</option>
+                                    <option value="BIKE">Sadece Bardakcı Bisiklet (bardakcibike.com.tr)</option>
+                                    <option value="MOTOR">Sadece Motovitrin (motovitrin.com / motor subdomain)</option>
+                                    <option value="BOTH">Her İki Mağazada da Yayınla (Ortak Ürün)</option>
                                 </select>
                             </div>
 

@@ -62,7 +62,7 @@ export default function BankTransfersPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">💳 Havale Bildirimleri</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Havale Bildirimleri</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           Müşterilerin havale/EFT bildirimlerini yönetin.
         </p>
@@ -102,7 +102,6 @@ export default function BankTransfersPage() {
         <div className="text-center py-12 text-gray-500">Yükleniyor...</div>
       ) : notifications.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
-          <div className="text-4xl mb-3">📭</div>
           <h3 className="font-semibold text-gray-900 dark:text-white">Bildirim bulunamadı</h3>
           <p className="text-sm text-gray-500 mt-1">Bu filtrede gösterilecek havale bildirimi yok.</p>
         </div>
@@ -183,7 +182,7 @@ export default function BankTransfersPage() {
                       onClick={() => handleReject(n.id)}
                       className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors"
                     >
-                      ✗ Reddet
+                      Reddet
                     </button>
                   </div>
                 )}

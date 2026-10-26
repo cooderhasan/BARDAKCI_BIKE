@@ -11,8 +11,8 @@ export default async function YurticiIntegrationPage() {
     return (
         <div className="space-y-6 max-w-2xl">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <span className="text-2xl">📦</span> Yurtiçi Kargo Entegrasyonu
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+                    Yurtiçi Kargo Entegrasyonu
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400 mt-1">
                     Web servis entegrasyonu ile sipariş gönderimlerini Yurtiçi Kargo sistemine aktarın.
@@ -21,7 +21,6 @@ export default async function YurticiIntegrationPage() {
 
             {/* Uyarı Bandı - Test Modu */}
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4 flex items-start gap-3">
-                <span className="text-yellow-600 text-xl shrink-0">⚠️</span>
                 <div className="text-sm text-yellow-800 dark:text-yellow-200">
                     <p className="font-semibold mb-1">Canlı kullanıcı bilgileri alınana kadar Test Mod aktif kalmalıdır.</p>
                     <p>

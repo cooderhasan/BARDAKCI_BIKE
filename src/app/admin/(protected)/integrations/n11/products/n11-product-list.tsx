@@ -621,7 +621,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                                     <div className="flex flex-col">
                                                         <div className="flex items-center gap-1">
                                                             <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 text-[10px] font-bold">
-                                                                ⭐ Özel Kat: #{product.n11Product.n11CategoryId}
+                                                                Özel Kat: #{product.n11Product.n11CategoryId}
                                                             </Badge>
                                                             <Button
                                                                 variant="ghost"
@@ -781,7 +781,7 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                 const vAttrs = getN11VariantAttrs(categoryAttrs);
                                 return (
                                     <div className="space-y-2 p-3 rounded-xl bg-blue-50/60 border border-blue-200">
-                                        <h4 className="text-xs font-bold text-blue-800">🎨 Varyantlar ({vRows.length}) — aynı model koduyla, her biri kendi renk/beden ve görselleriyle</h4>
+                                        <h4 className="text-xs font-bold text-blue-800">Varyantlar ({vRows.length}) — aynı model koduyla, her biri kendi renk/beden ve görselleriyle</h4>
                                         {vAttrs.length === 0 ? (
                                             <p className="text-[11px] text-red-600">Bu N11 kategorisinde renk/beden varyant özelliği yok; varyantlar N11'de seçenek olarak görünmez.</p>
                                         ) : n11SizeGoesIntoColor(getN11VariantDims(categoryAttrs), vRows) ? (

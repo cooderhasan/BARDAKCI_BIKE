@@ -18,7 +18,7 @@ export default async function PazaramaOrdersPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
               <ShoppingCart className="w-6 h-6 text-[#D81B60]" />
               Pazarama Siparişleri
             </h1>

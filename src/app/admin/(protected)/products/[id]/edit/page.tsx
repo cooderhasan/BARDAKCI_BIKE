@@ -130,7 +130,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                         Ürün Düzenle
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400">

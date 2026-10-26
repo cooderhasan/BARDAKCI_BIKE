@@ -358,11 +358,11 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
 
     const storeBadge = (store?: Product["store"]) =>
         store === "MOTOR" ? (
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">🏍️ Motor</span>
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Motor</span>
         ) : store === "BOTH" ? (
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">🌐 Ortak</span>
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Ortak</span>
         ) : (
-            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">🚲 Bisiklet</span>
+            <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Bisiklet</span>
         );
 
     const marketplaceChip = (label: string, active: boolean | undefined, activeClass: string) => (
@@ -439,9 +439,9 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="ALL">Tümü</SelectItem>
-                                <SelectItem value="BIKE">🚲 Bardakcı Bisiklet</SelectItem>
-                                <SelectItem value="MOTOR">🏍️ Motovitrin</SelectItem>
-                                <SelectItem value="BOTH">🌐 Ortak Ürünler</SelectItem>
+                                <SelectItem value="BIKE">Bardakcı Bisiklet</SelectItem>
+                                <SelectItem value="MOTOR">Motovitrin</SelectItem>
+                                <SelectItem value="BOTH">Ortak Ürünler</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -619,15 +619,15 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                         )}
                                                         {(product as any).store === "MOTOR" ? (
                                                             <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                                                🏍️ Motor
+                                                                Motor
                                                             </span>
                                                         ) : (product as any).store === "BOTH" ? (
                                                             <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                                                🌐 Ortak
+                                                                Ortak
                                                             </span>
                                                         ) : (
                                                             <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                                                🚲 Bisiklet
+                                                                Bisiklet
                                                             </span>
                                                         )}
                                                     </div>
@@ -664,11 +664,11 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                         return (
                                                             <div className="text-gray-500 text-xs flex items-center gap-2">
                                                                 <span className="bg-blue-50 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-semibold" title="Barkodlar varyantlarda">
-                                                                    🎨 {activeVariants.length} varyant
+                                                                    {activeVariants.length} varyant
                                                                 </span>
                                                                 {missing > 0 && (
                                                                     <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded font-semibold" title="Pazaryerleri için her varyantın barkodu olmalı">
-                                                                        ⚠️ {missing} varyantta barkod eksik
+                                                                        {missing} varyantta barkod eksik
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -679,7 +679,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                                             {product.barcode || "-"}
                                                             {product.isTrendyolActive && !product.barcode && (
                                                                 <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold" title="Trendyol için barkod zorunludur!">
-                                                                    ⚠️ BARKOD EKSİK
+                                                                    BARKOD EKSİK
                                                                 </span>
                                                             )}
                                                         </div>

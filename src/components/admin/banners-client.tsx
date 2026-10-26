@@ -81,7 +81,7 @@ export function BannersClient({ initialBanners }: BannersClientProps) {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Banner Yönetimi</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Banner Yönetimi</h2>
                     <p className="text-muted-foreground">
                         Anasayfa altındaki 3'lü banner alanını buradan yönetebilirsiniz.
                     </p>
@@ -150,11 +150,11 @@ export function BannersClient({ initialBanners }: BannersClientProps) {
                                          <div className="flex items-center gap-1.5">
                                              <span className="font-medium">{banner.title || "-"}</span>
                                              {(banner as any).store === "MOTOR" ? (
-                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">🏍️ Motor</span>
+                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">Motor</span>
                                              ) : (banner as any).store === "BOTH" ? (
-                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">🌐 Ortak</span>
+                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Ortak</span>
                                              ) : (
-                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">🚲 Bisiklet</span>
+                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">Bisiklet</span>
                                              )}
                                          </div>
                                      </TableCell>

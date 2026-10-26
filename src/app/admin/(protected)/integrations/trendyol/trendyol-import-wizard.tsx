@@ -248,7 +248,7 @@ export function TrendyolImportWizard() {
 
                     <div className="w-[140px] space-y-2">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
-                            💰 İndirim Oranı
+                            İndirim Oranı
                         </label>
                         <div className="relative">
                             <Input 

@@ -129,7 +129,7 @@ export function CiceksepetiAttributeMappingModal({
           className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 gap-1.5 text-xs"
         >
           <SlidersHorizontal className="w-3.5 h-3.5" />
-          🌸 Çiçeksepeti Nitelik Eşleme
+          Çiçeksepeti Nitelik Eşleme
         </Button>
       </DialogTrigger>
 

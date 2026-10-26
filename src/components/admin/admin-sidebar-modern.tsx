@@ -49,7 +49,7 @@ const menuGroups: MenuGroup[] = [
     {
         title: "Genel",
         items: [
-            { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
+            { title: "Genel Bakış", href: "/admin", icon: LayoutDashboard },
             { title: "Raporlar", href: "/admin/reports", icon: BarChart3 },
         ],
     },
@@ -123,7 +123,7 @@ export function AdminSidebarModern({ settings }: { settings?: any }) {
     }, []);
 
     const logoUrl = settings?.logoUrl;
-    const siteName = settings?.siteName || "B2B";
+    const siteName = settings?.siteName || "Yönetim";
 
     // Filter menu items based on search
     const filteredGroups = searchQuery

@@ -126,7 +126,7 @@ export default function GoogleMerchantPage() {
           </svg>
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Google Merchant Center</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Google Merchant Center</h1>
           <p className="text-sm text-gray-500">Google Shopping feed yönetimi ve kategori eşleştirmesi</p>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function GoogleMerchantPage() {
 
       {/* Bulk Actions */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h2 className="font-semibold text-gray-800 mb-1">🚀 Toplu İşlemler</h2>
+        <h2 className="font-semibold text-gray-800 mb-1">Toplu İşlemler</h2>
         <p className="text-sm text-gray-500 mb-4">
           Tüm aktif ürünleri tek tıkla Google Feed'e ekleyebilir veya çıkarabilirsiniz.
         </p>
@@ -163,21 +163,21 @@ export default function GoogleMerchantPage() {
             disabled={bulkLoading}
             className="px-5 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
-            {bulkLoading ? "İşleniyor..." : `✅ Tüm Ürünleri Ekle (${stats.totalProducts} ürün)`}
+            {bulkLoading ? "İşleniyor..." : `Tüm Ürünleri Ekle (${stats.totalProducts} ürün)`}
           </button>
           <button
             onClick={handleBulkDeactivate}
             disabled={bulkLoading}
             className="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
-            {bulkLoading ? "İşleniyor..." : "❌ Tümünü Çıkar"}
+            {bulkLoading ? "İşleniyor..." : "Tümünü Çıkar"}
           </button>
           <button
             onClick={handleBulkMapCategories}
             disabled={bulkLoading}
             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
-            {bulkLoading ? "İşleniyor..." : "📁 Tüm Kategorileri Bisiklet Olarak Eşleştir"}
+            {bulkLoading ? "İşleniyor..." : "Tüm Kategorileri Bisiklet Olarak Eşleştir"}
           </button>
         </div>
         {bulkMsg && (
@@ -189,7 +189,7 @@ export default function GoogleMerchantPage() {
 
       {/* Feed URL */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h2 className="font-semibold text-gray-800 mb-3">📡 Feed URL</h2>
+        <h2 className="font-semibold text-gray-800 mb-3">Feed URL</h2>
         <p className="text-sm text-gray-500 mb-3">
           Bu URL'yi Google Merchant Center'da <strong>Ürünler → Veri Kaynakları → Ekle → Zamanlanmış Getirme</strong> bölümüne ekleyin.
         </p>
@@ -219,7 +219,7 @@ export default function GoogleMerchantPage() {
 
       {/* Merchant ID Settings */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h2 className="font-semibold text-gray-800 mb-3">⚙️ Merchant Ayarları</h2>
+        <h2 className="font-semibold text-gray-800 mb-3">Merchant Ayarları</h2>
         <form onSubmit={handleSaveConfig} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -257,7 +257,7 @@ export default function GoogleMerchantPage() {
 
       {/* Category Mapping */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h2 className="font-semibold text-gray-800 mb-1">🗂️ Kategori Eşleştirmesi</h2>
+        <h2 className="font-semibold text-gray-800 mb-1">Kategori Eşleştirmesi</h2>
         <p className="text-sm text-gray-500 mb-4">
           Site kategorilerinizi Google'ın taxonomy sistemine eşleştirin. Bu sayede ürünleriniz doğru kategoride görünür.
         </p>
@@ -324,7 +324,7 @@ export default function GoogleMerchantPage() {
 
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-        <h2 className="font-semibold text-blue-800 mb-3">📋 Kurulum Adımları</h2>
+        <h2 className="font-semibold text-blue-800 mb-3">Kurulum Adımları</h2>
         <ol className="space-y-2 text-sm text-blue-800">
           <li className="flex gap-2"><span className="font-bold">1.</span> <span>Yukarıdaki <strong>Feed URL</strong>'yi kopyalayın.</span></li>
           <li className="flex gap-2"><span className="font-bold">2.</span> <span><a href="https://merchants.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Merchant Center</a>'a giriş yapın.</span></li>

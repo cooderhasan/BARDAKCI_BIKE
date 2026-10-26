@@ -93,9 +93,19 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         }
 
         fetchNotifications();
-        // Her 60 saniyede bir güncelle
-        const interval = setInterval(fetchNotifications, 60000);
-        return () => clearInterval(interval);
+        // Her 60 saniyede bir güncelle; sekme arka plandayken sorma (açık kalan sekmeler boşuna sorgu yapmasın),
+        // sekmeye dönünce hemen güncelle
+        const interval = setInterval(() => {
+            if (document.visibilityState === "visible") fetchNotifications();
+        }, 60000);
+        const onVisible = () => {
+            if (document.visibilityState === "visible") fetchNotifications();
+        };
+        document.addEventListener("visibilitychange", onVisible);
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
     }, []);
 
     // Sesli bildirim kontrolü
@@ -282,7 +292,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                                     {user?.companyName || "Admin"}
                                 </p>
                                 <p className="text-xs leading-none text-muted-foreground">
-                                    {user?.email || "admin@b2b.com"}
+                                    {user?.email || ""}
                                 </p>
                             </div>
                         </DropdownMenuLabel>

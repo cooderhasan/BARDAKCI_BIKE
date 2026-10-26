@@ -30,7 +30,7 @@ export default async function PazaramaProductsPage({ searchParams }: PazaramaPro
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
               <Box className="w-6 h-6 text-[#D81B60]" />
               Pazarama Ürün Yönetimi
             </h1>

@@ -22,7 +22,7 @@ export default async function TrendyolQuestionsPage() {
                         </Button>
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Trendyol Soruları</h1>
+                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Trendyol Soruları</h1>
                         <p className="text-sm text-muted-foreground">Müşterilerden gelen ürün sorularını yönetin</p>
                     </div>
                 </div>

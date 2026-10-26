@@ -568,7 +568,7 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
                               {product.hasCategoryOverride ? (
                                 <div className="inline-flex items-center gap-1">
                                   <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 text-[10px] font-bold py-0 px-1.5">
-                                    ⭐ Özel Kat: #{product.pttavmCategoryId}
+                                    Özel Kat: #{product.pttavmCategoryId}
                                   </Badge>
                                   <Button
                                     variant="ghost"

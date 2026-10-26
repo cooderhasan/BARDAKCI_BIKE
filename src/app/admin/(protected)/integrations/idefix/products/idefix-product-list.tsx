@@ -733,7 +733,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                           {product.idefixProduct?.idefixCategoryId ? (
                             <span className="inline-flex items-center gap-1">
                               <Badge className="bg-purple-100 text-purple-800 text-[10px] font-bold py-0 px-1.5 border-purple-200">
-                                ⭐ Özel Kat: #{product.idefixProduct.idefixCategoryId}
+                                Özel Kat: #{product.idefixProduct.idefixCategoryId}
                               </Badge>
                               <Button
                                 variant="ghost"
@@ -855,7 +855,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                           disabled={checkingBatchId === product.id}
                           className="block mx-auto text-[10px] text-purple-600 underline hover:text-purple-800 mt-1 font-medium"
                         >
-                          {checkingBatchId === product.id ? "Sorgulanıyor..." : "🔍 Durum Sorgula"}
+                          {checkingBatchId === product.id ? "Sorgulanıyor..." : "Durum Sorgula"}
                         </button>
                       )}
                     </TableCell>
@@ -921,13 +921,13 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
 
           <Tabs value={sendType} onValueChange={(val) => setSendType(val as any)} className="w-full">
             <TabsList className="grid grid-cols-2 w-full mb-4">
-              <TabsTrigger value="quick">⚡ Hızlı Yükleme (Fast Listing)</TabsTrigger>
-              <TabsTrigger value="create">📝 Sıfırdan Ürün Oluştur (Create)</TabsTrigger>
+              <TabsTrigger value="quick">Hızlı Yükleme (Fast Listing)</TabsTrigger>
+              <TabsTrigger value="create">Sıfırdan Ürün Oluştur (Create)</TabsTrigger>
             </TabsList>
 
             <TabsContent value="quick" className="space-y-3">
               <div className="p-3 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 rounded-lg text-xs text-purple-800 dark:text-purple-300 space-y-1">
-                <p className="font-semibold">⚡ Hızlı Ürün Yükleme Yöntemi:</p>
+                <p className="font-semibold">Hızlı Ürün Yükleme Yöntemi:</p>
                 <p>Ürününüzün barkodu Idefix kataloğunda zaten varsa, Kategori ve Marka eşleştirmesine gerek kalmadan saniyeler içinde satışa açılır ve stok/fiyat güncellenir.</p>
               </div>
 
@@ -947,7 +947,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
 
             <TabsContent value="create" className="space-y-4">
               <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg text-xs text-amber-800 dark:text-amber-300">
-                <p className="font-semibold">📝 Yeni Ürün Oluşturma Yöntemi:</p>
+                <p className="font-semibold">Yeni Ürün Oluşturma Yöntemi:</p>
                 <p>Ürününüz Idefix kataloğunda henüz yoksa, Idefix Kategori ID, Marka ID ve İmalatçı bilgilerinizle Idefix ürün havuzuna eklenir.</p>
               </div>
 
@@ -1011,7 +1011,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
                     <div className="space-y-3">
                       {vRows.length > 0 && (
                         <div className="space-y-2 p-3 rounded-lg bg-blue-50/60 border border-blue-200">
-                          <p className="text-xs font-semibold text-blue-800">🎨 Varyantlar ({vRows.length}) — aynı ana ürün koduyla, her biri kendi renk/beden ve görselleriyle</p>
+                          <p className="text-xs font-semibold text-blue-800">Varyantlar ({vRows.length}) — aynı ana ürün koduyla, her biri kendi renk/beden ve görselleriyle</p>
                           {vAttrs.length === 0 ? (
                             <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">Bu Idefix kategorisinde renk/beden varyant özelliği yok. Her varyant Idefix'te <strong>ayrı ürün</strong> olarak açılır; adında renk ve beden yazar (ör. &quot;… - Siyah L&quot;).</p>
                           ) : idxSizeIntoColor(vAttrs, vRows) ? (

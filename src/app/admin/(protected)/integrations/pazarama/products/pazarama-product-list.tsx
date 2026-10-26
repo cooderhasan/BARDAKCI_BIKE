@@ -667,7 +667,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                     }`}
                   >
                     <Building2 className="w-3.5 h-3.5" />
-                    🔥 Markadaki TÜM Ürünlere (Excel'siz)
+                    Markadaki TÜM Ürünlere (Excel'siz)
                   </button>
                 </div>
               </div>
@@ -858,7 +858,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                 onChange={(e) => setSelectedFilterBrand(e.target.value)}
                 className="h-9 w-full sm:w-48 text-xs bg-white dark:bg-gray-800 border rounded-md px-2.5 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-pink-500"
               >
-                <option value="ALL">🏷️ Tüm Markalar ({storeBrands.length})</option>
+                <option value="ALL">Tüm Markalar ({storeBrands.length})</option>
                 {storeBrands.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -965,7 +965,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                             {product.pazaramaOverrideCategoryId ? (
                               <span className="inline-flex items-center gap-1">
                                 <Badge className="bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300 text-[10px] font-bold py-0 px-1.5 border-pink-200">
-                                  ⭐ Özel Kat: #{product.pazaramaOverrideCategoryId}
+                                  Özel Kat: #{product.pazaramaOverrideCategoryId}
                                 </Badge>
                                 <Button
                                   variant="ghost"
@@ -1264,7 +1264,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
               {/* Varyantlar: her varyant ayrı ürün, aynı groupCode; değerler Pazarama listesinden */}
               {!isLoadingAttributes && pzVariantProducts().length > 0 && (
                 <div className="space-y-2 p-3 rounded-lg bg-blue-50/60 border border-blue-200">
-                  <h3 className="text-sm font-semibold text-blue-900">🎨 Varyantlar</h3>
+                  <h3 className="text-sm font-semibold text-blue-900">Varyantlar</h3>
                   {pzVariantAttrs().length === 0 ? (
                     <p className="text-[11px] text-red-600">Bu Pazarama kategorisinde varyant özelliği yok; varyantlı ürün bu kategoriye gönderilemez.</p>
                   ) : (

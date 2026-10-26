@@ -8,7 +8,7 @@ export function PrintButton() {
             onClick={() => window.print()}
             className="bg-[#17457C] text-white hover:bg-[#0f3460] font-semibold"
         >
-            🖨️ Yazdır
+            Yazdır
         </Button>
     );
 }

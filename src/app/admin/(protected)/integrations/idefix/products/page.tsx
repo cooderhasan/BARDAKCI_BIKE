@@ -51,9 +51,9 @@ export default async function IdefixProductsPage({ searchParams }: IdefixProduct
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-purple-700 dark:text-purple-400 flex items-center gap-3">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
           <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-            🛒
+            
           </div>
           Idefix Ürün Yönetimi
         </h1>

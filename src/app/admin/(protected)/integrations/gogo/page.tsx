@@ -8,7 +8,7 @@ export default async function GogoStockPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold">Gogo Stok (XML)</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Gogo Stok (XML)</h1>
                 <p className="text-sm text-gray-500 mt-1">
                     Gogo Moto Aksesuar XML&apos;indeki stoklar, motor sitesinde aynı ürün koduna sahip ürünlere yazılır. Fiyata dokunulmaz;
                     sitede olmayan ürünler atlanır.

@@ -149,7 +149,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
                                 Geri
                             </Button>
                         </Link>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                             {quote.quoteNumber}
                         </h2>
                         <Badge className={status.color}>{status.label}</Badge>

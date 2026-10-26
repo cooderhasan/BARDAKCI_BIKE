@@ -88,7 +88,7 @@ export function TrendyolDataHelper({ isEnabled }: TrendyolDataHelperProps) {
             <CardContent>
                 {!isEnabled && (
                     <div className="bg-yellow-50 text-yellow-800 p-3 rounded-md mb-4 text-sm border border-yellow-200">
-                        ⚠️ Bu alanı kullanmak için önce yukarıdan <strong>API Bilgilerini girip kaydedin</strong>.
+                        Bu alanı kullanmak için önce yukarıdan <strong>API Bilgilerini girip kaydedin</strong>.
                     </div>
                 )}
                 <Tabs defaultValue="brands">

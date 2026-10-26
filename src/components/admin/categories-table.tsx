@@ -152,11 +152,11 @@ function SortableRow({ category, onEdit, onDelete, onToggleStatus, onInspectProd
                     <div className="flex items-center gap-1.5">
                         <span className="font-medium">{category.name}</span>
                         {category.store === "MOTOR" ? (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">🏍️ Motor</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">Motor</span>
                         ) : category.store === "BOTH" ? (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">🌐 Ortak</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Ortak</span>
                         ) : (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">🚲 Bisiklet</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">Bisiklet</span>
                         )}
                     </div>
                     {category.parent && (
@@ -762,7 +762,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                             onClick={() => { setFilterStore("BIKE"); setCurrentPage(1); }}
                             className={filterStore === "BIKE" ? "text-blue-700 font-bold" : ""}
                         >
-                            🚲 Bisiklet
+                            Bisiklet
                         </Button>
                         <Button
                             variant={filterStore === "MOTOR" ? "secondary" : "ghost"}
@@ -770,7 +770,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                             onClick={() => { setFilterStore("MOTOR"); setCurrentPage(1); }}
                             className={filterStore === "MOTOR" ? "text-red-700 font-bold" : ""}
                         >
-                            🏍️ Motor
+                            Motor
                         </Button>
                     </div>
 
@@ -783,7 +783,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                             className="border-blue-300 text-blue-700 bg-blue-50/60 hover:bg-blue-100 font-medium text-xs flex items-center gap-1.5"
                         >
                             {fixingHeaderOrder ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-blue-600" />}
-                            <span>✨ Otomatik Sırala (Aksesuar & Yedek Parça Sonda)</span>
+                            <span>Otomatik Sırala (Aksesuar & Yedek Parça Sonda)</span>
                         </Button>
                     )}
 
@@ -846,20 +846,20 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     />
                                 </div>
                                 <div className="space-y-2 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                    <Label htmlFor="categoryStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">🏪 Mağaza Yayın Alanı</Label>
+                                    <Label htmlFor="categoryStore" className="text-emerald-800 dark:text-emerald-300 font-bold text-xs uppercase tracking-wide">Mağaza Yayın Alanı</Label>
                                     <select
                                         id="categoryStore"
                                         className="w-full h-10 px-3 rounded-md border border-emerald-300 bg-white dark:bg-gray-800 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         value={store}
                                         onChange={(e) => setStore(e.target.value as any)}
                                     >
-                                        <option value="BIKE">🚲 Sadece Bardakcı Bisiklet</option>
-                                        <option value="MOTOR">🏍️ Sadece Motovitrin</option>
-                                        <option value="BOTH">🌐 Her İki Mağazada Ortak</option>
+                                        <option value="BIKE">Sadece Bardakcı Bisiklet</option>
+                                        <option value="MOTOR">Sadece Motovitrin</option>
+                                        <option value="BOTH">Her İki Mağazada Ortak</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                                    <Label htmlFor="trendyolCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Trendyol Kategori Eşleştirme</Label>
+                                    <Label htmlFor="trendyolCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">Trendyol Kategori Eşleştirme</Label>
                                     <MarketplaceCategoryField
                                         marketplace="trendyol"
                                         value={trendyolCategoryId}
@@ -867,7 +867,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     />
                                 </div>
                                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <Label htmlFor="n11CategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 N11 Kategori Eşleştirme</Label>
+                                    <Label htmlFor="n11CategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">N11 Kategori Eşleştirme</Label>
                                     <MarketplaceCategoryField
                                         marketplace="n11"
                                         value={n11CategoryId}
@@ -876,7 +876,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     <p className="text-[10px] text-purple-600">N11 kategorisini adıyla arayıp seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-teal-50 dark:bg-teal-950/20 rounded-lg border border-teal-200 dark:border-teal-800">
-                                    <Label htmlFor="pttavmCategoryId" className="text-teal-700 dark:text-teal-400 font-semibold text-xs uppercase tracking-wide">📮 ePttAVM Kategori Eşleştirme</Label>
+                                    <Label htmlFor="pttavmCategoryId" className="text-teal-700 dark:text-teal-400 font-semibold text-xs uppercase tracking-wide">ePttAVM Kategori Eşleştirme</Label>
                                     <MarketplaceCategoryField
                                         marketplace="pttavm"
                                         value={pttavmCategoryId}
@@ -885,7 +885,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     <p className="text-[10px] text-teal-600">ePttAVM kategorisini adıyla arayıp (örn: Bisiklet) seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                                    <Label htmlFor="hbCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">🟠 Hepsiburada Kategori Eşleştirme</Label>
+                                    <Label htmlFor="hbCategoryId" className="text-orange-700 dark:text-orange-400 font-semibold text-xs uppercase tracking-wide">Hepsiburada Kategori Eşleştirme</Label>
                                     <MarketplaceCategoryField
                                         marketplace="hepsiburada"
                                         value={hbCategoryId}
@@ -894,7 +894,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     <p className="text-[10px] text-orange-600">HB kategorisini adıyla arayıp seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <Label htmlFor="idefixCategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">🟣 Idefix Kategori Eşleştirme</Label>
+                                    <Label htmlFor="idefixCategoryId" className="text-purple-700 dark:text-purple-400 font-semibold text-xs uppercase tracking-wide">Idefix Kategori Eşleştirme</Label>
                                     <MarketplaceCategoryField
                                         marketplace="idefix"
                                         value={idefixCategoryId}
@@ -903,7 +903,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     <p className="text-[10px] text-purple-600">Idefix kategorisini adıyla arayıp (örn: Bisiklet) seçebilirsiniz.</p>
                                 </div>
                                 <div className="space-y-2 p-3 bg-pink-50 dark:bg-pink-950/20 rounded-lg border border-pink-200 dark:border-pink-800">
-                                    <Label htmlFor="pazaramaCategoryId" className="text-pink-700 dark:text-pink-400 font-semibold text-xs uppercase tracking-wide">🌸 Pazarama Kategori Eşleştirme</Label>
+                                    <Label htmlFor="pazaramaCategoryId" className="text-pink-700 dark:text-pink-400 font-semibold text-xs uppercase tracking-wide">Pazarama Kategori Eşleştirme</Label>
                                     <MarketplaceCategoryField
                                         marketplace="pazarama"
                                         value={pazaramaCategoryId}
@@ -913,7 +913,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                 </div>
                                 <div className="space-y-2 p-3 bg-rose-50 dark:bg-rose-950/20 rounded-lg border border-rose-200 dark:border-rose-800">
                                     <div className="flex items-center justify-between">
-                                        <Label htmlFor="ciceksepetiCategoryId" className="text-rose-700 font-semibold text-xs uppercase tracking-wide">🌸 Çiçeksepeti Kategori Eşleştirme</Label>
+                                        <Label htmlFor="ciceksepetiCategoryId" className="text-rose-700 font-semibold text-xs uppercase tracking-wide">Çiçeksepeti Kategori Eşleştirme</Label>
                                         {editCategory && ciceksepetiCategoryId && (
                                             <CiceksepetiAttributeMappingModal
                                                 categoryId={editCategory.id}
@@ -1113,7 +1113,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                 {isInHeader && (
                                     <div className="space-y-1.5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 animate-in fade-in duration-200">
                                         <Label htmlFor="headerOrder" className="text-blue-900 dark:text-blue-200 font-semibold text-xs uppercase tracking-wide">
-                                            🔝 Üst Menü Sıralaması (Header Order)
+                                            Üst Menü Sıralaması (Header Order)
                                         </Label>
                                         <Input
                                             id="headerOrder"
@@ -1196,7 +1196,6 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                 <DialogContent className="sm:max-w-[850px] max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-lg">
-                            <span>📂</span>
                             <span>"{inspectCategory?.name}" Kategorisine Bağlı Ürünler</span>
                             <Badge variant="secondary" className="ml-auto font-mono text-xs">
                                 {inspectCategory?._count.products || inspectProducts.length} Ürün

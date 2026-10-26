@@ -58,7 +58,7 @@ export default async function DealerPerformanceReportPage() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
                         <Users className="h-6 w-6 text-orange-600" />
                         Bayi Performansı
                     </h2>
