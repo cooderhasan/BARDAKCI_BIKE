@@ -461,10 +461,20 @@ export async function syncOrdersFromN11() {
                 const customerName = pkg.shippingAddress?.fullName || pkg.customerfullName || pkg.buyerName || "N11 Müşterisi";
                 const customerEmail = pkg.customerEmail || pkg.buyerEmail || "n11@customer.com";
 
+                // Siparişin N11'deki gerçek oluşma zamanı (paket geçmişindeki "Created"). Önceden içe aktarma anı
+                // kaydediliyordu: toplu aktarılan eski siparişler yanlış tarihte duruyor, durum takibi N11'in 15 günlük
+                // sorgu aralığında onları bulamıyordu; raporlar da yanlış güne yazıyordu.
+                const createdHist = Array.isArray(pkg.packageHistories)
+                    ? pkg.packageHistories.find((h: any) => String(h?.status || "").trim().toLowerCase() === "created")
+                    : null;
+                const n11CreatedMs = Number(createdHist?.createdDate || pkg.createdDate || 0);
+                const n11CreatedAt = n11CreatedMs > 1_600_000_000_000 && n11CreatedMs <= Date.now() + 60_000 ? new Date(n11CreatedMs) : undefined;
+
                 await prisma.$transaction(async (tx) => {
                     await tx.order.create({
                         data: {
                             orderNumber: orderNumStr,
+                            ...(n11CreatedAt ? { createdAt: n11CreatedAt } : {}),
                             status: "CONFIRMED",
                             total: total || Number(pkg.totalAmount || 0),
                             subtotal: total - totalVat,
