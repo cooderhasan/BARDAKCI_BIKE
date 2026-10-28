@@ -50,6 +50,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     }
 
     const isDelivered = order.status === "DELIVERED";
+    const isCancelled = order.status === "CANCELLED";
     const isBankTransfer = order.payment?.method === "BANK_TRANSFER";
     const isPaymentPending = order.payment?.status === "PENDING";
 
@@ -65,7 +66,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -77,7 +78,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                         <span>/</span>
                         <span>Sipariş Detayı</span>
                     </div>
-                    <h1 className="text-2xl font-bold flex items-center gap-3">
+                    <h1 className="text-xl md:text-2xl font-bold flex flex-wrap items-center gap-x-3 gap-y-1.5">
                         Sipariş #{order.orderNumber}
                         <Badge variant="outline" className={`${getOrderStatusColor(order.status)} border-0 text-sm px-3 py-1`}>
                             {getOrderStatusLabel(order.status)}
@@ -87,7 +88,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                         {formatDate(order.createdAt)} tarihinde oluşturuldu
                     </p>
                 </div>
-                {order.trackingUrl && (
+                {order.trackingUrl && !isCancelled && (
                     <Button className="bg-[#17457C] hover:bg-[#0f3460] text-white" asChild>
                         <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer">
                             <Truck className="w-4 h-4 mr-2" />
@@ -97,11 +98,21 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 )}
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-8">
+            {isCancelled && (
+                <div className="rounded-xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-300">
+                    <p className="font-semibold">Bu sipariş iptal edildi.</p>
+                    <p className="mt-0.5 text-red-700/90 dark:text-red-300/80">
+                        Sorunuz varsa <Link href="/contact" className="underline underline-offset-2 font-medium">İletişim</Link> sayfasından bize ulaşabilirsiniz.
+                    </p>
+                </div>
+            )}
+
+            {/* grid-cols-1 (minmax(0,1fr)): önceden telefonda sütun sınırsızdı; uzun ürün adı sütunu ekrandan taşırıp fiyatları kesiyordu */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                 {/* Left Column: Order Items */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-6 min-w-0">
                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+                        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800">
                             <h2 className="font-bold flex items-center gap-2">
                                 <Package className="w-5 h-5 text-[#17457C]" />
                                 Sipariş İçeriği
@@ -113,7 +124,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                                 const canReturn = isDelivered && !returnRequest;
 
                                 return (
-                                    <div key={item.id} className="p-6 flex flex-col sm:flex-row gap-4 sm:items-center">
+                                    <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-center">
                                         <div className="relative w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden shrink-0 border border-gray-100 dark:border-gray-800">
                                             {item.product && item.product.images && item.product.images[0] ? (
                                                 <Image
@@ -129,7 +140,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                                            <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2">
                                                 {item.productName}
                                             </h3>
                                             <p className="text-sm text-gray-500 mt-1">
@@ -171,9 +182,9 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 </div>
 
                 {/* Right Column: Order Summary & Details */}
-                <div className="space-y-6">
+                <div className="space-y-6 min-w-0">
                     {/* Payment Info */}
-                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-6">
                         <h3 className="font-bold flex items-center gap-2 mb-4">
                             <CreditCard className="w-5 h-5 text-[#17457C]" />
                             Ödeme Bilgileri
@@ -219,8 +230,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     </div>
 
                     {/* Havale Bildirim Formu */}
-                    {isBankTransfer && isPaymentPending && (
-                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-green-200 dark:border-green-800 shadow-sm p-6">
+                    {isBankTransfer && isPaymentPending && !isCancelled && (
+                        <div className="bg-white dark:bg-gray-900 rounded-xl border border-green-200 dark:border-green-800 shadow-sm p-4 sm:p-6">
                             <h3 className="font-bold flex items-center gap-2 mb-4 text-green-700 dark:text-green-400">
                                 🏦 Havale Bildirimi
                             </h3>
@@ -233,7 +244,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     )}
 
                     {/* Shipping Address */}
-                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-6">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm p-4 sm:p-6">
                         <h3 className="font-bold flex items-center gap-2 mb-4">
                             <MapPin className="w-5 h-5 text-[#17457C]" />
                             Teslimat Adresi
