@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatPrice, formatDate, getOrderStatusLabel, getOrderStatusColor } from "@/lib/helpers";
 import { Package, Clock, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AccountOrderCards } from "@/components/storefront/account-order-cards";
 
 async function getAccountStats(userId: string) {
     const totalOrders = await prisma.order.count({
@@ -51,31 +52,31 @@ export default async function AccountPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center gap-4">
-                    <div className="bg-blue-100 dark:bg-blue-800 p-3 rounded-full">
+            <div className="grid grid-cols-3 gap-2 md:gap-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 md:p-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                    <div className="hidden md:block bg-blue-100 dark:bg-blue-800 p-3 rounded-full">
                         <Package className="h-6 w-6 text-[#17457C] dark:text-blue-200" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Toplam Sipariş</p>
+                        <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 leading-tight">Toplam Sipariş</p>
                         <p className="text-xl font-bold">{totalOrders}</p>
                     </div>
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg flex items-center gap-4">
-                    <div className="bg-purple-100 dark:bg-purple-800 p-3 rounded-full">
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-3 md:p-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                    <div className="hidden md:block bg-purple-100 dark:bg-purple-800 p-3 rounded-full">
                         <Clock className="h-6 w-6 text-purple-600 dark:text-purple-200" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Aktif Siparişler</p>
+                        <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 leading-tight">Aktif Sipariş</p>
                         <p className="text-xl font-bold">{activeOrders}</p>
                     </div>
                 </div>
-                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg flex items-center gap-4">
-                    <div className="bg-green-100 dark:bg-green-800 p-3 rounded-full">
+                <div className="bg-green-50 dark:bg-green-900/20 p-3 md:p-4 rounded-lg flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                    <div className="hidden md:block bg-green-100 dark:bg-green-800 p-3 rounded-full">
                         <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-200" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Tamamlanan</p>
+                        <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 leading-tight">Tamamlanan</p>
                         <p className="text-xl font-bold">{totalOrders - activeOrders}</p>
                     </div>
                 </div>
@@ -98,7 +99,9 @@ export default async function AccountPage() {
                         </Button>
                     </div>
                 ) : (
-                    <div className="border rounded-lg overflow-hidden">
+                    <>
+                    <AccountOrderCards orders={recentOrders} hrefBase="/account/orders" />
+                    <div className="hidden md:block border rounded-lg overflow-hidden">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
                                 <tr>
@@ -130,6 +133,7 @@ export default async function AccountPage() {
                             </tbody>
                         </table>
                     </div>
+                    </>
                 )}
             </div>
         </div>

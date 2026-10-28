@@ -67,7 +67,7 @@ export default async function ReturnsPage() {
                     </Button>
                 </div>
             ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border rounded-lg overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
                             <tr>

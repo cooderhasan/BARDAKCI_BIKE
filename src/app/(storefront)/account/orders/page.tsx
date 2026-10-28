@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatPrice, formatDate, getOrderStatusLabel, getOrderStatusColor } from "@/lib/helpers";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AccountOrderCards } from "@/components/storefront/account-order-cards";
 
 export default async function OrdersPage() {
     const session = await auth();
@@ -23,7 +24,7 @@ export default async function OrdersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                 <div>
                     <h1 className="text-2xl font-bold mb-2">Siparişlerim</h1>
                     <p className="text-gray-500">Geçmiş siparişlerinizi buradan görüntüleyebilirsiniz.</p>
@@ -42,7 +43,9 @@ export default async function OrdersPage() {
                     </Button>
                 </div>
             ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <>
+                <AccountOrderCards orders={orders} hrefBase="/account/orders" />
+                <div className="hidden md:block border rounded-lg overflow-hidden">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
                             <tr>
@@ -84,6 +87,7 @@ export default async function OrdersPage() {
                         </tbody>
                     </table>
                 </div>
+                </>
             )}
         </div>
     );
