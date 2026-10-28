@@ -347,6 +347,21 @@ html:has(.admin-shell) body[data-scroll-locked] {
   padding-right: 0 !important;
 }
 
+/* Eski tarayıcılar (Windows 7/8.1'deki Chrome 109 ve öncesi): Tailwind v4 degradeleri "to right in oklab" diye yazıyor;
+   "in oklab"ı tanımayan tarayıcı degradenin tamamını yok sayıyordu. Sepete Ekle düğmesi, header bandı, kargo kutusu
+   gibi beyaz yazılı alanlar beyaz zeminde görünmez kalıyordu. Yalnızca bu tarayıcılarda "in oklab"sız yön verilir;
+   yeni tarayıcılar bu bloğa hiç girmez. */
+@supports not (background-image: linear-gradient(in oklab, red, red)) {
+  .bg-gradient-to-t, .bg-linear-to-t { --tw-gradient-position: to top; }
+  .bg-gradient-to-tr, .bg-linear-to-tr { --tw-gradient-position: to top right; }
+  .bg-gradient-to-r, .bg-linear-to-r { --tw-gradient-position: to right; }
+  .bg-gradient-to-br, .bg-linear-to-br { --tw-gradient-position: to bottom right; }
+  .bg-gradient-to-b, .bg-linear-to-b { --tw-gradient-position: to bottom; }
+  .bg-gradient-to-bl, .bg-linear-to-bl { --tw-gradient-position: to bottom left; }
+  .bg-gradient-to-l, .bg-linear-to-l { --tw-gradient-position: to left; }
+  .bg-gradient-to-tl, .bg-linear-to-tl { --tw-gradient-position: to top left; }
+}
+
 /* Yönetim menüsü daraltılınca içerik alanı da sola yaklaşsın (önceden menü 80px'e iniyor, içerik 288px boşlukta kalıyordu) */
 @media (min-width: 1024px) {
   html[data-admin-sidebar="collapsed"] .admin-content {
