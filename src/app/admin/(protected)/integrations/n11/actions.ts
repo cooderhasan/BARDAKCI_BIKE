@@ -336,9 +336,31 @@ export async function syncOrdersFromN11() {
                 );
 
                 let product: any = null;
+                let variantId: string | null = null;
+
+                // Varyantlı ürün: N11'e her varyant kendi stok koduyla (sku, yoksa barkod) gönderiliyor. Önceden burada
+                // varyantlara hiç bakılmıyordu; varyantlı ürün siparişi "sitede bulunamadı" olup stoğu düşmüyordu
+                // (diğer pazaryerleri önce varyanta bakıyor). Ana ürün eşleşmesinden ÖNCE: eşleme tablosu ana ürünü
+                // bulsa bile stok varyanttan düşmeli.
+                if (searchCodes.length > 0) {
+                    const variant = await prisma.productVariant.findFirst({
+                        where: {
+                            OR: searchCodes.flatMap((code) => [
+                                { barcode: code },
+                                { sku: code },
+                                { sku: { equals: code, mode: "insensitive" as const } },
+                            ]),
+                        },
+                        include: { product: true },
+                    });
+                    if (variant?.product) {
+                        product = variant.product;
+                        variantId = variant.id;
+                    }
+                }
 
                 // 0) Priority N11Product mapping lookup (sellerCode & n11Id)
-                if (searchCodes.length > 0) {
+                if (!product && searchCodes.length > 0) {
                     const n11Map = await (prisma as any).n11Product.findFirst({
                         where: {
                             OR: searchCodes.flatMap((code) => [
@@ -442,6 +464,7 @@ export async function syncOrdersFromN11() {
                 if (isFallback) fallbackIndexes.add(orderItems.length);
                 orderItems.push({
                     productId: product ? product.id : (await (await import("@/lib/unmatched-product")).getUnmatchedProduct()).id,
+                    variantId: isFallback ? null : variantId,
                     quantity: lineQty,
                     unitPrice: lineUnitPrice,
                     productName: line.productName || line.title || "N11 Ürünü",
