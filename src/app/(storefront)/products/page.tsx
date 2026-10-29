@@ -67,6 +67,7 @@ export async function generateMetadata({ searchParams }: ProductsPageProps): Pro
 }
 
 import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+import { findProductIdsBySearch } from "@/lib/product-search";
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
     const params = await searchParams;
@@ -100,37 +101,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         }
     }
 
-    // Search - Kelime bazlı çoklu arama (her kelime ayrı AND koşulu ile aranır)
+    // Arama: Türkçe'ye uygun (elcik/elciği, disli/dişli; marka ve varyant rengi dahil) - lib/product-search
     if (params.search) {
-        const searchWords = params.search
-            .trim()
-            .split(/\s+/)
-            .filter(w => w.length > 0);
-
-        if (searchWords.length === 1) {
-            // Tek kelime: isim, sku, barkod içinde ara
-            const word = searchWords[0];
-            where.OR = [
-                { name: { contains: word, mode: "insensitive" } },
-                { sku: { contains: word, mode: "insensitive" } },
-                { barcode: { contains: word, mode: "insensitive" } },
-                {
-                    variants: {
-                        some: {
-                            OR: [
-                                { sku: { contains: word, mode: "insensitive" } },
-                                { barcode: { contains: word, mode: "insensitive" } },
-                            ],
-                        },
-                    },
-                },
-            ];
-        } else {
-            // Çoklu kelime: her kelimenin ürün adında GEÇMESİ gerekiyor (AND mantığı)
-            where.AND = searchWords.map(word => ({
-                name: { contains: word, mode: "insensitive" },
-            }));
-        }
+        const ids = await findProductIdsBySearch(params.search, { stores: (storeFilter as any).in, activeOnly: true });
+        if (ids) where.id = { in: ids };
     }
 
 

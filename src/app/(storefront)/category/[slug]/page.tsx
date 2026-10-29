@@ -1,4 +1,5 @@
 import { sortSidebarCategories } from "@/lib/category-sort";
+import { findProductIdsBySearch } from "@/lib/product-search";
 import { findProductsInStockFirst } from "@/lib/product-listing";
 import { sortSizes } from "@/lib/helpers";
 import { prisma } from "@/lib/db";
@@ -171,25 +172,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
     const where: Prisma.ProductWhereInput = { AND: andConditions };
 
-    // Search
+    // Kategori içi arama: Türkçe'ye uygun (lib/product-search)
     if (searchParamsValues.search) {
-        andConditions.push({
-            OR: [
-                { name: { contains: searchParamsValues.search, mode: "insensitive" } },
-                { sku: { contains: searchParamsValues.search, mode: "insensitive" } },
-                { barcode: { contains: searchParamsValues.search, mode: "insensitive" } },
-                {
-                    variants: {
-                        some: {
-                            OR: [
-                                { sku: { contains: searchParamsValues.search, mode: "insensitive" } },
-                                { barcode: { contains: searchParamsValues.search, mode: "insensitive" } },
-                            ],
-                        },
-                    },
-                },
-            ],
-        });
+        const ids = await findProductIdsBySearch(searchParamsValues.search);
+        if (ids) andConditions.push({ id: { in: ids } });
     }
 
     // Price Range

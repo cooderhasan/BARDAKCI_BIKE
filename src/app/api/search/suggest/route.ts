@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+import { findProductIdsBySearch, nameMatchesSearch } from "@/lib/product-search";
 
 /**
  * Canlı arama önerileri (header arama kutusu): yazarken ilk ürünler + eşleşen kategoriler.
- * Arama mantığı ürünler sayfasıyla aynı: tek kelime ad/stok kodu/barkod, çok kelime adında hepsi geçmeli.
+ * Arama mantığı ürünler sayfasıyla aynı (lib/product-search): Türkçe harf/ek duyarsız, marka ve varyant rengi dahil.
  * Sadece o mağazanın aktif ürünleri; stokta olanlar önce. Herkese açık, sadece okuma.
  */
 export async function GET(req: NextRequest) {
@@ -13,22 +14,10 @@ export async function GET(req: NextRequest) {
 
     const store = await getStoreType();
     const storeFilter = getStoreFilter(store) as any;
-    const words = q.split(/\s+/).filter(Boolean).slice(0, 6);
-
-    const match: any =
-        words.length === 1
-            ? {
-                  OR: [
-                      { name: { contains: words[0], mode: "insensitive" } },
-                      { sku: { contains: words[0], mode: "insensitive" } },
-                      { barcode: { contains: words[0], mode: "insensitive" } },
-                  ],
-              }
-            : { AND: words.map((w) => ({ name: { contains: w, mode: "insensitive" } })) };
-    const where = { AND: [{ isActive: true }, { store: storeFilter }, match] };
-
     try {
-        const [inStock, outOfStock, total, categories] = await Promise.all([
+        const ids = (await findProductIdsBySearch(q, { stores: storeFilter.in, activeOnly: true })) || [];
+        const where = { id: { in: ids } };
+        const [inStock, outOfStock, total, allCategories] = await Promise.all([
             prisma.product.findMany({
                 where: { AND: [where, { stock: { gt: 0 } }] },
                 select: { id: true, name: true, slug: true, images: true, listPrice: true, salePrice: true, stock: true },
@@ -41,18 +30,15 @@ export async function GET(req: NextRequest) {
                 orderBy: { createdAt: "desc" },
                 take: 6,
             }),
-            prisma.product.count({ where }),
+            Promise.resolve(ids.length),
+            // Kategori adları da Türkçe'ye uygun eşleşsin: mağazanın aktif kategorileri (birkaç yüz) bellekte süzülür
             prisma.category.findMany({
-                where: {
-                    isActive: true,
-                    store: storeFilter,
-                    AND: words.map((w) => ({ name: { contains: w, mode: "insensitive" } })),
-                },
+                where: { isActive: true, store: storeFilter },
                 select: { name: true, slug: true },
                 orderBy: { order: "asc" },
-                take: 3,
             }),
         ]);
+        const categories = allCategories.filter((c) => nameMatchesSearch(c.name, q)).slice(0, 3);
 
         const products = [...inStock, ...outOfStock].slice(0, 6).map((p) => ({
             id: p.id,
