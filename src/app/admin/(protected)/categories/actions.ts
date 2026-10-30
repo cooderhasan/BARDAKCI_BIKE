@@ -439,3 +439,76 @@ export async function moveAllProductsAndMergeCategoryAction(sourceCategoryId: st
         return { success: false, error: err.message };
     }
 }
+
+/**
+ * AI ile kategori SEO açıklaması taslağı (admin kaydetmeden önce kontrol eder).
+ * Uydurma bilgi olmasın diye kategorinin gerçek alt kategorileri, markaları ve ürün adları (en çok 25) modele verilir.
+ */
+export async function generateCategoryDescription(input: { categoryId?: string | null; name: string; parentId?: string | null; store?: "BIKE" | "MOTOR" | "BOTH" }) {
+    await requireAdmin();
+    const { generateAiHtml } = await import("@/lib/ai-generate");
+
+    const parent = input.parentId
+        ? await prisma.category.findUnique({ where: { id: input.parentId }, select: { name: true } })
+        : null;
+
+    let subcategories: string[] = [];
+    let productNames: string[] = [];
+    let brands: string[] = [];
+    if (input.categoryId) {
+        const children = await prisma.category.findMany({
+            where: { parentId: input.categoryId, isActive: true },
+            select: { id: true, name: true },
+            orderBy: { order: "asc" },
+        });
+        subcategories = children.map((c) => c.name);
+        const ids = [input.categoryId, ...children.map((c) => c.id)];
+        const inCategory = { isActive: true, OR: [{ categories: { some: { id: { in: ids } } } }, { categoryId: { in: ids } }] };
+        const [products, brandRows] = await Promise.all([
+            prisma.product.findMany({
+                where: inCategory,
+                select: { name: true },
+                orderBy: [{ stock: "desc" }, { createdAt: "desc" }],
+                take: 25,
+            }),
+            prisma.product.findMany({
+                where: { ...inCategory, brandId: { not: null } },
+                select: { brand: { select: { name: true } } },
+                distinct: ["brandId"],
+                take: 12,
+            }),
+        ]);
+        productNames = products.map((p) => p.name);
+        brands = brandRows.map((b) => b.brand?.name).filter((n): n is string => !!n && !/diğer|tanımsız/i.test(n));
+    }
+
+    const isMotor = input.store === "MOTOR";
+    const shop = isMotor ? "Moto Vitrin (motosiklet yedek parça ve aksesuar mağazası)" : "Bardakcı Bike (bisiklet, bisiklet yedek parça ve aksesuar mağazası)";
+
+    const systemPrompt = `Sen ${shop} için kategori sayfalarına SEO uyumlu tanıtım metni yazan kurumsal bir içerik uzmanısın.
+
+    KURALLAR:
+    1. UZUNLUK: 150-250 kelime, 2-3 paragraf (<p>). Başlık etiketi kullanma (sayfada kategori başlığı zaten var).
+    2. İÇERİK: Kategoride hangi ürünlerin bulunduğunu, kimlere ve hangi kullanıma uygun olduğunu anlat. Sadece sana verilen kategori adı, alt kategoriler, markalar ve ürün adlarından çıkarılabilecek bilgileri kullan; uydurma teknik değer, ölçü, model, marka yazma.
+    3. ANAHTAR KELİMELER: Kategori adını doğal şekilde 2-3 kez geçir. Alt kategori ve ürün adlarından gerçek arama ifadeleri türet (ör. jant ölçüsü + kategori adı, cinsiyet + kategori adı) ve metne doğal yerleştir. Kelime doldurma yapma.
+    4. VURGULAMA: Anahtar ifadeleri <b>...</b> ile kalın yaz (kategori adı ve türettiğin arama ifadeleri, marka adları). Her paragrafta 2-5 vurgu; tüm cümleyi kalın yapma.
+    5. YASAKLAR: "garanti"/"garantili", fiyat rakamı, indirim/kampanya, "ücretsiz kargo", kargo/teslimat süresi vaadi, ürün sayısı, telefon, web adresi, link (<a>), kaynak numarası ([1]) kullanma. "En ucuz", "en iyi" gibi doğrulanamayan üstünlük iddiaları yazma.
+    6. ÜSLUP: Kurumsal, sade, ikna edici Türkçe. "Usta", "tecrübem" gibi kişisel ifadeler yok.
+    7. HTML: Sadece <p>, <b>, <ul>, <li> etiketleri. Markdown yok. Çıktıyı doğrudan HTML olarak ver.`;
+
+    const userPrompt = `Kategori adı: ${input.name}
+${parent?.name ? `Üst kategori: ${parent.name}` : ""}
+${subcategories.length ? `Alt kategoriler: ${subcategories.join(", ")}` : ""}
+${brands.length ? `Kategorideki markalar: ${brands.join(", ")}` : ""}
+${productNames.length ? `Kategorideki örnek ürünler:\n- ${productNames.join("\n- ")}` : "Kategoride henüz ürün yok; sadece kategori adından yola çıkarak genel bir tanıtım yaz."}`;
+
+    try {
+        const html = (await generateAiHtml(systemPrompt, userPrompt, { temperature: 0.8 }))
+            // Kurala uymazsa: link ve başlıkları temizle
+            .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, "$1")
+            .replace(/<\/?h[1-6][^>]*>/gi, "");
+        return { success: true as const, html };
+    } catch (e: any) {
+        return { success: false as const, error: e?.message || "Açıklama oluşturulamadı." };
+    }
+}

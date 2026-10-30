@@ -43,7 +43,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
     const pageNum = Math.max(1, parseInt((await searchParams)?.page || "1", 10) || 1);
     const category = await prisma.category.findUnique({
         where: { slug },
-        select: { name: true, imageUrl: true }
+        select: { name: true, imageUrl: true, description: true }
     });
 
     if (!category) return { title: "Kategori Bulunamadı" };
@@ -61,7 +61,12 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
     const seoTitle = pageNum > 1 ? `${formattedName} Ürünleri - Sayfa ${pageNum}` : `${formattedName} Ürünleri`;
     const pagePath = pageNum > 1 ? `/category/${slug}?page=${pageNum}` : `/category/${slug}`;
 
-    const description = `${formattedName} kategorisindeki en kaliteli ürünleri inceleyin ve karşılaştırın.`;
+    // Google'daki açıklama: 1. sayfada kategorinin SEO metninin başı (önceden her kategoride aynı genel cümle vardı)
+    const seoPlain = String(category.description || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+    const fromSeo = seoPlain.length > 160 ? seoPlain.slice(0, 157).replace(/\s+\S*$/, "") + "..." : seoPlain;
+    const description = pageNum === 1 && fromSeo.length >= 50
+        ? fromSeo
+        : `${formattedName} kategorisindeki en kaliteli ürünleri inceleyin ve karşılaştırın.`;
     const imageUrl = category.imageUrl || "/img/og-default.jpg";
 
     return {
@@ -442,8 +447,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 </div>
             </div>
 
-            {/* Category SEO Description */}
-            {category.description && (
+            {/* Kategori SEO metni sadece 1. sayfada: 2. sayfa ve sonrası kendi canonical'ını gösteriyor, aynı uzun metin
+                her sayfada tekrar ederse sayfalar birbirinin kopyası gibi görünür (yinelenen içerik) */}
+            {category.description && currentPage <= 1 && (
                 <div className="mt-16 bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-xs max-w-none text-gray-600 dark:text-gray-300 leading-relaxed prose prose-blue dark:prose-invert">
                     <div dangerouslySetInnerHTML={{ __html: category.description }} />
                 </div>

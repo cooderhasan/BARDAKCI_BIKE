@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder, fixHeaderOrderAction, getCategoryProductsAction, moveProductToCategoryAction, moveAllProductsAndMergeCategoryAction } from "@/app/admin/(protected)/categories/actions";
+import { createCategory, updateCategory, deleteCategory, toggleCategoryStatus, updateCategoriesSidebarOrder, updateCategoriesHeaderOrder, fixHeaderOrderAction, getCategoryProductsAction, moveProductToCategoryAction, moveAllProductsAndMergeCategoryAction, generateCategoryDescription } from "@/app/admin/(protected)/categories/actions";
 import dynamic from "next/dynamic";
 const RichTextEditor = dynamic(
     () => import("@/components/admin/rich-text-editor").then((mod) => mod.RichTextEditor),
@@ -293,6 +293,7 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
     const [ciceksepetiCategoryId, setCiceksepetiCategoryId] = useState<string | undefined>(undefined);
     const [googleProductCategory, setGoogleProductCategory] = useState<string | undefined>(undefined);
     const [description, setDescription] = useState("");
+    const [aiLoading, setAiLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterMissingMapping, setFilterMissingMapping] = useState<"all" | "trendyol" | "n11" | "hb" | "any">("all");
     const [filterStore, setFilterStore] = useState<"ALL" | "BIKE" | "MOTOR">("ALL");
@@ -1085,7 +1086,40 @@ export function CategoriesTable({ categories }: CategoriesTableProps) {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Kategori SEO Açıklaması (HTML)</Label>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Label>Kategori SEO Açıklaması (HTML)</Label>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 gap-1.5"
+                                            disabled={aiLoading || !name.trim()}
+                                            onClick={async () => {
+                                                const hasText = description.replace(/<[^>]+>/g, "").trim().length > 0;
+                                                if (hasText && !confirm("Mevcut açıklamanın yerine AI ile yeni bir taslak yazılsın mı?")) return;
+                                                setAiLoading(true);
+                                                try {
+                                                    const r = await generateCategoryDescription({ categoryId: editCategory?.id, name: name.trim(), parentId, store });
+                                                    if (r.success) {
+                                                        setDescription(r.html);
+                                                        toast.success("Taslak hazır. Kontrol edip Kaydet'e basın.");
+                                                    } else {
+                                                        toast.error(r.error);
+                                                    }
+                                                } catch (e: any) {
+                                                    toast.error(e?.message || "Açıklama oluşturulamadı.");
+                                                } finally {
+                                                    setAiLoading(false);
+                                                }
+                                            }}
+                                        >
+                                            {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                                            {aiLoading ? "Yazılıyor..." : "AI ile yaz"}
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                        Kategori sayfasının sadece 1. sayfasında, ürünlerin altında görünür. AI taslağı kategorideki gerçek ürün ve alt kategori adlarından yazılır; kontrol edip kaydedin.
+                                    </p>
                                     <RichTextEditor
                                         content={description}
                                         onChange={setDescription}

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
 import * as cheerio from "cheerio";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdminRequest())) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
@@ -121,82 +120,9 @@ export async function POST(req: NextRequest) {
     const activeSystemPrompt = isMarketplace ? marketplaceSystemPrompt : systemPrompt;
     const userPrompt = isMarketplace ? marketplaceUserPrompt : siteUserPrompt;
 
-    let generatedHtml = "";
-
-    // 4. Generate Content based on Provider
-    if (config.provider === "OPENROUTER" && config.openRouterApiKey) {
-        let modelId = config.openRouterModel || "openai/gpt-4o-mini";
-        
-        // HATA FIX: Veritabanındaki eski ':beta' takısını veya ekleri temizle
-        modelId = modelId.replace(":beta", "").trim();
-
-        // Qwen modelleri için artık manuel prefix eklemiyoruz, direkt veritabanındaki ID'yi kullanıyoruz (Nihai Fix: 2026-04-06)
-        const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${config.openRouterApiKey}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://bardakcibike.com.tr", 
-                "X-Title": "Bardakci Bike B2C"
-            },
-            body: JSON.stringify({
-                model: modelId,
-                temperature: 1.0, // Maksimum yaratıcılık
-                messages: [
-                    { role: "system", content: activeSystemPrompt },
-                    { role: "user", content: userPrompt }
-                ]
-            })
-        });
-
-        const orData = await orRes.json();
-        
-        if (orData.error) {
-            throw new Error(`OpenRouter Hatası: ${orData.error.message || JSON.stringify(orData.error)}`);
-        }
-        
-        const choice = orData.choices?.[0];
-        const message = choice?.message;
-
-        if (message?.refusal) {
-            throw new Error(`Yapay Zeka Reddi: ${message.refusal}`);
-        }
-
-        generatedHtml = message?.content || "";
-        
-        if (!generatedHtml) {
-            throw new Error("Yapay zeka herhangi bir içerik üretmedi. Lütfen modeli veya sağlayıcıyı değiştirip tekrar deneyin.");
-        }
-
-    } else if (config.provider === "GEMINI" && config.apiKey) {
-        const genAI = new GoogleGenerativeAI(config.apiKey);
-        // Clean model ID for native SDK
-        const modelIdFromConfig = config.openRouterModel?.split("/").pop()?.replace(":free", "") || "gemini-1.5-flash";
-        
-        const model = genAI.getGenerativeModel({ 
-            model: modelIdFromConfig,
-            systemInstruction: activeSystemPrompt
-        });
-
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-            generationConfig: {
-                temperature: 1.0, // Maksimum yaratıcılık
-            }
-        });
-        const aiResponse = await result.response;
-        generatedHtml = aiResponse.text();
-    }
- else {
-        return NextResponse.json({ error: "Seçilen sağlayıcı için API anahtarı eksik." }, { status: 400 });
-    }
-
-    // 1. Clean markdown code blocks if AI returns them (case-insensitive)
-    generatedHtml = generatedHtml.replace(/```(?:html|HTML|xml|json)?/gi, "").replace(/```/g, "").trim();
-
-    // 2. ABSOLUTE FILTER: Remove any Chinese, Japanese, or Korean characters (CJK) 
-    // This is a safety layer for models like Qwen.
-    generatedHtml = generatedHtml.replace(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uff00-\uffef]/g, "").trim();
+    // Sağlayıcı (OpenRouter/Gemini) çağrısı ve kod bloğu/CJK temizliği ortak: lib/ai-generate (kategori açıklaması da kullanıyor)
+    const { generateAiHtml } = await import("@/lib/ai-generate");
+    let generatedHtml = await generateAiHtml(activeSystemPrompt, userPrompt);
 
     // Pazaryeri metninde tablo kalmasın (model kurala uymazsa)
     if (isMarketplace) generatedHtml = generatedHtml.replace(/<table[\s\S]*?<\/table>/gi, "").trim();
