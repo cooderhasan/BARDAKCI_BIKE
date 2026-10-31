@@ -10,14 +10,20 @@ import {
   bulkActivateGoogle,
   bulkDeactivateGoogle,
   bulkMapCategoriesToGoogle,
+  getGoogleFeedUrls,
 } from "./actions";
 import googleTaxonomy from "@/data/google-taxonomy.json";
 
+type Store = "BIKE" | "MOTOR";
+const STORE_LABEL: Record<Store, string> = { BIKE: "Bisiklet", MOTOR: "Motor" };
+
 export default function GoogleMerchantPage() {
+  // Bisiklet ve motor ayrı Merchant Center hesaplarına, ayrı feed adresinden gider
+  const [store, setStore] = useState<Store>("BIKE");
+  const [feedUrls, setFeedUrls] = useState<Record<Store, string>>({ BIKE: "", MOTOR: "" });
   const [config, setConfig] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [stats, setStats] = useState({ totalActive: 0, totalProducts: 0, totalWithCategory: 0 });
-  const [feedUrl, setFeedUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [catSearch, setCatSearch] = useState("");
@@ -27,16 +33,22 @@ export default function GoogleMerchantPage() {
   const [bulkMsg, setBulkMsg] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  const feedUrl = feedUrls[store];
+
   useEffect(() => {
-    setFeedUrl(window.location.origin + "/api/feed/google");
-    Promise.all([getGoogleConfig(), getCategories(), getGoogleFeedStats()]).then(
-      ([cfg, cats, st]) => {
-        setConfig(cfg.data);
-        setCategories(cats);
-        if (st.success) setStats(st.data as any);
-      }
-    );
+    Promise.all([getGoogleConfig(), getGoogleFeedUrls()]).then(([cfg, urls]) => {
+      setConfig(cfg.data);
+      setFeedUrls(urls);
+    });
   }, []);
+
+  useEffect(() => {
+    setBulkMsg("");
+    Promise.all([getCategories(store), getGoogleFeedStats(store)]).then(([cats, st]) => {
+      setCategories(cats);
+      if (st.success) setStats(st.data as any);
+    });
+  }, [store]);
 
   const copyFeedUrl = () => {
     navigator.clipboard.writeText(feedUrl);
@@ -64,42 +76,44 @@ export default function GoogleMerchantPage() {
   };
 
   const handleBulkActivate = async () => {
-    if (!confirm(`Tüm aktif ürünler (${stats.totalProducts} adet) Google Feed'e eklenecek. Devam?`)) return;
+    if (!confirm(`${STORE_LABEL[store]} sitesinin tüm aktif ürünleri (${stats.totalProducts} adet) Google Feed'e eklenecek. Devam?`)) return;
     setBulkLoading(true);
     setBulkMsg("");
-    const result = await bulkActivateGoogle();
+    const result = await bulkActivateGoogle(store);
     setBulkMsg(result.message);
     setBulkLoading(false);
     // Refresh stats
-    const st = await getGoogleFeedStats();
+    const st = await getGoogleFeedStats(store);
     if (st.success) setStats(st.data as any);
   };
 
   const handleBulkDeactivate = async () => {
-    if (!confirm("Tüm ürünler Google Feed'den çıkarılacak. Devam?")) return;
+    if (!confirm(`${STORE_LABEL[store]} sitesinin ürünleri Google Feed'den çıkarılacak (iki sitede ortak ürünler kalır). Devam?`)) return;
     setBulkLoading(true);
     setBulkMsg("");
-    const result = await bulkDeactivateGoogle();
+    const result = await bulkDeactivateGoogle(store);
     setBulkMsg(result.message);
     setBulkLoading(false);
-    const st = await getGoogleFeedStats();
+    const st = await getGoogleFeedStats(store);
     if (st.success) setStats(st.data as any);
   };
 
   const handleBulkMapCategories = async () => {
     if (
       !confirm(
-        "Tüm kategoriler otomatik olarak Bisiklet/Yedek Parça/Aksesuar şeklinde eşleştirilecek. Devam etmek istiyor musunuz?"
+        store === "MOTOR"
+          ? "Motor kategorilerinin hepsi Taşıt Parçaları ve Aksesuarları olarak eşleştirilecek (mevcut eşleştirmelerin üzerine yazılır). Devam etmek istiyor musunuz?"
+          : "Bisiklet kategorilerinin hepsi Bisikletler olarak eşleştirilecek (mevcut eşleştirmelerin üzerine yazılır). Devam etmek istiyor musunuz?"
       )
     )
       return;
     setBulkLoading(true);
     setBulkMsg("");
-    const result = await bulkMapCategoriesToGoogle();
+    const result = await bulkMapCategoriesToGoogle(store);
     setBulkMsg(result.message || "");
     setBulkLoading(false);
     // Refresh categories
-    const cats = await getCategories();
+    const cats = await getCategories(store);
     setCategories(cats);
   };
 
@@ -129,6 +143,27 @@ export default function GoogleMerchantPage() {
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Google Merchant Center</h1>
           <p className="text-sm text-gray-500">Google Shopping feed yönetimi ve kategori eşleştirmesi</p>
         </div>
+      </div>
+
+      {/* Mağaza seçimi */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+          {(["BIKE", "MOTOR"] as Store[]).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStore(s)}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                store === s ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {STORE_LABEL[s]} sitesi
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500">
+          Her site kendi Merchant Center hesabına kendi feed adresiyle gider. İki sitede ortak ürünler iki feed'de de yer alır.
+        </p>
       </div>
 
       {/* Stats */}
@@ -177,7 +212,11 @@ export default function GoogleMerchantPage() {
             disabled={bulkLoading}
             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
-            {bulkLoading ? "İşleniyor..." : "Tüm Kategorileri Bisiklet Olarak Eşleştir"}
+            {bulkLoading
+              ? "İşleniyor..."
+              : store === "MOTOR"
+                ? "Tüm Kategorileri Taşıt Parçası Olarak Eşleştir"
+                : "Tüm Kategorileri Bisiklet Olarak Eşleştir"}
           </button>
         </div>
         {bulkMsg && (
@@ -189,7 +228,7 @@ export default function GoogleMerchantPage() {
 
       {/* Feed URL */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h2 className="font-semibold text-gray-800 mb-3">Feed URL</h2>
+        <h2 className="font-semibold text-gray-800 mb-3">Feed URL ({STORE_LABEL[store]} sitesi)</h2>
         <p className="text-sm text-gray-500 mb-3">
           Bu URL'yi Google Merchant Center'da <strong>Ürünler → Veri Kaynakları → Ekle → Zamanlanmış Getirme</strong> bölümüne ekleyin.
         </p>

@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { stripHtmlToText } from "@/lib/helpers";
+import { getStoreType, getStoreFilter } from "@/lib/store-helper";
+import { getStoreSiteUrl } from "@/lib/site-urls";
 
 // Google Merchant Center Shopping Feed (RSS 2.0 / Atom XML)
 // URL: /api/feed/google
 // Bu URL'yi Google Merchant Center > Ürünler > Veri Kaynakları > Zamanlanmış Getirme'ye ekleyin.
+// Feed açıldığı alan adının mağazasını verir (iki ayrı Merchant Center hesabı):
+//   www.bardakcibike.com.tr/api/feed/google -> bisiklet (BIKE + BOTH) ürünleri, bisiklet adresleriyle
+//   motor sitesi (motor.bardakcibike.com.tr, sonra motovitrin.com)/api/feed/google -> motor (MOTOR + BOTH) ürünleri
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,13 +26,18 @@ function escapeXml(str: string): string {
 
 export async function GET(request: Request) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
+    const store = await getStoreType();
+    const isMotor = store === "MOTOR";
+    const baseUrl = isMotor
+      ? getStoreSiteUrl("MOTOR")
+      : process.env.NEXT_PUBLIC_APP_URL || "https://www.bardakcibike.com.tr";
 
-    // Aktif ve Google'a işaretlenmiş ürünleri çek
+    // Bu mağazanın aktif ve Google'a işaretlenmiş ürünleri
     const products = await (prisma as any).product.findMany({
       where: {
         isActive: true,
         isGoogleActive: true,
+        store: getStoreFilter(store),
       },
       include: {
         brand: true,
@@ -35,7 +45,7 @@ export async function GET(request: Request) {
         category: true, // Legacy category field
       },
       orderBy: { updatedAt: "desc" },
-      take: 5000, // Google limit
+      take: 20000, // motor sitesinde ~8.500 ürün var; eski 5000 sınırı yetmiyordu
     });
 
     const now = new Date().toUTCString();
@@ -53,7 +63,8 @@ export async function GET(request: Request) {
       const mainCatData = product.categories?.[0] || product.category;
       const productTypeName = mainCatData?.name || "";
       
-      const googleCategoryFallback = "Spor ve Fitness > Açık Hava Aktiviteleri > Bisiklet";
+      // Kategoride eşleştirme yoksa: bisiklette Bisiklet, motorda Taşıt Parçaları ve Aksesuarları (5613)
+      const googleCategoryFallback = isMotor ? "5613" : "Spor ve Fitness > Açık Hava Aktiviteleri > Bisiklet";
       
       const googleCategory = 
         product.categories?.find((c: any) => c.googleProductCategory && c.googleProductCategory.trim() !== "")?.googleProductCategory || 
@@ -131,6 +142,7 @@ export async function GET(request: Request) {
 
       const extractedColor = getColor(product.name);
       const extractedSize = getSize(product.name);
+      // Cinsiyet/yaş sadece bisiklet feed'inde (motorda "17 Jant" gibi adlar yaş tahminini "kids" yapıyordu)
       const extractedGender = getGender(product.name, product.gender);
       const extractedAgeGroup = getAgeGroup(product.name);
 
@@ -153,8 +165,8 @@ export async function GET(request: Request) {
       ${mpn ? `<g:mpn>${escapeXml(mpn)}</g:mpn>` : ""}
       ${extractedColor ? `<g:color>${escapeXml(extractedColor)}</g:color>` : ""}
       ${extractedSize ? `<g:size>${escapeXml(extractedSize)}</g:size>` : ""}
-      <g:gender>${escapeXml(extractedGender)}</g:gender>
-      <g:age_group>${escapeXml(extractedAgeGroup)}</g:age_group>
+      ${isMotor ? "" : `<g:gender>${escapeXml(extractedGender)}</g:gender>
+      <g:age_group>${escapeXml(extractedAgeGroup)}</g:age_group>`}
       ${weightFormatted ? `<g:shipping_weight>${weightFormatted}</g:shipping_weight>` : ""}
       ${product.sku ? `<g:item_group_id>${escapeXml(product.sku)}</g:item_group_id>` : ""}
     </item>`;
