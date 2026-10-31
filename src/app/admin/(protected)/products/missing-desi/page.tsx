@@ -46,6 +46,33 @@ export default function MissingDesiPage() {
             return next;
         });
 
+    // Satırdan tek ürüne desi: kaydedilen ürün listeden düşer (liste yeniden yüklenmez, seçimler kaybolmaz)
+    const saveOne = async (id: string, raw: string) => {
+        const value = Number(raw.replace(",", "."));
+        if (!Number.isFinite(value) || value <= 0) {
+            toast.error("Geçerli bir desi girin.");
+            return false;
+        }
+        try {
+            const res = await setDesiForProducts([id], value);
+            if (!res.success) {
+                toast.error(res.message);
+                return false;
+            }
+            toast.success(res.message);
+            setProducts((prev) => prev.filter((p) => p.id !== id));
+            setSelected((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+            return true;
+        } catch (e: any) {
+            toast.error(e?.message || "Kaydedilemedi.");
+            return false;
+        }
+    };
+
     const apply = async () => {
         const value = Number(desi.replace(",", "."));
         if (!Number.isFinite(value) || value <= 0) return toast.error("Geçerli bir desi girin.");
@@ -161,14 +188,57 @@ export default function MissingDesiPage() {
                                         {p.store === "BOTH" && " · iki sitede ortak"}
                                     </p>
                                 </div>
-                                <span className={`shrink-0 text-sm font-semibold ${p.stock > 0 ? "text-gray-900 dark:text-white" : "text-gray-400"}`}>
-                                    {p.stock > 0 ? `${p.stock} stok` : "stok yok"}
-                                </span>
+                                <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+                                    <span className={`text-sm font-semibold ${p.stock > 0 ? "text-gray-900 dark:text-white" : "text-gray-400"}`}>
+                                        {p.stock > 0 ? `${p.stock} stok` : "stok yok"}
+                                    </span>
+                                    <RowDesiInput onSave={(v) => saveOne(p.id, v)} />
+                                </div>
                             </label>
                         ))}
                     </div>
                 </>
             )}
+        </div>
+    );
+}
+
+/** Satırdaki desi kutusu: yazıp Enter ya da Kaydet */
+function RowDesiInput({ onSave }: { onSave: (value: string) => Promise<boolean> }) {
+    const [value, setValue] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    const save = async () => {
+        if (!value.trim() || saving) return;
+        setSaving(true);
+        const ok = await onSave(value);
+        setSaving(false);
+        if (ok) setValue("");
+    };
+
+    return (
+        // Satır bir <label>: buradaki tıklamalar ürünü seçip bırakmasın
+        <div className="flex items-center gap-1.5" onClick={(e) => e.preventDefault()}>
+            <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="Desi"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        save();
+                    }
+                }}
+                className="h-8 w-20 text-sm"
+                aria-label="Desi"
+            />
+            <Button type="button" size="sm" variant="outline" className="h-8" disabled={!value.trim() || saving} onClick={save}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Kaydet"}
+            </Button>
         </div>
     );
 }
