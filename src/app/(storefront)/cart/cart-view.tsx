@@ -152,19 +152,11 @@ export default function CartView({ cargoCompanies, freeShippingLimit }: { cargoC
                                                 >
                                                     <Minus className="h-4 w-4" />
                                                 </Button>
-                                                <Input
-                                                    type="number"
-                                                    value={item.quantity}
-                                                    onChange={(e) =>
-                                                        updateQuantity(
-                                                            item.productId,
-                                                            Number(e.target.value),
-                                                            item.variantId
-                                                        )
-                                                    }
-                                                    className="w-12 sm:w-16 h-8 text-center text-sm"
+                                                <QuantityInput
+                                                    quantity={item.quantity}
                                                     min={item.minQuantity}
                                                     max={item.stock}
+                                                    onCommit={(q) => updateQuantity(item.productId, q, item.variantId)}
                                                 />
                                                 <Button
                                                     variant="outline"
@@ -266,5 +258,52 @@ export default function CartView({ cargoCompanies, freeShippingLimit }: { cargoC
                 </div>
             </div>
         </div>
+    );
+}
+
+/**
+ * Adet kutusu. Önceden her tuşta sepete yazılıyordu: kutu silinince adet 0 olup ürün sepetten tamamen siliniyordu,
+ * 12 yazmak için önce 1 yazınca minimum adedin altına düşen ürün de silinebiliyordu.
+ * Şimdi geçerli aralıktaki değer anında işlenir (ok tuşları eskisi gibi), boş/aralık dışı değer taslakta kalır;
+ * kutudan çıkınca / Enter'da boşsa eski adet geri gelir, aralık dışıysa en az / en çok adede çekilir. Silme sadece çöp kutusuyla.
+ */
+function QuantityInput({ quantity, min, max, onCommit }: { quantity: number; min: number; max: number; onCommit: (q: number) => void }) {
+    const [draft, setDraft] = useState(String(quantity));
+
+    // +/- düğmeleriyle değişen adedi kutuya yansıt
+    useEffect(() => {
+        setDraft(String(quantity));
+    }, [quantity]);
+
+    const commit = () => {
+        const n = Math.floor(Number(draft));
+        if (draft.trim() === "" || !Number.isFinite(n) || n <= 0) {
+            setDraft(String(quantity));
+            return;
+        }
+        const clamped = Math.min(Math.max(n, min), max);
+        setDraft(String(clamped));
+        if (clamped !== quantity) onCommit(clamped);
+    };
+
+    return (
+        <Input
+            type="number"
+            inputMode="numeric"
+            value={draft}
+            onChange={(e) => {
+                setDraft(e.target.value);
+                const n = Number(e.target.value);
+                if (e.target.value.trim() !== "" && Number.isInteger(n) && n >= min && n <= max && n !== quantity) onCommit(n);
+            }}
+            onBlur={commit}
+            onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+            }}
+            className="w-12 sm:w-16 h-8 text-center text-sm"
+            min={min}
+            max={max}
+            aria-label="Adet"
+        />
     );
 }
