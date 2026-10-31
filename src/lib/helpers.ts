@@ -133,8 +133,9 @@ export function roundPrice(price: number): number {
 
 /**
  * Generate unique order number
+ * Ön ek mağazaya göre: bisiklet sitesi BRD, motor sitesi MTV (önceden ikisi de SP; eski siparişler SP olarak kalır)
  */
-export function generateOrderNumber(): string {
+export function generateOrderNumber(prefix = "SP"): string {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -142,7 +143,7 @@ export function generateOrderNumber(): string {
     const random = Math.floor(Math.random() * 10000)
         .toString()
         .padStart(4, "0");
-    return `SP${year}${month}${day}${random}`;
+    return `${prefix}${year}${month}${day}${random}`;
 }
 
 /**

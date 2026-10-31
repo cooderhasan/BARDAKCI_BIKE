@@ -210,10 +210,9 @@ export async function createOrder(data: CreateOrderData) {
         const discountAmount = totalDiscountAmount + appliedBankDiscount; // For record keeping
         const vatAmount = totalVatAmount;
         const paymentMethod = data.paymentMethod || "BANK_TRANSFER";
-        const orderNumber = generateOrderNumber();
-
         // Create order with transaction
         const orderStore = await getStoreType();
+        const orderNumber = generateOrderNumber(orderStore === "MOTOR" ? "MTV" : "BRD");
         // Ziyaret kaynağı (Google/direkt...) + cihaz (telefon/masaüstü): admin sipariş detayında gösterilir
         const attribution = {
             ...sanitizeVisitSource(data.visitSource),
