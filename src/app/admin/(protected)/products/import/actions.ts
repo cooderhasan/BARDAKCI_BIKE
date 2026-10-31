@@ -249,7 +249,10 @@ export async function importProducts(formData: FormData): Promise<ImportResult> 
                 const desiVal = parsedDesi !== null ? Math.max(0.01, parsedDesi) : (existingProduct?.desi ?? 1);
 
                 const finalPrice = listPrice !== null ? listPrice : (existingProduct?.listPrice ? Number(existingProduct.listPrice) : 0);
-                const salePrice = parseNumber(getValue(row, ["Satış Fiyatı (TL)", "Satış Fiyatı", "İndirimli Fiyat"])) ?? finalPrice;
+                // Mevcut üründe fiyat sütunu yoksa satış fiyatına dokunulmaz: önceden sadece Stok Kodu + Desi gibi
+                // bir dosyada satış fiyatı liste fiyatına eşitleniyor, ürünün indirimi siliniyordu
+                const salePrice = parseNumber(getValue(row, ["Satış Fiyatı (TL)", "Satış Fiyatı", "İndirimli Fiyat"]))
+                    ?? (existingProduct && listPrice === null ? null : finalPrice);
                 const trendyolPrice = parseNumber(getValue(row, ["Trendyol Fiyatı (TL)", "Trendyol Fiyatı", "Trendyol Satış Fiyatı"]));
                 const n11Price = parseNumber(getValue(row, ["N11 Fiyatı (TL)", "N11 Fiyatı", "N11 Satış Fiyatı"]));
                 const hepsiburadaPrice = parseNumber(getValue(row, ["Hepsiburada Fiyatı (TL)", "Hepsiburada Fiyatı", "HepsiBurada Satış Fiyatı"]));

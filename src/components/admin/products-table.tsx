@@ -28,7 +28,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw, Copy, Power } from "lucide-react";
+import { Edit, MoreHorizontal, Trash, Star, Sparkles, TrendingUp, Search, Upload, Download, ExternalLink, Package, RefreshCw, Copy, Power, Truck } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 import { deleteProduct, toggleProductStatus, toggleTrendyolStatus, toggleN11Status, toggleHepsiburadaStatus, toggleProductFeature } from "@/app/admin/(protected)/products/actions";
 import { syncProductsToHepsiburada } from "@/app/admin/(protected)/integrations/hepsiburada/actions";
@@ -389,6 +389,12 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                         <Button variant="outline" size="sm">
                             <Upload className="h-4 w-4 mr-2" />
                             Toplu Yükle
+                        </Button>
+                    </Link>
+                    <Link href="/admin/products/missing-desi">
+                        <Button variant="outline" size="sm">
+                            <Truck className="h-4 w-4 mr-2" />
+                            Desisi Eksikler
                         </Button>
                     </Link>
                 </div>
