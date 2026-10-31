@@ -119,3 +119,52 @@ export function getNextShippingDay(): string {
     const nextDay = (day + 1) % 7;
     return `Yarın (${dayNames[nextDay]})`;
 }
+
+/**
+ * Sepet ve ödeme ekranındaki kargo ücreti. İkisi de bu fonksiyonu kullanır; önceden kargo sadece ödeme ekranında
+ * hesaplanıyordu, sepette ₺350 görüp ödemede ₺548 gören müşteri vazgeçiyordu.
+ *  - Sepetteki tüm ürünler "Bu Üründe Ücretsiz Kargo" işaretliyse ücretsiz (bisikletler)
+ *  - Sepet tutarı Ayarlar > Kargo'daki "Ücretsiz Kargo Limiti"ne ulaşırsa ücretsiz
+ *  - Kalan ürünlerin desisi (getSummary().totalDesi, işaretli ürünler sayılmaz) firmanın desi tarifesiyle fiyatlanır
+ *  - Desi fiyatlandırması kapalı firma: Alıcı Ödemeli
+ */
+export type CargoPricing = {
+    id: string;
+    name: string;
+    isDesiActive: boolean;
+    desiPrices: {
+        minDesi: any;
+        maxDesi: any;
+        price: any;
+        multiplierType: string;
+    }[];
+};
+
+export type ShippingQuote = {
+    cost: number;
+    kind: "FREE" | "PAID" | "RECEIVER_PAYS";
+};
+
+export function quoteShipping(opts: {
+    cargo?: CargoPricing | null;
+    chargeableDesi: number;
+    allItemsFreeShipping: boolean;
+    cartTotal: number;
+    freeShippingLimit: number;
+}): ShippingQuote {
+    const { cargo, chargeableDesi, allItemsFreeShipping, cartTotal, freeShippingLimit } = opts;
+
+    if (allItemsFreeShipping) return { cost: 0, kind: "FREE" };
+    if (freeShippingLimit > 0 && cartTotal >= freeShippingLimit) return { cost: 0, kind: "FREE" };
+    if (chargeableDesi <= 0) return { cost: 0, kind: "FREE" };
+    if (cargo && !cargo.isDesiActive) return { cost: 0, kind: "RECEIVER_PAYS" };
+    if (!cargo || cargo.desiPrices.length === 0) return { cost: 0, kind: "PAID" };
+
+    const range =
+        cargo.desiPrices.find((r) => chargeableDesi >= Number(r.minDesi) && chargeableDesi <= Number(r.maxDesi)) ||
+        cargo.desiPrices[cargo.desiPrices.length - 1]; // Tarifenin üst sınırı aşılırsa son aralık
+
+    const rangePrice = Number(range.price);
+    const cost = range.multiplierType === "MULTIPLY" ? rangePrice * Math.ceil(chargeableDesi) : rangePrice;
+    return { cost, kind: "PAID" };
+}

@@ -219,12 +219,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
         img.startsWith("http") ? img : `${baseUrl}${img.startsWith("/") ? "" : "/"}${img}`
     );
 
-    const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
-    const isFreeShipping = product.isFreeShipping || Number(product.listPrice) >= freeShippingLimit;
-
     const listPriceNum = Number(product.listPrice);
     const hasDiscount = !!(product.salePrice && Number(product.salePrice) < listPriceNum && Number(product.salePrice) > 0);
     const currentPrice = hasDiscount ? Number(product.salePrice) : listPriceNum;
+
+    // Sepetteki kuralla aynı (lib/shipping quoteShipping): işaretli ürün ya da satış fiyatı ücretsiz kargo limitine ulaşan ürün
+    const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
+    const isFreeShipping = product.isFreeShipping || currentPrice >= freeShippingLimit;
 
     // 1. Product Schema
     const productSchema: any = {

@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { formatPrice, calculatePrice, SHIPPING_FREE_LIMIT } from "@/lib/helpers";
+import { formatPrice, calculatePrice } from "@/lib/helpers";
+import { quoteShipping, type CargoPricing } from "@/lib/shipping";
 import { createOrder } from "@/app/(storefront)/checkout/actions";
 import { saveAddress, type SavedAddress } from "@/app/(storefront)/account/addresses/actions";
 import { toast } from "sonner";
@@ -42,17 +43,7 @@ interface CheckoutFormProps {
             availableLimit: number;
         };
     };
-    cargoCompanies: {
-        id: string;
-        name: string;
-        isDesiActive: boolean;
-        desiPrices: {
-            minDesi: any;
-            maxDesi: any;
-            price: any;
-            multiplierType: string;
-        }[];
-    }[];
+    cargoCompanies: CargoPricing[];
     freeShippingLimit: number;
     bankTransferDiscount: number;
     /** Üyenin adres defteri (varsayılan önce) */
@@ -119,30 +110,16 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
 
     const summary = getSummary();
 
-    // Calculate shipping cost: Ürün bazlı kargo hesaplama
-    // isFreeShipping=true olan ürünlerin desisi zaten totalDesi'ye dahil edilmiyor (helpers.ts)
-    // Dolayısıyla sepette sadece bisiklet varsa totalDesi=0, kargo ücreti=0
+    // Kargo ücreti (sepet sayfasıyla aynı hesap: lib/shipping)
     const selectedCargo = cargoCompanies.find(c => c.id === selectedCargoId);
-    let shippingCost = 0;
-    const chargeableDesi = summary.totalDesi; // Sadece isFreeShipping=false ürünlerin desisi
-    const allItemsFreeShipping = items.every(item => item.isFreeShipping === true);
-
-    if (chargeableDesi > 0 && selectedCargo && selectedCargo.isDesiActive && selectedCargo.desiPrices.length > 0) {
-        // Desi 0 ise en az 0.01 desi üzerinden hesapla (0-0.99 aralığı için)
-        const totalDesi = chargeableDesi > 0 ? chargeableDesi : 0.01;
-        const range = selectedCargo.desiPrices.find(r =>
-            totalDesi >= Number(r.minDesi) && totalDesi <= Number(r.maxDesi)
-        ) || selectedCargo.desiPrices[selectedCargo.desiPrices.length - 1]; // Fallback to last range if exceeds max
-
-        if (range) {
-            const rangePrice = Number(range.price);
-            if (range.multiplierType === "MULTIPLY") {
-                shippingCost = rangePrice * Math.ceil(totalDesi);
-            } else {
-                shippingCost = rangePrice;
-            }
-        }
-    }
+    const shippingQuote = quoteShipping({
+        cargo: selectedCargo,
+        chargeableDesi: summary.totalDesi,
+        allItemsFreeShipping: items.every(item => item.isFreeShipping === true),
+        cartTotal: summary.total,
+        freeShippingLimit,
+    });
+    const shippingCost = shippingQuote.cost;
 
     let baseTotal = summary.total;
     let bankDiscountAmount = 0;
@@ -697,11 +674,9 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                     </div>
                                     <div className="flex justify-between items-center font-medium">
                                         <span className="text-gray-600 dark:text-gray-400">Kargo</span>
-                                        {allItemsFreeShipping ? (
+                                        {shippingQuote.kind === "FREE" ? (
                                             <span className="text-green-600">Ücretsiz</span>
-                                        ) : shippingCost === 0 && chargeableDesi === 0 ? (
-                                            <span className="text-green-600">Ücretsiz</span>
-                                        ) : selectedCargo && !selectedCargo.isDesiActive ? (
+                                        ) : shippingQuote.kind === "RECEIVER_PAYS" ? (
                                             <span className="text-gray-900 dark:text-gray-200 uppercase text-xs font-bold">
                                                 Alıcı Ödemeli
                                             </span>

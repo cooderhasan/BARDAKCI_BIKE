@@ -757,7 +757,7 @@ export function SettingsForm({ initialSettings, cargoCompanies }: SettingsFormPr
                                     onChange={(e) => updateField("freeShippingLimit", e.target.value)}
                                 />
                                 <p className="text-xs text-gray-500">
-                                    Sepet tutarı bu limitin üzerindeyse kargo ücretsiz olur.
+                                    Sepet tutarı bu limite ulaşırsa sepette ve ödemede kargo ücretsiz olur; bu tutardaki ürünlerde "Ücretsiz Kargo" yazar. Kullanmak istemiyorsanız çok yüksek bir tutar girin (ör. 100000). Ürün bazında ücretsiz kargo ürün düzenleme sayfasından işaretlenir.
                                 </p>
                             </div>
                             <CargoSettings initialCompanies={cargoCompanies} />

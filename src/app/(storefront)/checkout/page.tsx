@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
+import { getCargoPricing } from "@/lib/cargo-pricing";
 import { CheckoutForm } from "@/components/storefront/checkout-form";
 import { getMyAddresses } from "@/app/(storefront)/account/addresses/actions";
 
@@ -66,38 +67,18 @@ export default async function CheckoutPage() {
         }
     }
 
-    const cargoCompanies = await prisma.cargoCompany.findMany({
-        where: { isActive: true },
-        include: { desiPrices: { orderBy: { minDesi: "asc" } } },
-        orderBy: { name: "asc" },
-    }) as any[]; // Casting to any to bypass Prisma Client lock issues on Windows
-
     // Üyenin adres defteri (ödemede tek tıkla seçilir)
     const savedAddresses = session?.user?.id ? await getMyAddresses().catch(() => []) : [];
 
     const settings = await getSiteSettings();
-    const freeShippingLimit = Number(settings.freeShippingLimit) || 20000;
+    const { cargoCompanies, freeShippingLimit } = await getCargoPricing();
     const bankTransferDiscount = Number(settings.bankTransferDiscount) || 0;
-
-    // Serialize Decimal fields for Client Component
-    const serializedCargoCompanies = cargoCompanies.map(company => ({
-        id: company.id,
-        name: company.name,
-        isDesiActive: !!company.isDesiActive,
-        desiPrices: (company.desiPrices || []).map((price: any) => ({
-            id: price.id,
-            minDesi: Number(price.minDesi),
-            maxDesi: Number(price.maxDesi),
-            price: Number(price.price),
-            multiplierType: price.multiplierType || "FIXED",
-        }))
-    }));
 
     return (
         <CheckoutForm
             initialData={initialData}
             savedAddresses={savedAddresses}
-            cargoCompanies={serializedCargoCompanies}
+            cargoCompanies={cargoCompanies}
             freeShippingLimit={freeShippingLimit}
             bankTransferDiscount={bankTransferDiscount}
         />
