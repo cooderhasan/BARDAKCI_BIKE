@@ -36,6 +36,7 @@ export async function getMissingDesiProducts(store: "BIKE" | "MOTOR"): Promise<M
             id: true, name: true, sku: true, images: true, store: true, stock: true,
             width: true, height: true, length: true,
             category: { select: { name: true } },
+            categories: { select: { name: true } },
             variants: { select: { stock: true } },
         },
     });
@@ -47,7 +48,8 @@ export async function getMissingDesiProducts(store: "BIKE" | "MOTOR"): Promise<M
             name: p.name,
             sku: p.sku,
             image: p.images?.[0] || null,
-            category: p.category?.name || "-",
+            // Kategoriler çoklu ilişkide (categories); categoryId eski tekli alan, yeni ürünlerde boş
+            category: p.categories.map((c) => c.name).join(", ") || p.category?.name || "-",
             store: p.store,
             // Varyantlı üründe ana ürün stoğu 0 olabilir; satılabilir adet varyantların toplamı
             stock: p.variants.length ? p.variants.reduce((a, v) => a + (v.stock || 0), 0) : p.stock,
