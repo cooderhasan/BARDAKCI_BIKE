@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasFullName, FULL_NAME_ERROR } from "@/lib/helpers";
 
 // ==================== AUTH VALIDATIONS ====================
 
@@ -8,7 +9,7 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
-    name: z.string().min(2, "Ad soyad en az 2 karakter olmalıdır"),
+    name: z.string().min(2, "Ad soyad en az 2 karakter olmalıdır").refine(hasFullName, FULL_NAME_ERROR),
     email: z.string().email("Geçerli bir e-posta adresi giriniz"),
     password: z.string().min(6, "Şifre en az 6 karakter olmalıdır"),
     confirmPassword: z.string(),

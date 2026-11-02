@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { generateOrderNumber } from "@/lib/helpers";
+import { generateOrderNumber, hasFullName, FULL_NAME_ERROR } from "@/lib/helpers";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email";
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 import { decrementOrderStock } from "@/lib/stock-sync";
@@ -48,6 +48,11 @@ export async function createOrder(data: CreateOrderData) {
     // Guest checkout requires email
     if (!userId && !data.guestEmail) {
         return { success: false, error: "E-posta adresi gereklidir." };
+    }
+
+    // Kargo etiketi ve fatura için ad soyad birlikte gerekli (istemci de kontrol ediyor, burası atlatılamayan kontrol)
+    if (!hasFullName(data.shippingAddress?.name)) {
+        return { success: false, error: FULL_NAME_ERROR };
     }
 
     try {

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { CheckCircle2, Building2 } from "lucide-react";
 import { registerUser } from "@/app/register/actions";
+import { hasFullName, FULL_NAME_ERROR } from "@/lib/helpers";
 import { SearchablePicker } from "@/components/ui/searchable-picker";
 import { getDistrictsOfCity, getCityNames } from "@/lib/cities";
 
@@ -54,6 +55,14 @@ export function RegisterForm({ logoUrl, siteName, isMotor = false }: RegisterFor
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
+
+        if (!hasFullName(String(formData.get("name") || ""))) {
+            toast.error(FULL_NAME_ERROR);
+            document.getElementById("name")?.focus();
+            setLoading(false);
+            return;
+        }
+
         const phoneRaw = String(formData.get("phone")).replace(/\D/g, "");
 
         if (phoneRaw.length < 10) {

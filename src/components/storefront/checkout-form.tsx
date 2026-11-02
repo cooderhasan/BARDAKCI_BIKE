@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { formatPrice, calculatePrice } from "@/lib/helpers";
+import { formatPrice, calculatePrice, hasFullName, FULL_NAME_ERROR } from "@/lib/helpers";
 import { quoteShipping, type CargoPricing } from "@/lib/shipping";
 import { createOrder } from "@/app/(storefront)/checkout/actions";
 import { saveAddress, type SavedAddress } from "@/app/(storefront)/account/addresses/actions";
@@ -158,6 +158,14 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
         setLoading(true);
 
         const formData = new FormData(e.currentTarget);
+
+        if (!hasFullName(String(formData.get("name") || ""))) {
+            toast.error(FULL_NAME_ERROR);
+            document.getElementById("name")?.focus();
+            setLoading(false);
+            return;
+        }
+
         const phoneRaw = String(formData.get("phone")).replace(/\D/g, "");
 
         if (phoneRaw.length < 10) {
@@ -322,7 +330,7 @@ export function CheckoutForm({ initialData, cargoCompanies, freeShippingLimit, b
                                             name="name"
                                             required
                                             defaultValue={addrDefaults.name}
-                                            placeholder="Adınız veya Firma Adı"
+                                            placeholder="Ad Soyad (Örn: Ahmet Yılmaz) veya Firma Adı"
                                         />
                                     </div>
                                     <div className="space-y-2">

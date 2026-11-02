@@ -233,8 +233,8 @@ export async function createProduct(formData: FormData) {
     } catch (error: any) {
         console.error("createProduct error:", error);
         let errorMsg = error.message || "Ürün oluşturulamadı";
-        if (error.errors && Array.isArray(error.errors)) {
-            errorMsg = error.errors.map((e: any) => `${e.path?.join('.') || ''}: ${e.message}`).join(", ");
+        if (error.issues && Array.isArray(error.issues)) {
+            errorMsg = error.issues.map((e: any) => `${e.path?.join('.') || ''}: ${e.message}`).join(", ");
         }
         return { success: false, error: errorMsg };
     }
@@ -582,8 +582,8 @@ export async function updateProduct(productId: string, formData: FormData) {
     } catch (error: any) {
         console.error("updateProduct error:", error);
         let errorMsg = error.message || "Güncelleme sırasında hata oluştu";
-        if (error.errors && Array.isArray(error.errors)) {
-            errorMsg = error.errors.map((e: any) => `${e.path?.join('.') || ''}: ${e.message}`).join(", ");
+        if (error.issues && Array.isArray(error.issues)) {
+            errorMsg = error.issues.map((e: any) => `${e.path?.join('.') || ''}: ${e.message}`).join(", ");
         }
         return { success: false, error: errorMsg };
     }

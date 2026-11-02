@@ -22,7 +22,7 @@ export async function registerUser(formData: FormData) {
         // Validate data
         const validation = registerSchema.safeParse(rawData);
         if (!validation.success) {
-            const firstError = validation.error.errors[0]?.message || "Geçersiz veri girişi.";
+            const firstError = validation.error.issues[0]?.message || "Geçersiz veri girişi.";
             return { success: false, error: firstError };
         }
 
