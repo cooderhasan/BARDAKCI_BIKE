@@ -433,7 +433,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
     const renderSourceBadge = (order: OrderWithItems) => (
         <>
             {order.source === "TRENDYOL" && (
-                <Badge className="bg-[#f27a1a] hover:bg-[#ef6c00] text-white border-none px-1.5 py-0 text-[10px] font-bold">
+                <Badge className="bg-[#f27a1a] hover:bg-[#ef6c00] text-white border border-[#f27a1a] px-1.5 py-0 text-[10px] font-bold">
                     TRENDYOL
                 </Badge>
             )}
@@ -443,7 +443,8 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                 </Badge>
             )}
             {order.source === "HEPSIBURADA" && (
-                <Badge className="bg-[#ff6000] hover:bg-[#e05300] text-white border-none px-1.5 py-0 text-[10px] font-bold">
+                // Trendyol ile ikisi de turuncu marka rengi: HB içi boş (çerçeveli) rozet, Trendyol dolu; ton farkı yetmiyordu
+                <Badge className="bg-white hover:bg-orange-50 text-[#ff6000] border border-[#ff6000] px-1.5 py-0 text-[10px] font-bold dark:bg-transparent">
                     HEPSİBURADA
                 </Badge>
             )}
