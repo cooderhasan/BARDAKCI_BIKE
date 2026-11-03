@@ -101,6 +101,26 @@ const featureOptions = [
     { value: "bundle", label: "Paket Ürünler" },
 ];
 
+const marketplaceOptions = [
+    { value: "ALL", label: "Tümü" },
+    { value: "ANY", label: "Herhangi Bir Pazaryeri" },
+    { value: "TRENDYOL", label: "Trendyol" },
+    { value: "HEPSIBURADA", label: "Hepsiburada" },
+    { value: "N11", label: "N11" },
+    { value: "IDEFIX", label: "Idefix" },
+    { value: "PAZARAMA", label: "Pazarama" },
+    { value: "PTTAVM", label: "PttAVM" },
+    { value: "CICEKSEPETI", label: "Çiçeksepeti" },
+];
+
+// "Herhangi Bir Pazaryeri"nde kategori/fiyat anlamsız, sadece bağlı/bağlı değil
+const mpStatusOptions = [
+    { value: "UNLINKED", label: "Bağlı Olmayanlar", anyOk: true },
+    { value: "LINKED", label: "Bağlı Olanlar", anyOk: true },
+    { value: "NO_CATEGORY", label: "Kategorisi Eşleşmemiş", anyOk: false },
+    { value: "NO_PRICE", label: "Pazaryeri Fiyatı Girilmemiş", anyOk: false },
+];
+
 export function ProductsTable({ products: initialProducts, brands, pagination }: ProductsTableProps) {
     const router = useRouter();
     const duplicate = useDuplicateProduct();
@@ -113,6 +133,8 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
     const [stockStatus, setStockStatus] = useState(searchParams.get("stockStatus") || "ALL");
     const [priceStatus, setPriceStatus] = useState(searchParams.get("priceStatus") || "ALL");
     const [featureFilter, setFeatureFilter] = useState(searchParams.get("feature") || "ALL");
+    const [marketplaceFilter, setMarketplaceFilter] = useState(searchParams.get("marketplace") || "ALL");
+    const [mpStatus, setMpStatus] = useState(searchParams.get("mpStatus") || "UNLINKED");
 
     const [products, setProducts] = useState(initialProducts);
 
@@ -150,6 +172,14 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
         if (featureFilter && featureFilter !== "ALL") params.set("feature", featureFilter);
         else params.delete("feature");
 
+        if (marketplaceFilter && marketplaceFilter !== "ALL") {
+            params.set("marketplace", marketplaceFilter);
+            params.set("mpStatus", mpStatus);
+        } else {
+            params.delete("marketplace");
+            params.delete("mpStatus");
+        }
+
         params.set("page", "1");
         router.push(`?${params.toString()}`);
     };
@@ -158,9 +188,12 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
     const resetFilters = () => {
         setSearchTerm("");
         setBrandFilter("ALL");
+        setStoreFilter("ALL");
         setStockStatus("ALL");
         setPriceStatus("ALL");
         setFeatureFilter("ALL");
+        setMarketplaceFilter("ALL");
+        setMpStatus("UNLINKED");
         router.push("/admin/products");
     };
 
@@ -402,7 +435,7 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
 
             {/* Filter Bar */}
             <div className="bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-lg shadow border border-gray-100 dark:border-gray-800">
-                <div className="grid grid-cols-2 gap-3 md:flex md:flex-row md:items-end md:gap-4">
+                <div className="grid grid-cols-2 gap-3 md:flex md:flex-row md:flex-wrap md:items-end md:gap-4">
                     {/* Search */}
                     <div className="col-span-2 flex-1 md:min-w-[200px] space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Arama</label>
@@ -499,6 +532,47 @@ export function ProductsTable({ products: initialProducts, brands, pagination }:
                                         {option.label}
                                     </SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Pazaryeri bağlantısı: siteye eklenip pazaryerine gönderilmemiş ürünleri bulmak için */}
+                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Pazaryeri</label>
+                        <Select
+                            value={marketplaceFilter}
+                            onValueChange={(v) => {
+                                setMarketplaceFilter(v);
+                                if (v === "ANY" && !mpStatusOptions.find((o) => o.value === mpStatus)?.anyOk) setMpStatus("UNLINKED");
+                            }}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Tümü" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {marketplaceOptions.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="min-w-0 w-full md:w-[180px] space-y-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Pazaryeri Durumu</label>
+                        <Select value={mpStatus} onValueChange={setMpStatus} disabled={marketplaceFilter === "ALL"}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {mpStatusOptions
+                                    .filter((o) => marketplaceFilter !== "ANY" || o.anyOk)
+                                    .map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
                             </SelectContent>
                         </Select>
                     </div>

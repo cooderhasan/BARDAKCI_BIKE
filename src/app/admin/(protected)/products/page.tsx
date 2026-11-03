@@ -4,6 +4,19 @@ import { Button } from "@/components/ui/button";
 import { ProductsTable } from "@/components/admin/products-table";
 import { Plus } from "lucide-react";
 
+// active: gönderilince/eşleşince true olan bayrak; category: site kategorisindeki eşleşme alanı;
+// override: ürüne özel kategori (ilişki + alan); price: pazaryerine gönderilen özel fiyat
+const MARKETPLACES: Record<string, { active: string; category: string; override: [string, string]; price: string }> = {
+    TRENDYOL: { active: "isTrendyolActive", category: "trendyolCategoryId", override: ["trendyolProduct", "trendyolCategoryId"], price: "trendyolPrice" },
+    HEPSIBURADA: { active: "isHepsiburadaActive", category: "hbCategoryId", override: ["hepsiburadaProduct", "hbCategoryId"], price: "hepsiburadaPrice" },
+    N11: { active: "isN11Active", category: "n11CategoryId", override: ["n11Product", "n11CategoryId"], price: "n11Price" },
+    IDEFIX: { active: "isIdefixActive", category: "idefixCategoryId", override: ["idefixProduct", "idefixCategoryId"], price: "idefixPrice" },
+    PAZARAMA: { active: "isPazaramaActive", category: "pazaramaCategoryId", override: ["pazaramaProduct", "pazaramaCategoryId"], price: "pazaramaPrice" },
+    PTTAVM: { active: "isPttavmActive", category: "pttavmCategoryId", override: ["pttavmProduct", "pttavmCategoryId"], price: "pttavmPrice" },
+    CICEKSEPETI: { active: "isCiceksepetiActive", category: "ciceksepetiCategoryId", override: ["ciceksepetiProduct", "ciceksepetiCategoryId"], price: "ciceksepetiPrice" },
+};
+const MP_STATUSES = ["UNLINKED", "LINKED", "NO_CATEGORY", "NO_PRICE"];
+
 interface ProductsPageProps {
     searchParams: Promise<{
         page?: string;
@@ -12,6 +25,9 @@ interface ProductsPageProps {
         stockStatus?: string;
         priceStatus?: string;
         feature?: string;
+        store?: string;
+        marketplace?: string;
+        mpStatus?: string;
     }>;
 }
 
@@ -26,6 +42,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     const stockStatus = params.stockStatus || "ALL";
     const priceStatus = params.priceStatus || "ALL";
     const feature = params.feature || "";
+    const storeFilter = params.store || "";
+    const marketplace = params.marketplace || "";
+    const mpStatus = MP_STATUSES.includes(params.mpStatus || "") ? params.mpStatus! : "UNLINKED";
 
     // Construct Where Clause
     const where: any = {};
@@ -65,6 +84,32 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     } else if (feature === "bundle") {
         where.isBundle = true;
     }
+
+    if (storeFilter === "BIKE" || storeFilter === "MOTOR" || storeFilter === "BOTH") {
+        where.store = storeFilter;
+    }
+
+    // Pazaryeri filtresi: siteye eklenip pazaryerine bağlanmamış / kategorisi eşleşmemiş / fiyatı girilmemiş ürünler
+    const mp = MARKETPLACES[marketplace];
+    const and: any[] = [];
+    if (mp) {
+        if (mpStatus === "LINKED") and.push({ [mp.active]: true });
+        else if (mpStatus === "UNLINKED") and.push({ [mp.active]: false });
+        else if (mpStatus === "NO_CATEGORY") {
+            const [rel, relField] = mp.override;
+            and.push(
+                { categories: { none: { [mp.category]: { not: null } } } },
+                { OR: [{ [rel]: { is: null } }, { [rel]: { is: { [relField]: null } } }] },
+            );
+        } else if (mpStatus === "NO_PRICE") {
+            and.push({ OR: [{ [mp.price]: null }, { [mp.price]: { lte: 0 } }] });
+        }
+    } else if (marketplace === "ANY") {
+        const flags = Object.values(MARKETPLACES).map((m) => m.active);
+        if (mpStatus === "LINKED") and.push({ OR: flags.map((f) => ({ [f]: true })) });
+        else and.push(...flags.map((f) => ({ [f]: false })));
+    }
+    if (and.length) where.AND = and;
 
     // Parallel Fetch: Products + Total Count + Brands
     const [products, totalCount, brands] = await Promise.all([
@@ -126,7 +171,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             </div>
 
             <ProductsTable
-                key={`${page}-${search}-${brandFilter}-${stockStatus}`}
+                key={`${page}-${search}-${brandFilter}-${stockStatus}-${storeFilter}-${marketplace}-${mpStatus}`}
                 products={serializedProducts}
                 brands={brands}
                 pagination={{
