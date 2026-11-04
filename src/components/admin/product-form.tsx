@@ -18,7 +18,7 @@ import { createProduct, updateProduct, syncProductToMarketplaces, searchProducts
 import { generateSlug, generateSKU, generateBarcode } from "@/lib/helpers";
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Plus, X, ImageIcon, Trash2, Loader2, RefreshCcw, Package, RefreshCw, Brain, Search, AlertTriangle, Copy } from "lucide-react";
+import { Plus, X, ImageIcon, Trash2, Loader2, RefreshCcw, Package, RefreshCw, Brain, Search, AlertTriangle, Copy, Eraser } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from "next/dynamic";
 const RichTextEditor = dynamic(
@@ -564,6 +564,14 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
     };
 
     // Pazaryeri gönderim seçimlerinin hepsini aç/kapat (Google dahil)
+    // Fiyat güncellerken: hepsini sil, ilk kutuya yeni fiyatı yaz, "Boş Olanlara İlk Fiyatı Uygula" ile dağıt
+    const clearAllMarketplacePrices = () => {
+        const updates: any = {};
+        marketplacePriceFields.forEach(f => { updates[f.key] = ""; });
+        setFormData(prev => ({ ...prev, ...updates }));
+        setTimeout(() => document.getElementById(marketplacePriceFields[0].key)?.focus(), 0);
+    };
+
     const setAllMarketplacesActive = (value: boolean) => {
         const updates: any = { isGoogleActive: value };
         marketplacePriceFields.forEach(f => { updates[f.activeKey] = value; });
@@ -1008,6 +1016,10 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         </Button>
                                         <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setAllMarketplacesActive(false)}>
                                             Hepsini Kaldır
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={clearAllMarketplacePrices}>
+                                            <Eraser className="h-3 w-3" />
+                                            Fiyatları Temizle
                                         </Button>
                                         <Button
                                             type="button"
