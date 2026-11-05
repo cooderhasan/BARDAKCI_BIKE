@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, X } from "lucide-react";
 
@@ -135,6 +136,37 @@ export function MarketplaceCategoryPicker({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const boxRef = useRef<HTMLDivElement>(null);
+    const [listPos, setListPos] = useState<CSSProperties | null>(null);
+    const hasResults = results.length > 0;
+
+    // Sonuç listesi sayfanın üstünde açılır: tablo az satırlıyken (arama, filtre) içinde açılan liste kesiliyordu.
+    // Pencere (dialog) içinde yerinde kalır; dışarı taşınırsa tıklama pencereyi kapatır.
+    useLayoutEffect(() => {
+        const box = boxRef.current;
+        if (!hasResults || !box || box.closest('[role="dialog"]')) {
+            setListPos(null);
+            return;
+        }
+        const place = () => {
+            const r = box.getBoundingClientRect();
+            const width = Math.min(440, window.innerWidth * 0.9);
+            const below = window.innerHeight - r.bottom;
+            setListPos({
+                position: "fixed",
+                width,
+                left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)),
+                ...(below < 250 && r.top > below ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+            });
+        };
+        place();
+        window.addEventListener("scroll", place, true);
+        window.addEventListener("resize", place);
+        return () => {
+            window.removeEventListener("scroll", place, true);
+            window.removeEventListener("resize", place);
+        };
+    }, [hasResults]);
 
     const search = (v: string) => {
         setQ(v);
@@ -156,8 +188,37 @@ export function MarketplaceCategoryPicker({
         }, 300);
     };
 
+    const resultList = hasResults && (
+        <div
+            style={listPos ?? undefined}
+            className={`${listPos ? "z-[100]" : "absolute z-50 mt-1 w-[min(440px,90vw)]"} max-h-60 overflow-y-auto rounded-md border border-orange-200 bg-white shadow-xl dark:bg-gray-800`}
+        >
+            {results.map((c) => (
+                <button
+                    key={c.id}
+                    type="button"
+                    disabled={!c.leaf}
+                    onClick={() => {
+                        onPick(c.id, c.name);
+                        setQ("");
+                        setResults([]);
+                    }}
+                    className={`flex w-full items-start justify-between gap-2 border-b border-gray-100 px-2.5 py-1.5 text-left last:border-0 dark:border-gray-700 ${c.leaf ? "hover:bg-orange-50 dark:hover:bg-orange-900/20" : "cursor-not-allowed opacity-50"}`}
+                    title={c.leaf ? "" : "Üst kategori: ürün açılamaz, alt kategorisini seçin"}
+                >
+                    <span className="flex flex-col">
+                        <span className="text-xs font-medium">{c.name}</span>
+                        {c.path && <span className="text-[10px] italic text-gray-400 line-clamp-1">{c.path}</span>}
+                        {!c.leaf && <span className="text-[10px] text-red-500">Üst kategori — alt kategorisini seçin</span>}
+                    </span>
+                    <span className="shrink-0 font-mono text-[10px] text-orange-600">#{c.id}</span>
+                </button>
+            ))}
+        </div>
+    );
+
     return (
-        <div className={`relative ${className}`}>
+        <div ref={boxRef} className={`relative ${className}`}>
             <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-gray-400" />
             <Input
                 value={q}
@@ -171,31 +232,7 @@ export function MarketplaceCategoryPicker({
             {!loading && q.trim().length >= 2 && results.length === 0 && !error && (
                 <p className="mt-1 text-[10px] text-gray-500">Sonuç yok.</p>
             )}
-            {results.length > 0 && (
-                <div className="absolute z-50 mt-1 max-h-60 w-[min(440px,90vw)] overflow-y-auto rounded-md border border-orange-200 bg-white shadow-xl dark:bg-gray-800">
-                    {results.map((c) => (
-                        <button
-                            key={c.id}
-                            type="button"
-                            disabled={!c.leaf}
-                            onClick={() => {
-                                onPick(c.id, c.name);
-                                setQ("");
-                                setResults([]);
-                            }}
-                            className={`flex w-full items-start justify-between gap-2 border-b border-gray-100 px-2.5 py-1.5 text-left last:border-0 dark:border-gray-700 ${c.leaf ? "hover:bg-orange-50 dark:hover:bg-orange-900/20" : "cursor-not-allowed opacity-50"}`}
-                            title={c.leaf ? "" : "Üst kategori: ürün açılamaz, alt kategorisini seçin"}
-                        >
-                            <span className="flex flex-col">
-                                <span className="text-xs font-medium">{c.name}</span>
-                                {c.path && <span className="text-[10px] italic text-gray-400 line-clamp-1">{c.path}</span>}
-                                {!c.leaf && <span className="text-[10px] text-red-500">Üst kategori — alt kategorisini seçin</span>}
-                            </span>
-                            <span className="shrink-0 font-mono text-[10px] text-orange-600">#{c.id}</span>
-                        </button>
-                    ))}
-                </div>
-            )}
+            {listPos && resultList ? createPortal(resultList, document.body) : resultList}
         </div>
     );
 }
