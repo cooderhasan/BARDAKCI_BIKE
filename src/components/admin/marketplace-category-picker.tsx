@@ -150,13 +150,15 @@ export function MarketplaceCategoryPicker({
         }
         const place = () => {
             const r = box.getBoundingClientRect();
-            const width = Math.min(440, window.innerWidth * 0.9);
+            const width = Math.min(680, window.innerWidth * 0.9);
             const below = window.innerHeight - r.bottom;
+            const up = below < 340 && r.top > below;
             setListPos({
                 position: "fixed",
                 width,
+                maxHeight: Math.min(400, (up ? r.top : below) - 16),
                 left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)),
-                ...(below < 250 && r.top > below ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+                ...(up ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
             });
         };
         place();
