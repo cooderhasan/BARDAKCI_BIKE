@@ -214,7 +214,11 @@ export async function checkIdefixBatchStatus(productId: string): Promise<{ succe
     // Varyantlıda bir satır onaylıysa ürün onaylı sayılır
     const firstItem =
       mine.find((it: any) => /success|complet|approv/i.test(String(it.status || ""))) || mine[0] || items[0] || {};
-    const rawErrorCode = firstItem.errorCode || firstItem.failureReason || firstItem.errorReason || firstItem.rejectionReason || firstItem.reason || result.errorMessage || result.message || null;
+    // failureReasons liste geliyor; ham cevap yerine sebebin kendisi gösterilir
+    const failureReasons = [firstItem.failureReasons].flat().filter(Boolean)
+      .map((r: any) => (typeof r === "string" ? r : r.message || r.description || r.reason || JSON.stringify(r)))
+      .join("; ");
+    const rawErrorCode = firstItem.errorCode || firstItem.failureReason || failureReasons || firstItem.errorReason || firstItem.rejectionReason || firstItem.reason || result.errorMessage || result.message || null;
     const itemStatus = String(firstItem.status || result.batchStatus || result.status || "").toUpperCase();
 
     const errorTranslations: Record<string, string> = {
@@ -1574,7 +1578,11 @@ export async function matchIdefixProducts() {
 export async function syncIdefixBatchStatuses() {
   await requireAdmin();
   const pending = await (prisma as any).idefixProduct.findMany({
-    where: { batchId: { not: null }, batchStatus: "PENDING" },
+    where: {
+      batchId: { not: null },
+      // Ham cevapla kayıtlı eski retler de yeniden okunur, sebepleri görünür olur
+      OR: [{ batchStatus: "PENDING" }, { lastSyncError: { startsWith: "Idefix Yanıtı:" } }],
+    },
     select: { productId: true },
     take: 50,
   });

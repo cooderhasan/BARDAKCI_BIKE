@@ -18,7 +18,8 @@ export default async function PttavmBatchesPage() {
         barcode: it.product.barcode || "",
         batchId: it.trackingId,
         status: it.batchStatus || "PENDING",
-        error: it.lastSyncError,
+        // Başarılı gönderimde ePttAVM'nin "sıraya alındı" mesajı da bu alana yazılıyor
+        error: it.batchStatus === "FAILED" ? it.lastSyncError : null,
         date: it.lastSyncedAt?.toISOString() ?? null,
     }));
 
