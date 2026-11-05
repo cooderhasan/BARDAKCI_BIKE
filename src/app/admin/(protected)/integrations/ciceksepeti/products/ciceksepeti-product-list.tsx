@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { syncProductsToCiceksepeti, toggleCiceksepetiProductStatus, setCiceksepetiProductCategory, setBulkCiceksepetiProductCategory, matchCiceksepetiProducts, getCiceksepetiMatchStatus, checkCiceksepetiSendResult } from "../actions";
+import Link from "next/link";
 import { toast } from "sonner";
-import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save, SlidersHorizontal } from "lucide-react";
+import { RefreshCw, Search, Send, CheckCircle2, XCircle, Clock, AlertTriangle, Tag, Edit3, Save, SlidersHorizontal, History } from "lucide-react";
 import Image from "next/image";
 import { CiceksepetiProductAttributeModal } from "@/components/admin/ciceksepeti-product-attribute-modal";
 
@@ -297,6 +298,12 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <Link href="/admin/integrations/ciceksepeti/batches">
+            <Button variant="outline" size="sm" className="border-rose-200 text-rose-700 hover:bg-rose-50 gap-1">
+              <History className="w-4 h-4" />
+              İşlem Geçmişi
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
@@ -547,7 +554,7 @@ export function CiceksepetiProductList({ initialProducts, pagination }: Props) {
                       ) : cicekProduct?.isSynced ? (
                         <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 text-[10px] py-0 px-1.5">
                           <CheckCircle2 className="w-3 h-3" />
-                          Yayında
+                          Senkronize
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="gap-1 text-[10px] py-0 px-1.5 text-amber-700 border-amber-300 bg-amber-50">

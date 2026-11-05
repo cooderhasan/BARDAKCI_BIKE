@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   togglePttavmProductActive,
@@ -33,6 +34,7 @@ import {
   Save,
   X,
   Plus,
+  History,
 } from "lucide-react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { formatPrice } from "@/lib/helpers";
@@ -393,6 +395,12 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+          <Link href="/admin/integrations/pttavm/batches">
+            <Button variant="outline" size="sm" className="border-teal-200 text-teal-700 hover:bg-teal-50 gap-1">
+              <History className="w-4 h-4" />
+              İşlem Geçmişi
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
@@ -695,8 +703,10 @@ export function PttavmProductList({ initialProducts, pagination }: PttavmProduct
                             disabled={isPending}
                           />
                           <span className="text-[10px] text-muted-foreground">
-                            {product.isPttavmActive ? (
-                              <span className="text-teal-600 font-medium">Yayında</span>
+                            {product.pttavmStatus === "FAILED" ? (
+                              <span className="text-red-600 font-medium">Hata</span>
+                            ) : product.isPttavmActive ? (
+                              <span className="text-teal-600 font-medium">Senkronize</span>
                             ) : (
                               "Pasif"
                             )}

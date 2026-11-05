@@ -1563,3 +1563,19 @@ export async function checkCiceksepetiSendResult(productId: string): Promise<{ s
     return { success: false, message: "Gönderim sonucu alınamadı: " + (e?.message || "") };
   }
 }
+
+/** Sonucu beklenen Çiçeksepeti gönderimlerini sorgular (İşlem Geçmişi) */
+export async function syncCiceksepetiBatchStatuses() {
+  await requireAdmin();
+  const pending = await (prisma as any).ciceksepetiProduct.findMany({
+    where: {
+      AND: [{ batchRequestId: { not: null } }, { batchRequestId: { not: "SUCCESS" } }],
+      OR: [{ batchStatus: "PENDING" }, { batchStatus: null }],
+    },
+    select: { productId: true },
+    take: 50,
+  });
+  if (pending.length === 0) return { success: true, message: "Kontrol edilecek işlem yok." };
+  for (const p of pending) await checkCiceksepetiSendResult(p.productId);
+  return { success: true, message: `${pending.length} ürün kontrol edildi.` };
+}

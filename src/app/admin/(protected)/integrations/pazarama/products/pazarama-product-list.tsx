@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Link from "next/link";
 import { toast } from "sonner";
 import { pickVariantValue } from "@/lib/variant-value-match";
 import {
@@ -39,6 +40,7 @@ import {
   Plus,
   ShieldCheck,
   Building2,
+  History,
 } from "lucide-react";
 import { formatPrice } from "@/lib/helpers";
 
@@ -602,6 +604,13 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                 Stok/Fiyat Güncelle
               </Button>
 
+              <Link href="/admin/integrations/pazarama/batches">
+                <Button variant="outline" size="sm" className="border-pink-200 text-pink-700 hover:bg-pink-50 gap-1">
+                  <History className="w-4 h-4" />
+                  İşlem Geçmişi
+                </Button>
+              </Link>
+
               <Button
                 onClick={async () => {
                   if (!confirm("Pazarama'daki tüm onaylı ürünler çekilip kodu eşleşen ürünlerin durumu 'Onaylandı' yapılacak. Devam edilsin mi?")) return;
@@ -1117,7 +1126,7 @@ export function PazaramaProductList({ initialProducts, pagination }: PazaramaPro
                               >
                                 <Badge className="bg-pink-100 text-pink-700 border-pink-200 cursor-pointer hover:bg-pink-200">
                                   <Sparkles className="w-3 h-3 mr-1 text-pink-600" />
-                                  {product.pazaramaStatus || "Aktif"}
+                                  {product.pazaramaStatus || "Senkronize"}
                                 </Badge>
                               </button>
                             ) : null}

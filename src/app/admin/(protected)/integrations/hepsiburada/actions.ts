@@ -1126,21 +1126,11 @@ export async function sendProductToHepsiburada(
         console.log("📡 HB Product Upload Result:", JSON.stringify(result));
 
         // Tracking ID varsa 5 saniye sonra durumu kontrol et
-        let trackingStatus = null;
+        let trackingResult: ReturnType<typeof readHbProductStatus> = null;
         if (trackingId) {
             await new Promise(resolve => setTimeout(resolve, 5000));
             try {
-                const sitSuffix = (config.isTestMode ?? true) ? "-sit" : "";
-                const statusUrl = `https://mpop${sitSuffix}.hepsiburada.com/product/api/products/status/${trackingId}`;
-                const statusRes = await fetch(statusUrl, {
-                    headers: {
-                        "Authorization": `Basic ${Buffer.from(`${config.merchantId || config.username}:${config.password}`).toString("base64")}`,
-                        "User-Agent": "motovitrin_dev",
-                        "Accept": "application/json"
-                    }
-                });
-                trackingStatus = await statusRes.text();
-                console.log("📊 HB Product Tracking Status:", trackingStatus);
+                trackingResult = readHbProductStatus(await client.getProductStatus(String(trackingId)));
             } catch (e: any) {
                 console.log("⚠️ Tracking check failed:", e.message);
             }
@@ -1174,22 +1164,29 @@ export async function sendProductToHepsiburada(
             }
         }
 
+        const rejected = trackingResult?.batchStatus === "FAILED";
+        const batchFields = trackingId ? { batchRequestId: String(trackingId), batchStatus: trackingResult?.batchStatus || "PENDING" } : {};
         await (prisma as any).hepsiburadaProduct.upsert({
             where: { productId: product.id },
-            update: { 
-                isSynced: true, 
-                lastSyncedAt: new Date(), 
-                lastSyncError: null,
-            },
-            create: { 
-                productId: product.id, 
-                isSynced: true, 
+            update: {
+                isSynced: !rejected,
                 lastSyncedAt: new Date(),
+                lastSyncError: rejected ? trackingResult?.detail : null,
+                ...batchFields,
+            },
+            create: {
+                productId: product.id,
+                isSynced: !rejected,
+                lastSyncedAt: new Date(),
+                lastSyncError: rejected ? trackingResult?.detail : null,
                 merchantSku: product.sku || product.barcode || product.id,
+                ...batchFields,
             }
         });
 
-        return { 
+        if (rejected) return { success: false, message: `Hepsiburada reddetti: ${trackingResult?.detail}` };
+
+        return {  
             success: true, 
             message: `Ürün Hepsiburada'ya gönderildi${sentVariantCount > 0 ? ` (${sentVariantCount} varyant)` : ""}! ${trackingId ? `Tracking ID: ${trackingId}` : ""}` 
         };
@@ -1491,6 +1488,101 @@ export async function setBulkHepsiburadaProductCategory(productIds: string[], hb
  * Entegra veya HB panelinden eklenmiş ürünler HB'de olduğu halde listede "Bekliyor" görünüyordu.
  * Sadece eşleştirme kaydını düzeltir; ürünün "HB'de açık" ayarına dokunmaz.
  */
+const HB_STATUS_LABELS: Record<string, string> = {
+    WAITING: "İncelemede",
+    MISSING_INFO: "Ürün bilgileri eksik",
+    MATCHED: "Eşleşen (HB panelinde onay gerekir)",
+    PRE_MATCHED: "Ön katalog eşleşen",
+    MATCHED_WITH_STAGED: "Eşleşen",
+    REJECTED: "Reddedildi",
+    CREATED: "Oluşturuldu",
+};
+
+/** HB trackingId cevabını okur; durum alanı bulunamazsa null (kayıt olduğu gibi kalır) */
+function readHbProductStatus(body: any): { batchStatus: "SUCCESS" | "PENDING" | "FAILED"; detail: string } | null {
+    const data = body?.data;
+    const rows: any[] = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : Array.isArray(body?.content) ? body.content : data ? [data] : [];
+    const items = rows.filter((r) => r?.productStatus);
+    if (items.length === 0) return null;
+
+    const statuses = items.map((r) => String(r.productStatus).toUpperCase());
+    const reasons = items.flatMap((r) => r.validationResults || []).map((v: any) =>
+        typeof v === "string" ? v : [v?.attributeName, v?.message].filter(Boolean).join(": ")
+    ).filter(Boolean);
+    const labels = [...new Set(statuses)].map((st) => HB_STATUS_LABELS[st] || st).join(", ");
+    return {
+        batchStatus: statuses.some((st) => st === "REJECTED" || st === "MISSING_INFO") ? "FAILED" : statuses.every((st) => st === "CREATED") ? "SUCCESS" : "PENDING",
+        detail: [labels, ...reasons].join(" | ").slice(0, 900),
+    };
+}
+
+async function getHepsiburadaClient() {
+    const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
+    if (!config) return null;
+    return new HepsiburadaClient({
+        username: config.username,
+        password: config.password,
+        merchantId: config.merchantId || config.username,
+        isTestMode: config.isTestMode ?? true,
+    });
+}
+
+async function applyHbTrackingResult(trackingId: string, result: NonNullable<ReturnType<typeof readHbProductStatus>>) {
+    await (prisma as any).hepsiburadaProduct.updateMany({
+        where: { batchRequestId: trackingId },
+        data: {
+            batchStatus: result.batchStatus,
+            lastSyncError: result.batchStatus === "FAILED" ? result.detail : null,
+            ...(result.batchStatus === "PENDING" ? {} : { isSynced: result.batchStatus === "SUCCESS" }),
+        },
+    });
+}
+
+/** Tek ürünün son gönderiminin HB'deki sonucu (liste ve İşlem Geçmişi için) */
+export async function checkHepsiburadaProductStatus(productId: string) {
+    await requireAdmin();
+    try {
+        const link = await (prisma as any).hepsiburadaProduct.findUnique({ where: { productId } });
+        if (!link?.batchRequestId) return { success: false, message: "Bu ürün için kayıtlı bir Hepsiburada gönderim numarası yok." };
+        const client = await getHepsiburadaClient();
+        if (!client) return { success: false, message: "Aktif Hepsiburada entegrasyonu yok." };
+
+        const result = readHbProductStatus(await client.getProductStatus(link.batchRequestId));
+        if (!result) return { success: false, message: "Hepsiburada henüz durum bilgisi döndürmedi." };
+        await applyHbTrackingResult(link.batchRequestId, result);
+        return { success: true, message: `Hepsiburada: ${result.detail}`, batchStatus: result.batchStatus, error: result.batchStatus === "FAILED" ? result.detail : null };
+    } catch (error: any) {
+        return { success: false, message: "HB hatası: " + error.message };
+    }
+}
+
+/** Sonucu beklenen tüm HB gönderimlerini sorgular */
+export async function syncHepsiburadaBatchStatuses() {
+    await requireAdmin();
+    try {
+        const pending = await (prisma as any).hepsiburadaProduct.findMany({
+            where: { batchRequestId: { not: null }, batchStatus: "PENDING" },
+            select: { batchRequestId: true },
+            take: 100,
+        });
+        if (pending.length === 0) return { success: true, message: "Kontrol edilecek işlem yok." };
+        const client = await getHepsiburadaClient();
+        if (!client) return { success: false, message: "Aktif Hepsiburada entegrasyonu yok." };
+
+        let updated = 0;
+        for (const trackingId of new Set<string>(pending.map((p: any) => p.batchRequestId))) {
+            const result = await client.getProductStatus(trackingId).then(readHbProductStatus).catch(() => null);
+            if (!result) continue;
+            await applyHbTrackingResult(trackingId, result);
+            updated++;
+        }
+        revalidatePath("/admin/integrations/hepsiburada/products");
+        return { success: true, message: `${updated} işlem güncellendi.` };
+    } catch (error: any) {
+        return { success: false, message: "HB hatası: " + error.message };
+    }
+}
+
 export async function matchHepsiburadaListings() {
     await requireAdmin();
     try {
@@ -1527,7 +1619,7 @@ export async function matchHepsiburadaListings() {
             select: {
                 id: true, sku: true, barcode: true, isActive: true, isHepsiburadaActive: true,
                 variants: { select: { sku: true, barcode: true } },
-                hepsiburadaProduct: { select: { isSynced: true, merchantSku: true } },
+                hepsiburadaProduct: { select: { isSynced: true, merchantSku: true, batchStatus: true } },
             },
         });
 
@@ -1545,7 +1637,14 @@ export async function matchHepsiburadaListings() {
             const hit = hits[0];
             if (!hit) continue;
             if (hits.some((c) => liveSkus.has(c)) && !(p.isActive && p.isHepsiburadaActive)) liveButClosed.push(p.sku || hit);
-            if (p.hepsiburadaProduct?.isSynced) { alreadySynced++; continue; }
+            if (p.hepsiburadaProduct?.isSynced) {
+                // HB'de ilanı bulundu: gönderim sonucu beklemeye gerek kalmadı
+                if (p.hepsiburadaProduct.batchStatus === "PENDING") {
+                    await (prisma as any).hepsiburadaProduct.update({ where: { productId: p.id }, data: { batchStatus: "SUCCESS" } });
+                }
+                alreadySynced++;
+                continue;
+            }
             await (prisma as any).hepsiburadaProduct.upsert({
                 where: { productId: p.id },
                 update: { isSynced: true, hbSku: hbSkuMap.get(hit), merchantSku: hit, lastSyncError: null, lastSyncedAt: new Date() },
@@ -1557,7 +1656,7 @@ export async function matchHepsiburadaListings() {
         revalidatePath("/admin/integrations/hepsiburada/products");
         return {
             success: true,
-            message: `HB'de ${hbSkuMap.size} ilan bulundu. ${matched} ürün eşleştirilip "Aktif" işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten eşleşmişti` : ""}.` +
+            message: `HB'de ${hbSkuMap.size} ilan bulundu. ${matched} ürün eşleştirilip "Senkronize" işaretlendi${alreadySynced ? `, ${alreadySynced} ürün zaten eşleşmişti` : ""}.` +
                 formatListingReport([...liveSkus].filter((s) => !matchedRemote.has(s)), liveButClosed, stockKnown),
         };
     } catch (error: any) {

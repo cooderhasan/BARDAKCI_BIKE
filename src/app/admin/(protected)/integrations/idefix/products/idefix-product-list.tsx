@@ -29,8 +29,10 @@ import {
   Save,
   X,
   Plus,
+  History,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import Link from "next/link";
 import { toast } from "sonner";
 import { pickVariantValue, sameVariantValue } from "@/lib/variant-value-match";
 import { getProductOperators } from "@/app/admin/(protected)/brands/actions";
@@ -506,7 +508,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
     if (!idefixProduct) {
       return (
         <Badge variant="outline" className="text-gray-500 border-gray-200 text-xs">
-          Gonderilmedi
+          Gönderilmedi
         </Badge>
       );
     }
@@ -514,7 +516,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
       return (
         <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
           <Clock className="w-3 h-3 mr-1" />
-          Beklemede
+          Onay Bekliyor
         </Badge>
       );
     }
@@ -536,7 +538,7 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
     }
     return (
       <Badge variant="outline" className="text-gray-500 border-gray-200 text-xs">
-        Bekliyor
+        Gönderilmedi
       </Badge>
     );
   };
@@ -594,6 +596,13 @@ export function IdefixProductList({ initialProducts, pagination }: IdefixProduct
           <Tag className="w-4 h-4 text-purple-600" />
           <span>Toplu Kategori Ata ({selectedIds.length})</span>
         </Button>
+
+        <Link href="/admin/integrations/idefix/batches">
+          <Button variant="outline" size="sm" className="border-purple-200 text-purple-700 hover:bg-purple-50 gap-1">
+            <History className="w-4 h-4" />
+            İşlem Geçmişi
+          </Button>
+        </Link>
 
         <Button
           variant="outline"

@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MarketplacePagination } from "@/components/admin/marketplace-pagination";
 import { 
     Table, 
@@ -17,10 +18,12 @@ import { HbCategoryPicker } from "@/components/admin/hb-category-picker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-    Search, 
-    Send, 
-    RefreshCcw, 
+    Send,
+    RefreshCcw,
     AlertCircle,
+    XCircle,
+    Clock,
+    History,
     CheckCircle2,
     Box,
     Link2,
@@ -44,7 +47,8 @@ import {
     syncProductsToHepsiburada,
     setHepsiburadaProductCategory,
     setBulkHepsiburadaProductCategory,
-    matchHepsiburadaListings
+    matchHepsiburadaListings,
+    checkHepsiburadaProductStatus,
 } from "../actions";
 import {
     Dialog,
@@ -164,7 +168,6 @@ interface HepsiburadaProductListProps {
 
 export function HepsiburadaProductList({ initialProducts, pagination }: HepsiburadaProductListProps) {
     const router = useRouter();
-    const [search, setSearch] = useState("");
     const [products, setProducts] = useState(initialProducts);
 
     useEffect(() => {
@@ -174,9 +177,9 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
     const [syncing, setSyncing] = useState(false);
     const [matching, setMatching] = useState(false);
 
-    // HB'de olup listede "Bekliyor" görünen ürünleri (Entegra/HB panelinden eklenmiş) stok koduyla eşleştirir
+    // HB'de olup listede "Gönderilmedi" görünen ürünleri (Entegra/HB panelinden eklenmiş) stok koduyla eşleştirir
     const handleMatchListings = async () => {
-        if (!confirm("HB'deki tüm ilanlar çekilip stok kodu eşleşen ürünler 'Aktif' işaretlenecek. Bu işlem 1-2 dakika sürebilir. Devam edilsin mi?")) return;
+        if (!confirm("HB'deki tüm ilanlar çekilip stok kodu eşleşen ürünler 'Senkronize' işaretlenecek. Bu işlem 1-2 dakika sürebilir. Devam edilsin mi?")) return;
         setMatching(true);
         try {
             const res = await matchHepsiburadaListings();
@@ -187,6 +190,19 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
         }
     };
     
+    const [checkingId, setCheckingId] = useState<string | null>(null);
+    const handleCheckStatus = async (productId: string) => {
+        setCheckingId(productId);
+        try {
+            const res = await checkHepsiburadaProductStatus(productId);
+            if (res.success) toast.success(res.message, { duration: 15000 });
+            else toast.error(res.message, { duration: 15000 });
+            router.refresh();
+        } finally {
+            setCheckingId(null);
+        }
+    };
+
     const [showAttrModal, setShowAttrModal] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [hbSku, setHbSku] = useState("");
@@ -198,12 +214,6 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
     // Varyant ID -> { HB varyant özellik ID -> değer }; özellik ID -> HB listesindeki değerler (öneri)
     const [variantValues, setVariantValues] = useState<Record<string, Record<string, string>>>({});
     const [variantOptions, setVariantOptions] = useState<Record<string, string[]>>({});
-
-    const filteredProducts = pagination ? products : products.filter(p => 
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(search.toLowerCase()) ||
-        p.barcode?.toLowerCase().includes(search.toLowerCase())
-    );
 
     const handleBulkSync = async () => {
         setSyncing(true);
@@ -445,17 +455,16 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                 />
             ) : null}
 
-            <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="HB ürünlerini ara..." 
-                        className="pl-10 border-none bg-gray-50 dark:bg-gray-800/50 focus-visible:ring-blue-500"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4 bg-white dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <Link href="/admin/integrations/hepsiburada/batches">
+                        <Button variant="outline" className="border-blue-200 text-[#17457C] hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm">
+                            <History className="w-4 h-4" />
+                            <span className="hidden sm:inline">İşlem Geçmişi (Batch İzle)</span>
+                            <span className="sm:hidden">Geçmiş</span>
+                        </Button>
+                    </Link>
+
                     <Button
                         variant="outline"
                         onClick={() => setBulkCatModalOpen(!bulkCatModalOpen)}
@@ -471,7 +480,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                         disabled={matching}
                         variant="outline"
                         className="border-blue-200 text-[#17457C] hover:bg-blue-50 gap-2 h-10 px-4 rounded-xl shadow-sm"
-                        title="HB'de olup listede 'Bekliyor' görünen ürünleri stok koduyla eşleştirir"
+                        title="HB'de olup listede 'Gönderilmedi' görünen ürünleri stok koduyla eşleştirir"
                     >
                         <RefreshCcw className={`w-4 h-4 ${matching ? "animate-spin" : ""}`} />
                         {matching ? "Eşleştiriliyor..." : "HB ile Eşleştir"}
@@ -551,10 +560,10 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                         <TableRow>
                             <TableHead className="w-[40px]">
                                 <Checkbox
-                                    checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
+                                    checked={selectedIds.length === products.length && products.length > 0}
                                     onCheckedChange={(checked) => {
                                         if (checked) {
-                                            setSelectedIds(filteredProducts.map((p) => p.id));
+                                            setSelectedIds(products.map((p) => p.id));
                                         } else {
                                             setSelectedIds([]);
                                         }
@@ -570,7 +579,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredProducts.map((product) => {
+                        {products.map((product) => {
                             const isSynced = !!product.hepsiburadaProduct?.isSynced;
                             const mappedCat = product.categories.find((c: any) => c.hbCategoryId !== null && c.hbCategoryId !== undefined);
                             const hasCat = product.hepsiburadaProduct?.hbCategoryId || mappedCat;
@@ -705,16 +714,37 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        {isSynced ? (
+                                        {product.hepsiburadaProduct?.lastSyncError ? (
+                                            <div className="flex items-center gap-1" title={product.hepsiburadaProduct.lastSyncError}>
+                                                <XCircle className="w-4 h-4 text-red-500" />
+                                                <span className="text-xs text-red-600 font-medium">Hata</span>
+                                            </div>
+                                        ) : product.hepsiburadaProduct?.batchStatus === "PENDING" ? (
+                                            <div className="flex items-center gap-1">
+                                                <Clock className="w-4 h-4 text-amber-500" />
+                                                <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Onay Bekliyor</span>
+                                            </div>
+                                        ) : isSynced ? (
                                             <div className="flex items-center gap-1">
                                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                                <span className="text-[10px] text-green-700 dark:text-green-400 font-medium">Aktif</span>
+                                                <span className="text-xs text-green-700 dark:text-green-400 font-medium">Senkronize</span>
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-1">
                                                 <AlertCircle className="w-4 h-4 text-amber-500" />
-                                                <span className="text-[10px] text-amber-700 dark:text-amber-400">Bekliyor</span>
+                                                <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Gönderilmedi</span>
                                             </div>
+                                        )}
+                                        {product.hepsiburadaProduct?.batchRequestId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCheckStatus(product.id)}
+                                                disabled={checkingId === product.id}
+                                                className="mt-1 block text-[10px] text-blue-600 underline hover:text-blue-800 disabled:opacity-50"
+                                                title="Son gönderimin Hepsiburada'daki sonucunu getirir"
+                                            >
+                                                {checkingId === product.id ? "Sorgulanıyor..." : "Durum Sorgula"}
+                                            </button>
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right">

@@ -1495,3 +1495,11 @@ export async function matchPazaramaApprovedProducts() {
     return { success: false, message: "Pazarama hatası: " + error.message };
   }
 }
+
+/** İşleniyor görünen Pazarama gönderimlerini sorgular (İşlem Geçmişi) */
+export async function syncPazaramaBatchStatuses() {
+  await requireAdmin();
+  const res = await resolvePendingPazaramaStatuses();
+  if (!res.checked) return { success: true, message: "Kontrol edilecek işlem yok." };
+  return { success: true, message: `${res.checked} ürün kontrol edildi, ${res.updated ?? 0} güncellendi.` };
+}

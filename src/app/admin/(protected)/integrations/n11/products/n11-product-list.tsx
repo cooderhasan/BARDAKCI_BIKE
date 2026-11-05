@@ -712,18 +712,22 @@ export function N11ProductList({ initialProducts, pagination }: N11ProductListPr
                                     </TableCell>
                                     <TableCell>
                                         {isSynced ? (
-                                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                            <div className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                                Senkronize
+                                            </div>
                                         ) : (
                                             <button
                                                 type="button"
                                                 onClick={() => handleVerify(product.id)}
                                                 disabled={verifyingId === product.id}
-                                                className="p-1 -m-1 rounded hover:bg-amber-50"
+                                                className="flex items-center gap-1 text-amber-500 text-xs font-medium hover:underline"
                                                 title={`${product.n11Product?.lastSyncError || "N11'de senkron değil"} — N11'de kontrol etmek için tıklayın`}
                                             >
                                                 {verifyingId === product.id
                                                     ? <RefreshCcw className="w-4 h-4 text-amber-500 animate-spin" />
                                                     : <AlertCircle className="w-4 h-4 text-amber-500" />}
+                                                Gönderilmedi
                                             </button>
                                         )}
                                     </TableCell>

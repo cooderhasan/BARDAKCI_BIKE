@@ -736,6 +736,8 @@ model HepsiburadaProduct {
   hbSku          String?  // Hepsiburada SKU
   merchantSku    String?  // Our SKU
   hbCategoryId   String?  // Ürüne özel Hepsiburada Kategori ID (site kategorisinden bağımsız)
+  batchRequestId String?  // Son ürün gönderiminin HB trackingId'si
+  batchStatus    String?  // PENDING, SUCCESS, FAILED
 
   isSynced       Boolean  @default(false)
   lastSyncError  String?

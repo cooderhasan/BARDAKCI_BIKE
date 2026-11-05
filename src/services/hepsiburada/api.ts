@@ -428,6 +428,33 @@ export class HepsiburadaClient {
      * SIT: POST https://mpop-sit.hepsiburada.com/product/api/products/import
      * PROD: POST https://mpop.hepsiburada.com/product/api/products/import
      */
+    async getProductStatus(trackingId: string) {
+        await this.init();
+
+        const sitSuffix = this.isTestMode ? "-sit" : "";
+        const url = `https://mpop${sitSuffix}.hepsiburada.com/product/api/products/status/${trackingId}`;
+        const response = await fetch(url, {
+            headers: {
+                "Authorization": this.getAuthHeader(),
+                "User-Agent": this.userAgent,
+                "Accept": "application/json",
+            },
+        });
+
+        const responseText = await response.text();
+        console.log(`📊 HB Product Status (${response.status}):`, responseText.substring(0, 500));
+
+        if (!response.ok) {
+            throw new Error(`HB Product Status Error (${response.status}): ${responseText.substring(0, 200)}`);
+        }
+
+        try {
+            return JSON.parse(responseText);
+        } catch {
+            return { raw: responseText };
+        }
+    }
+
     async createProduct(items: any[]) {
         await this.init();
         

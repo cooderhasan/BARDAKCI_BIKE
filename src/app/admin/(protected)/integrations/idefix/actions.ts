@@ -1569,3 +1569,16 @@ export async function matchIdefixProducts() {
     return { success: false, message: "Idefix hatası: " + error.message };
   }
 }
+
+/** Onayı beklenen Idefix gönderimlerini sorgular (İşlem Geçmişi) */
+export async function syncIdefixBatchStatuses() {
+  await requireAdmin();
+  const pending = await (prisma as any).idefixProduct.findMany({
+    where: { batchId: { not: null }, batchStatus: "PENDING" },
+    select: { productId: true },
+    take: 50,
+  });
+  if (pending.length === 0) return { success: true, message: "Kontrol edilecek işlem yok." };
+  for (const p of pending) await checkIdefixBatchStatus(p.productId);
+  return { success: true, message: `${pending.length} ürün kontrol edildi.` };
+}
