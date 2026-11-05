@@ -1186,6 +1186,12 @@ export async function sendProductToHepsiburada(
 
         if (rejected) return { success: false, message: `Hepsiburada reddetti: ${trackingResult?.detail}` };
 
+        // Ürünü pazaryerinde aktif olarak işaretle (Trendyol ile aynı); tik kapalıyken stok senkronu HB'ye stok 0 gönderir
+        await prisma.product.update({
+            where: { id: product.id },
+            data: { isHepsiburadaActive: true }
+        });
+
         return {  
             success: true, 
             message: `Ürün Hepsiburada'ya gönderildi${sentVariantCount > 0 ? ` (${sentVariantCount} varyant)` : ""}! ${trackingId ? `Tracking ID: ${trackingId}` : ""}` 

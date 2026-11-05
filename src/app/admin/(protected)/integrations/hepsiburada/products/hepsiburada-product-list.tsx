@@ -762,6 +762,7 @@ export function HepsiburadaProductList({ initialProducts, pagination }: Hepsibur
                                                         title="Bu ürünün stok ve fiyatını Hepsiburada'ya gönder"
                                                         disabled={loadingProductId === product.id}
                                                         onClick={async () => {
+                                                            if (!product.isHepsiburadaActive && !confirm("Bu ürünün Hepsiburada tiki kapalı. Devam ederseniz Hepsiburada'ya stok 0 gider ve ürün satışa kapanır. Devam edilsin mi?")) return;
                                                             setLoadingProductId(product.id);
                                                             try {
                                                                 const res = await syncProductsToHepsiburada([product.id]);
