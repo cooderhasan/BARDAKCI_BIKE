@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { productSchema } from "@/lib/validations";
 import { generateSlug } from "@/lib/helpers";
+import { findProductCodeConflict } from "@/lib/product-code-check";
 import { syncProductsToTrendyol } from "../integrations/trendyol/actions";
 import { syncProductsToN11 } from "../integrations/n11/actions";
 import { syncProductsToHepsiburada } from "../integrations/hepsiburada/actions";
@@ -41,8 +42,8 @@ export async function createProduct(formData: FormData) {
         const rawData = {
             name: formData.get("name") as string,
             slug: uniqueSlug,
-            sku: (formData.get("sku") as string) || undefined,
-            barcode: (formData.get("barcode") as string) || undefined,
+            sku: ((formData.get("sku") as string) || "").trim() || undefined,
+            barcode: ((formData.get("barcode") as string) || "").trim() || undefined,
             brandId: (formData.get("brandId") as string) === "none" ? undefined : (formData.get("brandId") as string) || undefined,
             origin: (formData.get("origin") as string) || undefined,
             description: formData.get("description") as string || undefined,
@@ -105,7 +106,14 @@ export async function createProduct(formData: FormData) {
 
         // Parse variants from JSON string
         const variantsJson = formData.get("variants") as string;
-        const variants = variantsJson ? JSON.parse(variantsJson) : [];
+        const variants = (variantsJson ? JSON.parse(variantsJson) : []).map((v: VariantInput) => ({
+            ...v,
+            sku: v.sku?.trim(),
+            barcode: v.barcode?.trim(),
+        }));
+
+        const codeConflict = await findProductCodeConflict({ sku: validatedData.sku, barcode: validatedData.barcode, variants });
+        if (codeConflict) return { success: false, error: codeConflict };
 
         // Destructure relation fields from validated data
         const { brandId, categoryIds: validCategoryIds, ...productData } = validatedData;
@@ -273,11 +281,17 @@ export async function updateProduct(productId: string, formData: FormData) {
             }
         }
 
+        // Yeni yazılan kodun boşlukları temizlenir; değişmeyen eski koda dokunulmaz (pazaryeri eşleşmesi bozulmasın)
+        const newCode = (value: unknown, oldValue?: string | null) => {
+            const code = (value as string) || "";
+            return code === oldValue ? code : code.trim();
+        };
+
         const rawData = {
             name: formData.get("name") as string,
             slug: updateSlug,
-            sku: (formData.get("sku") as string) || undefined,
-            barcode: (formData.get("barcode") as string) || undefined,
+            sku: newCode(formData.get("sku"), oldProduct?.sku) || undefined,
+            barcode: newCode(formData.get("barcode"), oldProduct?.barcode) || undefined,
             brandId: (formData.get("brandId") as string) === "none" ? undefined : (formData.get("brandId") as string) || undefined,
             origin: (formData.get("origin") as string) || undefined,
             description: formData.get("description") as string || undefined,
@@ -340,7 +354,14 @@ export async function updateProduct(productId: string, formData: FormData) {
 
         // Parse variants from JSON string
         const variantsJson = formData.get("variants") as string;
-        const variants = variantsJson ? JSON.parse(variantsJson) : [];
+        const oldVariants = await prisma.productVariant.findMany({ where: { productId }, select: { id: true, sku: true, barcode: true } });
+        const variants = (variantsJson ? JSON.parse(variantsJson) : []).map((v: VariantInput) => {
+            const oldVariant = oldVariants.find((o) => o.id === v.id);
+            return { ...v, sku: newCode(v.sku, oldVariant?.sku), barcode: newCode(v.barcode, oldVariant?.barcode) };
+        });
+
+        const codeConflict = await findProductCodeConflict({ productId, sku: validatedData.sku, barcode: validatedData.barcode, variants });
+        if (codeConflict) return { success: false, error: codeConflict };
 
         // Extract relation IDs and remove from validatedData for update
         const { brandId, categoryIds: validIds, ...updateData } = validatedData;
