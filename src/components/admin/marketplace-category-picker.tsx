@@ -209,11 +209,11 @@ export function MarketplaceCategoryPicker({
                     title={c.leaf ? "" : "Üst kategori: ürün açılamaz, alt kategorisini seçin"}
                 >
                     <span className="flex flex-col">
-                        <span className="text-xs font-medium">{c.name}</span>
-                        {c.path && <span className="text-[10px] italic text-gray-400 line-clamp-1">{c.path}</span>}
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">{c.name}</span>
+                        {c.path && <span className="text-xs font-medium text-gray-600 line-clamp-1 dark:text-gray-300">{c.path}</span>}
                         {!c.leaf && <span className="text-[10px] text-red-500">Üst kategori — alt kategorisini seçin</span>}
                     </span>
-                    <span className="shrink-0 font-mono text-[10px] text-orange-600">#{c.id}</span>
+                    <span className="shrink-0 font-mono text-xs font-medium text-orange-700">#{c.id}</span>
                 </button>
             ))}
         </div>
