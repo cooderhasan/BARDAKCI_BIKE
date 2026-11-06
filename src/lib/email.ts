@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { OrderConfirmationEmail } from '@/emails/order-confirmation';
 import { AdminNewOrderEmail } from '@/emails/admin-new-order';
+import { orderBrand } from '@/emails/order-email-shared';
 import { ShippingNotificationEmail } from '@/emails/shipping-notification';
 import { AbandonedCartNotificationEmail } from '@/emails/abandoned-cart-notification';
 import { InvoiceNotificationEmail } from '@/emails/invoice-notification';
@@ -41,6 +42,8 @@ interface SendOrderConfirmationProps {
     cargoCompany?: string;
     shippingCost?: number;
     source?: string;
+    store?: "BIKE" | "MOTOR";
+    orderId?: string;
 }
 
 interface SendAdminNewOrderProps {
@@ -50,6 +53,17 @@ interface SendAdminNewOrderProps {
     totalAmount: number;
     orderId: string;
     cargoCompany?: string;
+    store?: "BIKE" | "MOTOR";
+    paymentMethod?: "BANK_TRANSFER" | "CREDIT_CARD" | "CURRENT_ACCOUNT";
+    shippingAddress?: {
+        address: string;
+        city: string;
+        district?: string;
+        phone?: string;
+    };
+    customerEmail?: string;
+    isGuest?: boolean;
+    shippingCost?: number;
     items: {
         productName: string;
         quantity: number;
@@ -105,8 +119,11 @@ export async function sendOrderConfirmationEmail(props: SendOrderConfirmationPro
             }
         }
 
+        const store = props.store || "BIKE";
+        const storeSettings = await getStoreSettings(store).catch(() => null);
+
         const { data, error } = await resend.emails.send({
-            from: 'Sipariş <siparis@bardakcibike.com.tr>',
+            from: `${orderBrand(store).name} <siparis@bardakcibike.com.tr>`,
             to: [props.to],
             subject: `Siparişiniz Alındı - #${props.orderNumber}`,
             react: OrderConfirmationEmail({
@@ -116,6 +133,14 @@ export async function sendOrderConfirmationEmail(props: SendOrderConfirmationPro
                 totalAmount: props.totalAmount,
                 paymentMethod: props.paymentMethod,
                 bankInfo: props.bankInfo,
+                store,
+                orderUrl: props.orderId ? `${getStoreSiteUrl(store)}/orders/${props.orderId}` : undefined,
+                shippingAddress: props.shippingAddress,
+                cargoCompany: props.cargoCompany,
+                shippingCost: props.shippingCost,
+                contactPhone: storeSettings?.phone,
+                contactEmail: storeSettings?.email,
+                hasContracts: !!attachments?.length,
             }),
             attachments: attachments && attachments.length > 0 ? attachments : undefined,
         });
@@ -144,10 +169,12 @@ export async function sendAdminNewOrderEmail(props: SendAdminNewOrderProps) {
     }
 
     try {
+        const store = props.store || "BIKE";
+
         const { data, error } = await resend.emails.send({
             from: 'Sipariş Bildirim <siparis@bardakcibike.com.tr>',
             to: [ADMIN_EMAIL],
-            subject: `Yeni Sipariş: #${props.orderNumber} - ${props.companyName}`,
+            subject: `Yeni Sipariş: #${props.orderNumber} - ${props.companyName} (${orderBrand(store).name})`,
             react: AdminNewOrderEmail({
                 orderNumber: props.orderNumber,
                 orderId: props.orderId,
@@ -155,6 +182,13 @@ export async function sendAdminNewOrderEmail(props: SendAdminNewOrderProps) {
                 companyName: props.companyName,
                 totalAmount: props.totalAmount,
                 items: props.items,
+                store,
+                paymentMethod: props.paymentMethod,
+                shippingAddress: props.shippingAddress,
+                customerEmail: props.customerEmail,
+                isGuest: props.isGuest,
+                cargoCompany: props.cargoCompany,
+                shippingCost: props.shippingCost,
             }),
         });
 

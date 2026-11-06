@@ -1,42 +1,64 @@
-
-import {
-    Body,
-    Container,
-    Head,
-    Heading,
-    Hr,
-    Html,
-    Preview,
-    Section,
-    Text,
-    Tailwind,
-    Row,
-    Column,
-} from "@react-email/components";
+import { Body, Button, Column, Container, Head, Hr, Html, Preview, Row, Section, Text } from "@react-email/components";
 import * as React from "react";
-import { formatPrice } from "@/lib/helpers"; // Assuming helpers are available or I'll inline formatPrice
-
-// Define interfaces locally to avoid import issues in email templates sometimes
-interface OrderItem {
-    productName: string;
-    quantity: number;
-    unitPrice: number; // or Decimal converted
-    lineTotal: number;
-    variantInfo?: string;
-}
+import {
+    FONT,
+    INK,
+    LINE,
+    MUTED,
+    OrderEmailItem,
+    OrderEmailPaymentMethod,
+    OrderEmailStore,
+    OrderItemRows,
+    OrderTotals,
+    SOFT,
+    SectionTitle,
+    orderBrand,
+} from "./order-email-shared";
 
 interface OrderConfirmationEmailProps {
     orderNumber: string;
     customerName: string;
-    items: OrderItem[];
+    items: OrderEmailItem[];
     totalAmount: number;
-    paymentMethod: "BANK_TRANSFER" | "CREDIT_CARD" | "CURRENT_ACCOUNT";
+    paymentMethod: OrderEmailPaymentMethod;
     bankInfo?: {
         bankName: string;
         iban: string;
         accountHolder: string;
     };
+    store?: OrderEmailStore;
+    /** Sipariş takip sayfası; yoksa düğme çıkmaz */
+    orderUrl?: string;
+    shippingAddress?: {
+        address: string;
+        city: string;
+        district?: string;
+        phone?: string;
+    };
+    cargoCompany?: string;
+    shippingCost?: number;
+    contactPhone?: string;
+    contactEmail?: string;
+    hasContracts?: boolean;
 }
+
+const PAYMENT_TEXT: Record<OrderEmailPaymentMethod, { label: string; intro: string; next: string }> = {
+    CREDIT_CARD: {
+        label: "Kredi Kartı (ödeme alındı)",
+        intro: "Ödemeniz alındı, siparişiniz hazırlanıyor.",
+        next: "Siparişinizi hazırlayıp kargoya vereceğiz.",
+    },
+    BANK_TRANSFER: {
+        label: "Havale / EFT (ödeme bekleniyor)",
+        intro: "Siparişiniz oluşturuldu. Ödemeniz bize ulaştığında hazırlamaya başlayacağız.",
+        next: "Ödemeniz ulaştığında siparişinizi hazırlayıp kargoya vereceğiz.",
+    },
+    CURRENT_ACCOUNT: {
+        label: "Cari Hesap",
+        intro: "Siparişiniz cari hesabınıza işlendi, hazırlanıyor.",
+        next: "Siparişinizi hazırlayıp kargoya vereceğiz.",
+    },
+};
 
 export const OrderConfirmationEmail = ({
     orderNumber,
@@ -45,85 +67,117 @@ export const OrderConfirmationEmail = ({
     totalAmount,
     paymentMethod,
     bankInfo,
+    store = "BIKE",
+    orderUrl,
+    shippingAddress,
+    cargoCompany,
+    shippingCost,
+    contactPhone,
+    contactEmail,
+    hasContracts,
 }: OrderConfirmationEmailProps) => {
-    const previewText = `Siparişiniz Alındı - #${orderNumber}`;
+    const brand = orderBrand(store);
+    const payment = PAYMENT_TEXT[paymentMethod] || PAYMENT_TEXT.CREDIT_CARD;
+    const location = [shippingAddress?.district, shippingAddress?.city].filter(Boolean).join(" / ");
+    const textStyle = { margin: 0, fontSize: "14px", lineHeight: "22px", color: INK, fontFamily: FONT };
 
     return (
-        <Html>
+        <Html lang="tr">
             <Head />
-            <Preview>{previewText}</Preview>
-            <Tailwind>
-                <Body className="bg-white my-auto mx-auto font-sans">
-                    <Container className="border border-solid border-[#eaeaea] rounded my-[40px] mx-auto p-[20px] w-[465px]">
-                        <Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
-                            Siparişiniz Alındı
-                        </Heading>
-                        <Text className="text-black text-[14px] leading-[24px]">
-                            Merhaba <strong>{customerName}</strong>,
+            <Preview>{`Siparişiniz alındı - #${orderNumber}`}</Preview>
+            <Body style={{ margin: 0, padding: "24px 12px", backgroundColor: "#f3f4f6", fontFamily: FONT }}>
+                <Container style={{ maxWidth: "560px", backgroundColor: "#ffffff", borderRadius: "10px", border: `1px solid ${LINE}`, overflow: "hidden" }}>
+                    <Section style={{ backgroundColor: brand.color, padding: "18px 28px" }}>
+                        <Text style={{ margin: 0, fontSize: "20px", lineHeight: "26px", fontWeight: 800, color: "#ffffff", fontFamily: FONT }}>{brand.name}</Text>
+                    </Section>
+
+                    <Section style={{ padding: "26px 28px 6px" }}>
+                        <Text style={{ margin: "0 0 6px", fontSize: "22px", lineHeight: "28px", fontWeight: 700, color: INK, fontFamily: FONT }}>Siparişiniz alındı</Text>
+                        <Text style={textStyle}>Merhaba {customerName},<br />{payment.intro}</Text>
+                        <Text style={{ margin: "12px 0 0", fontSize: "13px", lineHeight: "20px", color: MUTED, fontFamily: FONT }}>
+                            Sipariş numaranız: <strong style={{ color: INK }}>#{orderNumber}</strong>
                         </Text>
-                        <Text className="text-black text-[14px] leading-[24px]">
-                            <strong>#{orderNumber}</strong> numaralı siparişiniz başarıyla oluşturuldu.
-                            Sipariş detaylarınızı aşağıda bulabilirsiniz.
-                        </Text>
+                    </Section>
 
-                        <Section className="mt-[32px] mb-[32px]">
-                            {items.map((item, index) => (
-                                <Row key={index} className="border-b border-gray-200 pb-2 mb-2">
-                                    <Column>
-                                        <Text className="m-0 text-sm font-semibold">{item.productName}</Text>
-                                        {item.variantInfo && (
-                                            <Text className="m-0 text-xs text-gray-500 italic">Varyant: {item.variantInfo}</Text>
-                                        )}
-                                        <Text className="m-0 text-xs text-gray-500">
-                                            {item.quantity} adet x {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(item.unitPrice)}
-                                        </Text>
-                                    </Column>
-                                    <Column align="right">
-                                        <Text className="m-0 text-sm font-semibold">
-                                            {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(item.lineTotal)}
-                                        </Text>
-                                    </Column>
-                                </Row>
-                            ))}
-                        </Section>
-
-                        <Hr className="border border-solid border-[#eaeaea] my-[26px] mx-0 w-full" />
-
-                        <Section>
-                            <Row>
-                                <Column>
-                                    <Text className="text-[16px] font-bold m-0">Toplam Tutar:</Text>
-                                </Column>
-                                <Column align="right">
-                                    <Text className="text-[20px] font-bold m-0 text-green-600">
-                                        {new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(totalAmount)}
-                                    </Text>
-                                </Column>
-                            </Row>
-                        </Section>
-
-                        <Hr className="border border-solid border-[#eaeaea] my-[26px] mx-0 w-full" />
-
-                        {paymentMethod === "BANK_TRANSFER" && bankInfo && (
-                            <Section className="bg-gray-50 p-4 rounded text-center border border-gray-200">
-                                <Text className="text-sm font-bold m-0 mb-2">Havale/EFT Bilgileri</Text>
-                                <Text className="text-sm m-0">{bankInfo.bankName}</Text>
-                                <Text className="text-sm m-0 font-medium">{bankInfo.accountHolder}</Text>
-                                <Text className="text-sm m-0 font-mono select-all bg-white p-1 rounded border border-gray-200 mt-1">
-                                    {bankInfo.iban}
-                                </Text>
-                                <Text className="text-xs text-gray-500 mt-2">
-                                    Lütfen açıklama kısmına <strong>#{orderNumber}</strong> yazmayı unutmayınız.
+                    {paymentMethod === "BANK_TRANSFER" && bankInfo && (
+                        <Section style={{ padding: "16px 28px 0" }}>
+                            <Section style={{ backgroundColor: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "14px 16px" }}>
+                                <Text style={{ margin: "0 0 6px", fontSize: "14px", lineHeight: "20px", fontWeight: 700, color: INK, fontFamily: FONT }}>Havale / EFT bilgileri</Text>
+                                <Text style={textStyle}>{bankInfo.bankName}</Text>
+                                <Text style={textStyle}>{bankInfo.accountHolder}</Text>
+                                <Text style={{ ...textStyle, fontWeight: 700, letterSpacing: "0.3px" }}>{bankInfo.iban}</Text>
+                                <Text style={{ margin: "6px 0 0", fontSize: "12px", lineHeight: "18px", color: MUTED, fontFamily: FONT }}>
+                                    Açıklama kısmına <strong style={{ color: INK }}>#{orderNumber}</strong> yazmayı unutmayın.
                                 </Text>
                             </Section>
-                        )}
+                        </Section>
+                    )}
 
-                        <Text className="text-[#666666] text-[12px] leading-[24px] mt-8 text-center">
-                            Bu e-posta otomatik olarak gönderilmiştir.
-                        </Text>
-                    </Container>
-                </Body>
-            </Tailwind>
+                    <Section style={{ padding: "22px 28px 0" }}>
+                        <SectionTitle>Sipariş özeti</SectionTitle>
+                        <OrderItemRows items={items} />
+                        <OrderTotals items={items} totalAmount={totalAmount} shippingCost={shippingCost} accent={brand.color} />
+                    </Section>
+
+                    <Section style={{ padding: "22px 28px 0" }}>
+                        <Row>
+                            {shippingAddress && (
+                                <Column style={{ width: "55%", verticalAlign: "top", paddingRight: "12px" }}>
+                                    <SectionTitle>Teslimat adresi</SectionTitle>
+                                    <Text style={textStyle}>{customerName}</Text>
+                                    <Text style={textStyle}>{shippingAddress.address}</Text>
+                                    {location && <Text style={textStyle}>{location}</Text>}
+                                    {shippingAddress.phone && <Text style={textStyle}>{shippingAddress.phone}</Text>}
+                                </Column>
+                            )}
+                            <Column style={{ verticalAlign: "top" }}>
+                                <SectionTitle>Ödeme</SectionTitle>
+                                <Text style={textStyle}>{payment.label}</Text>
+                                {cargoCompany && (
+                                    <>
+                                        <div style={{ height: "14px" }} />
+                                        <SectionTitle>Kargo</SectionTitle>
+                                        <Text style={textStyle}>{cargoCompany}</Text>
+                                    </>
+                                )}
+                            </Column>
+                        </Row>
+                    </Section>
+
+                    <Section style={{ padding: "22px 28px 0" }}>
+                        <Section style={{ backgroundColor: SOFT, borderRadius: "8px", padding: "14px 16px" }}>
+                            <Text style={{ margin: "0 0 4px", fontSize: "14px", lineHeight: "20px", fontWeight: 700, color: INK, fontFamily: FONT }}>Sırada ne var?</Text>
+                            <Text style={textStyle}>{payment.next} Kargoya verildiğinde takip bilgilerini e-posta ile göndereceğiz.</Text>
+                        </Section>
+                    </Section>
+
+                    {orderUrl && (
+                        <Section style={{ padding: "22px 28px 0", textAlign: "center" }}>
+                            <Button
+                                href={orderUrl}
+                                style={{ backgroundColor: brand.color, color: "#ffffff", borderRadius: "8px", padding: "12px 26px", fontSize: "14px", fontWeight: 700, textDecoration: "none", fontFamily: FONT }}
+                            >
+                                Siparişimi Görüntüle
+                            </Button>
+                        </Section>
+                    )}
+
+                    <Section style={{ padding: "22px 28px 24px" }}>
+                        <Hr style={{ borderColor: LINE, margin: "0 0 14px" }} />
+                        {(contactPhone || contactEmail) && (
+                            <Text style={{ margin: "0 0 6px", fontSize: "13px", lineHeight: "20px", color: MUTED, fontFamily: FONT }}>
+                                Sorunuz mu var? {[contactPhone, contactEmail].filter(Boolean).join(" · ")}
+                            </Text>
+                        )}
+                        {hasContracts && (
+                            <Text style={{ margin: "0 0 6px", fontSize: "13px", lineHeight: "20px", color: MUTED, fontFamily: FONT }}>
+                                Ön bilgilendirme formu, mesafeli satış sözleşmesi ve iptal-iade koşulları bu e-postanın ekindedir.
+                            </Text>
+                        )}
+                        <Text style={{ margin: 0, fontSize: "12px", lineHeight: "18px", color: MUTED, fontFamily: FONT }}>Bu e-posta otomatik olarak gönderilmiştir.</Text>
+                    </Section>
+                </Container>
+            </Body>
         </Html>
     );
 };

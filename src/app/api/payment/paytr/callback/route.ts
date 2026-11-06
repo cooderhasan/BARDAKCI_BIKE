@@ -116,6 +116,8 @@ export async function POST(req: NextRequest) {
                         cargoCompany: order.cargoCompany || undefined,
                         shippingCost: Number(order.shippingCost || 0),
                         source: order.source,
+                        store: order.store === "MOTOR" ? "MOTOR" : "BIKE",
+                        orderId: order.id,
                     });
                 }
 
@@ -128,6 +130,17 @@ export async function POST(req: NextRequest) {
                     orderId: order.id,
                     cargoCompany: order.cargoCompany || undefined,
                     items: emailItems,
+                    store: order.store === "MOTOR" ? "MOTOR" : "BIKE",
+                    paymentMethod: "CREDIT_CARD",
+                    shippingAddress: {
+                        address: shippingAddress?.address || "",
+                        city: shippingAddress?.city || "",
+                        district: shippingAddress?.district || "",
+                        phone: shippingAddress?.phone || "",
+                    },
+                    customerEmail: emailTo || undefined,
+                    isGuest: !order.userId,
+                    shippingCost: Number(order.shippingCost || 0),
                 });
 
                 console.log(`Emails sent for Order ${orderId}`);

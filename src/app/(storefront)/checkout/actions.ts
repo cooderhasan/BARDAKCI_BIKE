@@ -370,6 +370,8 @@ export async function createOrder(data: CreateOrderData) {
                     cargoCompany: data.cargoCompany,
                     shippingCost: data.shippingCost,
                     source: order.source,
+                    store: orderStore,
+                    orderId: order.id,
                 }).catch((err) => {
                     console.error("Failed to send order confirmation email:", err);
                 });
@@ -384,6 +386,17 @@ export async function createOrder(data: CreateOrderData) {
                 orderId: order.id,
                 cargoCompany: data.cargoCompany,
                 items: emailItems,
+                store: orderStore,
+                paymentMethod: paymentMethod,
+                shippingAddress: {
+                    address: data.shippingAddress.address,
+                    city: data.shippingAddress.city,
+                    district: data.shippingAddress.district,
+                    phone: data.shippingAddress.phone,
+                },
+                customerEmail: emailTo || undefined,
+                isGuest: !userId,
+                shippingCost: data.shippingCost,
             }).catch((err) => {
                 console.error("Failed to send admin notification email:", err);
             });
