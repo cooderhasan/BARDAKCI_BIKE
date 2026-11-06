@@ -40,6 +40,9 @@ interface OrderConfirmationEmailProps {
     contactPhone?: string;
     contactEmail?: string;
     hasContracts?: boolean;
+    /** Kartla ödenen gerçek tutar (taksitte vade farkı dahil) */
+    paidAmount?: number;
+    installmentCount?: number;
 }
 
 const PAYMENT_TEXT: Record<OrderEmailPaymentMethod, { label: string; intro: string; next: string }> = {
@@ -75,9 +78,14 @@ export const OrderConfirmationEmail = ({
     contactPhone,
     contactEmail,
     hasContracts,
+    paidAmount,
+    installmentCount,
 }: OrderConfirmationEmailProps) => {
     const brand = orderBrand(store);
     const payment = PAYMENT_TEXT[paymentMethod] || PAYMENT_TEXT.CREDIT_CARD;
+    const paymentLabel = paymentMethod === "CREDIT_CARD" && Number(installmentCount) > 1
+        ? `Kredi Kartı · ${installmentCount} Taksit (ödeme alındı)`
+        : payment.label;
     const location = [shippingAddress?.district, shippingAddress?.city].filter(Boolean).join(" / ");
     const textStyle = { margin: 0, fontSize: "14px", lineHeight: "22px", color: INK, fontFamily: FONT };
 
@@ -116,7 +124,7 @@ export const OrderConfirmationEmail = ({
                     <Section style={{ padding: "22px 28px 0" }}>
                         <SectionTitle>Sipariş özeti</SectionTitle>
                         <OrderItemRows items={items} />
-                        <OrderTotals items={items} totalAmount={totalAmount} shippingCost={shippingCost} accent={brand.color} />
+                        <OrderTotals items={items} totalAmount={totalAmount} shippingCost={shippingCost} accent={brand.color} paidAmount={paidAmount} installmentCount={installmentCount} />
                     </Section>
 
                     <Section style={{ padding: "22px 28px 0" }}>
@@ -132,7 +140,7 @@ export const OrderConfirmationEmail = ({
                             )}
                             <Column style={{ verticalAlign: "top" }}>
                                 <SectionTitle>Ödeme</SectionTitle>
-                                <Text style={textStyle}>{payment.label}</Text>
+                                <Text style={textStyle}>{paymentLabel}</Text>
                                 {cargoCompany && (
                                     <>
                                         <div style={{ height: "14px" }} />

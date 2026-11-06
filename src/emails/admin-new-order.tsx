@@ -13,6 +13,7 @@ import {
     SOFT,
     SectionTitle,
     formatTry,
+    installmentExtra,
     orderBrand,
 } from "./order-email-shared";
 
@@ -35,6 +36,9 @@ interface AdminNewOrderEmailProps {
     isGuest?: boolean;
     cargoCompany?: string;
     shippingCost?: number;
+    /** Kartla ödenen gerçek tutar (taksitte vade farkı dahil) */
+    paidAmount?: number;
+    installmentCount?: number;
 }
 
 const PAYMENT_LABEL: Record<OrderEmailPaymentMethod, { text: string; color: string }> = {
@@ -69,9 +73,15 @@ export const AdminNewOrderEmail = ({
     isGuest,
     cargoCompany,
     shippingCost,
+    paidAmount,
+    installmentCount,
 }: AdminNewOrderEmailProps) => {
     const brand = orderBrand(store);
     const payment = paymentMethod ? PAYMENT_LABEL[paymentMethod] : undefined;
+    const paymentText = paymentMethod === "CREDIT_CARD" && Number(installmentCount) > 1
+        ? `Kredi Kartı · ${installmentCount} Taksit · Ödendi`
+        : payment?.text;
+    const shownTotal = totalAmount + installmentExtra(totalAmount, paidAmount);
     const customer = companyName && companyName !== customerName ? `${companyName} (${customerName})` : customerName;
     const location = [shippingAddress?.district, shippingAddress?.city].filter(Boolean).join(" / ");
     const customerType = isGuest === undefined ? undefined : isGuest ? "Misafir" : "Üye";
@@ -79,7 +89,7 @@ export const AdminNewOrderEmail = ({
     return (
         <Html lang="tr">
             <Head />
-            <Preview>{`${brand.name} - #${orderNumber} - ${formatTry(totalAmount)}`}</Preview>
+            <Preview>{`${brand.name} - #${orderNumber} - ${formatTry(shownTotal)}`}</Preview>
             <Body style={{ margin: 0, padding: "24px 12px", backgroundColor: "#f3f4f6", fontFamily: FONT }}>
                 <Container style={{ maxWidth: "560px", backgroundColor: "#ffffff", borderRadius: "10px", border: `1px solid ${LINE}`, overflow: "hidden" }}>
                     <Section style={{ backgroundColor: brand.color, padding: "16px 28px" }}>
@@ -94,7 +104,7 @@ export const AdminNewOrderEmail = ({
                             </Column>
                             <Column align="right">
                                 <Text style={{ margin: 0, fontSize: "12px", lineHeight: "18px", color: MUTED, fontFamily: FONT }}>Toplam</Text>
-                                <Text style={{ margin: 0, fontSize: "22px", lineHeight: "26px", fontWeight: 700, color: brand.color, fontFamily: FONT }}>{formatTry(totalAmount)}</Text>
+                                <Text style={{ margin: 0, fontSize: "22px", lineHeight: "26px", fontWeight: 700, color: brand.color, fontFamily: FONT }}>{formatTry(shownTotal)}</Text>
                             </Column>
                         </Row>
                     </Section>
@@ -105,7 +115,7 @@ export const AdminNewOrderEmail = ({
                             <InfoRow label="Telefon" value={shippingAddress?.phone} />
                             <InfoRow label="E-posta" value={customerEmail} />
                             <InfoRow label="Adres" value={shippingAddress ? [shippingAddress.address, location].filter(Boolean).join(", ") : undefined} />
-                            <InfoRow label="Ödeme" value={payment?.text} color={payment?.color} />
+                            <InfoRow label="Ödeme" value={paymentText} color={payment?.color} />
                             <InfoRow label="Kargo" value={cargoCompany} />
                         </Section>
                     </Section>
@@ -117,7 +127,7 @@ export const AdminNewOrderEmail = ({
                         ) : (
                             <Text style={{ margin: 0, fontSize: "13px", color: MUTED, fontFamily: FONT }}>Ürün bilgisi bulunamadı.</Text>
                         )}
-                        <OrderTotals items={items || []} totalAmount={totalAmount} shippingCost={shippingCost} accent={brand.color} />
+                        <OrderTotals items={items || []} totalAmount={totalAmount} shippingCost={shippingCost} accent={brand.color} paidAmount={paidAmount} installmentCount={installmentCount} />
                     </Section>
 
                     <Section style={{ padding: "22px 28px 26px", textAlign: "center" }}>

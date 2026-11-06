@@ -44,6 +44,8 @@ interface SendOrderConfirmationProps {
     source?: string;
     store?: "BIKE" | "MOTOR";
     orderId?: string;
+    paidAmount?: number;
+    installmentCount?: number;
 }
 
 interface SendAdminNewOrderProps {
@@ -64,6 +66,8 @@ interface SendAdminNewOrderProps {
     customerEmail?: string;
     isGuest?: boolean;
     shippingCost?: number;
+    paidAmount?: number;
+    installmentCount?: number;
     items: {
         productName: string;
         quantity: number;
@@ -141,6 +145,8 @@ export async function sendOrderConfirmationEmail(props: SendOrderConfirmationPro
                 contactPhone: storeSettings?.phone,
                 contactEmail: storeSettings?.email,
                 hasContracts: !!attachments?.length,
+                paidAmount: props.paidAmount,
+                installmentCount: props.installmentCount,
             }),
             attachments: attachments && attachments.length > 0 ? attachments : undefined,
         });
@@ -189,6 +195,8 @@ export async function sendAdminNewOrderEmail(props: SendAdminNewOrderProps) {
                 isGuest: props.isGuest,
                 cargoCompany: props.cargoCompany,
                 shippingCost: props.shippingCost,
+                paidAmount: props.paidAmount,
+                installmentCount: props.installmentCount,
             }),
         });
 

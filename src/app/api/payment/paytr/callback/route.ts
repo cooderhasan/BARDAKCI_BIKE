@@ -91,6 +91,9 @@ export async function POST(req: NextRequest) {
             try {
                 const shippingAddress = order.shippingAddress as any; // Cast JSON to any
                 const emailTo = order.user?.email || order.guestEmail;
+                // Taksitte müşteriden çekilen tutar siparişten yüksektir (vade farkı); mailde gerçek tutar görünsün
+                const paidAmount = Number(total_amount) / 100;
+                const installmentCount = Number(params.installment_count) || undefined;
                 const emailItems = order.items.map((item) => ({
                     productName: item.productName,
                     quantity: item.quantity,
@@ -118,6 +121,8 @@ export async function POST(req: NextRequest) {
                         source: order.source,
                         store: order.store === "MOTOR" ? "MOTOR" : "BIKE",
                         orderId: order.id,
+                        paidAmount,
+                        installmentCount,
                     });
                 }
 
@@ -141,6 +146,8 @@ export async function POST(req: NextRequest) {
                     customerEmail: emailTo || undefined,
                     isGuest: !order.userId,
                     shippingCost: Number(order.shippingCost || 0),
+                    paidAmount,
+                    installmentCount,
                 });
 
                 console.log(`Emails sent for Order ${orderId}`);

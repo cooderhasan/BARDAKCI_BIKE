@@ -65,18 +65,40 @@ const TotalRow = ({ label, value, strong, color }: { label: string; value: strin
     </Row>
 );
 
+/** Taksitli ödemede vade farkı siparişe yazılmaz, sadece PayTR'ın bildirdiği ödenen tutarda görünür */
+export const installmentExtra = (totalAmount: number, paidAmount?: number) => {
+    const extra = Number(paidAmount || 0) - totalAmount;
+    return extra > 0.01 ? extra : 0;
+};
+
 /** Ürün toplamı + kargo - indirim = toplam; indirim ayrı alan olarak gelmediği için aradaki farktan bulunur */
-export const OrderTotals = ({ items, totalAmount, shippingCost, accent }: { items: OrderEmailItem[]; totalAmount: number; shippingCost?: number; accent: string }) => {
+export const OrderTotals = ({ items, totalAmount, shippingCost, accent, paidAmount, installmentCount }: {
+    items: OrderEmailItem[];
+    totalAmount: number;
+    shippingCost?: number;
+    accent: string;
+    paidAmount?: number;
+    installmentCount?: number;
+}) => {
     const subtotal = items.reduce((sum, item) => sum + Number(item.lineTotal || 0), 0);
     const shipping = Number(shippingCost || 0);
     const discount = subtotal + shipping - totalAmount;
+    const extra = installmentExtra(totalAmount, paidAmount);
 
     return (
         <Section style={{ marginTop: "8px" }}>
             <TotalRow label="Ürünler" value={formatTry(subtotal)} />
             <TotalRow label="Kargo" value={shipping > 0 ? formatTry(shipping) : "Ücretsiz"} />
             {discount > 0.01 && <TotalRow label="İndirim" value={`-${formatTry(discount)}`} />}
-            <TotalRow label="Toplam" value={formatTry(totalAmount)} strong color={accent} />
+            {extra > 0 ? (
+                <>
+                    <TotalRow label="Sipariş toplamı" value={formatTry(totalAmount)} />
+                    <TotalRow label={Number(installmentCount) > 1 ? `Vade farkı (${installmentCount} taksit)` : "Vade farkı"} value={formatTry(extra)} />
+                    <TotalRow label="Ödenen toplam" value={formatTry(totalAmount + extra)} strong color={accent} />
+                </>
+            ) : (
+                <TotalRow label="Toplam" value={formatTry(totalAmount)} strong color={accent} />
+            )}
         </Section>
     );
 };
