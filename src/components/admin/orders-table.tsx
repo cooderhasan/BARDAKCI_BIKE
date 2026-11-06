@@ -1183,7 +1183,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
                                                 {selectedOrder.shippingAddress?.fullName || (selectedOrder.shippingAddress as any)?.name || selectedOrder.user?.companyName || selectedOrder.user?.email || selectedOrder.guestEmail || "Misafir"}
                                             </p>
                                             <p>{selectedOrder.user?.email || selectedOrder.guestEmail}</p>
-                                            <p>{selectedOrder.user?.phone || "-"}</p>
+                                            <p>{selectedOrder.user?.phone || (selectedOrder.shippingAddress as any)?.phone || "-"}</p>
                                             {/* Üye / misafir (site siparişleri); üyede kaçıncı siparişi */}
                                             {(selectedOrder as any).userId ? (
                                                 <span className="inline-flex items-center gap-1 mt-1 text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded-full">
