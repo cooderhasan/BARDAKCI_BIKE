@@ -1,5 +1,6 @@
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { fillEmptyPriceOnSend } from "@/lib/marketplace-price-send";
 import { ciceksepetiOperatorContacts } from "@/lib/operator-firms";
 
 import { prisma } from "@/lib/db";
@@ -186,6 +187,11 @@ export async function syncProductsToCiceksepeti(
       isActive: true,
       isTestMode: Boolean(config.isTestMode),
     });
+
+    // "prices" stok/fiyat senkronudur, elle gönderim değil
+    const priceNote = syncType !== "prices" && productIds?.length
+      ? await fillEmptyPriceOnSend("ciceksepeti", productIds, { isActive: true, isCiceksepetiActive: true })
+      : "";
 
     const whereCondition: any = {
       isActive: true,
@@ -653,7 +659,7 @@ export async function syncProductsToCiceksepeti(
       revalidatePath("/admin/integrations/ciceksepeti/products");
       return {
         success: true,
-        message: `${productInputs.length} ürün Çiçeksepeti'ye aktarıldı. (Batch ID: ${result.batchId})`,
+        message: `${productInputs.length} ürün Çiçeksepeti'ye aktarıldı. (Batch ID: ${result.batchId})${priceNote}`,
       };
     }
   } catch (error: any) {

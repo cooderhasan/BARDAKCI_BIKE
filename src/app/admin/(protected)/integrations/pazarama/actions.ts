@@ -1,5 +1,6 @@
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { fillEmptyPriceOnSend } from "@/lib/marketplace-price-send";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -555,6 +556,8 @@ export async function syncProductsToPazarama(
       return { success: false, message: "Pazarama entegrasyonu aktif değil." };
     }
 
+    const priceNote = await fillEmptyPriceOnSend("pazarama", productIds);
+
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
       include: { brand: true, categories: true, pazaramaProduct: true, variants: true },
@@ -671,7 +674,7 @@ export async function syncProductsToPazarama(
       const variantCount = Object.values(variantCodesByProduct).reduce((n, list) => n + list.length, 0);
       return {
         success: true,
-        message: `${products.length} adet ürün Pazarama'ya başarıyla aktarıldı${variantCount > 0 ? ` (${variantCount} varyant)` : ""}.${commercialId ? " (Temin şablonu tanımlandı)" : ""} Paket ID: ${result.batchId}`,
+        message: `${products.length} adet ürün Pazarama'ya başarıyla aktarıldı${variantCount > 0 ? ` (${variantCount} varyant)` : ""}.${commercialId ? " (Temin şablonu tanımlandı)" : ""} Paket ID: ${result.batchId}${priceNote}`,
       };
     } else {
       return { success: false, message: result.error || "Aktarım başarısız oldu." };

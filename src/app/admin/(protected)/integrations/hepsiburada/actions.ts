@@ -1,6 +1,7 @@
 
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { fillEmptyPriceOnSend } from "@/lib/marketplace-price-send";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -1006,6 +1007,8 @@ export async function sendProductToHepsiburada(
         const config = await (prisma as any).hepsiburadaConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
 
+        const priceNote = await fillEmptyPriceOnSend("hepsiburada", [productId]);
+
         const product = await prisma.product.findUnique({
             where: { id: productId },
             include: {
@@ -1194,7 +1197,7 @@ export async function sendProductToHepsiburada(
 
         return {  
             success: true, 
-            message: `Ürün Hepsiburada'ya gönderildi${sentVariantCount > 0 ? ` (${sentVariantCount} varyant)` : ""}! ${trackingId ? `Tracking ID: ${trackingId}` : ""}` 
+            message: `Ürün Hepsiburada'ya gönderildi${sentVariantCount > 0 ? ` (${sentVariantCount} varyant)` : ""}! ${trackingId ? `Tracking ID: ${trackingId}` : ""}${priceNote}` 
         };
 
     } catch (error: any) {

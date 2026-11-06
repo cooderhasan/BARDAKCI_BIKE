@@ -1,5 +1,6 @@
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { fillEmptyPriceOnSend } from "@/lib/marketplace-price-send";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -282,6 +283,8 @@ export async function syncProductsToPttavm(productIds?: string[]) {
       isTestMode: Boolean(config.isTestMode),
     });
 
+    const priceNote = productIds?.length ? await fillEmptyPriceOnSend("pttavm", productIds) : "";
+
     const where: any = { isActive: true };
     if (productIds && productIds.length > 0) {
       where.id = { in: productIds };
@@ -459,7 +462,7 @@ export async function syncProductsToPttavm(productIds?: string[]) {
 
     return {
       success: true,
-      message: `${upsertItems.length} ürün ePttAVM kataloğuna aktarıldı. Tracking ID: ${mainTrackingId || "Tamamlandı"}`,
+      message: `${upsertItems.length} ürün ePttAVM kataloğuna aktarıldı. Tracking ID: ${mainTrackingId || "Tamamlandı"}${priceNote}`,
       trackingId: mainTrackingId,
     };
   } catch (error: any) {

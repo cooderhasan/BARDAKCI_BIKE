@@ -1,6 +1,7 @@
 
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { fillEmptyPriceOnSend } from "@/lib/marketplace-price-send";
 
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
@@ -326,6 +327,9 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
       isTestMode: Boolean(config.isTestMode),
     });
 
+    // options.activate: Idefix ürün sayfasından elle gönderim (stok senkronu bunu vermez)
+    const priceNote = options.activate && productIds?.length ? await fillEmptyPriceOnSend("idefix", productIds) : "";
+
     const isSingleSync = productIds && productIds.length > 0;
     const where: any = { isActive: true };
     if (isSingleSync) {
@@ -507,7 +511,7 @@ export async function syncProductsToIdefix(productIds?: string[], options: { act
 
     return {
       success: true,
-      message: `Idefix sync: ${totalSynced} basarili, ${totalFailed} basarisiz.${katalogMsg}${inventoryMsg}`,
+      message: `Idefix sync: ${totalSynced} basarili, ${totalFailed} basarisiz.${katalogMsg}${inventoryMsg}${priceNote}`,
       synced: totalSynced,
       failed: totalFailed,
     };
@@ -611,6 +615,8 @@ export async function createProductOnIdefix(productId: string, payload: {
       return { success: false, message: "Aktif Idefix entegrasyonu bulunamadi." };
     }
     console.log("[IDEFIX-CREATE] Config bulundu. vendorId:", config.vendorId, "isTestMode:", config.isTestMode);
+
+    const priceNote = await fillEmptyPriceOnSend("idefix", [productId]);
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
@@ -813,7 +819,7 @@ export async function createProductOnIdefix(productId: string, payload: {
         try {
           revalidatePath("/admin/integrations/idefix/products");
         } catch {}
-        return { success: true, message: "Ürün Idefix kataloğunuzda zaten mevcuttu. Fiyat ve stok bilgileri başarıyla güncellendi!" };
+        return { success: true, message: `Ürün Idefix kataloğunuzda zaten mevcuttu. Fiyat ve stok bilgileri başarıyla güncellendi!${priceNote}` };
       }
       throw err;
     }
@@ -837,7 +843,7 @@ export async function createProductOnIdefix(productId: string, payload: {
       revalidatePath("/admin/integrations/idefix/products");
     } catch {}
     console.log("[IDEFIX-CREATE] ===== BASARILI =====");
-    return { success: true, message: `Urun Idefix'e gonderildi ve otomatik onaylandi. Batch ID: ${batchId}` };
+    return { success: true, message: `Urun Idefix'e gonderildi ve otomatik onaylandi. Batch ID: ${batchId}${priceNote}` };
   } catch (error: any) {
     console.error("[IDEFIX-CREATE] ===== GENEL HATA =====", error.message, error.stack);
     return { success: false, message: "Hata: " + error.message };

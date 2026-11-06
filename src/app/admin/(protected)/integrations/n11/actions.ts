@@ -1,6 +1,7 @@
 
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { fillEmptyPriceOnSend } from "@/lib/marketplace-price-send";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -642,6 +643,8 @@ export async function sendProductToN11(
         const config = await (prisma as any).n11Config.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
 
+        const priceNote = await fillEmptyPriceOnSend("n11", [productId]);
+
         const product = await prisma.product.findUnique({
             where: { id: productId },
             include: {
@@ -834,7 +837,7 @@ export async function sendProductToN11(
             } catch (pollError: any) {
                 console.error(`N11 Task Polling Error [${result.taskId}]:`, pollError.message);
                 // Task is created but polling failed - leave it as PENDING for background sync
-                return { success: true, synced: false, message: `Ürün N11 kuyruğuna alındı. Takip No: ${result.taskId}. Onaylanınca durum otomatik güncellenecek.` };
+                return { success: true, synced: false, message: `Ürün N11 kuyruğuna alındı. Takip No: ${result.taskId}. Onaylanınca durum otomatik güncellenecek.${priceNote}` };
             }
             
             if (taskRes.success && taskRes.data) {
@@ -883,7 +886,7 @@ export async function sendProductToN11(
                         where: { id: n11Product.id },
                         data: { isSynced: true, lastSyncedAt: new Date(), lastSyncError: null }
                     });
-                    return { success: true, synced: true, message: "Ürün N11'e başarıyla yüklendi." };
+                    return { success: true, synced: true, message: `Ürün N11'e başarıyla yüklendi.${priceNote}` };
                 } else if (n11Status === "FAILED") {
                     await (prisma as any).n11Product.update({
                         where: { id: n11Product.id },
@@ -891,11 +894,11 @@ export async function sendProductToN11(
                     });
                     return { success: false, message: "N11 İşleme Hatası: " + detailedError };
                 } else {
-                    return { success: true, synced: false, message: `Ürün N11 kuyruğuna alındı (Durum: ${n11Status}). Takip No: ${result.taskId}. Onaylanınca durum otomatik güncellenecek.` };
+                    return { success: true, synced: false, message: `Ürün N11 kuyruğuna alındı (Durum: ${n11Status}). Takip No: ${result.taskId}. Onaylanınca durum otomatik güncellenecek.${priceNote}` };
                 }
             }
             
-            return { success: true, synced: false, message: "Ürün N11 kuyruğuna iletildi. Onaylanınca durum otomatik güncellenecek." };
+            return { success: true, synced: false, message: `Ürün N11 kuyruğuna iletildi. Onaylanınca durum otomatik güncellenecek.${priceNote}` };
         } else {
             return { success: false, message: "N11 İletim Hatası: " + result.message };
         }

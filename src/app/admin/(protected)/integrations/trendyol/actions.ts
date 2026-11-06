@@ -1,6 +1,7 @@
 
 "use server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { fillEmptyPriceOnSend } from "@/lib/marketplace-price-send";
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -779,6 +780,8 @@ export async function sendProductToTrendyol(
         const config = await (prisma as any).trendyolConfig.findFirst({ where: { isActive: true } });
         if (!config) return { success: false, message: "Aktif entegrasyon bulunamadı." };
 
+        const priceNote = await fillEmptyPriceOnSend("trendyol", [productId]);
+
         const product = await prisma.product.findUnique({
             where: { id: productId },
             include: {
@@ -1151,12 +1154,12 @@ export async function sendProductToTrendyol(
             if (batchStatus === "IN_PROGRESS" || batchStatus === "PROCESSING") {
                 return { 
                     success: true, 
-                    message: "Ürün Trendyol'a iletildi! Trendyol şu anda ürünü kuyrukta işliyor (IN_PROGRESS). Birkaç dakika sonra İşlem Geçmişi sayfasından durumunu kontrol edebilirsiniz." + variantNote, 
+                    message: "Ürün Trendyol'a iletildi! Trendyol şu anda ürünü kuyrukta işliyor (IN_PROGRESS). Birkaç dakika sonra İşlem Geçmişi sayfasından durumunu kontrol edebilirsiniz." + variantNote + priceNote, 
                     batchRequestId: batchId 
                 };
             }
 
-            return { success: true, message: `Ürün Trendyol'a başarıyla gönderildi ve işlendi (Durum: ${batchStatus})${variantNote}`, batchRequestId: batchId };
+            return { success: true, message: `Ürün Trendyol'a başarıyla gönderildi ve işlendi (Durum: ${batchStatus})${variantNote}${priceNote}`, batchRequestId: batchId };
         } else {
             const errorMsg = result.errors?.[0]?.message || JSON.stringify(result);
             return { success: false, message: "Trendyol Hatası: " + errorMsg };
