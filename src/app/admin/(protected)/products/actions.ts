@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { productSchema } from "@/lib/validations";
 import { generateSlug } from "@/lib/helpers";
 import { findProductCodeConflict } from "@/lib/product-code-check";
+import { fillEmptyMarketplacePrices } from "@/lib/marketplace-price-fill";
 import { syncProductsToTrendyol } from "../integrations/trendyol/actions";
 import { syncProductsToN11 } from "../integrations/n11/actions";
 import { syncProductsToHepsiburada } from "../integrations/hepsiburada/actions";
@@ -91,6 +92,9 @@ export async function createProduct(formData: FormData) {
             gender: (formData.get("gender") as string) === "none" ? undefined : (formData.get("gender") as string) || undefined,
             brakeType: (formData.get("brakeType") as string) === "none" ? undefined : (formData.get("brakeType") as string) || undefined,
         };
+
+        const priceFill = fillEmptyMarketplacePrices(rawData);
+        Object.assign(rawData, priceFill.filled);
 
         const categoryIdsJson = formData.get("categoryIds") as string;
         const categoryIds: string[] = categoryIdsJson ? JSON.parse(categoryIdsJson) : [];
@@ -237,7 +241,7 @@ export async function createProduct(formData: FormData) {
         revalidatePath("/products");
         revalidatePath("/");
 
-        return { success: true };
+        return { success: true, priceFill };
     } catch (error: any) {
         console.error("createProduct error:", error);
         let errorMsg = error.message || "Ürün oluşturulamadı";
@@ -339,6 +343,9 @@ export async function updateProduct(productId: string, formData: FormData) {
             gender: (formData.get("gender") as string) === "none" ? null : (formData.get("gender") as string) || null,
             brakeType: (formData.get("brakeType") as string) === "none" ? null : (formData.get("brakeType") as string) || null,
         };
+
+        const priceFill = fillEmptyMarketplacePrices(rawData, oldProduct);
+        Object.assign(rawData, priceFill.filled);
 
         const categoryIdsJson = formData.get("categoryIds") as string;
         const categoryIds: string[] = categoryIdsJson ? JSON.parse(categoryIdsJson) : [];
@@ -599,7 +606,7 @@ export async function updateProduct(productId: string, formData: FormData) {
             console.error("Marketplace instant sync error:", e);
         }
 
-        return { success: true };
+        return { success: true, priceFill };
     } catch (error: any) {
         console.error("updateProduct error:", error);
         let errorMsg = error.message || "Güncelleme sırasında hata oluştu";

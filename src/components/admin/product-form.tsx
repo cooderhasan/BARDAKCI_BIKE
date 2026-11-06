@@ -16,6 +16,7 @@ import { CategoryTreeSelect } from "@/components/ui/category-tree-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createProduct, updateProduct, syncProductToMarketplaces, searchProductsForBundle, getVariantValueSuggestions } from "@/app/admin/(protected)/products/actions";
 import { generateSlug, generateSKU, generateBarcode } from "@/lib/helpers";
+import { autoMarketplacePrice, keepsListPrice } from "@/lib/marketplace-price-fill";
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Plus, X, ImageIcon, Trash2, Loader2, RefreshCcw, Package, RefreshCw, Brain, Search, AlertTriangle, Copy, Eraser } from "lucide-react";
@@ -526,6 +527,9 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
         { key: "ciceksepetiPrice", activeKey: "isCiceksepetiActive", label: "Çiçeksepeti" },
     ];
 
+    const staysOnListPrice = (f: { key: string; activeKey: string }) =>
+        keepsListPrice(product as any, { price: f.key, active: f.activeKey });
+
     const applyPriceToAllMarketplaces = () => {
         // Find the first filled marketplace price — NEVER use listPrice
         const firstFilledField = marketplacePriceFields.find(f => {
@@ -617,9 +621,11 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
             const price = (formData as any)[f.key];
             return price && price !== "" && Number(price) > 0;
         });
+        // Boş kutular kayıtta otomatik dolar; sadece daha önce de tikli ve fiyatsız olan eski üründe liste fiyatı gitmeye devam eder
         const emptyMarketplaces = marketplacePriceFields.filter(f => {
             const price = (formData as any)[f.key];
-            return !price || price === "" || Number(price) === 0;
+            const isEmpty = !price || price === "" || Number(price) === 0;
+            return isEmpty && (formData as any)[f.activeKey] && staysOnListPrice(f);
         });
 
         // En az bir pazaryerinde fiyat varken diğerleri boşsa uyar
@@ -668,6 +674,13 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
 
             if (result?.success) {
                 toast.success(product ? "Ürün güncellendi" : "Ürün oluşturuldu");
+                const priceFill = (result as any).priceFill;
+                const pricesFilled = priceFill?.labels?.length > 0;
+                if (pricesFilled) {
+                    toast.warning(`${priceFill.labels.join(", ")} fiyatı boştu, ${Number(priceFill.price).toLocaleString("tr-TR")}₺ yazıldı (liste fiyatı + %50).`, { duration: 8000 });
+                    // Form açık kalırsa boş kutu bir sonraki kayıtta bu fiyatı silmesin
+                    setFormData(prev => ({ ...prev, ...priceFill.filled }));
+                }
                 if (!product) {
                     try {
                         const toSave: any = {};
@@ -682,7 +695,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                         }
                         router.push("/admin/products");
                         router.refresh();
-                    }, 1000);
+                    }, pricesFilled ? 3500 : 1000); // Otomatik yazılan fiyat mesajı okunabilsin
                 } else {
                     router.refresh();
                 }
@@ -1034,7 +1047,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                     </div>
                                 </div>
                                 <p className="text-[10px] text-gray-500 -mt-1">
-                                    İşaretli pazaryerlerine gönderilir. Boş bırakılan fiyat yerine liste fiyatı gönderilir; komisyon eklenmiş fiyatları girmeyi unutmayın!
+                                    İşaretli pazaryerlerine gönderilir. İşaretli olup fiyatı boş bırakılan kutuya kaydederken liste fiyatı + %50 yazılır; komisyon eklenmiş fiyatları girmeyi unutmayın!
                                 </p>
 
                                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -1066,7 +1079,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                                     step="0.01"
                                                     value={price}
                                                     onChange={(e) => handleChange(field.key, e.target.value)}
-                                                    placeholder={`Boş = ${Number(formData.listPrice || 0).toLocaleString("tr-TR")}₺`}
+                                                    placeholder={`Boş = ${(isActive && !staysOnListPrice(field) ? autoMarketplacePrice(formData.listPrice || 0) : Number(formData.listPrice || 0)).toLocaleString("tr-TR")}₺`}
                                                     className="h-8 text-sm"
                                                 />
                                             </div>
