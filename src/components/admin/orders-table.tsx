@@ -381,6 +381,7 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
         // UI'ı kitlemeden arka planda işle
         let success = 0;
         let failed = 0;
+        const failures: string[] = [];
         const total = invoicableOrders.length;
         
         const toastId = toast.loading(`Toplu fatura: 0/${total} işleniyor...`);
@@ -389,16 +390,22 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
             const order = invoicableOrders[i];
             try {
                 toast.loading(`Toplu fatura: ${i + 1}/${total} - #${order.orderNumber}...`, { id: toastId });
-                const result = await sendOrderInvoice(order.id);
+                const result = await sendOrderInvoiceNes(order.id);
                 if (result.success) {
                     success++;
                 } else {
                     failed++;
+                    failures.push(`#${order.orderNumber}: ${result.message}`);
                     console.warn(`Fatura hatası (#${order.orderNumber}):`, result.message);
                 }
             } catch (error) {
                 failed++;
+                failures.push(`#${order.orderNumber}: Fatura gönderilirken bir hata oluştu.`);
                 console.error(`Fatura exception (#${order.orderNumber}):`, error);
+            }
+            // NES'e topluca gitmesin: otomatik fatura kuyruğundaki 7 sn aralığın aynısı
+            if (i < invoicableOrders.length - 1) {
+                await new Promise((resolve) => setTimeout(resolve, 7000));
             }
         }
 
@@ -406,7 +413,10 @@ export function OrdersTable({ orders: initialOrders, pagination, cargoOptions = 
         if (failed === 0) {
             toast.success(`✅ ${success} fatura başarıyla kesildi!`);
         } else {
-            toast.warning(`${success} başarılı, ${failed} hatalı fatura.`);
+            toast.warning(`${success} başarılı, ${failed} hatalı fatura.`, {
+                description: <span className="whitespace-pre-line">{failures.join("\n")}</span>,
+                duration: 20000,
+            });
         }
         setSelectedIds([]);
         router.refresh();
