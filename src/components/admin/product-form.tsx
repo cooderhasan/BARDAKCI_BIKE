@@ -29,7 +29,7 @@ const RichTextEditor = dynamic(
         loading: () => <div className="h-48 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center text-sm text-gray-400">Editör yükleniyor...</div>
     }
 );
-import { calculateDesi } from "@/lib/shipping";
+import { calculateDesi, fallbackDesi } from "@/lib/shipping";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { calculateBundleStock } from "@/lib/bundle-utils";
@@ -681,6 +681,11 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                     // Form açık kalırsa boş kutu bir sonraki kayıtta bu fiyatı silmesin
                     setFormData(prev => ({ ...prev, ...priceFill.filled }));
                 }
+                const desiFill = (result as any).desiFill;
+                if (desiFill) {
+                    toast.warning(`Desi boştu, ${Number(desiFill).toLocaleString("tr-TR")} yazıldı.`, { duration: 8000 });
+                    setFormData(prev => ({ ...prev, desi: desiFill }));
+                }
                 if (!product) {
                     try {
                         const toSave: any = {};
@@ -695,7 +700,7 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                         }
                         router.push("/admin/products");
                         router.refresh();
-                    }, pricesFilled ? 3500 : 1000); // Otomatik yazılan fiyat mesajı okunabilsin
+                    }, pricesFilled || desiFill ? 3500 : 1000); // Otomatik yazılan fiyat/desi mesajı okunabilsin
                 } else {
                     router.refresh();
                 }
@@ -1266,9 +1271,9 @@ export function ProductForm({ categories, brands, product, defaultCriticalStock 
                                         min="0"
                                         value={formData.desi}
                                         onChange={(e) => handleChange("desi", e.target.value)}
-                                        placeholder={autoDesi > 0 ? `Otomatik: ${autoDesi}` : "Ör: 3.00"}
+                                        placeholder={formData.isFreeShipping ? "Ücretsiz kargoda gerekmez" : `Boş = ${fallbackDesi({ weight: Number(formData.weight), width: Number(formData.width), height: Number(formData.height), length: Number(formData.length) })}`}
                                     />
-                                    <p className="text-xs text-gray-500">Boş bırakılırsa boyutlardan otomatik hesaplanır.</p>
+                                    <p className="text-xs text-gray-500">Boş bırakılırsa kaydederken ağırlık veya ölçülerden hesaplanır, onlar da yoksa 1 yazılır. Ücretsiz kargolu üründe yazılmaz.</p>
                                 </div>
                             </div>
 

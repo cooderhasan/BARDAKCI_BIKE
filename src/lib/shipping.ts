@@ -39,6 +39,25 @@ export function getEffectiveDesi(weight: number | null | undefined, desi: number
 }
 
 /**
+ * Desi boş bırakılan ürüne kaydedilecek desi; yazılacak bir şey yoksa null.
+ * Desi boşken kargo 0 çıkıyor, kargoyu firma ödüyordu. Ücretsiz kargolu üründe desi gerekmez.
+ * Ağırlık veya ölçü varsa sepetin zaten hesapladığı değer yazılır, hiçbiri yoksa 1 desi.
+ */
+export function fallbackDesi(product: {
+    desi?: number | null;
+    weight?: number | null;
+    width?: number | null;
+    height?: number | null;
+    length?: number | null;
+    isFreeShipping?: boolean;
+}): number | null {
+    if (product.isFreeShipping || Number(product.desi) > 0) return null;
+    const { width, height, length } = product;
+    const dimsDesi = width && height && length ? calculateDesi(width, height, length) : 0;
+    return Math.max(Number(product.weight) || 0, dimsDesi) || 1;
+}
+
+/**
  * Desi fiyat tablosundan kargo ücreti hesaplama
  * @param desi Ürün/sipariş desisi
  * @param priceRanges Kargo firmasının desi fiyat tablosu
