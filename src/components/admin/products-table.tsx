@@ -119,6 +119,7 @@ const mpStatusOptions = [
     { value: "LINKED", label: "Bağlı Olanlar", anyOk: true },
     { value: "NO_CATEGORY", label: "Kategorisi Eşleşmemiş", anyOk: false },
     { value: "NO_PRICE", label: "Pazaryeri Fiyatı Girilmemiş", anyOk: false },
+    { value: "LINKED_NO_PRICE", label: "Bağlı Ama Fiyatı Girilmemiş", anyOk: false },
 ];
 
 export function ProductsTable({ products: initialProducts, brands, pagination }: ProductsTableProps) {

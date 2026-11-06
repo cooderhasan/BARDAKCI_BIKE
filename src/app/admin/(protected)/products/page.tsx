@@ -15,7 +15,7 @@ const MARKETPLACES: Record<string, { active: string; category: string; override:
     PTTAVM: { active: "isPttavmActive", category: "pttavmCategoryId", override: ["pttavmProduct", "pttavmCategoryId"], price: "pttavmPrice" },
     CICEKSEPETI: { active: "isCiceksepetiActive", category: "ciceksepetiCategoryId", override: ["ciceksepetiProduct", "ciceksepetiCategoryId"], price: "ciceksepetiPrice" },
 };
-const MP_STATUSES = ["UNLINKED", "LINKED", "NO_CATEGORY", "NO_PRICE"];
+const MP_STATUSES = ["UNLINKED", "LINKED", "NO_CATEGORY", "NO_PRICE", "LINKED_NO_PRICE"];
 
 interface ProductsPageProps {
     searchParams: Promise<{
@@ -103,6 +103,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             );
         } else if (mpStatus === "NO_PRICE") {
             and.push({ OR: [{ [mp.price]: null }, { [mp.price]: { lte: 0 } }] });
+        } else if (mpStatus === "LINKED_NO_PRICE") {
+            // Tiki açık ama özel fiyatı yok: pazaryerine site fiyatı gider
+            and.push({ [mp.active]: true }, { OR: [{ [mp.price]: null }, { [mp.price]: { lte: 0 } }] });
         }
     } else if (marketplace === "ANY") {
         const flags = Object.values(MARKETPLACES).map((m) => m.active);
