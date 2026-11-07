@@ -6,8 +6,6 @@ import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { NesClient } from "@/services/nes/api";
 import type { UblReceiverInfo, UblInvoiceOptions } from "@/services/nes/ubl-builder";
 import { buildInvoiceLines } from "@/services/nes/invoice-lines";
-import { todayDate } from "@/services/nes/ubl-builder";
-import { getStoreSiteUrl } from "@/lib/site-urls";
 
 // ============= CONFIG YÖNETIMI =============
 
@@ -292,16 +290,11 @@ export async function sendOrderInvoiceNes(orderId: string) {
         const eInvoicePrefix = useEInvoice ? await client.getEInvoiceSeriesPrefix() : null;
 
         // 8. Sipariş kaynağına göre bilgiler
-        // Satışın yapıldığı site (internet satış bilgisi) ve pazaryerinde ödeme aracısı adı
-        const marketplaceSites: Record<string, { url: string; name: string }> = {
-            "TRENDYOL": { url: "https://www.trendyol.com", name: "Trendyol" },
-            "N11": { url: "https://www.n11.com", name: "N11" },
-            "HEPSIBURADA": { url: "https://www.hepsiburada.com", name: "Hepsiburada" },
-            "IDEFIX": { url: "https://www.idefix.com", name: "Idefix" },
-            "PAZARAMA": { url: "https://www.pazarama.com", name: "Pazarama" },
-            "CICEKSEPETI": { url: "https://www.ciceksepeti.com", name: "Çiçeksepeti" },
-            "PTTAVM": { url: "https://www.pttavm.com", name: "ePttAVM" },
-            "PTT": { url: "https://www.pttavm.com", name: "ePttAVM" },
+        const purchaseUrlMap: Record<string, string> = {
+            "WEB": "https://www.bardakcibike.com.tr",
+            "TRENDYOL": "https://www.trendyol.com",
+            "N11": "https://www.n11.com",
+            "HEPSIBURADA": "https://www.hepsiburada.com",
         };
         const cargoInfoMap: Record<string, { taxId: string; name: string }> = {
             "Aras Kargo": { taxId: "7200007379", name: "ARAS KARGO YURTİÇİ YURTDİŞI TAŞ. A.Ş." },
@@ -338,23 +331,7 @@ export async function sendOrderInvoiceNes(orderId: string) {
             }
         }
 
-        const marketplaceSite = marketplaceSites[source];
-        // Site siparişinde mağazanın adresi (Moto Vitrin: MOTOR_SITE_URL; taşınınca kendiliğinden motovitrin.com)
-        const purchaseUrl = marketplaceSite?.url || getStoreSiteUrl(order.store);
-        const purchaseHost = purchaseUrl.replace(/^https?:\/\//, "");
-
-        // Ödeme şekli: pazaryerinde ödemeyi pazaryeri alır (ödeme aracısı); sitede siparişin ödeme yöntemi
-        const paymentMethod = (order as any).payment?.method;
-        const webPayment: Record<string, { code: "10" | "30" | "48" | "97"; note: string }> = {
-            CREDIT_CARD: { code: "48", note: "KREDIKARTI/BANKAKARTI" },
-            BANK_TRANSFER: { code: "30", note: "EFT/HAVALE" },
-            CASH_ON_DELIVERY: { code: "10", note: "KAPIDAODEME" },
-            CURRENT_ACCOUNT: { code: "97", note: "CARI HESAP" },
-        };
-        const paymentInfo = marketplaceSite
-            ? { code: "1" as const, note: "ODEMEARACISI", channel: marketplaceSite.name }
-            : webPayment[paymentMethod] || { code: "97" as const, note: "DIGER" };
-        const paymentDate = todayDate(new Date((order as any).payment?.updatedAt || order.createdAt));
+        const purchaseUrl = purchaseUrlMap[source] || "https://www.bardakcibike.com.tr";
         const profileId = useEInvoice ? ((config.defaultProfile as any) || "TEMELFATURA") : "EARSIVFATURA";
 
         const invoiceOptions: Partial<UblInvoiceOptions> = {
@@ -364,12 +341,9 @@ export async function sendOrderInvoiceNes(orderId: string) {
             orderNumber: order.orderNumber,
             carrier: cargoInfo,
             purchaseUrl,
-            payment: { ...paymentInfo, date: paymentDate },
-            // Faturayı kargolarken kesiyoruz; ayrı gönderim tarihi tutulmadığı için fatura günü yazılır
-            despatchDate: todayDate(),
             notes: [
                 `Sipariş No: ${order.orderNumber}`,
-                `Kaynak: ${purchaseHost}`,
+                `Kaynak: ${source}`,
                 cargoInfo?.name ? `Kargo Taşıyıcı: ${cargoInfo.name} (VKN: ${cargoInfo.taxId})` : "",
                 "İRSALİYE YERİNE GEÇER",
             ].filter(Boolean),

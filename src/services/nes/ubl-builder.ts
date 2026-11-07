@@ -63,20 +63,10 @@ export interface UblInvoiceOptions {
         taxId: string;
         name: string;
     };
-    /** İnternet satış adresi (örn: https://www.trendyol.com) — satıcının WebsiteURI'sine yazılır */
+    /** İnternet satış adresi (örn: https://www.trendyol.com) */
     purchaseUrl?: string;
-    /** Ödeme şekli (internet satışında zorunlu): 1 ödeme aracısı, 10 kapıda, 30 havale, 48 kart, 97 diğer */
-    payment?: {
-        code: "1" | "10" | "30" | "48" | "97";
-        /** Ödeme şekli açıklaması (örn: KREDIKARTI/BANKAKARTI) */
-        note: string;
-        /** Ödeme aracısı adı (pazaryeri) */
-        channel?: string;
-        /** Ödeme tarihi (YYYY-MM-DD) */
-        date?: string;
-    };
-    /** Gönderim tarihi (YYYY-MM-DD) */
-    despatchDate?: string;
+    /** Ödeme türü (örn: KREDIKARTI/BANKAKARTI, EFT/HAVALE) */
+    paymentMeans?: string;
 }
 
 export interface GeneratedInvoiceXml {
@@ -107,29 +97,12 @@ function toFixed4(num: number): string {
 
 const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
-// Sunucu saati UTC; fatura tarihi/saati Türkiye saatiyle yazılır (yoksa 3 saat geri, gece 00-03 arası önceki gün çıkıyordu)
-function istanbulNow(date: Date = new Date()): Record<string, string> {
-    const parts = new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Europe/Istanbul",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hourCycle: "h23",
-    }).formatToParts(date);
-    return Object.fromEntries(parts.map((p) => [p.type, p.value]));
+function todayDate(): string {
+    return new Date().toISOString().split("T")[0];
 }
 
-export function todayDate(date?: Date): string {
-    const p = istanbulNow(date);
-    return `${p.year}-${p.month}-${p.day}`;
-}
-
-export function currentTime(date?: Date): string {
-    const p = istanbulNow(date);
-    return `${p.hour}:${p.minute}:${p.second}`;
+function currentTime(): string {
+    return new Date().toTimeString().split(" ")[0];
 }
 
 // ============= MAIN BUILDER =============
@@ -278,21 +251,8 @@ export function buildUblInvoiceXml(
                     <cbc:Name>Turkiye</cbc:Name>
                 </cac:Country>
             </cac:PostalAddress>
-        </cac:CarrierParty>${options.despatchDate ? `
-        <cac:Despatch>
-            <cbc:ActualDespatchDate>${options.despatchDate}</cbc:ActualDespatchDate>
-        </cac:Despatch>` : ""}
+        </cac:CarrierParty>
     </cac:Delivery>` : "";
-
-    // Ödeme şekli (internet satış bilgisi). UBL sırası: PaymentMeansCode, PaymentDueDate, PaymentChannelCode, InstructionNote
-    const payment = options.payment;
-    const paymentMeansXml = payment ? `
-    <cac:PaymentMeans>
-        <cbc:PaymentMeansCode>${payment.code}</cbc:PaymentMeansCode>${payment.date ? `
-        <cbc:PaymentDueDate>${payment.date}</cbc:PaymentDueDate>` : ""}${payment.channel ? `
-        <cbc:PaymentChannelCode>${escapeXml(payment.channel)}</cbc:PaymentChannelCode>` : ""}
-        <cbc:InstructionNote>${escapeXml(payment.note)}</cbc:InstructionNote>
-    </cac:PaymentMeans>` : "";
 
     // Notlar
     const notesXml = (options.notes || []).map(n => `    <cbc:Note>${escapeXml(n)}</cbc:Note>`).join("\n");
@@ -325,8 +285,7 @@ export function buildUblInvoiceXml(
 ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:DocumentCurrencyCode>
     <cbc:LineCountNumeric>${lines.length}</cbc:LineCountNumeric>${eArchiveReferenceXml}
     <cac:AccountingSupplierParty>
-        <cac:Party>${options.purchaseUrl ? `
-            <cbc:WebsiteURI>${escapeXml(options.purchaseUrl)}</cbc:WebsiteURI>` : ""}
+        <cac:Party>
             <cac:PartyIdentification>
                 <cbc:ID schemeID="${isSenderTckn ? "TCKN" : "VKN"}">${senderVkn}</cbc:ID>
             </cac:PartyIdentification>${senderPartyNameXml}
@@ -367,7 +326,7 @@ ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:Documen
                 <cbc:ElectronicMail>${escapeXml(receiver.email || "")}</cbc:ElectronicMail>
             </cac:Contact>${receiverPersonXml}
         </cac:Party>
-    </cac:AccountingCustomerParty>${deliveryXml}${paymentMeansXml}
+    </cac:AccountingCustomerParty>${deliveryXml}
     <cac:TaxTotal>
         <cbc:TaxAmount currencyID="TRY">${toFixed2(totalTaxAmount)}</cbc:TaxAmount>
         <cac:TaxSubtotal>
