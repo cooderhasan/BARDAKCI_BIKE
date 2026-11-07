@@ -512,11 +512,16 @@ export async function sendOrderInvoiceNes(orderId: string) {
         }
 
         // 13. Müşteriye e-posta gönder
+        // Varsayılan KAPALI: NES faturayı imzalayınca alıcıya kendisi e-postalıyor (zorunlu e-Arşiv iletimi).
+        // Bizimki imzadan önce gidip aynı faturayı ikinci kez yolluyordu. Tekrar açmak için Coolify'da INVOICE_EMAIL_ENABLED=1.
         let emailMessage = "";
         const customerEmail = order.guestEmail || order.user?.email;
         const customerName = shippingAddr?.fullName || shippingAddr?.name || order.user?.name || "Müşteri";
+        const ownInvoiceEmail = process.env.INVOICE_EMAIL_ENABLED === "1";
 
-        if (pdfProxyUrl && customerEmail) {
+        if (!ownInvoiceEmail) {
+            emailMessage = " | Fatura e-postasını NES imzadan sonra gönderecek";
+        } else if (pdfProxyUrl && customerEmail) {
             try {
                 const { sendInvoiceNotificationEmail } = await import("@/lib/email");
                 await sendInvoiceNotificationEmail({
