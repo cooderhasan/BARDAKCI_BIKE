@@ -712,6 +712,12 @@ export async function syncOrdersFromPttavm() {
 
         if (orderItemsPayload.length > 0) {
           const finalTotal = totalNetOrderAmount > 0 ? totalNetOrderAmount : Number(item.toplamTutar || item.totalPrice || 0);
+          // Kargoyu müşteri ödediyse PTT "kargoKimden"i boş bırakır, fatura tutarı ürün + kargoTutari olur.
+          // "tedarikci_indirimi"nde kargoyu mağaza üstlenir, kargoTutari faturaya girmez (panelde 10 siparişle doğrulandı).
+          const customerPaidShipping = Array.isArray(item.siparisUrunler) && item.siparisUrunler.length > 0
+            && item.siparisUrunler.every((line: any) => !line.kargoKimden);
+          const shippingCost = customerPaidShipping ? Math.max(0, Number(item.kargoTutari || 0)) : 0;
+          const orderTotal = Math.round((finalTotal + shippingCost) * 100) / 100;
           const cargoTrackingNumber = item.kargoBarkod ? String(item.kargoBarkod).trim() : null;
           const cargoCompany = "PTT Kargo";
           const shipmentPackageId = cargoTrackingNumber || orderNumber;
@@ -780,8 +786,9 @@ export async function syncOrdersFromPttavm() {
                   cargoTrackingNumber,
                   shipmentPackageId,
                   trackingUrl,
-                  total: finalTotal,
+                  total: orderTotal,
                   subtotal: finalTotal,
+                  shippingCost,
                   discountAmount: 0,
                   appliedDiscountRate: 0,
                   vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
@@ -810,9 +817,12 @@ export async function syncOrdersFromPttavm() {
             const statusChanged = existingOrder.status !== targetOrderStatus;
             const cargoChanged = cargoTrackingNumber && existingOrder.cargoTrackingNumber !== cargoTrackingNumber;
             const hasIncompleteItems = existingOrder.items.some(i => i.productName === "ePttAVM Ürünü" || Number(i.unitPrice) === 0);
+            // Faturası kesilmiş siparişin tutarı değişmez (kesilen faturayla sipariş ayrışmasın)
+            const invoiced = !!(existingOrder as any).invoiceNo;
+            const shippingMissing = !invoiced && Number(existingOrder.shippingCost || 0) !== shippingCost;
 
             const staleTrackingUrl = !!existingOrder.trackingUrl?.includes("gonderitakip.ptt.gov.tr");
-            if (statusChanged || cargoChanged || staleTrackingUrl || hasIncompleteItems || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
+            if (statusChanged || cargoChanged || staleTrackingUrl || hasIncompleteItems || shippingMissing || existingOrder.guestEmail === "pttavm@customer.com" || (existingOrder.shippingAddress as any)?.city === "Türkiye") {
               const { restoreOrderStock, handlePostOrderStockSync } = await import("@/lib/stock-sync");
 
               const affectedIds = await prisma.$transaction(async (tx) => {
@@ -830,9 +840,12 @@ export async function syncOrdersFromPttavm() {
                     cargoTrackingNumber: cargoTrackingNumber || existingOrder.cargoTrackingNumber,
                     shipmentPackageId: shipmentPackageId || existingOrder.shipmentPackageId,
                     trackingUrl: trackingUrl || (staleTrackingUrl ? null : existingOrder.trackingUrl),
-                    total: finalTotal,
-                    subtotal: finalTotal,
-                    vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
+                    ...(invoiced ? {} : {
+                      total: orderTotal,
+                      subtotal: finalTotal,
+                      shippingCost,
+                      vatAmount: Math.round(finalTotal * 0.2 * 100) / 100,
+                    }),
                     guestEmail: customerEmail,
                     shippingAddress: shippingAddressObj,
                     ...(hasIncompleteItems ? { items: { create: orderItemsPayload } } : {}),
