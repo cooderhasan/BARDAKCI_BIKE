@@ -4,7 +4,8 @@ import { requireAdmin } from "@/lib/admin-guard";
 import { prisma } from "@/lib/db";
 import { safeRevalidatePath as revalidatePath } from "@/lib/safe-revalidate";
 import { NesClient } from "@/services/nes/api";
-import type { UblReceiverInfo, UblInvoiceLine, UblInvoiceOptions } from "@/services/nes/ubl-builder";
+import type { UblReceiverInfo, UblInvoiceOptions } from "@/services/nes/ubl-builder";
+import { buildInvoiceLines } from "@/services/nes/invoice-lines";
 
 // ============= CONFIG YÖNETIMI =============
 
@@ -580,69 +581,6 @@ function buildReceiverInfo(order: any): UblReceiverInfo {
         email: user?.email || order.guestEmail || "",
         taxOffice: taxOffice || undefined,
     };
-}
-
-function buildInvoiceLines(order: any): UblInvoiceLine[] {
-    // Sipariş toplam ürün tutarı (KDV dahil, ürün indirimleri uygulanmış)
-    const itemsTotalInclTax = order.items.reduce((sum: number, item: any) => {
-        return sum + Number(item.lineTotal);
-    }, 0);
-
-    // Kargo ücreti (KDV dahil olarak DB'de saklanıyor)
-    const shippingCostInclTax = Number(order.shippingCost || 0);
-
-    // Havale veya sipariş geneli ek indirim hesapla:
-    // Sipariş totali (order.total) = ürünler + kargo - ek indirim
-    const orderTotal = Number(order.total);
-    const expectedWithoutDiscount = itemsTotalInclTax + shippingCostInclTax;
-    const extraDiscountAmountInclTax = Math.max(0, Math.round((expectedWithoutDiscount - orderTotal) * 100) / 100);
-
-    // Ek indirim oranı (ürünler üzerinden orantılı dağıtılır)
-    const extraDiscountRatio = (extraDiscountAmountInclTax > 0.01 && itemsTotalInclTax > 0)
-        ? extraDiscountAmountInclTax / itemsTotalInclTax
-        : 0;
-
-    const lines: UblInvoiceLine[] = order.items.map((item: any) => {
-        const quantity = item.quantity || 1;
-        // Kalemin müşteriye satılan KDV Dahil net tutarı (kampanya/ürün indirimi düşülmüş hali, örn: 11.500 TL)
-        const lineTotalInclTax = Number(item.lineTotal);
-
-        // Sipariş geneli ek indirim varsa (örn: havale indirimi), kaleme düşen payı uygula
-        const finalLineTotalInclTax = extraDiscountRatio > 0
-            ? lineTotalInclTax * (1 - extraDiscountRatio)
-            : lineTotalInclTax;
-
-        const vatRate = item.vatRate || 20;
-
-        // Gerçek KDV dahil birim fiyat (örn: 11.500 TL)
-        const unitPriceInclTax = quantity > 0 ? (finalLineTotalInclTax / quantity) : finalLineTotalInclTax;
-
-        // KDV hariç birim fiyat (örn: 9.583,33 TL)
-        const unitPriceExclTax = unitPriceInclTax / (1 + vatRate / 100);
-
-        return {
-            name: item.productName || item.product?.name || "Ürün",
-            quantity,
-            unitCode: "C62",
-            unitPrice: Math.round(unitPriceExclTax * 100) / 100,
-            taxRate: vatRate,
-        };
-    });
-
-    // Kargo ücreti ekle (KDV dahil → KDV hariç dönüşümü)
-    if (shippingCostInclTax > 0) {
-        const shippingVatRate = 20;
-        const shippingCostExclTax = shippingCostInclTax / (1 + shippingVatRate / 100);
-        lines.push({
-            name: "Kargo Ücreti",
-            quantity: 1,
-            unitCode: "C62",
-            unitPrice: Math.round(shippingCostExclTax * 100) / 100,
-            taxRate: shippingVatRate,
-        });
-    }
-
-    return lines;
 }
 
 /**

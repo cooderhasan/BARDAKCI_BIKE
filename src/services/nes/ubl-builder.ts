@@ -38,9 +38,11 @@ export interface UblInvoiceLine {
     name: string;
     quantity: number;
     unitCode: string;       // "C62" (Adet)
-    unitPrice: number;      // KDV hariç birim fiyat
+    unitPrice: number;      // KDV hariç birim fiyat (4 haneye kadar)
     taxRate: number;        // KDV oranı (20, 10, 1, 0)
     discountAmount?: number;
+    /** KDV dahil satır tutarı. Verilirse KDV farktan bulunur, fatura toplamı sipariş tutarıyla aynı çıkar */
+    inclTotal?: number;
 }
 
 export interface UblInvoiceOptions {
@@ -89,6 +91,12 @@ function toFixed2(num: number): string {
     return Number(num).toFixed(2);
 }
 
+function toFixed4(num: number): string {
+    return Number(num).toFixed(4);
+}
+
+const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
+
 function todayDate(): string {
     return new Date().toISOString().split("T")[0];
 }
@@ -123,13 +131,19 @@ export function buildUblInvoiceXml(
         const price = line.unitPrice;
         const vatRate = line.taxRate;
         const discount = line.discountAmount || 0;
-        const grossTotal = qty * price;
-        const lineTotal = grossTotal - discount;
-        const vatAmount = lineTotal * (vatRate / 100);
+        const hasInclTotal = typeof line.inclTotal === "number";
+        // Satır tutarları kuruşa yuvarlanır, fatura toplamı bu satırların toplamıdır (satır ve toplam ayrışmasın)
+        const lineTotal = hasInclTotal
+            ? round2(line.inclTotal! / (1 + vatRate / 100))
+            : round2(qty * price - discount);
+        const grossTotal = lineTotal + discount;
+        const vatAmount = hasInclTotal
+            ? round2(round2(line.inclTotal!) - lineTotal)
+            : round2(lineTotal * (vatRate / 100));
 
-        lineExtensionAmount += lineTotal;
-        totalTaxAmount += vatAmount;
-        totalAllowanceAmount += discount;
+        lineExtensionAmount = round2(lineExtensionAmount + lineTotal);
+        totalTaxAmount = round2(totalTaxAmount + vatAmount);
+        totalAllowanceAmount = round2(totalAllowanceAmount + discount);
 
         // AllowanceCharge bloğu (iskonto varsa)
         const allowanceXml = discount > 0.01 ? `
@@ -163,13 +177,13 @@ export function buildUblInvoiceXml(
                 <cbc:Name>${escapeXml(line.name)}</cbc:Name>
             </cac:Item>
             <cac:Price>
-                <cbc:PriceAmount currencyID="TRY">${toFixed2(price)}</cbc:PriceAmount>
+                <cbc:PriceAmount currencyID="TRY">${toFixed4(price)}</cbc:PriceAmount>
             </cac:Price>
         </cac:InvoiceLine>`;
     }).join("\n");
 
     const taxExclusiveAmount = lineExtensionAmount;
-    const taxInclusiveAmount = lineExtensionAmount + totalTaxAmount;
+    const taxInclusiveAmount = round2(lineExtensionAmount + totalTaxAmount);
     const allowanceTotalAmount = totalAllowanceAmount;
 
     // Gönderici (Supplier) isim/şahıs ayrımı
