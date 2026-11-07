@@ -97,12 +97,29 @@ function toFixed4(num: number): string {
 
 const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
-function todayDate(): string {
-    return new Date().toISOString().split("T")[0];
+// Sunucu saati UTC; fatura tarihi/saati Türkiye saatiyle yazılır (yoksa 3 saat geri, gece 00-03 arası önceki gün çıkıyordu)
+function istanbulNow(date: Date = new Date()): Record<string, string> {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Istanbul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+    }).formatToParts(date);
+    return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
-function currentTime(): string {
-    return new Date().toTimeString().split(" ")[0];
+export function todayDate(date?: Date): string {
+    const p = istanbulNow(date);
+    return `${p.year}-${p.month}-${p.day}`;
+}
+
+export function currentTime(date?: Date): string {
+    const p = istanbulNow(date);
+    return `${p.hour}:${p.minute}:${p.second}`;
 }
 
 // ============= MAIN BUILDER =============
