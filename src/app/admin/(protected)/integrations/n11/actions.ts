@@ -80,6 +80,15 @@ export async function testN11Connection() {
 
 import { N11Client } from "@/services/n11/api";
 
+/**
+ * N11 ürün oluşturma görevinde kalemi FAIL işaretleyip sebep olarak "işleme alındı / işlenmeye alındı" yazabiliyor;
+ * ürün sonradan N11'de açılıyor. Bu bir hata değil, bekleyen işlem sayılır (Entegra'da da aynı yanıt geliyor).
+ */
+function isN11QueuedReason(reason: string | null | undefined): boolean {
+    const text = String(reason || "").toLocaleLowerCase("tr-TR");
+    return /i[şs]le(me|nmeye)\s*al[ıi]n/.test(text);
+}
+
 import { addMarketplaceSyncJob } from "@/lib/queue/producer";
 
 export async function enqueueN11Sync() {
@@ -869,6 +878,10 @@ export async function sendProductToN11(
                         n11Status = "FAILED";
                         const firstFail = items.find((item: any) => failedStates.includes(String(item.status || "").toUpperCase()));
                         detailedError = firstFail?.reasons ? (Array.isArray(firstFail.reasons) ? firstFail.reasons.join(", ") : String(firstFail.reasons)) : (firstFail?.errorDescription || firstFail?.errorMessage || "Ürün hatası");
+                        if (isN11QueuedReason(detailedError)) {
+                            n11Status = "IN_PROGRESS";
+                            detailedError = null;
+                        }
                     }
                 }
 
@@ -937,7 +950,12 @@ export async function resolvePendingN11Tasks(pendingTasks?: any[]) {
     if (!pendingTasks) {
         pendingTasks = await (prisma as any).n11Task.findMany({
             where: {
-                status: { in: ["PENDING", "IN_PROGRESS"] },
+                OR: [
+                    { status: { in: ["PENDING", "IN_PROGRESS"] } },
+                    // "İşleme alındı" yanıtı önceden hata sayılıyordu; o görevler de yeniden kontrol edilir
+                    { status: "FAILED", errorMessage: { contains: "şleme al", mode: "insensitive" } },
+                    { status: "FAILED", errorMessage: { contains: "şlenmeye al", mode: "insensitive" } },
+                ],
                 createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
             },
             include: { n11Product: { include: { product: { select: { name: true, sku: true, id: true } } } } },
@@ -990,8 +1008,24 @@ export async function resolvePendingN11Tasks(pendingTasks?: any[]) {
                         n11Status = "FAILED";
                         const firstFail = items.find((item: any) => failedStates.includes(String(item.status || "").toUpperCase()));
                         detailedError = firstFail?.reasons ? (Array.isArray(firstFail.reasons) ? firstFail.reasons.join(", ") : String(firstFail.reasons)) : (firstFail?.errorDescription || firstFail?.errorMessage || "Ürün hatası");
+                        if (isN11QueuedReason(detailedError)) {
+                            n11Status = "IN_PROGRESS";
+                            detailedError = null;
+                        }
                     } else if (allItemsSuccess) {
                         n11Status = "COMPLETED";
+                    }
+                }
+
+                // Görev hâlâ bitmemiş görünüyorsa ürün N11'de açılmış mı stok koduyla sorulur (görev cevabı ürünün açılmasından geri kalabiliyor)
+                if (n11Status !== "COMPLETED" && n11Status !== "FAILED") {
+                    const stockCode = task.n11Product?.sellerCode || task.n11Product?.product?.sku;
+                    if (stockCode) {
+                        const found = await client.getProductByStockCode(stockCode);
+                        if (found.success && found.product) {
+                            n11Status = "COMPLETED";
+                            detailedError = null;
+                        }
                     }
                 }
 
@@ -1000,7 +1034,7 @@ export async function resolvePendingN11Tasks(pendingTasks?: any[]) {
                         where: { id: task.id },
                         data: { 
                             status: n11Status,
-                            errorMessage: detailedError || (n11Status === "PENDING" ? `N11 Durumu: ${rawStatus}` : null)
+                            errorMessage: detailedError || (n11Status === "PENDING" ? `N11 Durumu: ${rawStatus}` : n11Status === "IN_PROGRESS" ? "N11: ürün işleme alındı, açılması bekleniyor" : null)
                         }
                     });
 
