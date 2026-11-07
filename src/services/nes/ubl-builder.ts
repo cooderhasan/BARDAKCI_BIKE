@@ -284,14 +284,12 @@ export function buildUblInvoiceXml(
         </cac:Despatch>` : ""}
     </cac:Delivery>` : "";
 
-    // Ödeme şekli (internet satış bilgisi). UBL sırası: PaymentMeansCode, PaymentDueDate, PaymentChannelCode, InstructionNote
+    // Ödeme şekli kodu. Tarih/açıklama burada verilmez: NES PaymentDueDate'i başlıkta "Son Ödeme Tarihi",
+    // InstructionNote'u "Ödeme Notu" diye basıyor; ikisi de internet satış tablosunda (aşağıdaki referanslar) zaten var
     const payment = options.payment;
     const paymentMeansXml = payment ? `
     <cac:PaymentMeans>
-        <cbc:PaymentMeansCode>${payment.code}</cbc:PaymentMeansCode>${payment.date ? `
-        <cbc:PaymentDueDate>${payment.date}</cbc:PaymentDueDate>` : ""}${payment.channel ? `
-        <cbc:PaymentChannelCode>${escapeXml(payment.channel)}</cbc:PaymentChannelCode>` : ""}
-        <cbc:InstructionNote>${escapeXml(payment.note)}</cbc:InstructionNote>
+        <cbc:PaymentMeansCode>${payment.code}</cbc:PaymentMeansCode>
     </cac:PaymentMeans>` : "";
 
     // Notlar

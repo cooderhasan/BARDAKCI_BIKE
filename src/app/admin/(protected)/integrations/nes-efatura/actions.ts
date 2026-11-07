@@ -367,12 +367,16 @@ export async function sendOrderInvoiceNes(orderId: string) {
             payment: { ...paymentInfo, date: paymentDate },
             // Faturayı kargolarken kesiyoruz; ayrı gönderim tarihi tutulmadığı için fatura günü yazılır
             despatchDate: todayDate(),
-            notes: [
+            // e-Arşivde web adresi ve taşıyıcı internet satış tablosunda, "İrsaliye yerine geçer"i NES kendisi basıyor;
+            // not olarak da yazılınca faturada iki kez çıkıyordu. e-Faturada tablo yok, notlar kalır.
+            notes: useEInvoice ? [
                 `Sipariş No: ${order.orderNumber}`,
                 `Kaynak: ${purchaseHost}`,
                 cargoInfo?.name ? `Kargo Taşıyıcı: ${cargoInfo.name} (VKN: ${cargoInfo.taxId})` : "",
                 "İRSALİYE YERİNE GEÇER",
-            ].filter(Boolean),
+            ].filter(Boolean) : [
+                `Sipariş No: ${order.orderNumber}`,
+            ],
         };
 
         const invoiceType = useEInvoice ? "e-Fatura" : "e-Arşiv";
