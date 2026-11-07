@@ -63,10 +63,20 @@ export interface UblInvoiceOptions {
         taxId: string;
         name: string;
     };
-    /** İnternet satış adresi (örn: https://www.trendyol.com) */
+    /** İnternet satış adresi (örn: https://www.trendyol.com) — satıcının WebsiteURI'sine yazılır */
     purchaseUrl?: string;
-    /** Ödeme türü (örn: KREDIKARTI/BANKAKARTI, EFT/HAVALE) */
-    paymentMeans?: string;
+    /** Ödeme şekli (internet satışında zorunlu): 1 ödeme aracısı, 10 kapıda, 30 havale, 48 kart, 97 diğer */
+    payment?: {
+        code: "1" | "10" | "30" | "48" | "97";
+        /** Ödeme şekli açıklaması (örn: KREDIKARTI/BANKAKARTI) */
+        note: string;
+        /** Ödeme aracısı adı (pazaryeri) */
+        channel?: string;
+        /** Ödeme tarihi (YYYY-MM-DD) */
+        date?: string;
+    };
+    /** Gönderim tarihi (YYYY-MM-DD) */
+    despatchDate?: string;
 }
 
 export interface GeneratedInvoiceXml {
@@ -268,8 +278,21 @@ export function buildUblInvoiceXml(
                     <cbc:Name>Turkiye</cbc:Name>
                 </cac:Country>
             </cac:PostalAddress>
-        </cac:CarrierParty>
+        </cac:CarrierParty>${options.despatchDate ? `
+        <cac:Despatch>
+            <cbc:ActualDespatchDate>${options.despatchDate}</cbc:ActualDespatchDate>
+        </cac:Despatch>` : ""}
     </cac:Delivery>` : "";
+
+    // Ödeme şekli (internet satış bilgisi). UBL sırası: PaymentMeansCode, PaymentDueDate, PaymentChannelCode, InstructionNote
+    const payment = options.payment;
+    const paymentMeansXml = payment ? `
+    <cac:PaymentMeans>
+        <cbc:PaymentMeansCode>${payment.code}</cbc:PaymentMeansCode>${payment.date ? `
+        <cbc:PaymentDueDate>${payment.date}</cbc:PaymentDueDate>` : ""}${payment.channel ? `
+        <cbc:PaymentChannelCode>${escapeXml(payment.channel)}</cbc:PaymentChannelCode>` : ""}
+        <cbc:InstructionNote>${escapeXml(payment.note)}</cbc:InstructionNote>
+    </cac:PaymentMeans>` : "";
 
     // Notlar
     const notesXml = (options.notes || []).map(n => `    <cbc:Note>${escapeXml(n)}</cbc:Note>`).join("\n");
@@ -302,7 +325,8 @@ export function buildUblInvoiceXml(
 ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:DocumentCurrencyCode>
     <cbc:LineCountNumeric>${lines.length}</cbc:LineCountNumeric>${eArchiveReferenceXml}
     <cac:AccountingSupplierParty>
-        <cac:Party>
+        <cac:Party>${options.purchaseUrl ? `
+            <cbc:WebsiteURI>${escapeXml(options.purchaseUrl)}</cbc:WebsiteURI>` : ""}
             <cac:PartyIdentification>
                 <cbc:ID schemeID="${isSenderTckn ? "TCKN" : "VKN"}">${senderVkn}</cbc:ID>
             </cac:PartyIdentification>${senderPartyNameXml}
@@ -343,7 +367,7 @@ ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:Documen
                 <cbc:ElectronicMail>${escapeXml(receiver.email || "")}</cbc:ElectronicMail>
             </cac:Contact>${receiverPersonXml}
         </cac:Party>
-    </cac:AccountingCustomerParty>${deliveryXml}
+    </cac:AccountingCustomerParty>${deliveryXml}${paymentMeansXml}
     <cac:TaxTotal>
         <cbc:TaxAmount currencyID="TRY">${toFixed2(totalTaxAmount)}</cbc:TaxAmount>
         <cac:TaxSubtotal>
