@@ -63,10 +63,20 @@ export interface UblInvoiceOptions {
         taxId: string;
         name: string;
     };
-    /** İnternet satış adresi (örn: https://www.trendyol.com) */
+    /** İnternet satış adresi (örn: https://www.trendyol.com) — satıcının WebsiteURI'sine yazılır */
     purchaseUrl?: string;
-    /** Ödeme türü (örn: KREDIKARTI/BANKAKARTI, EFT/HAVALE) */
-    paymentMeans?: string;
+    /** Ödeme şekli (internet satışında zorunlu): 1 ödeme aracısı, 10 kapıda, 30 havale, 48 kart, 97 diğer */
+    payment?: {
+        code: "1" | "10" | "30" | "48" | "97";
+        /** NES değeri: KREDIKARTI/BANKAKARTI, EFT/HAVALE, KAPIDAODEME, ODEMEARACISI veya "DIGER – açıklama" */
+        note: string;
+        /** Ödeme aracısı adı (pazaryeri) */
+        channel?: string;
+        /** Ödeme tarihi (YYYY-MM-DD) */
+        date?: string;
+    };
+    /** Gönderim tarihi (YYYY-MM-DD) */
+    despatchDate?: string;
 }
 
 export interface GeneratedInvoiceXml {
@@ -97,12 +107,29 @@ function toFixed4(num: number): string {
 
 const round2 = (num: number) => Math.round((num + Number.EPSILON) * 100) / 100;
 
-function todayDate(): string {
-    return new Date().toISOString().split("T")[0];
+// Sunucu saati UTC; fatura tarihi/saati Türkiye saatiyle yazılır (yoksa 3 saat geri, gece 00-03 arası önceki gün çıkıyordu)
+function istanbulNow(date: Date = new Date()): Record<string, string> {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Istanbul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+    }).formatToParts(date);
+    return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
-function currentTime(): string {
-    return new Date().toTimeString().split(" ")[0];
+export function todayDate(date?: Date): string {
+    const p = istanbulNow(date);
+    return `${p.year}-${p.month}-${p.day}`;
+}
+
+export function currentTime(date?: Date): string {
+    const p = istanbulNow(date);
+    return `${p.hour}:${p.minute}:${p.second}`;
 }
 
 // ============= MAIN BUILDER =============
@@ -251,10 +278,42 @@ export function buildUblInvoiceXml(
                     <cbc:Name>Turkiye</cbc:Name>
                 </cac:Country>
             </cac:PostalAddress>
-        </cac:CarrierParty>
+        </cac:CarrierParty>${options.despatchDate ? `
+        <cac:Despatch>
+            <cbc:ActualDespatchDate>${options.despatchDate}</cbc:ActualDespatchDate>
+        </cac:Despatch>` : ""}
     </cac:Delivery>` : "";
 
+    // Ödeme şekli (internet satış bilgisi). UBL sırası: PaymentMeansCode, PaymentDueDate, PaymentChannelCode, InstructionNote
+    const payment = options.payment;
+    const paymentMeansXml = payment ? `
+    <cac:PaymentMeans>
+        <cbc:PaymentMeansCode>${payment.code}</cbc:PaymentMeansCode>${payment.date ? `
+        <cbc:PaymentDueDate>${payment.date}</cbc:PaymentDueDate>` : ""}${payment.channel ? `
+        <cbc:PaymentChannelCode>${escapeXml(payment.channel)}</cbc:PaymentChannelCode>` : ""}
+        <cbc:InstructionNote>${escapeXml(payment.note)}</cbc:InstructionNote>
+    </cac:PaymentMeans>` : "";
+
     // Notlar
+    // NES internet satış bilgileri (developertest.nes.com.tr/docs/earchive): NES "internet satışı" işaretini ve faturadaki
+    // "Bu satış internet üzerinden yapılmıştır" bölümünü bu AdditionalDocumentReference kodlarından oluşturur
+    const reference = (id: string, code: string) => `
+    <cac:AdditionalDocumentReference>
+        <cbc:ID>${escapeXml(id)}</cbc:ID>
+        <cbc:IssueDate>${issueDate}</cbc:IssueDate>
+        <cbc:DocumentTypeCode>${code}</cbc:DocumentTypeCode>
+    </cac:AdditionalDocumentReference>`;
+    const internetSaleXml = profileId === "EARSIVFATURA" && options.purchaseUrl ? [
+        reference(".", "IS_INTERNET"),
+        reference(options.purchaseUrl, "INT_WEBSITE"),
+        options.payment ? reference(options.payment.note, "INT_PAYMENT_METHOD") : "",
+        options.payment?.channel ? reference(options.payment.channel, "INT_PAYMENT_METHOD_NAME") : "",
+        options.payment?.date ? reference(options.payment.date, "INT_PAYMENTDATE") : "",
+        options.carrier?.name ? reference(options.carrier.name, "INT_TRANSPORTER") : "",
+        carrierVkn ? reference(carrierVkn, "INT_TRANSPORTER_REGISTER_NUMBER") : "",
+        options.despatchDate ? reference(options.despatchDate, "INT_TRANSPORT_DATE") : "",
+    ].join("") : "";
+
     const notesXml = (options.notes || []).map(n => `    <cbc:Note>${escapeXml(n)}</cbc:Note>`).join("\n");
 
     // E-Arşiv ek referansı
@@ -283,9 +342,10 @@ export function buildUblInvoiceXml(
     <cbc:IssueTime>${issueTime}</cbc:IssueTime>
     <cbc:InvoiceTypeCode>SATIS</cbc:InvoiceTypeCode>
 ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:DocumentCurrencyCode>
-    <cbc:LineCountNumeric>${lines.length}</cbc:LineCountNumeric>${eArchiveReferenceXml}
+    <cbc:LineCountNumeric>${lines.length}</cbc:LineCountNumeric>${eArchiveReferenceXml}${internetSaleXml}
     <cac:AccountingSupplierParty>
-        <cac:Party>
+        <cac:Party>${options.purchaseUrl ? `
+            <cbc:WebsiteURI>${escapeXml(options.purchaseUrl)}</cbc:WebsiteURI>` : ""}
             <cac:PartyIdentification>
                 <cbc:ID schemeID="${isSenderTckn ? "TCKN" : "VKN"}">${senderVkn}</cbc:ID>
             </cac:PartyIdentification>${senderPartyNameXml}
@@ -326,7 +386,7 @@ ${notesXml ? notesXml + "\n" : ""}    <cbc:DocumentCurrencyCode>TRY</cbc:Documen
                 <cbc:ElectronicMail>${escapeXml(receiver.email || "")}</cbc:ElectronicMail>
             </cac:Contact>${receiverPersonXml}
         </cac:Party>
-    </cac:AccountingCustomerParty>${deliveryXml}
+    </cac:AccountingCustomerParty>${deliveryXml}${paymentMeansXml}
     <cac:TaxTotal>
         <cbc:TaxAmount currencyID="TRY">${toFixed2(totalTaxAmount)}</cbc:TaxAmount>
         <cac:TaxSubtotal>
